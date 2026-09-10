@@ -15,25 +15,20 @@ export async function POST(request: NextRequest) {
   const { case: content, url } = await request.json();
 
   const client = await StagehandClient.create();
-  const abilities = new Abilities(client!);
-  const executor = new Executor(abilities);
-
   if (!client) {
     throw new Error('client 未初始化');
   }
 
+  const abilities = new Abilities(client);
+  const executor = new Executor(abilities);
+
   const page = await client?.createPage();
 
   try {
-    await page?.goto(url, {
-      waitUntil: 'domcontentloaded', // Don't wait for all resources
-      timeout: 15000,
-    });
-
     const compiler = new CaseCompiler();
     const cases = await compiler.compile(content);
 
-    executor.execute(cases);
+    await executor.execute(cases.steps, page);
 
     await page?.close();
 
@@ -46,9 +41,12 @@ export async function POST(request: NextRequest) {
     console.error(error);
     await client.dispose();
 
-    return NextResponse.json({
-      success: false,
-      message: error,
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        message: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }

@@ -1,30 +1,32 @@
-import { Abilities, Ability } from './abilities';
+import type { Page } from '@browserbasehq/stagehand';
+import { Abilities } from './abilities';
+import type { Ability } from './compiler';
 
 export class Executor {
   constructor(private abilities: Abilities) {}
 
-  execute(primitives: Ability[]) {
+  async execute(primitives: Ability[], page: Page) {
     for (const primitive of primitives) {
       switch (primitive.type) {
         case 'navigate': {
-          this.abilities.navigate('32', {
-            page: primitive.page,
+          await this.abilities.navigate(primitive.url, {
+            page,
           });
           break;
         }
-        case 'observe': {
-          this.abilities.observe('232', {
-            page: primitive.page,
+        case 'fill':
+          await this.abilities.fill(primitive.target.description, primitive.value, {
+            page,
           });
           break;
-        }
-        case 'fill': {
-          this.abilities;
+        case 'click':
+          await this.abilities.click(primitive.target.description, { page });
           break;
-        }
-        case 'click': {
+        case 'assert':
+          await this.abilities.assert(primitive.condition, { page });
           break;
-        }
+        case 'extract':
+          throw new Error(`尚未实现步骤类型：${primitive.type}（${primitive.id}）`);
       }
     }
   }

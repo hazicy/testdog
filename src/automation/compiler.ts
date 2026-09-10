@@ -1,4 +1,4 @@
-import z from 'zod';
+import z, { JSONType } from 'zod';
 import { generateWithOpenAI } from './stagehand/generate';
 
 export class CaseCompiler {
@@ -25,7 +25,7 @@ export class CaseCompiler {
         name: 'ability_plan',
         description:
           'A browser automation plan expressed using supported abilities.',
-        schema: z.toJSONSchema(AbilityPlanSchema),
+        schema: z.toJSONSchema(AbilityPlanSchema) as JSONType,
       },
     });
 
@@ -69,7 +69,9 @@ export const AssertAbilitySchema = z.object({
   condition: z.string(),
 });
 
-export const AbilitySchema = z.discriminatedUnion('type', [
+// Structured output schemas support anyOf, while discriminatedUnion emits oneOf.
+// The distinct type literals keep these union branches mutually exclusive.
+export const AbilitySchema = z.union([
   NavigateAbilitySchema,
   ClickAbilitySchema,
   FillAbilitySchema,

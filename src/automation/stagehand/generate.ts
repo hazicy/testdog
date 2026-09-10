@@ -63,7 +63,7 @@ type LLMGenerateParams = {
         type: 'json_schema';
         name: string;
         description?: string;
-        schema: Record<string, unknown>;
+        schema: JSONType;
       };
 };
 
