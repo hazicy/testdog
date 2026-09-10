@@ -1,161 +1,146 @@
-import type { Locator, Page } from '@browserbasehq/stagehand';
-import { z } from 'zod';
-import { StagehandClient } from '../stagehand/client';
-
-export interface AbilityOptions {
-  page: Page;
-  /**
-   * The DOM boundary established by the preceding step. When present, every
-   * semantic lookup and action is limited to this subtree.
-   */
-  locator?: Locator;
-}
-
-export class Abilities {
-  constructor(private stage: StagehandClient) {}
-
-  async assert(condition: string, options: AbilityOptions) {
-    const deadline = Date.now() + 30_000;
-    await options.page.waitForLoadState('domcontentloaded', 30_000);
-    let message = '等待页面满足条件超时';
-
-    while (Date.now() < deadline) {
-      const result = await this.stage.client.extract(
-        `Check whether this condition is satisfied on the current page: ${JSON.stringify(condition)}. ` +
-          'Use only evidence from the current page. If evidence is missing or ambiguous, return passed=false. ' +
-          'Explain the observed evidence in message. Do not assume a previous action succeeded.',
-        z.object({
-          passed: z.boolean(),
-          message: z.string(),
-        }),
-        {
-          page: options.page,
-          ...(options.locator ? { locator: options.locator } : {}),
-          cache: false,
-          timeout: deadline - Date.now(),
-        },
+import type { Locator, Page } from 'playwright';
+import type { Check, Step, Target } from '../compiler';
+export function locate(page: Page, target: Target): Locator {
+  const root = target.scope
+    ? page.locator(target.scope)
+    : page.locator(':root');
+  let result: Locator;
+  switch (target.kind) {
+    case 'role':
+      result = root.getByRole(
+        target.value as Parameters<Page['getByRole']>[0],
+        target.name ? { name: target.name, exact: true } : {},
       );
-      if (result.data.passed) return result;
-      message = result.data.message;
-
-      const remaining = deadline - Date.now();
-      if (remaining > 0) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, Math.min(1000, remaining)),
-        );
+      break;
+    case 'label':
+      result = root.getByLabel(target.value, { exact: true });
+      break;
+    case 'placeholder':
+      result = root.getByPlaceholder(target.value, { exact: true });
+      break;
+    case 'testId':
+      result = root.getByTestId(target.value);
+      break;
+    case 'css':
+      if (
+        !target.value ||
+        /xpath=|^\/|nth-child|nth-of-type/.test(target.value)
+      )
+        throw new Error('不接受绝对路径或 DOM 序号定位');
+      result = root.locator(target.value);
+      break;
+  }
+  return target.index < 0 ? result : result.nth(target.index);
+}
+export async function verify(page: Page, check: Check) {
+  if (
+    ['.*', '^.*$', '.+', '^.+$'].includes(check.urlPattern) ||
+    !check.visible.value ||
+    ['body', 'html', ':root', '*'].includes(check.visible.value)
+  )
+    throw new Error('断言需要具体 URL 与结果元素');
+  await page.waitForURL(
+    (url) => matchesUrl(new RegExp(check.urlPattern), url.href),
+    { timeout: 15000, waitUntil: 'domcontentloaded' },
+  );
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    if (await checkElements(page, check)) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(
+    `断言超时：${JSON.stringify(check)}；当前 URL：${page.url()}`,
+  );
+}
+export async function checkElements(
+  page: Page,
+  check: Check,
+): Promise<boolean> {
+  const locator = locate(page, check.visible);
+  const count = await locator.count();
+  const mode = check.mode ?? 'unique';
+  if (mode === 'unique' || mode === 'value') {
+    if (count !== 1) return false;
+    return (
+      (await locator.isVisible()) &&
+      (mode !== 'value' || (await locator.inputValue()) === check.inputValue)
+    );
+  }
+  const minimum = mode === 'count' ? check.minCount : 1;
+  if (minimum < 1) throw new Error('可见数量断言必须至少为 1');
+  let visible = 0;
+  for (let i = 0; i < count; i++) {
+    if ((await locator.nth(i).isVisible()) && ++visible >= minimum) return true;
+  }
+  return false;
+}
+export class Abilities {
+  async execute(
+    page: Page,
+    step: Step,
+    onTransition?: (transition: Step['transition']) => void,
+  ): Promise<Page> {
+    if (step.type === 'navigate')
+      await page.goto(step.value, { waitUntil: 'domcontentloaded' });
+    else if (step.type !== 'assert') {
+      const target = locate(page, step.target);
+      await target.waitFor({ state: 'visible' });
+      const source = page;
+      const beforeUrl = page.url();
+      const popups: Page[] = [];
+      const collect = (opened: Page) => {
+        popups.push(opened);
+      };
+      source.on('popup', collect);
+      try {
+        if (step.type === 'click') await target.click();
+        if (step.type === 'fill') {
+          await target.fill(step.value);
+        }
+        if (step.type === 'press') await target.press(step.value);
+        const deadline = Date.now() + 15000;
+        const earliest = Date.now() + 500;
+        while (Date.now() < deadline) {
+          if (popups.length > 1)
+            throw new Error('动作打开多个标签页，无法唯一确定目标');
+          page = popups[0] ?? source;
+          const ready =
+            page !== source ||
+            page.url() !== beforeUrl ||
+            Date.now() >= earliest + 1500;
+          if (ready && Date.now() >= earliest) break;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        await page.waitForLoadState('domcontentloaded');
+        const actual =
+          page !== source
+            ? 'popup'
+            : page.url() !== beforeUrl
+              ? 'navigation'
+              : 'same';
+        onTransition?.(actual);
+        console.info('动作后页面', {
+          predicted: step.transition,
+          actual,
+          url: page.url(),
+        });
+        return page;
+      } finally {
+        source.off('popup', collect);
       }
     }
-
-    throw new Error(`断言失败：${condition}；${message}`);
-  }
-
-  async navigate(url: string, options: AbilityOptions) {
-    const result = await options.page.goto(url, {
-      waitUntil: 'domcontentloaded',
-      timeout: 5000,
-    });
-
-    await new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve('');
-      }, 3000);
-    });
-
-    return result;
-  }
-
-  async observe(instruction: string, options: AbilityOptions) {
-    const result = await this.stage.client.observe(instruction, {
-      page: options.page,
-      ...(options.locator ? { locator: options.locator } : {}),
-      timeout: 5000,
-      // A recovery attempt must inspect the current DOM. Reusing an observation
-      // can point at an element that disappeared after the previous attempt.
-      cache: false,
-    });
-
-    if (result.data.length > 0 || !options.locator) return result;
-
-    // Menus and listboxes are often rendered through a portal outside their
-    // parent dialog. Retry only for a visible foreground overlay, never for a
-    // similarly named control on the background page.
-    return this.stage.client.observe(
-      `${instruction}\nThe active region contained no match. Search only a visible foreground popup, menu, listbox, or overlay that may be rendered outside the active region. Never return a background-page element.`,
-      {
-        page: options.page,
-        timeout: 5000,
-        cache: false,
-      },
-    );
-  }
-
-  async fill(description: string, value: string, options: AbilityOptions) {
-    const { data: actions } = await this.observe(
-      `Find the input to fill described as ${JSON.stringify(description)}.`,
-      options,
-    );
-    if (actions.length !== 1) {
-      throw new Error(`填写失败：期望唯一目标，找到 ${actions.length} 个候选`);
+    if (step.type === 'assert') {
+      if (!step.expected) throw new Error('显式断言缺少条件');
+      await verify(page, step.expected);
     }
-
-    const result = await this.stage.client.act(
-      { ...actions[0], method: 'fill', arguments: [value] },
-      {
-        page: options.page,
-        ...(options.locator ? { locator: options.locator } : {}),
-      },
-    );
-    if (!result.data.success) {
-      throw new Error(`填写失败：${result.data.message}`);
-    }
-    return result;
+    return page;
   }
-
-  async press(description: string, key: string, options: AbilityOptions) {
-    const { data: actions } = await this.observe(
-      `Find the actual input or focusable control described as ${JSON.stringify(description)} to receive a keyboard key. Return the input itself, never a suggestion or icon.`, options,
-    );
-    if (actions.length !== 1) throw new Error(`按键失败：期望唯一目标，找到 ${actions.length} 个候选`);
-    await options.page.locator(actions[0].selector).click();
-    await options.page.keyPress(key);
-  }
-
-  async pages() {
-    return this.stage.client.browser.context.pages();
-  }
-
-  async click(description: string, options: AbilityOptions) {
-    await new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve('');
-      }, 3000);
-    });
-
-    const { data: actions } = await this.observe(
-      `Click the element described as ${JSON.stringify(description)}. Return the semantic interactive control itself: a button, link, input, option, menuitem, or element with an interactive ARIA role. Never return a decorative or nested descendant such as svg, path, icon, span, div, or the button's icon. If this is a dropdown, listbox, or menu option, return the visible option itself (for example an option or menuitem) from the expanded list. Never return the combobox, input, trigger button, or a container when the requested target is an option.`,
-      options,
-    );
-    if (actions.length !== 1) {
-      throw new Error(`点击失败：期望唯一目标，找到 ${actions.length} 个候选`);
-    }
-
-    console.info('执行点击候选', {
-      requested: description,
-      observed: actions[0].description,
-      selector: actions[0].selector,
-    });
-
-    const result = await this.stage.client.act(
-      { ...actions[0], method: 'click', arguments: [] },
-      {
-        page: options.page,
-        ...(options.locator ? { locator: options.locator } : {}),
-      },
-    );
-    if (!result.data.success) {
-      throw new Error(`点击失败：${result.data.message}`);
-    }
-
-    return result;
+}
+function matchesUrl(pattern: RegExp, url: string) {
+  if (pattern.test(url)) return true;
+  try {
+    return pattern.test(decodeURI(url));
+  } catch {
+    return false;
   }
 }

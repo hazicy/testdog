@@ -6,11 +6,6 @@ import type {
 } from 'openai/resources/responses/responses';
 import type { JSONType } from 'zod/v4';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: 'https://api.deepseek.com',
-});
-
 type LLMContentBlock =
   | {
       type: 'text';
@@ -75,7 +70,7 @@ function parseStructuredContent(outputText: string): JSONType {
   const content = JSON.parse(outputText) as JSONType;
 
   // DeepSeek occasionally echoes the JSON Schema draft marker into an
-  // otherwise valid structured response. Stagehand parses against a strict
+  // otherwise valid structured response. Automation parses against a strict
   // Zod schema, where that transport artifact is not an output field.
   if (isJSONObject(content) && '$schema' in content) {
     const { $schema: _schema, ...result } = content;
@@ -107,14 +102,14 @@ function messageContent(
     }
 
     throw new TypeError(
-      `Stagehand tool content (${block.type}) is not supported by this JSON Schema-only adapter`,
+      `Automation tool content (${block.type}) is not supported by this JSON Schema-only adapter`,
     );
   });
 }
 
 export async function generateWithOpenAI(params: LLMGenerateParams) {
   if (params.responseFormat?.type !== 'json_schema') {
-    throw new TypeError('Stagehand only issues structured generations');
+    throw new TypeError('Automation only issues structured generations');
   }
 
   if (!isJSONObject(params.responseFormat.schema)) {
@@ -130,6 +125,10 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
     }),
   );
 
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: 'https://api.deepseek.com',
+  });
   const response = await openai.responses.create({
     model: 'deepseek-flash',
     instructions: params.systemPrompt,

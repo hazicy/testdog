@@ -1,52 +1,40 @@
-import { StagehandClient } from '@/automation/stagehand/client';
+import { chromium } from 'playwright';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { Executor } from '@/automation/executor';
-import { Abilities } from '@/automation/abilities';
-import { RollingCaseCompiler } from '@/automation/compiler';
-
-export async function GET(request: NextRequest) {
-  return NextResponse.json({});
-}
-
+import { listFlows, loadFlow, saveFlow } from '@/automation/flow-store';
+export const runtime = 'nodejs';
+const RequestSchema = z.union([
+    z.object({ mode: z.literal('replay'), flowId: z.string().uuid() }),
+    z.object({ mode: z.literal('record').default('record'), case: z.string().trim().min(1), url: z.string().url().optional() }),
+]);
+export async function GET() { return NextResponse.json({ flows: await listFlows() }); }
 export async function POST(request: NextRequest) {
-  const { case: content, url } = await request.json();
-  let client: StagehandClient | undefined;
-  let page: Awaited<ReturnType<StagehandClient['createPage']>> | undefined;
-
-  try {
-    client = await StagehandClient.create();
-    if (!client) {
-      throw new Error('浏览器客户端未初始化');
+    const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success)
+        return NextResponse.json({ success: false, message: parsed.error.message }, { status: 400 });
+    let browser;
+    try {
+        const input = parsed.data;
+        const flow = input.mode === 'replay' ? await loadFlow(input.flowId) : undefined;
+        browser = await chromium.launch({ headless: process.env.AUTOMATION_HEADLESS === 'true' });
+        const context = await browser.newContext();
+        context.setDefaultTimeout(15000);
+        const page = await context.newPage();
+        const executor = new Executor();
+        if (flow)
+            return NextResponse.json({ success: true, mode: 'replay', flowId: flow.id, ...await executor.replay(flow, page) });
+        if (input.mode !== 'record')
+            throw new Error('缺少流程');
+        const recorded = await executor.record(input.case, page, undefined, input.url);
+        await saveFlow(recorded);
+        return NextResponse.json({ success: true, mode: 'record', flowId: recorded.id, steps: recorded.steps.length });
     }
-
-    const abilities = new Abilities(client);
-    const executor = new Executor(abilities);
-    page = await client.createPage();
-
-    if (typeof url === 'string' && url.length > 0) {
-      await abilities.navigate(url, { page });
+    catch (error) {
+        console.error('用例执行失败', error);
+        return NextResponse.json({ success: false, message: String(error) }, { status: 500 });
     }
-
-    const compiler = new RollingCaseCompiler();
-    const result = await executor.executeRolling(content, page, compiler);
-
-    return NextResponse.json({
-      success: true,
-      steps: result.completedSteps.length,
-      reason: result.reason,
-    });
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    );
-  } finally {
-    await page?.close().catch(() => undefined);
-    await client?.dispose().catch(() => undefined);
-  }
+    finally {
+        await browser?.close();
+    }
 }
