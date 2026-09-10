@@ -65,7 +65,7 @@ export class Abilities {
   }
 
   async observe(instruction: string, options: AbilityOptions) {
-    return this.stage.client.observe(instruction, {
+    const result = await this.stage.client.observe(instruction, {
       page: options.page,
       ...(options.locator ? { locator: options.locator } : {}),
       timeout: 5000,
@@ -73,6 +73,20 @@ export class Abilities {
       // can point at an element that disappeared after the previous attempt.
       cache: false,
     });
+
+    if (result.data.length > 0 || !options.locator) return result;
+
+    // Menus and listboxes are often rendered through a portal outside their
+    // parent dialog. Retry only for a visible foreground overlay, never for a
+    // similarly named control on the background page.
+    return this.stage.client.observe(
+      `${instruction}\nThe active region contained no match. Search only a visible foreground popup, menu, listbox, or overlay that may be rendered outside the active region. Never return a background-page element.`,
+      {
+        page: options.page,
+        timeout: 5000,
+        cache: false,
+      },
+    );
   }
 
   async fill(description: string, value: string, options: AbilityOptions) {
@@ -97,6 +111,19 @@ export class Abilities {
     return result;
   }
 
+  async press(description: string, key: string, options: AbilityOptions) {
+    const { data: actions } = await this.observe(
+      `Find the actual input or focusable control described as ${JSON.stringify(description)} to receive a keyboard key. Return the input itself, never a suggestion or icon.`, options,
+    );
+    if (actions.length !== 1) throw new Error(`按键失败：期望唯一目标，找到 ${actions.length} 个候选`);
+    await options.page.locator(actions[0].selector).click();
+    await options.page.keyPress(key);
+  }
+
+  async pages() {
+    return this.stage.client.browser.context.pages();
+  }
+
   async click(description: string, options: AbilityOptions) {
     await new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -105,12 +132,18 @@ export class Abilities {
     });
 
     const { data: actions } = await this.observe(
-      `Click the element described as ${JSON.stringify(description)}.`,
+      `Click the element described as ${JSON.stringify(description)}. Return the semantic interactive control itself: a button, link, input, option, menuitem, or element with an interactive ARIA role. Never return a decorative or nested descendant such as svg, path, icon, span, div, or the button's icon. If this is a dropdown, listbox, or menu option, return the visible option itself (for example an option or menuitem) from the expanded list. Never return the combobox, input, trigger button, or a container when the requested target is an option.`,
       options,
     );
     if (actions.length !== 1) {
       throw new Error(`点击失败：期望唯一目标，找到 ${actions.length} 个候选`);
     }
+
+    console.info('执行点击候选', {
+      requested: description,
+      observed: actions[0].description,
+      selector: actions[0].selector,
+    });
 
     const result = await this.stage.client.act(
       { ...actions[0], method: 'click', arguments: [] },

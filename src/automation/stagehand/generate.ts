@@ -71,6 +71,20 @@ function isJSONObject(value: JSONType): value is Record<string, JSONType> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function parseStructuredContent(outputText: string): JSONType {
+  const content = JSON.parse(outputText) as JSONType;
+
+  // DeepSeek occasionally echoes the JSON Schema draft marker into an
+  // otherwise valid structured response. Stagehand parses against a strict
+  // Zod schema, where that transport artifact is not an output field.
+  if (isJSONObject(content) && '$schema' in content) {
+    const { $schema: _schema, ...result } = content;
+    return result;
+  }
+
+  return content;
+}
+
 function messageContent(
   content: LLMContentBlock | LLMContentBlock[],
 ): ResponseInputContent[] {
@@ -144,6 +158,6 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
 
     outputFormat: 'json_schema' as const,
 
-    structuredContent: JSON.parse(response.output_text),
+    structuredContent: parseStructuredContent(response.output_text),
   };
 }
