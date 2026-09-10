@@ -117,7 +117,7 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
   );
 
   const response = await openai.responses.create({
-    model: 'deepseek-v4-flash',
+    model: 'deepseek-flash',
     instructions: params.systemPrompt,
     input,
     temperature: params.temperature,

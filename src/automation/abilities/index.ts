@@ -1,9 +1,14 @@
-import { Page } from '@browserbasehq/stagehand';
+import type { Locator, Page } from '@browserbasehq/stagehand';
 import { z } from 'zod';
 import { StagehandClient } from '../stagehand/client';
 
-interface AbilityOptions {
+export interface AbilityOptions {
   page: Page;
+  /**
+   * The DOM boundary established by the preceding step. When present, every
+   * semantic lookup and action is limited to this subtree.
+   */
+  locator?: Locator;
 }
 
 export class Abilities {
@@ -23,7 +28,12 @@ export class Abilities {
           passed: z.boolean(),
           message: z.string(),
         }),
-        { page: options.page, cache: false, timeout: deadline - Date.now() },
+        {
+          page: options.page,
+          ...(options.locator ? { locator: options.locator } : {}),
+          cache: false,
+          timeout: deadline - Date.now(),
+        },
       );
       if (result.data.passed) return result;
       message = result.data.message;
@@ -57,8 +67,11 @@ export class Abilities {
   async observe(instruction: string, options: AbilityOptions) {
     return this.stage.client.observe(instruction, {
       page: options.page,
+      ...(options.locator ? { locator: options.locator } : {}),
       timeout: 5000,
-      cache: true,
+      // A recovery attempt must inspect the current DOM. Reusing an observation
+      // can point at an element that disappeared after the previous attempt.
+      cache: false,
     });
   }
 
@@ -73,7 +86,10 @@ export class Abilities {
 
     const result = await this.stage.client.act(
       { ...actions[0], method: 'fill', arguments: [value] },
-      { page: options.page },
+      {
+        page: options.page,
+        ...(options.locator ? { locator: options.locator } : {}),
+      },
     );
     if (!result.data.success) {
       throw new Error(`填写失败：${result.data.message}`);
@@ -92,10 +108,16 @@ export class Abilities {
       `Click the element described as ${JSON.stringify(description)}.`,
       options,
     );
+    if (actions.length !== 1) {
+      throw new Error(`点击失败：期望唯一目标，找到 ${actions.length} 个候选`);
+    }
 
     const result = await this.stage.client.act(
       { ...actions[0], method: 'click', arguments: [] },
-      { page: options.page },
+      {
+        page: options.page,
+        ...(options.locator ? { locator: options.locator } : {}),
+      },
     );
     if (!result.data.success) {
       throw new Error(`点击失败：${result.data.message}`);
