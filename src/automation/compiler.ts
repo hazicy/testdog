@@ -23,7 +23,7 @@ export const StepSchema = z.object({
 });
 export const FlowSchema = z.object({
   version: z.literal(1),
-  id: z.string().uuid(),
+  id: z.uuid(),
   goal: z.string().min(1),
   createdAt: z.string(),
   steps: z.array(StepSchema).min(1),

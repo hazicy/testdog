@@ -11,12 +11,14 @@ export async function saveFlow(flow: Flow) {
     { flag: 'wx', mode: 0o600 },
   );
 }
+
 export async function loadFlow(id: string) {
   const safeId = FlowSchema.shape.id.parse(id);
   return FlowSchema.parse(
     JSON.parse(await readFile(path.join(directory, `${safeId}.json`), 'utf8')),
   );
 }
+
 export async function listFlows() {
   const files = await readdir(directory).catch(
     (error: NodeJS.ErrnoException) => {
