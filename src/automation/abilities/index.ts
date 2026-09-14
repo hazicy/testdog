@@ -82,6 +82,12 @@ export class Abilities {
   ): Promise<Page> {
     if (step.type === 'navigate')
       await page.goto(step.value, { waitUntil: 'domcontentloaded' });
+    else if (step.type === 'wait') {
+      const milliseconds = Number(step.value);
+      if (!Number.isInteger(milliseconds) || milliseconds < 100 || milliseconds > 5000)
+        throw new Error('等待时间必须是 100 到 5000 毫秒之间的整数');
+      await page.waitForTimeout(milliseconds);
+    }
     else if (step.type !== 'assert') {
       const target = locate(page, step.target);
       await target.waitFor({ state: 'visible' });
