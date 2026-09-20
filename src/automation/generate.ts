@@ -126,11 +126,11 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
   );
 
   const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    baseURL: 'https://api.deepseek.com',
+    apiKey: process.env.STEP_FUN_API_KEY,
+    baseURL: 'https://api.stepfun.com/v1',
   });
   const response = await openai.responses.create({
-    model: 'deepseek-flash',
+    model: 'step-3.7-flash',
     instructions: params.systemPrompt,
     input,
     temperature: params.temperature,
