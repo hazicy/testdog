@@ -1,7 +1,7 @@
-import { z, type JSONType } from "zod";
-import { generateWithOpenAI } from "../ai/provider/openai";
+import { z, type JSONType } from 'zod';
+import { generateWithOpenAI } from '../ai/provider/openai';
 export const TargetSchema = z.object({
-  kind: z.enum(["role", "label", "placeholder", "testId", "css"]),
+  kind: z.enum(['role', 'label', 'placeholder', 'testId', 'css']),
   value: z.string(),
   name: z.string(),
   scope: z.string(),
@@ -10,15 +10,15 @@ export const TargetSchema = z.object({
 export const CheckSchema = z.object({
   urlPattern: z.string().min(1),
   visible: TargetSchema.nullable(),
-  mode: z.enum(["unique", "any", "count", "value"]).default("unique"),
+  mode: z.enum(['unique', 'any', 'count', 'value']).default('unique'),
   minCount: z.number().int().nonnegative().default(1),
-  inputValue: z.string().default(""),
+  inputValue: z.string().default(''),
 });
 export const StepSchema = z.object({
-  type: z.enum(["navigate", "click", "fill", "press", "wait", "assert"]),
+  type: z.enum(['navigate', 'click', 'fill', 'press', 'wait', 'assert']),
   target: TargetSchema,
   value: z.string(),
-  transition: z.enum(["same", "navigation", "popup"]),
+  transition: z.enum(['same', 'navigation', 'popup']),
   expected: CheckSchema.nullable(),
 });
 export const AttentionSchema = z.object({
@@ -67,13 +67,13 @@ If startUrl is supplied, navigation to it is already handled; omit that initial 
 Never add waits, retries, restart loops or actions after the requested sequence is finished.`,
       messages: [
         {
-          role: "user",
-          content: { type: "text", text: JSON.stringify({ goal, startUrl }) },
+          role: 'user',
+          content: { type: 'text', text: JSON.stringify({ goal, startUrl }) },
         },
       ],
       responseFormat: {
-        type: "json_schema",
-        name: "case_intents",
+        type: 'json_schema',
+        name: 'case_intents',
         schema: z.toJSONSchema(schema) as JSONType,
       },
       temperature: 0,
@@ -86,19 +86,19 @@ Never add waits, retries, restart loops or actions after the requested sequence 
       systemPrompt: `Plan one browser action.返回下一步你想操作的 ref 和 动作`,
       messages: [
         {
-          role: "user",
-          content: { type: "text", text: JSON.stringify(input) },
+          role: 'user',
+          content: { type: 'text', text: JSON.stringify(input) },
         },
       ],
       temperature: 0,
       responseFormat: {
-        type: "json_schema",
-        name: "browser_step",
+        type: 'json_schema',
+        name: 'browser_step',
         schema: z.toJSONSchema(Decision) as JSONType,
       },
     });
 
-    console.log("response", response.structuredContent);
+    console.log('response', response.structuredContent);
 
     return Decision.parse(response.structuredContent);
   }

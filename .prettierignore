@@ -1,0 +1,12 @@
+# Dependencies and generated output
+node_modules/
+.next/
+out/
+build/
+.pnpm-store/
+coverage/
+*.tsbuildinfo
+
+# Lockfiles are machine-generated.
+package-lock.json
+pnpm-lock.yaml

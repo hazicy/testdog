@@ -1,4 +1,4 @@
-import { Page } from "playwright";
+import { Page } from 'playwright';
 
 type AriaNode = {
   role: string;
@@ -13,12 +13,12 @@ export class Observer {
   constructor() {}
 
   async observe(page: Page) {
-    const tree = (await page.locator("body").ariaSnapshotJSON({
-      mode: "ai",
+    const tree = (await page.locator('body').ariaSnapshotJSON({
+      mode: 'ai',
     })) as AriaNode[];
 
-    const rawTree = await page.locator("body").ariaSnapshot({
-      mode: "ai",
+    const rawTree = await page.locator('body').ariaSnapshot({
+      mode: 'ai',
     });
 
     console.dir(tree, { depth: null, colors: true });

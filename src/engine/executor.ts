@@ -1,8 +1,8 @@
-import { randomUUID } from "node:crypto";
-import type { Page } from "playwright";
-import { Abilities } from "./abilities";
-import { RollingCaseCompiler, type Flow, type Step } from "./compiler";
-import { Observer } from "./observer";
+import { randomUUID } from 'node:crypto';
+import type { Page } from 'playwright';
+import { Abilities } from './abilities';
+import { RollingCaseCompiler, type Flow, type Step } from './compiler';
+import { Observer } from './observer';
 
 export class Executor {
   constructor(
@@ -10,11 +10,7 @@ export class Executor {
     private observer = new Observer(),
   ) {}
 
-  async record(
-    goal: string,
-    page: Page,
-    planner = new RollingCaseCompiler(),
-  ): Promise<Flow> {
+  async record(goal: string, page: Page, planner = new RollingCaseCompiler()): Promise<Flow> {
     const steps: Step[] = [];
 
     while (true) {
@@ -34,10 +30,14 @@ export class Executor {
 
       const ref = step.target.value;
 
-      if (step.type === "click") {
-        const aiLocator = page.locator(`aria-ref=${ref}`);
+      if (step.type === 'click') {
+        const refLocator = page.locator(`aria-ref=${ref}`);
 
-        const normalized = await aiLocator.normalize();
+        if (!refLocator) {
+          throw new Error(`Unable to find element with aria-ref="${ref}"`);
+        }
+
+        const normalized = await refLocator.normalize();
 
         await normalized.click();
 

@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { Executor } from "@/automation/executor";
+import { Executor } from "@/engine/executor";
 export const runtime = "nodejs";
 const RequestSchema = z.union([
   z.object({ mode: z.literal("replay"), flowId: z.string().uuid() }),
@@ -36,12 +36,7 @@ export async function POST(request: NextRequest) {
     const page = await context.newPage();
     const executor = new Executor();
     if (input.mode !== "record") throw new Error("缺少流程");
-    const recorded = await executor.record(
-      input.case,
-      page,
-      undefined,
-      input.url,
-    );
+    const recorded = await executor.record(input.case, page, undefined);
     return NextResponse.json({
       success: true,
       mode: "record",
