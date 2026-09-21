@@ -1,9 +1,10 @@
-import { chromium } from 'playwright';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Executor } from '@/engine/executor';
 import { BrowserClient } from '@/engine/browser';
+
 export const runtime = 'nodejs';
+
 const RequestSchema = z.union([
   z.object({ mode: z.literal('replay'), flowId: z.string().uuid() }),
   z.object({
@@ -21,7 +22,9 @@ export async function POST(request: NextRequest) {
   const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
     return NextResponse.json({ success: false, message: parsed.error.message }, { status: 400 });
+
   let browser;
+
   try {
     const input = parsed.data;
     const browserClient = await BrowserClient.create();
@@ -32,6 +35,7 @@ export async function POST(request: NextRequest) {
     const executor = new Executor();
     if (input.mode !== 'record') throw new Error('缺少流程');
     const recorded = await executor.record(input.case, page, undefined);
+
     return NextResponse.json({
       success: true,
       mode: 'record',
