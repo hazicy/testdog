@@ -1,5 +1,5 @@
 import { z, type JSONType } from "zod";
-import { generateWithOpenAI } from "./generate";
+import { generateWithOpenAI } from "../llm/generate";
 export const TargetSchema = z.object({
   kind: z.enum(["role", "label", "placeholder", "testId", "css"]),
   value: z.string(),

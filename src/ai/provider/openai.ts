@@ -1,37 +1,37 @@
-import OpenAI from 'openai';
+import OpenAI from "openai";
 
 import type {
   ResponseInputContent,
   ResponseInputItem,
-} from 'openai/resources/responses/responses';
-import type { JSONType } from 'zod/v4';
+} from "openai/resources/responses/responses";
+import type { JSONType } from "zod/v4";
 
 type LLMContentBlock =
   | {
-      type: 'text';
+      type: "text";
       text: string;
     }
   | {
-      type: 'image';
+      type: "image";
       data: string;
       mimeType: string;
     }
   | {
-      type: 'tool_use';
+      type: "tool_use";
       id: string;
       name: string;
       input: Record<string, JSONType>;
     }
   | {
-      type: 'tool_result';
+      type: "tool_result";
       toolUseId: string;
       content: Array<
         | {
-            type: 'text';
+            type: "text";
             text: string;
           }
         | {
-            type: 'image';
+            type: "image";
             data: string;
             mimeType: string;
           }
@@ -42,7 +42,7 @@ type LLMContentBlock =
 
 type LLMGenerateParams = {
   messages: Array<{
-    role: 'user' | 'assistant';
+    role: "user" | "assistant";
     content: LLMContentBlock | LLMContentBlock[];
   }>;
 
@@ -52,10 +52,10 @@ type LLMGenerateParams = {
 
   responseFormat?:
     | {
-        type: 'text';
+        type: "text";
       }
     | {
-        type: 'json_schema';
+        type: "json_schema";
         name: string;
         description?: string;
         schema: JSONType;
@@ -63,7 +63,7 @@ type LLMGenerateParams = {
 };
 
 function isJSONObject(value: JSONType): value is Record<string, JSONType> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function parseStructuredContent(outputText: string): JSONType {
@@ -72,7 +72,7 @@ function parseStructuredContent(outputText: string): JSONType {
   // DeepSeek occasionally echoes the JSON Schema draft marker into an
   // otherwise valid structured response. Automation parses against a strict
   // Zod schema, where that transport artifact is not an output field.
-  if (isJSONObject(content) && '$schema' in content) {
+  if (isJSONObject(content) && "$schema" in content) {
     const { $schema: _schema, ...result } = content;
     return result;
   }
@@ -86,18 +86,18 @@ function messageContent(
   const blocks = Array.isArray(content) ? content : [content];
 
   return blocks.map((block): ResponseInputContent => {
-    if (block.type === 'text') {
+    if (block.type === "text") {
       return {
-        type: 'input_text',
+        type: "input_text",
         text: block.text,
       };
     }
 
-    if (block.type === 'image') {
+    if (block.type === "image") {
       return {
-        type: 'input_image',
+        type: "input_image",
         image_url: `data:${block.mimeType};base64,${block.data}`,
-        detail: 'auto',
+        detail: "auto",
       };
     }
 
@@ -108,13 +108,13 @@ function messageContent(
 }
 
 export async function generateWithOpenAI(params: LLMGenerateParams) {
-  if (params.responseFormat?.type !== 'json_schema') {
-    throw new TypeError('Automation only issues structured generations');
+  if (params.responseFormat?.type !== "json_schema") {
+    throw new TypeError("Automation only issues structured generations");
   }
 
   if (!isJSONObject(params.responseFormat.schema)) {
     throw new TypeError(
-      'The JSON Schema response format requires an object schema',
+      "The JSON Schema response format requires an object schema",
     );
   }
 
@@ -127,35 +127,35 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
 
   const openai = new OpenAI({
     apiKey: process.env.STEP_FUN_API_KEY,
-    baseURL: 'https://api.stepfun.com/v1',
+    baseURL: "https://api.stepfun.com/v1",
   });
   const response = await openai.responses.create({
-    model: 'step-3.7-flash',
+    model: "step-3.7-flash",
     instructions: params.systemPrompt,
     input,
     temperature: params.temperature,
     text: {
       format: {
-        type: 'json_schema',
+        type: "json_schema",
         name: params.responseFormat.name,
         schema: params.responseFormat.schema,
         strict: true,
       },
     },
     reasoning: {
-      effort: 'none',
+      effort: "none",
     },
   });
 
   return {
-    role: 'assistant' as const,
+    role: "assistant" as const,
 
     content: {
-      type: 'text' as const,
+      type: "text" as const,
       text: response.output_text,
     },
 
-    outputFormat: 'json_schema' as const,
+    outputFormat: "json_schema" as const,
 
     structuredContent: parseStructuredContent(response.output_text),
   };
