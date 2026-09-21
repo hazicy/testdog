@@ -66,9 +66,6 @@ function isJSONObject(value: JSONType): value is Record<string, JSONType> {
 function parseStructuredContent(outputText: string): JSONType {
   const content = JSON.parse(outputText) as JSONType;
 
-  // DeepSeek occasionally echoes the JSON Schema draft marker into an
-  // otherwise valid structured response. Automation parses against a strict
-  // Zod schema, where that transport artifact is not an output field.
   if (isJSONObject(content) && '$schema' in content) {
     const { $schema: _schema, ...result } = content;
     return result;

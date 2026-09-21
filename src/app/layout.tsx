@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Play · 自动化测试工作台',
+  title: 'CaseForge',
   description: '管理测试用例，构建自动化测试流程。',
 };
 

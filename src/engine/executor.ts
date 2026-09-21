@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from 'playwright';
+import { jev } from '../ai/provider/jev';
 import { Abilities } from './abilities';
 import { RollingCaseCompiler, type Flow, type Step } from './compiler';
 import { Observer } from './observer';
@@ -14,7 +15,7 @@ export class Executor {
     const steps: Step[] = [];
 
     while (true) {
-      const { rawTree } = await this.observer.observe(page);
+      const { tree, rawTree } = await this.observer.observe(page);
 
       const decision = await planner.planNext({
         goal,
@@ -22,26 +23,24 @@ export class Executor {
         steps,
       });
 
-      const { step } = decision;
+      let { step } = decision;
 
       if (!step) {
         break;
       }
 
-      const ref = step.target.value;
-
       if (step.type === 'click') {
-        const refLocator = page.locator(`aria-ref=${ref}`);
-
-        if (!refLocator) {
-          throw new Error(`Unable to find element with aria-ref="${ref}"`);
-        }
-
-        const normalized = await refLocator.normalize();
-
-        await normalized.click();
-
-        console.log(normalized.toString());
+        const decision = await jev.decideClick({ goal, tree });
+        step = {
+          ...step,
+          target: {
+            kind: 'ariaRef',
+            value: decision.ref,
+            name: '',
+            scope: '',
+            index: -1,
+          },
+        };
       }
 
       page = await this.abilities.execute(page, step);
