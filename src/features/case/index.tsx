@@ -13,12 +13,7 @@ import {
   TextField,
 } from '@heroui/react';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  listFlows,
-  recordCase,
-  replayFlow,
-  type FlowSummary,
-} from './caseService';
+import { listFlows, recordCase, replayFlow, type FlowSummary } from './caseService';
 
 type Feedback = {
   tone: 'success' | 'error';
@@ -66,7 +61,11 @@ export function Case() {
       return;
     }
     if (startUrl && !/^https?:\/\//.test(startUrl.trim())) {
-      setFeedback({ tone: 'error', title: '起始地址无效', detail: '请填写以 http:// 或 https:// 开头的完整地址。' });
+      setFeedback({
+        tone: 'error',
+        title: '起始地址无效',
+        detail: '请填写以 http:// 或 https:// 开头的完整地址。',
+      });
       return;
     }
     setPending('record');
@@ -148,9 +147,7 @@ export function Case() {
               key={step}
               className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3"
             >
-              <span className="font-mono text-[10px] text-accent">
-                0{index + 1}
-              </span>
+              <span className="font-mono text-[10px] text-accent">0{index + 1}</span>
               <span className="text-[11px] text-muted">{step}</span>
             </li>
           ))}
@@ -191,21 +188,13 @@ export function Case() {
               isDisabled={busy}
             >
               <Label className="text-xs font-medium">起始地址（可选）</Label>
-              <Input
-                fullWidth
-                className="mt-2"
-                placeholder="https://www.bilibili.com/"
-              />
+              <Input fullWidth className="mt-2" placeholder="https://www.bilibili.com/" />
             </TextField>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-[11px] leading-relaxed text-muted">
                 录制需要模型密钥，会真实打开浏览器；回放不调用模型。
               </p>
-              <Button
-                type="submit"
-                variant="primary"
-                isDisabled={busy || !flowText.trim()}
-              >
+              <Button type="submit" variant="primary" isDisabled={busy || !flowText.trim()}>
                 {pending === 'record' ? (
                   <>
                     <Spinner size="sm" aria-label="录制中" />
@@ -231,9 +220,7 @@ export function Case() {
           }`}
         >
           <p className="font-medium">{feedback.title}</p>
-          <p className="mt-1 break-all text-xs leading-relaxed text-muted">
-            {feedback.detail}
-          </p>
+          <p className="mt-1 break-all text-xs leading-relaxed text-muted">{feedback.detail}</p>
         </Surface>
       )}
 
@@ -265,9 +252,7 @@ export function Case() {
           ) : listError ? (
             <EmptyState className="flex min-h-40 flex-col items-center justify-center px-5 py-10 text-center">
               <h3 className="text-base font-medium">无法读取流程</h3>
-              <p className="mt-3 break-all text-xs leading-6 text-muted">
-                {listError}
-              </p>
+              <p className="mt-3 break-all text-xs leading-6 text-muted">{listError}</p>
             </EmptyState>
           ) : flows.length === 0 ? (
             <EmptyState className="flex min-h-60 flex-col items-center justify-center px-5 py-10 text-center">
