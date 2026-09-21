@@ -1,9 +1,7 @@
 import { Browser, chromium } from 'playwright';
 
 export class BrowserClient {
-  private browser: Browser;
-
-  constructor(browser: Browser) {
+  constructor(private browser: Browser) {
     this.browser = browser;
   }
 
