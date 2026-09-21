@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { Avatar, Breadcrumbs, Button, Surface } from '@heroui/react';
-import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { Avatar, Breadcrumbs, Button, Surface } from "@heroui/react";
+import Link from "next/link";
+import { useState, type ReactNode } from "react";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div
-      className={`grid min-h-dvh grid-cols-[64px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[76px_minmax(0,1fr)]' : 'md:grid-cols-[236px_minmax(0,1fr)]'}`}
+      className={`grid min-h-dvh grid-cols-[64px_minmax(0,1fr)] ${collapsed ? "md:grid-cols-[76px_minmax(0,1fr)]" : "md:grid-cols-[236px_minmax(0,1fr)]"}`}
     >
       <a
         className="sr-only z-50 rounded bg-surface p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -36,10 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {!collapsed && <span className="hidden md:inline">play.</span>}
         </Link>
         <div className="my-8 flex items-center gap-3 px-2">
-          <Avatar
-            size="sm"
-            aria-label="默认工作区"
-          >
+          <Avatar size="sm" aria-label="默认工作区">
             <Avatar.Fallback>P</Avatar.Fallback>
           </Avatar>
           {!collapsed && (
@@ -49,10 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           )}
         </div>
-        <nav
-          id="workspace-navigation"
-          aria-label="主导航"
-        >
+        <nav id="workspace-navigation" aria-label="主导航">
           {!collapsed && (
             <p className="mb-3 hidden px-3 text-[10px] tracking-widest text-muted md:block">
               WORKSPACE
@@ -65,10 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             title="测试用例"
             className="flex min-h-11 items-center gap-3 rounded-lg bg-accent/10 px-3 text-accent hover:bg-accent/15"
           >
-            <span
-              className="text-xl"
-              aria-hidden="true"
-            >
+            <span className="text-xl" aria-hidden="true">
               ▤
             </span>
             {!collapsed && (
@@ -92,13 +83,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             onPress={() => setCollapsed(!collapsed)}
             aria-expanded={!collapsed}
             aria-controls="workspace-navigation"
-            aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
+            aria-label={collapsed ? "展开侧栏" : "收起侧栏"}
           >
-            <span
-              className="text-xl"
-              aria-hidden="true"
-            >
-              {collapsed ? '»' : '«'}
+            <span className="text-xl" aria-hidden="true">
+              {collapsed ? "»" : "«"}
             </span>
             {!collapsed && <span className="text-xs">收起侧栏</span>}
           </Button>
@@ -117,10 +105,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="hidden text-xs text-muted sm:inline">
               本地工作区
             </span>
-            <Avatar
-              size="sm"
-              aria-label="默认工作区"
-            >
+            <Avatar size="sm" aria-label="默认工作区">
               <Avatar.Fallback>P</Avatar.Fallback>
             </Avatar>
           </div>

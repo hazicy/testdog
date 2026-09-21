@@ -14,7 +14,6 @@ export class Executor {
     goal: string,
     page: Page,
     planner = new RollingCaseCompiler(),
-    startUrl?: string,
   ): Promise<Flow> {
     const steps: Step[] = [];
 
@@ -38,10 +37,9 @@ export class Executor {
       if (step.type === "click") {
         const aiLocator = page.locator(`aria-ref=${ref}`);
 
-        await aiLocator.click();
-
-        // 更关键：把它转换成稳定 locator
         const normalized = await aiLocator.normalize();
+
+        await normalized.click();
 
         console.log(normalized.toString());
       }
