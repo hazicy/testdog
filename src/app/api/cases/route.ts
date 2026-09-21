@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Executor } from '@/engine/executor';
+import { BrowserClient } from '@/engine/browser';
 export const runtime = 'nodejs';
 const RequestSchema = z.union([
   z.object({ mode: z.literal('replay'), flowId: z.string().uuid() }),
@@ -23,9 +24,8 @@ export async function POST(request: NextRequest) {
   let browser;
   try {
     const input = parsed.data;
-    browser = await chromium.launch({
-      headless: process.env.AUTOMATION_HEADLESS === 'true',
-    });
+    const browserClient = await BrowserClient.create();
+    browser = browserClient.getBrowser();
     const context = await browser.newContext();
     context.setDefaultTimeout(15000);
     const page = await context.newPage();
