@@ -44,7 +44,10 @@ const Decision = z.object({
   step: StepSchema.extend({ expected: CheckSchema.nullable() }).nullable(),
   attention: AttentionSchema.nullable(),
 });
+
 export class RollingCaseCompiler {
+  constructor() {}
+
   async compileIntents(goal: string, startUrl?: string) {
     const schema = z.object({
       intents: z
@@ -81,9 +84,12 @@ Never add waits, retries, restart loops or actions after the requested sequence 
     return schema.parse(response.structuredContent).intents;
   }
 
+  // 先识别全局意图，规划整个路径？
+  // 还是一步一步规划，只传入期望整体，递归展开？
   async planNext(input: { goal: string; tree: string; steps: Step[] }) {
     const response = await generateWithOpenAI({
-      systemPrompt: `Plan one browser action.返回下一步你想操作的 ref 和 动作`,
+      systemPrompt: `Plan one browser action，
+      有以下原子能力可选, navigate, click, fill, press，如果是 click 和 fill 和 press，返回 kind 为 ariaRef 并指定对应的值`,
       messages: [
         {
           role: 'user',
