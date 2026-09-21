@@ -80,6 +80,7 @@ Never add waits, retries, restart loops or actions after the requested sequence 
     });
     return schema.parse(response.structuredContent).intents;
   }
+
   async planNext(input: { goal: string; tree: string; steps: Step[] }) {
     const response = await generateWithOpenAI({
       systemPrompt: `Plan one browser action.返回下一步你想操作的 ref 和 动作`,
