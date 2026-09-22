@@ -28,11 +28,11 @@ export class Executor {
     const steps: Step[] = [];
 
     while (true) {
-      const { rawTree } = await this.observer.observe(page);
+      const { tree } = await this.observer.observe(page);
 
       const decision = await this.plan({
         goal,
-        tree: rawTree,
+        tree,
         steps,
       });
 
@@ -60,7 +60,7 @@ export class Executor {
   }
 
   /** Plans the next browser action from the current observed page state. */
-  async plan(input: { goal: string; tree: string; steps: Step[] }) {
+  async plan(input: { goal: string; tree: Record<string, any>; steps: Step[] }) {
     const response = await generateWithOpenAI({
       systemPrompt: `Plan one browser action，
       有以下原子能力可选, navigate, click, fill, press。如果是 click、fill 或 press，返回 kind 为 ariaRef；target.value 必须且只能是 ARIA ref token，例如 e18。绝不能返回 textbox "邮箱" [ref=e18] 等完整节点描述。`,
@@ -95,8 +95,7 @@ export class Executor {
       const target = this.locate(page, step.target);
       await target.click();
 
-      await page.waitForTimeout(3000);
-      // await this.waitForStable(page);
+      await this.waitForStable(page);
     } else if (step.type === 'fill') {
       const target = this.locate(page, step.target);
       await target.fill(step.value);
@@ -104,8 +103,7 @@ export class Executor {
       const target = this.locate(page, step.target);
       await target.press(step.value);
 
-      await page.waitForTimeout(3000);
-      // await this.waitForStable(page);
+      await this.waitForStable(page);
     }
 
     return page;
