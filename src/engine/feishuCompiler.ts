@@ -1,3 +1,0 @@
-class FeishuCompiler {
-  constructor() {}
-}

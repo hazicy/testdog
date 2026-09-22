@@ -1,19 +1,36 @@
 import { randomUUID } from 'node:crypto';
 import type { Locator, Page } from 'playwright';
-import { RollingCaseCompiler, Target, type Flow, type Step } from './compiler';
+import { type JSONType, z } from 'zod';
+import { jev, type ClickDecision } from '../ai/provider/jev';
+import { generateWithOpenAI } from '../ai/provider/openai';
+import {
+  AttentionSchema,
+  CheckSchema,
+  StepSchema,
+  type Flow,
+  type Step,
+  type Target,
+} from './compiler';
 import { Observer } from './observer';
 import { logger } from '@/lib/logger';
+
+const DecisionSchema = z.object({
+  done: z.boolean(),
+  reason: z.string(),
+  step: StepSchema.extend({ expected: CheckSchema.nullable() }).nullable(),
+  attention: AttentionSchema.nullable(),
+});
 
 export class Executor {
   constructor(private observer = new Observer()) {}
 
-  async record(goal: string, page: Page, planner = new RollingCaseCompiler()): Promise<Flow> {
+  async record(goal: string, page: Page): Promise<Flow> {
     const steps: Step[] = [];
 
     while (true) {
       const { rawTree } = await this.observer.observe(page);
 
-      const decision = await planner.planNext({
+      const decision = await this.plan({
         goal,
         tree: rawTree,
         steps,
@@ -42,6 +59,34 @@ export class Executor {
     };
   }
 
+  /** Plans the next browser action from the current observed page state. */
+  async plan(input: { goal: string; tree: string; steps: Step[] }) {
+    const response = await generateWithOpenAI({
+      systemPrompt: `Plan one browser action，
+      有以下原子能力可选, navigate, click, fill, press。如果是 click、fill 或 press，返回 kind 为 ariaRef；target.value 必须且只能是 ARIA ref token，例如 e18。绝不能返回 textbox "邮箱" [ref=e18] 等完整节点描述。`,
+      messages: [
+        {
+          role: 'user',
+          content: { type: 'text', text: JSON.stringify(input) },
+        },
+      ],
+      temperature: 0,
+      responseFormat: {
+        type: 'json_schema',
+        name: 'browser_step',
+        schema: z.toJSONSchema(DecisionSchema) as JSONType,
+      },
+    });
+
+    return DecisionSchema.parse(response.structuredContent);
+  }
+
+  async planExperiment(
+    input: Omit<Parameters<typeof jev.decideClick>[0], 'steps'> & { steps: readonly Step[] },
+  ): Promise<ClickDecision> {
+    return jev.decideClick(input);
+  }
+
   async execute(page: Page, step: Step): Promise<Page> {
     // 执行操作
     if (step.type === 'navigate') {
@@ -50,7 +95,8 @@ export class Executor {
       const target = this.locate(page, step.target);
       await target.click();
 
-      await this.waitForStable(page);
+      await page.waitForTimeout(3000);
+      // await this.waitForStable(page);
     } else if (step.type === 'fill') {
       const target = this.locate(page, step.target);
       await target.fill(step.value);
@@ -58,7 +104,8 @@ export class Executor {
       const target = this.locate(page, step.target);
       await target.press(step.value);
 
-      await this.waitForStable(page);
+      await page.waitForTimeout(3000);
+      // await this.waitForStable(page);
     }
 
     return page;

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const page = await context.newPage();
     const executor = new Executor();
     if (input.mode !== 'record') throw new Error('缺少流程');
-    const recorded = await executor.record(input.case, page, undefined);
+    const recorded = await executor.record(input.case, page);
 
     return NextResponse.json({
       success: true,
