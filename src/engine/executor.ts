@@ -26,6 +26,7 @@ export class Executor {
       }
 
       page = await this.execute(page, step);
+
       await page.waitForTimeout(1000);
       steps.push(step);
     }
