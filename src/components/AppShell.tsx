@@ -27,12 +27,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="flex items-center gap-3 px-2 text-3xl font-bold tracking-tight"
           aria-label="Play 首页"
         >
-          <span
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-sm text-accent-foreground"
-            aria-hidden="true"
-          >
-            ▶
-          </span>
           {!collapsed && <span className="hidden md:inline">play.</span>}
         </Link>
         <div className="my-8 flex items-center gap-3 px-2">
@@ -59,9 +53,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             title="测试用例"
             className="flex min-h-11 items-center gap-3 rounded-lg bg-accent/10 px-3 text-accent hover:bg-accent/15"
           >
-            <span className="text-xl" aria-hidden="true">
-              ▤
-            </span>
             {!collapsed && <span className="hidden text-sm font-medium md:inline">测试用例</span>}
           </Link>
         </nav>

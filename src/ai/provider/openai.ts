@@ -117,6 +117,7 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
     apiKey: process.env.STEP_FUN_API_KEY,
     baseURL: 'https://api.stepfun.com/step_plan/v1',
   });
+
   const response = await openai.responses.create({
     model: 'step-3.7-flash',
     instructions: params.systemPrompt,

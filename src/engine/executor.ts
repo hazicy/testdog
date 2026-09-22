@@ -30,7 +30,6 @@ export class Executor {
 
       page = await this.execute(page, step);
 
-      await page.waitForTimeout(3000);
       steps.push(step);
     }
 
@@ -45,17 +44,22 @@ export class Executor {
   }
 
   async execute(page: Page, step: Step): Promise<Page> {
+    // 执行操作
     if (step.type === 'navigate') {
       await page.goto(step.value, { waitUntil: 'domcontentloaded' });
     } else if (step.type === 'click') {
       const target = this.locate(page, step.target);
       await target.click();
+
+      await this.waitForStable(page);
     } else if (step.type === 'fill') {
       const target = this.locate(page, step.target);
       await target.fill(step.value);
     } else if (step.type === 'press') {
       const target = this.locate(page, step.target);
       await target.press(step.value);
+
+      await this.waitForStable(page);
     }
 
     return page;
@@ -91,5 +95,41 @@ export class Executor {
         break;
     }
     return target.index < 0 ? result : result.nth(target.index);
+  }
+
+  // 等待界面稳定
+  private async waitForStable(page: Page, timeout: number = 5000) {
+    Promise.race([
+      // 等待 DOM 稳定
+      await page.waitForLoadState('domcontentloaded', {
+        timeout,
+      }),
+      // 等待 URL 变化
+      await page.waitForURL(() => true, {
+        timeout,
+      }),
+      await this.waitForDomQuiet(page, timeout),
+    ]);
+  }
+
+  private async waitForDomQuiet(page: Page, timeout: number, quietMs = 300): Promise<void> {
+    try {
+      await page.waitForFunction(
+        (quietMs) => {
+          return new Promise((resolve) => {
+            let timer = setTimeout(() => resolve(true), quietMs);
+            const observer = new MutationObserver(() => {
+              clearTimeout(timer);
+              timer = setTimeout(() => resolve(true), quietMs);
+            });
+            observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+          });
+        },
+        quietMs,
+        { timeout },
+      );
+    } catch {
+      // 超时就算了,不阻塞主流程
+    }
   }
 }

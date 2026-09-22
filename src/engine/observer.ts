@@ -25,7 +25,7 @@ export class Observer {
   }
 
   transformToJev(tree: AriaNode[]) {
-    return tree;
+    return true;
   }
 
   filter(tree: AriaNode[]) {}
