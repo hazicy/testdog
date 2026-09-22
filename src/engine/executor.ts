@@ -64,6 +64,7 @@ export class Executor {
   locate(page: Page, target: Target): Locator {
     const root = target?.scope ? page.locator(target?.scope) : page.locator(':root');
     let result: Locator;
+
     switch (target.kind) {
       case 'role':
         result = root.getByRole(

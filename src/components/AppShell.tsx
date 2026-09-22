@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { Avatar, Breadcrumbs, Button, Surface } from "@heroui/react";
-import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { Avatar, Breadcrumbs, Button, Surface } from '@heroui/react';
+import Link from 'next/link';
+import { useState, type ReactNode } from 'react';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div
-      className={`grid min-h-dvh grid-cols-[64px_minmax(0,1fr)] ${collapsed ? "md:grid-cols-[76px_minmax(0,1fr)]" : "md:grid-cols-[236px_minmax(0,1fr)]"}`}
+      className={`grid min-h-dvh grid-cols-[64px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[76px_minmax(0,1fr)]' : 'md:grid-cols-[236px_minmax(0,1fr)]'}`}
     >
       <a
         className="sr-only z-50 rounded bg-surface p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -62,18 +62,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="text-xl" aria-hidden="true">
               ▤
             </span>
-            {!collapsed && (
-              <span className="hidden text-sm font-medium md:inline">
-                测试用例
-              </span>
-            )}
+            {!collapsed && <span className="hidden text-sm font-medium md:inline">测试用例</span>}
           </Link>
         </nav>
         <div className="mt-auto hidden md:block">
           {!collapsed && (
-            <p className="px-3 py-4 text-[10px] text-muted">
-              让每一次测试，都更简单。
-            </p>
+            <p className="px-3 py-4 text-[10px] text-muted">让每一次测试，都更简单。</p>
           )}
           <Button
             variant="ghost"
@@ -83,10 +77,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             onPress={() => setCollapsed(!collapsed)}
             aria-expanded={!collapsed}
             aria-controls="workspace-navigation"
-            aria-label={collapsed ? "展开侧栏" : "收起侧栏"}
+            aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
           >
             <span className="text-xl" aria-hidden="true">
-              {collapsed ? "»" : "«"}
+              {collapsed ? '»' : '«'}
             </span>
             {!collapsed && <span className="text-xs">收起侧栏</span>}
           </Button>
@@ -102,9 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Breadcrumbs.Item>测试用例</Breadcrumbs.Item>
           </Breadcrumbs>
           <div className="flex items-center gap-4">
-            <span className="hidden text-xs text-muted sm:inline">
-              本地工作区
-            </span>
+            <span className="hidden text-xs text-muted sm:inline">本地工作区</span>
             <Avatar size="sm" aria-label="默认工作区">
               <Avatar.Fallback>P</Avatar.Fallback>
             </Avatar>
