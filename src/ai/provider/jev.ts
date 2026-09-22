@@ -48,7 +48,11 @@ export class Jev {
   private client = new TypeSafeClient();
 
   /** 在本轮 AI ARIA 快照的候选元素中决定点击目标。 */
-  async decideClick(input: { goal: string; tree: AriaNode[] }): Promise<ClickDecision> {
+  async decideClick(input: {
+    goal: string;
+    tree: AriaNode[];
+    steps?: readonly object[];
+  }): Promise<ClickDecision> {
     const candidates = collectClickCandidates(input.tree);
     const refs = Object.keys(candidates);
 
@@ -56,10 +60,10 @@ export class Jev {
     if (refs.length === 1) return { type: 'click', ref: refs[0] };
 
     const response = await this.client.systemOne({
-      state: { goal: input.goal, candidates },
+      state: { goal: input.goal, steps: JSON.stringify(input.steps ?? []), candidates },
       questions: {
         target: choice(
-          '为完成 goal，应点击哪个候选元素？只选择能推进目标的元素；不要选择取消、关闭、登出、删除或其他破坏性操作，除非 goal 明确要求。',
+          '为完成 goal，应点击哪个候选元素？steps 是已经执行的步骤，应避免重复或回退这些操作。只选择能推进目标的元素；不要选择取消、关闭、登出、删除或其他破坏性操作，除非 goal 明确要求。',
           candidates,
         ),
       },

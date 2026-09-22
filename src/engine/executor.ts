@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import type { Locator, Page } from 'playwright';
-import { jev } from '../ai/provider/jev';
 import { RollingCaseCompiler, Target, type Flow, type Step } from './compiler';
 import { Observer } from './observer';
 import { logger } from '@/lib/logger';
@@ -12,7 +11,7 @@ export class Executor {
     const steps: Step[] = [];
 
     while (true) {
-      const { tree, rawTree } = await this.observer.observe(page);
+      const { rawTree } = await this.observer.observe(page);
 
       const decision = await planner.planNext({
         goal,

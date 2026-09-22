@@ -1,4 +1,5 @@
 import { z, type JSONType } from 'zod';
+import { jev, type ClickDecision } from '../ai/provider/jev';
 import { generateWithOpenAI } from '../ai/provider/openai';
 
 export const TargetSchema = z.object({
@@ -90,7 +91,7 @@ Never add waits, retries, restart loops or actions after the requested sequence 
   async planNext(input: { goal: string; tree: string; steps: Step[] }) {
     const response = await generateWithOpenAI({
       systemPrompt: `Plan one browser action，
-      有以下原子能力可选, navigate, click, fill, press，如果是 click 和 fill 和 press，返回 kind 为 ariaRef 并指定对应的值`,
+      有以下原子能力可选, navigate, click, fill, press。如果是 click、fill 或 press，返回 kind 为 ariaRef；target.value 必须且只能是 ARIA ref token，例如 e18。绝不能返回 textbox "邮箱" [ref=e18] 等完整节点描述。`,
       messages: [
         {
           role: 'user',
@@ -105,8 +106,16 @@ Never add waits, retries, restart loops or actions after the requested sequence 
       },
     });
 
-    console.log('response', response.structuredContent);
+    const decision = Decision.parse(response.structuredContent);
 
     return Decision.parse(response.structuredContent);
+  }
+
+  async planNextExperiment(
+    input: Omit<Parameters<typeof jev.decideClick>[0], 'steps'> & {
+      steps: readonly Step[];
+    },
+  ): Promise<ClickDecision> {
+    return jev.decideClick(input);
   }
 }

@@ -60,7 +60,8 @@ export function Case() {
       setFeedback({ tone: 'error', title: '无法开始录制', detail: '请先描述要执行的测试流程。' });
       return;
     }
-    if (startUrl && !/^https?:\/\//.test(startUrl.trim())) {
+    const url = startUrl.trim();
+    if (!/^https?:\/\//.test(url)) {
       setFeedback({
         tone: 'error',
         title: '起始地址无效',
@@ -71,10 +72,7 @@ export function Case() {
     setPending('record');
     setFeedback(null);
     try {
-      const result = await recordCase({
-        case: goal,
-        ...(startUrl.trim() ? { url: startUrl.trim() } : {}),
-      });
+      const result = await recordCase({ case: goal, url });
       setFeedback({
         tone: 'success',
         title: '录制完成',
@@ -187,7 +185,7 @@ export function Case() {
               onChange={setStartUrl}
               isDisabled={busy}
             >
-              <Label className="text-xs font-medium">起始地址（可选）</Label>
+              <Label className="text-xs font-medium">起始地址</Label>
               <Input fullWidth className="mt-2" placeholder="https://www.bilibili.com/" />
             </TextField>
             <div className="flex flex-wrap items-center justify-between gap-3">

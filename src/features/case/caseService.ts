@@ -27,9 +27,7 @@ export type RunResult = RecordResult | ReplayResult;
 async function parse<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => null)) as T | ApiError | null;
   if (!response.ok || !payload || (payload as ApiError).success === false) {
-    throw new Error(
-      (payload as ApiError | null)?.message ?? `请求失败（${response.status}）`,
-    );
+    throw new Error((payload as ApiError | null)?.message ?? `请求失败（${response.status}）`);
   }
   return payload as T;
 }
@@ -37,14 +35,12 @@ async function parse<T>(response: Response): Promise<T> {
 export async function listFlows(): Promise<FlowSummary[]> {
   const response = await fetch('/api/cases', { cache: 'no-store' });
   const { flows } = await parse<{ flows: FlowSummary[] }>(response);
-  return flows.sort(
-    (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
-  );
+  return flows.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 export async function recordCase(input: {
   case: string;
-  url?: string;
+  url: string;
 }): Promise<RecordResult> {
   const response = await fetch('/api/cases', {
     method: 'POST',
@@ -52,7 +48,7 @@ export async function recordCase(input: {
     body: JSON.stringify({
       mode: 'record',
       case: input.case,
-      ...(input.url ? { url: input.url } : {}),
+      url: input.url,
     }),
   });
   return parse<RecordResult>(response);

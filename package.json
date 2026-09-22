@@ -14,6 +14,7 @@
   "dependencies": {
     "@heroui/react": "^3.2.4",
     "@heroui/styles": "^3.2.4",
+    "@larksuiteoapi/node-sdk": "^1.74.0",
     "@typesafe-ai/sdk": "^0.6.0",
     "dotenv": "^17.4.2",
     "install": "^0.13.0",
