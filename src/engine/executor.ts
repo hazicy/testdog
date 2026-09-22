@@ -3,6 +3,7 @@ import type { Locator, Page } from 'playwright';
 import { jev } from '../ai/provider/jev';
 import { RollingCaseCompiler, Target, type Flow, type Step } from './compiler';
 import { Observer } from './observer';
+import { logger } from '@/lib/logger';
 
 export class Executor {
   constructor(private observer = new Observer()) {}
@@ -19,6 +20,8 @@ export class Executor {
         steps,
       });
 
+      logger.info(decision);
+
       let { step } = decision;
 
       if (!step) {
@@ -27,7 +30,7 @@ export class Executor {
 
       page = await this.execute(page, step);
 
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(3000);
       steps.push(step);
     }
 
@@ -41,11 +44,7 @@ export class Executor {
     };
   }
 
-  async execute(
-    page: Page,
-    step: Step,
-    onTransition?: (transition: Step['transition']) => void,
-  ): Promise<Page> {
+  async execute(page: Page, step: Step): Promise<Page> {
     if (step.type === 'navigate') {
       await page.goto(step.value, { waitUntil: 'domcontentloaded' });
     } else if (step.type === 'click') {

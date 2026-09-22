@@ -21,12 +21,12 @@ export class Observer {
       mode: 'ai',
     });
 
-    console.dir(tree, { depth: null, colors: true });
-
     return { tree, rawTree };
   }
 
   transformToJev(tree: AriaNode[]) {
     return tree;
   }
+
+  filter(tree: AriaNode[]) {}
 }
