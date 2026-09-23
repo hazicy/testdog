@@ -1,7 +1,7 @@
 import type { Locator, Page } from 'playwright';
 import { type JSONType, z } from 'zod';
 import { jev, type ClickDecision } from '../ai/provider/jev';
-import { generateWithOpenAI } from '../ai/provider/openai';
+import { generateWithOpenAI } from '../ai/provider/stepfun';
 import {
   AttentionSchema,
   CheckSchema,
