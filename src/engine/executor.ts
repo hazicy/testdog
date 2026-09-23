@@ -18,8 +18,7 @@ import { IntentNode } from './compiler/type';
 const DecisionSchema = z.object({
   done: z.boolean(),
   reason: z.string(),
-  step: StepSchema.extend({ expected: CheckSchema.nullable() }).nullable(),
-  attention: AttentionSchema.nullable(),
+  step: StepSchema.nullable(),
 });
 
 export class Executor {

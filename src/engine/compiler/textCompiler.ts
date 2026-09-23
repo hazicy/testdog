@@ -1,4 +1,4 @@
-import { generateWithOpenAI } from '@/ai/provider/openai';
+import { generateWithOpenAI } from '@/ai/provider/deepseek';
 import { type JSONType, z } from 'zod';
 import type { Compiler, IntentNode } from './type';
 

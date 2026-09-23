@@ -17,11 +17,9 @@ export const CheckSchema = z.object({
 });
 
 export const StepSchema = z.object({
-  type: z.enum(['navigate', 'click', 'fill', 'press', 'wait', 'assert']),
+  type: z.enum(['navigate', 'click', 'fill', 'press']),
   target: TargetSchema,
   value: z.string(),
-  transition: z.enum(['same', 'navigation', 'popup']),
-  expected: CheckSchema.nullable(),
 });
 
 export const AttentionSchema = z.object({
