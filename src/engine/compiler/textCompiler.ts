@@ -1,24 +1,38 @@
 import { generateWithOpenAI } from '@/ai/provider/openai';
 import { type JSONType, z } from 'zod';
-import { StepSchema } from '.';
-import type { Compiler, Intent } from './type';
+import type { Compiler, IntentNode } from './type';
 
 export class TextCompiler implements Compiler {
-  async compile(goal: string, startUrl?: string): Promise<Intent[]> {
-    const schema = z.object({
-      intents: z
-        .array(
-          z.object({
-            type: StepSchema.shape.type,
-            instruction: z.string().min(1),
-          }),
-        )
-        .min(1)
-        .max(20),
-    });
+  async compile(goal: string, startUrl?: string): Promise<IntentNode> {
+    const IntentNodeSchema: z.ZodType<IntentNode> = z.lazy(() =>
+      z.union([
+        z
+          .object({
+            goal: z.string().min(1).max(200),
+            status: z.literal('atomic'),
+            constraints: z.array(z.string()).default([]),
+            successCriteria: z.array(z.string()).default([]),
+          })
+          .strict(),
+        z
+          .object({
+            goal: z.string().min(1).max(200),
+            status: z.literal('compound'),
+            constraints: z.array(z.string()).default([]),
+            successCriteria: z.array(z.string()).default([]),
+            children: z.array(IntentNodeSchema).min(1),
+          })
+          .strict(),
+      ]),
+    );
+
     const response = await generateWithOpenAI({
-      systemPrompt: `Split the user's case into a fixed ordered list of atomic browser actions.
-Each item is exactly one navigate, fill, click, press or explicitly requested assert.
+      systemPrompt: `Return one intent tree for the user's case. Its children are ordered browser actions.
+When the case has more than one action, the root node must be compound.
+Use a compound node only to group child intents. A compound node must have children.
+An atomic node is a leaf and must never have children. Keep the tree shallow: when possible,
+the root compound node should contain the atomic actions directly; do not add unary or reworded
+compound nodes. Each atomic node is exactly one navigate, fill, click, press or explicitly requested assert.
 Example login: fill email, fill password, click login. Search: fill query, press Enter,
 click requested result. Do not append verification unless explicitly requested.
 Do not invent DOM selectors. Retain user-specified input values and ordinal intent.
@@ -34,10 +48,10 @@ Never add waits, retries, restart loops or actions after the requested sequence 
       responseFormat: {
         type: 'json_schema',
         name: 'case_intents',
-        schema: z.toJSONSchema(schema) as JSONType,
+        schema: z.toJSONSchema(IntentNodeSchema) as JSONType,
       },
     });
 
-    return schema.parse(response.structuredContent).intents;
+    return IntentNodeSchema.parse(response.structuredContent);
   }
 }

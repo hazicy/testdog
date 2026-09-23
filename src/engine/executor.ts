@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type { Locator, Page } from 'playwright';
 import { type JSONType, z } from 'zod';
 import { jev, type ClickDecision } from '../ai/provider/jev';
@@ -6,6 +5,7 @@ import { generateWithOpenAI } from '../ai/provider/openai';
 import {
   AttentionSchema,
   CheckSchema,
+  Compiler,
   StepSchema,
   type Flow,
   type Step,
@@ -13,6 +13,8 @@ import {
 } from './compiler';
 import { Observer } from './observer';
 import { logger } from '@/lib/logger';
+import { IntentNode } from './compiler/type';
+import { ne } from 'drizzle-orm/sqlite-core/expressions';
 
 const DecisionSchema = z.object({
   done: z.boolean(),
@@ -22,45 +24,42 @@ const DecisionSchema = z.object({
 });
 
 export class Executor {
-  constructor(private observer = new Observer()) {}
+  constructor(
+    private observer = new Observer(),
+    private intentNode: IntentNode,
+  ) {}
 
-  async record(goal: string, page: Page): Promise<Flow> {
-    const steps: Step[] = [];
+  async record(goal: string, page: Page) {
+    logger.info(this.intentNode);
 
-    while (true) {
-      const { tree } = await this.observer.observe(page);
+    await this.dfs(this.intentNode, page);
+  }
 
-      const decision = await this.plan({
-        goal,
-        tree,
-        steps,
-      });
+  async dfs(node: IntentNode, page: Page) {
+    const ariaTree = await this.observer.observe(page);
 
-      logger.info(decision);
+    const decision = await this.plan({
+      goal: node.goal,
+      tree: ariaTree,
+    });
 
-      let { step } = decision;
+    logger.info(decision);
 
-      if (!step) {
-        break;
-      }
-
-      page = await this.execute(page, step);
-
-      steps.push(step);
+    if (decision.step) {
+      await this.execute(page, decision.step);
     }
 
-    return {
-      version: 1,
-      id: randomUUID(),
-      goal,
-      createdAt: new Date().toISOString(),
-      steps,
-      final: null,
-    };
+    if (!node.children) {
+      return;
+    }
+
+    for (const n of node.children) {
+      await this.dfs(n, page);
+    }
   }
 
   /** Plans the next browser action from the current observed page state. */
-  async plan(input: { goal: string; tree: Record<string, any>; steps: Step[] }) {
+  async plan(input: { goal: string; tree: Record<string, any> }) {
     const response = await generateWithOpenAI({
       systemPrompt: `Plan one browser action，
       有以下原子能力可选, navigate, click, fill, press。如果是 click、fill 或 press，返回 kind 为 ariaRef；target.value 必须且只能是 ARIA ref token，例如 e18。绝不能返回 textbox "邮箱" [ref=e18] 等完整节点描述。`,

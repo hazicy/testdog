@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Executor } from '@/engine/executor';
 import { BrowserClient } from '@/engine/browser';
+import { TextCompiler } from '@/engine/compiler';
+import { Observer } from '@/engine/observer';
 
 export const runtime = 'nodejs';
 
@@ -28,20 +30,27 @@ export async function POST(request: NextRequest) {
 
   try {
     const input = parsed.data;
-    const browserClient = await BrowserClient.create();
-    browser = browserClient.getBrowser();
-    const context = await browser.newContext();
-    context.setDefaultTimeout(15000);
-    const page = await context.newPage();
-    const executor = new Executor();
     if (input.mode !== 'record') throw new Error('缺少流程');
-    const recorded = await executor.record(input.case, page);
+    const textCompiler = new TextCompiler();
+
+    const intentNode = await textCompiler.compile(input.case);
+    const browserClient = await BrowserClient.create();
+
+    browser = browserClient.getBrowser();
+
+    const context = await browser.newContext();
+
+    context.setDefaultTimeout(15000);
+
+    const page = await context.newPage();
+    const observer = new Observer();
+    const executor = new Executor(observer, intentNode);
+
+    await executor.record(input.case, page);
 
     return NextResponse.json({
       success: true,
       mode: 'record',
-      flowId: recorded.id,
-      steps: recorded.steps.length,
     });
   } catch (error) {
     console.error('用例执行失败', error);

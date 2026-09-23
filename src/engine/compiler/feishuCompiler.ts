@@ -1,8 +1,8 @@
-import type { Compiler, Intent } from './type';
+import type { Compiler, IntentNode } from './type';
 
 /** Placeholder for a Feishu-specific case compiler. */
 export class FeishuCompiler implements Compiler {
-  async compile(_goal: string, _startUrl?: string): Promise<Intent[]> {
+  async compile(_goal: string, _startUrl?: string): Promise<IntentNode> {
     throw new Error('FeishuCompiler is not implemented');
   }
 }
