@@ -32,7 +32,7 @@ When the case has more than one action, the root node must be compound.
 Use a compound node only to group child intents. A compound node must have children.
 An atomic node is a leaf and must never have children. Keep the tree shallow: when possible,
 the root compound node should contain the atomic actions directly; do not add unary or reworded
-compound nodes. Each atomic node is exactly one navigate, fill, click, press or explicitly requested assert.
+compound nodes. Each atomic node is one browser subgoal, which may require multiple navigate, fill, click, or press actions to complete.
 Example login: fill email, fill password, click login. Search: fill query, press Enter,
 click requested result. Do not append verification unless explicitly requested.
 Do not invent DOM selectors. Retain user-specified input values and ordinal intent.

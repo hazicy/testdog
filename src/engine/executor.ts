@@ -22,6 +22,8 @@ const DecisionSchema = z.object({
 });
 
 export class Executor {
+  private static readonly maxStepsPerAtomicIntent = 20;
+
   constructor(
     private observer = new Observer(),
     private intentNode: IntentNode,
@@ -41,17 +43,31 @@ export class Executor {
       return;
     }
 
-    const ariaTree = await this.observer.observe(page);
-    const decision = await this.plan({ goal: node.goal, tree: ariaTree });
+    for (let attempt = 0; attempt < Executor.maxStepsPerAtomicIntent; attempt++) {
+      const ariaTree = await this.observer.observe(page);
+      const decision = await this.plan({ goal: node.goal, tree: ariaTree });
 
-    logger.info(decision);
+      logger.info(decision);
 
-    if (decision.step) await this.execute(page, decision.step);
+      if (decision.done) return;
+
+      if (!decision.step) {
+        throw new Error(`Planner returned no action before completing intent: ${node.goal}`);
+      }
+
+      await this.execute(page, decision.step);
+    }
+
+    throw new Error(
+      `Exceeded ${Executor.maxStepsPerAtomicIntent} actions without completing intent: ${node.goal}`,
+    );
   }
 
   async plan(input: { goal: string; tree: Record<string, any> }) {
     const response = await generateWithOpenAI({
-      systemPrompt: `Plan one browser action，
+      systemPrompt: `Plan the next single browser action toward the goal.
+      Return done: true and step: null only when the goal is already complete.
+      Otherwise return done: false and exactly one action.
       有以下原子能力可选, navigate, click, fill, press。如果是 click、fill 或 press，返回 kind 为 ariaRef；target.value 必须且只能是 ARIA ref token，例如 e18。绝不能返回 textbox "邮箱" [ref=e18] 等完整节点描述。`,
       messages: [
         {
@@ -99,7 +115,7 @@ export class Executor {
   }
 
   locate(page: Page, target: Target): Locator {
-    const root = target?.scope ? page.locator(target?.scope) : page.locator(':root');
+    const root = page.locator(':root');
     let result: Locator;
 
     switch (target.kind) {
@@ -127,7 +143,7 @@ export class Executor {
         result = page.locator(`aria-ref=${target.value}`);
         break;
     }
-    return target.index < 0 ? result : result.nth(target.index);
+    return target.index === undefined ? result : result.nth(target.index);
   }
 
   // 等待界面稳定

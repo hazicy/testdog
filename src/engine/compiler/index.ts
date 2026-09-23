@@ -4,6 +4,7 @@ export const TargetSchema = z.object({
   kind: z.enum(['role', 'label', 'placeholder', 'testId', 'css', 'ariaRef']),
   value: z.string(),
   name: z.string(),
+  index: z.number().int().nonnegative().optional(),
 });
 
 export const CheckSchema = z.object({
