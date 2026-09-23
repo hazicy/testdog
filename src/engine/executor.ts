@@ -43,9 +43,14 @@ export class Executor {
       return;
     }
 
+    const completedSteps: Step[] = [];
     for (let attempt = 0; attempt < Executor.maxStepsPerAtomicIntent; attempt++) {
       const ariaTree = await this.observer.observe(page);
-      const decision = await this.plan({ goal: node.goal, tree: ariaTree });
+      const decision = await this.plan({
+        goal: node.goal,
+        observation: ariaTree,
+        completedSteps,
+      });
 
       logger.info(decision);
 
@@ -56,6 +61,7 @@ export class Executor {
       }
 
       await this.execute(page, decision.step);
+      completedSteps.push(decision.step);
     }
 
     throw new Error(
@@ -63,11 +69,19 @@ export class Executor {
     );
   }
 
-  async plan(input: { goal: string; tree: Record<string, any> }) {
+  async plan(input: {
+    goal: string;
+    observation: Record<string, unknown>;
+    completedSteps: Step[];
+  }) {
     const response = await generateWithOpenAI({
       systemPrompt: `Plan the next single browser action toward the goal.
       Return done: true and step: null only when the goal is already complete.
       Otherwise return done: false and exactly one action.
+      completedSteps contains actions that have already succeeded for this atomic goal. Never repeat a
+      functionally identical action merely to satisfy a prerequisite: continue from its effect instead.
+      In particular, after clicking a focused text input, choose fill or press when appropriate rather
+      than clicking that input again. The observation includes the active element and its value.
       有以下原子能力可选, navigate, click, fill, press。如果是 click、fill 或 press，返回 kind 为 ariaRef；target.value 必须且只能是 ARIA ref token，例如 e18。绝不能返回 textbox "邮箱" [ref=e18] 等完整节点描述。`,
       messages: [
         {
@@ -97,18 +111,20 @@ export class Executor {
     if (step.type === 'navigate') {
       await page.goto(step.value, { waitUntil: 'domcontentloaded' });
     } else if (step.type === 'click') {
+      const previousUrl = page.url();
       const target = this.locate(page, step.target);
       await target.click();
 
-      await this.waitForStable(page);
+      await this.waitForStable(page, previousUrl);
     } else if (step.type === 'fill') {
       const target = this.locate(page, step.target);
       await target.fill(step.value);
     } else if (step.type === 'press') {
+      const previousUrl = page.url();
       const target = this.locate(page, step.target);
       await target.press(step.value);
 
-      await this.waitForStable(page);
+      await this.waitForStable(page, previousUrl);
     }
 
     return page;
@@ -147,17 +163,14 @@ export class Executor {
   }
 
   // 等待界面稳定
-  private async waitForStable(page: Page, timeout: number = 5000) {
-    Promise.race([
-      // 等待 DOM 稳定
-      await page.waitForLoadState('domcontentloaded', {
-        timeout,
-      }),
-      // 等待 URL 变化
-      await page.waitForURL(() => true, {
-        timeout,
-      }),
-      await this.waitForDomQuiet(page, timeout),
+  private async waitForStable(page: Page, previousUrl: string, timeout: number = 5000) {
+    await Promise.race([
+      // Wait for either a navigation or a quiet DOM; do not await the candidates before racing them.
+      page
+        .waitForURL((url) => url.href !== previousUrl, { timeout })
+        .then(() => page.waitForLoadState('domcontentloaded', { timeout }))
+        .catch(() => undefined),
+      this.waitForDomQuiet(page, timeout),
     ]);
   }
 
