@@ -14,7 +14,6 @@ import {
 import { Observer } from './observer';
 import { logger } from '@/lib/logger';
 import { IntentNode } from './compiler/type';
-import { ne } from 'drizzle-orm/sqlite-core/expressions';
 
 const DecisionSchema = z.object({
   done: z.boolean(),
@@ -36,29 +35,21 @@ export class Executor {
   }
 
   async dfs(node: IntentNode, page: Page) {
-    const ariaTree = await this.observer.observe(page);
-
-    const decision = await this.plan({
-      goal: node.goal,
-      tree: ariaTree,
-    });
-
-    logger.info(decision);
-
-    if (decision.step) {
-      await this.execute(page, decision.step);
-    }
-
-    if (!node.children) {
+    if (node.children) {
+      for (const child of node.children) {
+        await this.dfs(child, page);
+      }
       return;
     }
 
-    for (const n of node.children) {
-      await this.dfs(n, page);
-    }
+    const ariaTree = await this.observer.observe(page);
+    const decision = await this.plan({ goal: node.goal, tree: ariaTree });
+
+    logger.info(decision);
+
+    if (decision.step) await this.execute(page, decision.step);
   }
 
-  /** Plans the next browser action from the current observed page state. */
   async plan(input: { goal: string; tree: Record<string, any> }) {
     const response = await generateWithOpenAI({
       systemPrompt: `Plan one browser action，

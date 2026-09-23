@@ -4,27 +4,27 @@ import type { Compiler, IntentNode } from './type';
 
 export class TextCompiler implements Compiler {
   async compile(goal: string, startUrl?: string): Promise<IntentNode> {
-    const IntentNodeSchema: z.ZodType<IntentNode> = z.lazy(() =>
-      z.union([
-        z
-          .object({
-            goal: z.string().min(1).max(200),
-            status: z.literal('atomic'),
-            constraints: z.array(z.string()).default([]),
-            successCriteria: z.array(z.string()).default([]),
-          })
-          .strict(),
-        z
-          .object({
-            goal: z.string().min(1).max(200),
-            status: z.literal('compound'),
-            constraints: z.array(z.string()).default([]),
-            successCriteria: z.array(z.string()).default([]),
-            children: z.array(IntentNodeSchema).min(1),
-          })
-          .strict(),
-      ]),
-    );
+    const AtomicIntentSchema = z
+      .object({
+        goal: z.string().min(1).max(200),
+        status: z.literal('atomic'),
+        constraints: z.array(z.string()).default([]),
+        successCriteria: z.array(z.string()).default([]),
+      })
+      .strict();
+
+    // The root is only an execution container. Requiring children in the
+    // response schema prevents a multi-step case from collapsing into one
+    // action when the model ignores an instruction in the prompt.
+    const IntentTreeSchema = z
+      .object({
+        goal: z.string().min(1).max(200),
+        status: z.literal('compound'),
+        constraints: z.array(z.string()).default([]),
+        successCriteria: z.array(z.string()).default([]),
+        children: z.array(AtomicIntentSchema).min(1),
+      })
+      .strict();
 
     const response = await generateWithOpenAI({
       systemPrompt: `Return one intent tree for the user's case. Its children are ordered browser actions.
@@ -48,10 +48,10 @@ Never add waits, retries, restart loops or actions after the requested sequence 
       responseFormat: {
         type: 'json_schema',
         name: 'case_intents',
-        schema: z.toJSONSchema(IntentNodeSchema) as JSONType,
+        schema: z.toJSONSchema(IntentTreeSchema) as JSONType,
       },
     });
 
-    return IntentNodeSchema.parse(response.structuredContent);
+    return IntentTreeSchema.parse(response.structuredContent) as IntentNode;
   }
 }
