@@ -221,7 +221,6 @@ export function Case() {
           <p className="mt-1 break-all text-xs leading-relaxed text-muted">{feedback.detail}</p>
         </Surface>
       )}
-
       <Card className="gap-0 border border-border p-0 shadow-none" aria-labelledby="cases-title">
         <Card.Header className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
           <Card.Title id="cases-title" className="text-sm">

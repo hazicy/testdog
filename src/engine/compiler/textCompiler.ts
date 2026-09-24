@@ -3,6 +3,8 @@ import { type JSONType, z } from 'zod';
 import type { Compiler, IntentNode } from './type';
 
 export class TextCompiler implements Compiler {
+  constructor() {}
+
   async compile(goal: string, startUrl?: string): Promise<IntentNode> {
     const AtomicIntentSchema = z
       .object({
@@ -13,9 +15,6 @@ export class TextCompiler implements Compiler {
       })
       .strict();
 
-    // The root is only an execution container. Requiring children in the
-    // response schema prevents a multi-step case from collapsing into one
-    // action when the model ignores an instruction in the prompt.
     const IntentTreeSchema = z
       .object({
         goal: z.string().min(1).max(200),
