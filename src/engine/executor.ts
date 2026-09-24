@@ -122,7 +122,9 @@ export class Executor {
     } else if (step.type === 'press') {
       const previousUrl = page.url();
       const target = this.locate(page, step.target);
-      await target.press(step.value);
+      // Playwright 的 press 值支持大写
+      const key = step.value.charAt(0).toUpperCase() + step.value.slice(1);
+      await target.press(key);
 
       await this.waitForStable(page, previousUrl);
     }
