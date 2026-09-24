@@ -1,5 +1,6 @@
-import { integer, pgTable } from 'drizzle-orm/pg-core';
+import { integer, pgTable, varchar } from 'drizzle-orm/pg-core';
 
-export const Case = pgTable('csae', {
+export const Case = pgTable('case', {
   id: integer(),
+  goal: varchar(),
 });

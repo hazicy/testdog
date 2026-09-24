@@ -4,7 +4,8 @@ import { Executor } from '@/engine/executor';
 import { BrowserClient } from '@/engine/browser';
 import { TextCompiler } from '@/engine/compiler';
 import { Observer } from '@/engine/observer';
-import { getUsers } from '@/db/queries/users';
+import { getUsers } from '@/db/queries/user';
+import { getCases } from '@/db/queries/case';
 
 export const runtime = 'nodejs';
 
@@ -18,8 +19,8 @@ const RequestSchema = z.union([
 ]);
 
 export async function GET() {
-  const user = await getUsers();
-  return NextResponse.json({ flows: [] });
+  const cases = await getCases();
+  return NextResponse.json({ cases });
 }
 
 export async function POST(request: NextRequest) {

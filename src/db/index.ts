@@ -1,6 +1,9 @@
+import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 
 const connectString = process.env.DATABASE_URL;
+
+console.log('connectString', connectString);
 
 if (!connectString) {
   throw new Error('数据库地址不存在');
