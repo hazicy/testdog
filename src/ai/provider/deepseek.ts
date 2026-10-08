@@ -115,7 +115,7 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    baseURL: 'https://api.deepseek.com',
+    baseURL: 'https://api.deepseek.com/beta',
   });
 
   const response = await openai.responses.create({
@@ -135,6 +135,8 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
       effort: 'none',
     },
   });
+
+  console.log('response', response);
 
   return {
     role: 'assistant' as const,

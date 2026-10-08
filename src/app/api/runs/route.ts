@@ -26,7 +26,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const input = parsed.data;
+
     if (input.mode !== 'record') throw new Error('缺少流程');
+
     const textCompiler = new TextCompiler();
 
     const intentNode = await textCompiler.compile(input.case);
