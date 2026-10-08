@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     const textCompiler = new TextCompiler();
 
-    const intentNode = await textCompiler.compile(input.case);
+    const testCase = await textCompiler.compile(input.case, input.url);
     const browserClient = await BrowserClient.create();
 
     browser = browserClient.getBrowser();
@@ -42,9 +42,9 @@ export async function POST(request: NextRequest) {
 
     const page = await context.newPage();
     const observer = new Observer();
-    const executor = new Executor(observer, intentNode);
+    const executor = new Executor(observer, testCase);
 
-    await executor.record(input.case, page);
+    await executor.record(page);
 
     return NextResponse.json({
       success: true,

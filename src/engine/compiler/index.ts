@@ -42,4 +42,12 @@ export type Flow = z.infer<typeof FlowSchema>;
 
 export { FeishuCompiler } from './feishuCompiler';
 export { TextCompiler } from './textCompiler';
-export type { Compiler } from './type';
+export type {
+  Compiler,
+  TestCase,
+  TestStep,
+  ActionStep,
+  GroupStep,
+  AssertStep,
+  Assertion,
+} from './type';

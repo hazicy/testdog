@@ -1,95 +1,123 @@
 import { generateWithOpenAI } from '@/ai/provider/deepseek';
 import { type JSONType, z } from 'zod';
-import type { Compiler, IntentNode } from './type';
+import type { Assertion, Compiler, TestCase, TestStep } from './type';
+
+const AssertionSchema = z.object({ description: z.string().min(1) }).strict();
+const InputSchema = z.object({ name: z.string().min(1), value: z.string() }).strict();
+type CompiledStep =
+  | { type: 'action'; goal: string; inputs: z.infer<typeof InputSchema>[] }
+  | { type: 'group'; name: string; steps: CompiledStep[] }
+  | { type: 'assert'; assertion: Assertion };
+
+const CompiledStepSchema: z.ZodType<CompiledStep> = z.lazy(() =>
+  z.discriminatedUnion('type', [
+    z
+      .object({ type: z.literal('action'), goal: z.string().min(1), inputs: z.array(InputSchema) })
+      .strict(),
+    z
+      .object({
+        type: z.literal('group'),
+        name: z.string().min(1),
+        steps: z.array(CompiledStepSchema).min(1),
+      })
+      .strict(),
+    z.object({ type: z.literal('assert'), assertion: AssertionSchema }).strict(),
+  ]),
+);
+const CompiledCaseSchema = z
+  .object({
+    name: z.string().min(1),
+    preconditions: z.array(z.string()),
+    steps: z.array(CompiledStepSchema).min(1),
+    assertions: z.array(AssertionSchema),
+  })
+  .strict();
+
+// Explicit provider dialect: anyOf branches are complete objects, recursion is in steps.items.
+function objectSchema(properties: Record<string, JSONType>): JSONType {
+  return {
+    type: 'object',
+    properties,
+    required: Object.keys(properties),
+    additionalProperties: false,
+  };
+}
+const stringSchema = { type: 'string' };
+const assertionSchema = objectSchema({ description: stringSchema });
+const stepArraySchema = { type: 'array', items: { $ref: '#/$def/step' } };
+const caseSchema: JSONType = {
+  ...(objectSchema({
+    name: stringSchema,
+    preconditions: { type: 'array', items: stringSchema },
+    steps: stepArraySchema,
+    assertions: { type: 'array', items: assertionSchema },
+  }) as Record<string, JSONType>),
+  $def: {
+    step: {
+      anyOf: [
+        objectSchema({
+          type: { type: 'string', enum: ['action'] },
+          goal: stringSchema,
+          inputs: {
+            type: 'array',
+            items: objectSchema({ name: stringSchema, value: stringSchema }),
+          },
+        }),
+        objectSchema({
+          type: { type: 'string', enum: ['group'] },
+          name: stringSchema,
+          steps: stepArraySchema,
+        }),
+        objectSchema({
+          type: { type: 'string', enum: ['assert'] },
+          assertion: assertionSchema,
+        }),
+      ],
+    },
+  },
+};
 
 export class TextCompiler implements Compiler {
-  constructor() {}
-
-  async compile(goal: string, startUrl?: string): Promise<IntentNode> {
-    const AtomicIntentSchema = z
-      .object({
-        goal: z.string().min(1).max(200),
-        status: z.literal('atomic'),
-        constraints: z.array(z.string()).default([]),
-        successCriteria: z.array(z.string()).default([]),
-      })
-      .strict();
-
-    const IntentNodeSchema: z.ZodType<IntentNode> = z.lazy(() =>
-      z.union([AtomicIntentSchema, IntentTreeSchema]),
-    );
-
-    const IntentTreeSchema = z
-      .object({
-        goal: z.string().min(1).max(200),
-        status: z.literal('compound'),
-        constraints: z.array(z.string()).default([]),
-        successCriteria: z.array(z.string()).default([]),
-        children: z.array(IntentNodeSchema).min(1),
-      })
-      .strict();
-
-    // Use the provider's documented schema dialect; keep length constraints in Zod.
-    const commonProperties = {
-      goal: { type: 'string' },
-      constraints: { type: 'array', items: { type: 'string' } },
-      successCriteria: { type: 'array', items: { type: 'string' } },
-    };
-    const atomicSchema = {
-      type: 'object',
-      properties: {
-        ...commonProperties,
-        status: { type: 'string', enum: ['atomic'] },
-      },
-      required: ['goal', 'status', 'constraints', 'successCriteria'],
-      additionalProperties: false,
-    };
-    const compoundSchema = {
-      type: 'object',
-      properties: {
-        ...commonProperties,
-        status: { type: 'string', enum: ['compound'] },
-        children: {
-          type: 'array',
-          items: { $ref: '#/$def/node' },
-        },
-      },
-      required: ['goal', 'status', 'constraints', 'successCriteria', 'children'],
-      additionalProperties: false,
-    };
-    const schema = {
-      ...compoundSchema,
-      $def: {
-        node: { anyOf: [atomicSchema, compoundSchema] },
-      },
-    };
-
+  async compile(goal: string, startUrl?: string): Promise<TestCase> {
     const response = await generateWithOpenAI({
-      systemPrompt: `为用户的用例返回一棵意图树，其子节点是按顺序排列的浏览器操作。
-当用例包含多个操作时，根节点必须为 compound（复合节点）。
-复合节点仅用于组织子意图，并且必须包含非空的 children，其子节点可以是 compound 或 atomic。
-允许按有意义的子目标嵌套复合节点，每一层的子节点都必须按执行顺序排列。
-atomic（原子节点）是叶节点，绝不能包含 children。
-不要添加只有一个子节点或仅换一种说法的复合节点。每个原子节点代表一个浏览器子目标，可能需要多次导航、填写、点击或按键操作才能完成。
-例如，登录：填写邮箱、填写密码、点击登录。搜索：填写查询内容、按 Enter 键、
-点击指定的搜索结果。除非用户明确要求，否则不要追加验证操作。
-不要编造 DOM 选择器。保留用户指定的输入值以及序号所表达的意图。
-如果提供了 startUrl，则已处理导航到该地址的操作；省略这一步初始导航。
-绝不要添加等待、重试、重新开始的循环，也不要在请求的操作序列完成后追加操作。`,
+      systemPrompt: `将用户的自动化测试用例编译为用例定义，只返回 JSON，不要 Markdown 代码块或解释。
+name 是简短的用例名称。preconditions 只保留用户明确指定的环境条件，不能把需要执行的操作放入前置条件。
+steps 按执行顺序排列，包含 action、group 或 assert。
+action 是可直接交给浏览器执行器完成的子目标，可以包含多次填写、点击或导航；例如登录和导入标签都可作为 action。
+group 仅用于有意义的步骤分组，必须有非空 steps，允许嵌套；不要机械地为每次点击分组。
+inputs 是 name/value 键值数组，保留用户指定的所有输入值，每个 action 内参数名唯一；没有输入时返回空数组。
+assert 步骤用于用户明确要求的中途验证；assertions 用于用户明确要求的最终验证。
+断言 description 必须忠实保留用户预期，不得编造业务规则、成功提示文案或额外验证。用户没有要求断言时返回空 assertions。
+保留用户指定的操作、顺序、URL、输入值和序号意图。不要编造 DOM 选择器或未提供的 URL。
+如果提供 startUrl，执行器会先导航到该地址，省略这一步初始导航。
+不要添加重试或重新开始的循环，不要在用户要求的操作序列完成后追加操作。`,
       messages: [
-        {
-          role: 'user',
-          content: { type: 'text', text: JSON.stringify({ goal, startUrl }) },
-        },
+        { role: 'user', content: { type: 'text', text: JSON.stringify({ goal, startUrl }) } },
       ],
       temperature: 0,
-      responseFormat: {
-        type: 'json_schema',
-        name: 'case_intents',
-        schema: schema as JSONType,
-      },
+      responseFormat: { type: 'json_schema', name: 'test_case', schema: caseSchema },
     });
 
-    return IntentTreeSchema.parse(response.structuredContent);
+    const compiled = CompiledCaseSchema.parse(response.structuredContent);
+    let nextId = 0;
+    const toStep = (step: CompiledStep): TestStep => {
+      const id = `step-${++nextId}`;
+      if (step.type === 'group') return { id, ...step, steps: step.steps.map(toStep) };
+      if (step.type === 'assert') return { id, ...step };
+      const inputs: Record<string, string> = Object.fromEntries(
+        step.inputs.map(({ name, value }) => [name, value]),
+      );
+      if (Object.keys(inputs).length !== step.inputs.length) {
+        throw new Error(`Duplicate input names in action ${id}`);
+      }
+      return { id, type: 'action', goal: step.goal, inputs };
+    };
+    return {
+      name: compiled.name,
+      ...(startUrl !== undefined ? { startUrl } : {}),
+      preconditions: compiled.preconditions,
+      steps: compiled.steps.map(toStep),
+      assertions: compiled.assertions,
+    };
   }
 }
