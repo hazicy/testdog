@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'CaseForge',
-  description: '管理测试用例，构建自动化测试流程。',
+  title: 'CaseForge — 用自然语言，让测试发生',
+  description:
+    '用自然语言编写测试用例，让 AI 规划操作、Playwright 执行浏览器任务，以页面证据验证结果。CaseForge，让每一次测试更简单。',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

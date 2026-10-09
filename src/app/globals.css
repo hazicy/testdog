@@ -23,3 +23,71 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
+
+@theme inline {
+  --animate-cursor-blink: cursor-blink 1.4s steps(1) infinite;
+  --animate-preview-enter: preview-enter 0.3s ease-out;
+  --color-page: #faf9f6;
+  --color-ink: #23241f;
+  --color-page-muted: #78796f;
+  --color-page-line: #e2e1da;
+  --color-brand: #f16b43;
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+/* Layered geometry is kept in CSS; layout and responsive styles use utilities. */
+@layer components {
+  .art-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(#dfdfd5 1px, transparent 1px),
+      linear-gradient(90deg, #dfdfd5 1px, transparent 1px);
+    background-size: 41px 41px;
+    opacity: 0.55;
+    mask-image: radial-gradient(ellipse, #000 35%, transparent 78%);
+  }
+
+  .forge-bar {
+    position: absolute;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 3px, #ffffff30 3px 4px),
+      linear-gradient(115deg, #adb1a0, #d6d9c6 32%, #eef0dd 60%, #bfc3af);
+    border: 1px solid #a8ad98;
+    box-shadow:
+      9px 9px 0 #929881,
+      10px 10px 0 #7e856b;
+  }
+
+  .forge-cut {
+    position: absolute;
+    width: 57px;
+    height: 57px;
+    right: 18px;
+    bottom: 35px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 3px, #ffffff35 3px 4px),
+      linear-gradient(135deg, #fa9469, #ec6940);
+    transform: skewY(-23deg);
+    border: 1px solid #e77950;
+    box-shadow: 8px 8px 0 #c4542e;
+  }
+}
+
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes preview-enter {
+  from {
+    opacity: 0.4;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -2,10 +2,14 @@
 
 import { Avatar, Breadcrumbs, Button, Surface } from '@heroui/react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
+
+  if (pathname === '/') return children;
 
   return (
     <div
@@ -25,9 +29,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link
           href="/"
           className="flex items-center gap-3 px-2 text-3xl font-bold tracking-tight"
-          aria-label="Play 首页"
+          aria-label="CaseForge 首页"
         >
-          {!collapsed && <span className="hidden md:inline">play.</span>}
+          {!collapsed && <span className="hidden text-2xl md:inline">caseforge.</span>}
         </Link>
         <div className="my-8 flex items-center gap-3 px-2">
           <Avatar size="sm" aria-label="默认工作区">
@@ -47,13 +51,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             </p>
           )}
           <Link
-            href="/"
-            aria-current="page"
+            href="/cases"
+            aria-current={pathname === '/cases' ? 'page' : undefined}
             aria-label="测试用例"
             title="测试用例"
-            className="flex min-h-11 items-center gap-3 rounded-lg bg-accent/10 px-3 text-accent hover:bg-accent/15"
+            className={`flex min-h-11 items-center gap-3 rounded-lg px-3 hover:bg-accent/15 ${pathname === '/cases' ? 'bg-accent/10 text-accent' : 'text-muted'}`}
           >
+            <span aria-hidden="true">▤</span>
             {!collapsed && <span className="hidden text-sm font-medium md:inline">测试用例</span>}
+          </Link>
+          <Link
+            href="/runs"
+            aria-current={pathname === '/runs' ? 'page' : undefined}
+            aria-label="执行记录"
+            title="执行记录"
+            className={`mt-2 flex min-h-11 items-center gap-3 rounded-lg px-3 hover:bg-accent/15 ${pathname === '/runs' ? 'bg-accent/10 text-accent' : 'text-muted'}`}
+          >
+            <span aria-hidden="true">↻</span>
+            {!collapsed && <span className="hidden text-sm font-medium md:inline">执行记录</span>}
           </Link>
         </nav>
         <div className="mt-auto hidden md:block">
@@ -83,8 +98,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="flex min-h-18 items-center justify-between gap-4 border-b border-border px-4 md:px-10"
         >
           <Breadcrumbs aria-label="当前位置">
-            <Breadcrumbs.Item href="/">工作区</Breadcrumbs.Item>
-            <Breadcrumbs.Item>测试用例</Breadcrumbs.Item>
+            <Breadcrumbs.Item href="/cases">工作区</Breadcrumbs.Item>
+            <Breadcrumbs.Item>{pathname === '/runs' ? '执行记录' : '测试用例'}</Breadcrumbs.Item>
           </Breadcrumbs>
           <div className="flex items-center gap-4">
             <span className="hidden text-xs text-muted sm:inline">本地工作区</span>
@@ -101,7 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
         <footer className="flex justify-between gap-3 px-4 py-5 text-[10px] text-muted md:px-10">
-          <span>Play · 自动化测试工作台</span>
+          <span>CaseForge · 自动化测试工作台</span>
           <span className="hidden sm:inline">少一些重复，多一些专注。</span>
         </footer>
       </div>
