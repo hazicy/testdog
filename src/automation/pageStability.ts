@@ -1,6 +1,17 @@
-import type { Frame, Page, Request } from 'playwright';
+import { errors, type Frame, type Page, type Request } from 'playwright';
 
 const relevantRequests = new Set(['document', 'script', 'stylesheet', 'fetch', 'xhr']);
+// Like tester-army/e2e's observation capture, settling is best-effort.
+// It must leave time to read live pages with polling or continuously changing DOM.
+const settleTimeoutMs = 5000;
+
+export async function waitForObservationReady(page: Page, timeout = settleTimeoutMs) {
+  try {
+    await page.waitForLoadState('domcontentloaded', { timeout: Math.max(1, timeout) });
+  } catch (error) {
+    if (!(error instanceof errors.TimeoutError)) throw error;
+  }
+}
 
 export async function performAndWaitForStablePage(
   page: Page,
@@ -73,55 +84,25 @@ export async function performAndWaitForStablePage(
   attach(activePage);
   try {
     await action();
-    const deadline = Date.now() + timeout;
-    while (Date.now() < deadline) {
-      if (pending.size || Date.now() - lastActivity < quietMs) {
+    const deadline = Date.now() + Math.min(timeout, settleTimeoutMs);
+    while (true) {
+      if (Date.now() < deadline && (pending.size || Date.now() - lastActivity < quietMs)) {
         await new Promise((resolve) => setTimeout(resolve, Math.min(50, deadline - Date.now())));
         continue;
       }
       const observedPage = activePage;
       const activityBefore = activityVersion;
       try {
-        await observedPage.waitForLoadState('domcontentloaded', {
-          timeout: Math.max(1, deadline - Date.now()),
-        });
-        if (observedPage !== activePage) continue;
-        const quiet = await observedPage.evaluate(
-          ({ quietMs, remaining }) =>
-            new Promise<boolean>((resolve) => {
-              let quietTimer: ReturnType<typeof setTimeout>;
-              const finish = (result: boolean) => {
-                clearTimeout(quietTimer);
-                clearTimeout(deadlineTimer);
-                observer.disconnect();
-                resolve(result);
-              };
-              const deadlineTimer = setTimeout(() => finish(false), remaining);
-              const observer = new MutationObserver(() => {
-                clearTimeout(quietTimer);
-                quietTimer = setTimeout(() => finish(true), quietMs);
-              });
-              observer.observe(document.documentElement, {
-                childList: true,
-                subtree: true,
-                attributes: true,
-                characterData: true,
-              });
-              quietTimer = setTimeout(() => finish(true), quietMs);
-            }),
-          { quietMs, remaining: Math.max(1, deadline - Date.now()) },
-        );
-        if (quiet && pending.size === 0 && activityVersion === activityBefore) return activePage;
+        await waitForObservationReady(observedPage, deadline - Date.now());
       } catch (error) {
-        // A redirect can destroy the old document while it is being observed.
         if (observedPage !== activePage) continue;
-        if (!String(error).includes('Execution context was destroyed')) throw error;
-        markActivity();
+        throw error;
       }
+      if (observedPage !== activePage) continue;
+      if (Date.now() >= deadline || (pending.size === 0 && activityVersion === activityBefore))
+        return activePage;
+      // Navigation or a new request raced the load check. Settle within the same budget.
     }
-    throw new Error(
-      `Page did not stabilize within ${timeout}ms (${pending.size} pending requests)`,
-    );
   } finally {
     context.off('page', opened);
     detach(activePage);

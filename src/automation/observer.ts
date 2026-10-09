@@ -1,4 +1,5 @@
 import { Page } from 'playwright';
+import { waitForObservationReady } from './pageStability';
 
 type AriaNode = {
   role: string;
@@ -21,6 +22,7 @@ type FocusedElement = {
 
 export class Observer {
   async observe(page: Page) {
+    await waitForObservationReady(page);
     const tree = (await page.locator('body').ariaSnapshotJSON({
       mode: 'ai',
     })) as AriaTree;

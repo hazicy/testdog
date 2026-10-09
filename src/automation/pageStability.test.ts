@@ -1,6 +1,7 @@
-import { chromium, type Browser, type Page } from 'playwright';
+import { chromium, errors, type Browser, type Page } from 'playwright';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { performAndWaitForStablePage } from './pageStability';
+import { performAndWaitForStablePage, waitForObservationReady } from './pageStability';
+import { Observer } from './observer';
 
 describe('page stability after asynchronous login', () => {
   let browser: Browser;
@@ -115,11 +116,83 @@ describe('page stability after asynchronous login', () => {
     expect(active).toBe(page);
   });
 
-  it('reports a timeout instead of observing a page with a pending login request', async () => {
+  it('allows observation of a video tab whose DOM keeps updating', async () => {
+    await page.context().route('https://video.test/**', async (route) => {
+      await route.fulfill({
+        contentType: 'text/html',
+        body: `<h1>Video player</h1><span id="progress"></span><script>
+          let tick = 0;
+          setInterval(() => {
+            document.querySelector('#progress').textContent = String(++tick);
+            document.body.style.setProperty('--progress', String(tick));
+          }, 50);
+        </script>`,
+      });
+    });
+    await page.setContent(
+      '<button onclick="window.open(\'https://video.test/watch\')">Play</button>',
+    );
+
+    const active = await performAndWaitForStablePage(
+      page,
+      () => page.getByRole('button', { name: 'Play' }).click(),
+      5000,
+    );
+
+    expect(active).not.toBe(page);
+    expect(await active.getByRole('heading').innerText()).toBe('Video player');
+    expect(Number(await active.locator('#progress').innerText())).toBeGreaterThan(0);
+    const observation = await new Observer().observe(active);
+    expect(observation.page.url).toBe('https://video.test/watch');
+    expect(JSON.stringify(observation.tree)).toContain('Video player');
+  });
+
+  it('allows observation after the settling budget while requests and DOM updates continue', async () => {
     await loginPage(false, 2000);
-    await expect(
-      performAndWaitForStablePage(page, () => page.getByRole('button').click(), 200, 50),
-    ).rejects.toThrow('Page did not stabilize');
+    await page.evaluate(() => {
+      let tick = 0;
+      setInterval(() => document.body.style.setProperty('--tick', String(++tick)), 20);
+    });
+
+    const active = await performAndWaitForStablePage(
+      page,
+      () => page.getByRole('button').click(),
+      200,
+      50,
+    );
+    expect(active).toBe(page);
+    // Settling ending is not proof of login success: observe the actual current content.
+    expect(await active.locator('body').innerText()).not.toContain('Chatbot');
+  });
+
+  it('returns the page when a request outlives the settling budget', async () => {
+    await loginPage(false, 2000);
+    const active = await performAndWaitForStablePage(
+      page,
+      () => page.getByRole('button').click(),
+      200,
+      50,
+    );
+    expect(active).toBe(page);
     expect(page.off).toHaveBeenCalledTimes(5);
+  });
+
+  it('does not suppress action failures while settling is best-effort', async () => {
+    await expect(
+      performAndWaitForStablePage(page, async () => {
+        throw new Error('Click failed');
+      }),
+    ).rejects.toThrow('Click failed');
+    expect(page.off).toHaveBeenCalledTimes(5);
+  });
+
+  it('tolerates load-state timeouts but propagates other errors', async () => {
+    const load = vi.spyOn(page, 'waitForLoadState');
+    load.mockRejectedValueOnce(new errors.TimeoutError('Still loading'));
+    await expect(waitForObservationReady(page, 20)).resolves.toBeUndefined();
+    expect(load).toHaveBeenCalledWith('domcontentloaded', { timeout: 20 });
+
+    load.mockRejectedValueOnce(new Error('Page closed'));
+    await expect(waitForObservationReady(page, 20)).rejects.toThrow('Page closed');
   });
 });
