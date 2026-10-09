@@ -72,6 +72,7 @@ test('missing execution stops polling and can recover through explicit retry', a
   await expect(page.getByRole('link', { name: '返回执行记录', exact: true })).toBeVisible();
   await page.clock.fastForward(100);
   const stoppedAt = reads;
+  expect(stoppedAt).toBe(1);
   await page.clock.fastForward(6000);
   expect(reads).toBe(stoppedAt);
   missing = false;
