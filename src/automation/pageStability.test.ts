@@ -13,7 +13,7 @@ describe('page stability after asynchronous login', () => {
     vi.spyOn(page, 'off');
   });
   afterEach(async () => {
-    await page?.close();
+    await page?.context().close();
   });
   afterAll(async () => {
     await browser?.close();
@@ -53,7 +53,7 @@ describe('page stability after asynchronous login', () => {
       await performAndWaitForStablePage(page, () => page.getByRole('button').click());
       expect(await page.evaluate(() => document.body.textContent)).toBe('Chatbot');
       expect(page.url()).toBe(`https://stability.test/${redirect ? 'home' : 'login'}`);
-      expect(page.off).toHaveBeenCalledTimes(4);
+      expect(page.off).toHaveBeenCalledTimes(5);
     },
     20000,
   );
@@ -64,11 +64,62 @@ describe('page stability after asynchronous login', () => {
     expect(await page.evaluate(() => document.body.textContent)).toBe('Chatbot');
   });
 
+  it.each([false, true])(
+    'returns the new tab after its asynchronous content stabilizes (delayed open: %s)',
+    async (delayed) => {
+      const context = page.context();
+      const contextOff = vi.spyOn(context, 'off');
+      await context.route('https://tabs.test/**', async (route) => {
+        const path = new URL(route.request().url()).pathname;
+        if (path === '/data') {
+          await new Promise((resolve) => setTimeout(resolve, 900));
+          await route.fulfill({ body: 'New tab ready' });
+        } else if (path === '/new') {
+          await route.fulfill({
+            contentType: 'text/html',
+            body: `<script>fetch('/data').then(r => r.text()).then(text => {
+              document.body.innerHTML = '<h1>' + text + '</h1>';
+            });</script>`,
+          });
+        } else {
+          await route.fulfill({
+            contentType: 'text/html',
+            body: delayed
+              ? `<button onclick="setTimeout(() => window.open('/new'), 100)">Open</button>`
+              : '<a href="/new" target="_blank">Open</a>',
+          });
+        }
+      });
+      await page.goto('https://tabs.test/start');
+
+      const active = await performAndWaitForStablePage(page, () =>
+        page.getByText('Open', { exact: true }).click(),
+      );
+
+      expect(active).not.toBe(page);
+      expect(active.url()).toBe('https://tabs.test/new');
+      expect(await active.locator('body').innerText()).toBe('New tab ready');
+      expect(contextOff).toHaveBeenCalledWith('page', expect.any(Function));
+      expect(page.off).toHaveBeenCalledTimes(5);
+    },
+  );
+
+  it('returns to the previous tab when the active popup closes', async () => {
+    await page.goto('about:blank');
+    const popupPromise = page.waitForEvent('popup');
+    await page.evaluate(() => window.open('about:blank'));
+    const popup = await popupPromise;
+
+    const active = await performAndWaitForStablePage(popup, () => popup.close());
+
+    expect(active).toBe(page);
+  });
+
   it('reports a timeout instead of observing a page with a pending login request', async () => {
     await loginPage(false, 2000);
     await expect(
       performAndWaitForStablePage(page, () => page.getByRole('button').click(), 200, 50),
     ).rejects.toThrow('Page did not stabilize');
-    expect(page.off).toHaveBeenCalledTimes(4);
+    expect(page.off).toHaveBeenCalledTimes(5);
   });
 });

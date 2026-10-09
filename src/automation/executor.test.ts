@@ -7,7 +7,10 @@ import { Executor } from './executor';
 const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
 vi.mock('./deepseek', () => ({ generateWithOpenAI: generate }));
 vi.mock('./pageStability', () => ({
-  performAndWaitForStablePage: (_page: Page, action: () => Promise<unknown>) => action(),
+  performAndWaitForStablePage: async (page: Page, action: () => Promise<unknown>) => {
+    await action();
+    return page;
+  },
 }));
 
 const task = (
@@ -173,6 +176,59 @@ describe('Executor Plan recording', () => {
       execute.mock.invocationCallOrder[1],
     );
     expect(payload(1).completedSteps).toHaveLength(2);
+  });
+
+  it('uses a new tab for subsequent actions, assertions, branches and tasks', async () => {
+    const { executor, page, execute, observe } = fixture([
+      group('root', ['open', 'branch', 'after']),
+      task('open', { assertions: [{ description: 'New tab is visible' }] }),
+      branch('no'),
+      task('yes'),
+      task('no'),
+      task('after'),
+    ]);
+    const newPage = {} as Page;
+    execute.mockResolvedValue(newPage);
+    generate
+      .mockResolvedValueOnce(action('click', { ref: 'e1' }))
+      .mockResolvedValueOnce(action('fill', { ref: 'e2', value: 'new tab input' }))
+      .mockResolvedValueOnce(done)
+      .mockResolvedValueOnce(passed)
+      .mockResolvedValueOnce(passed)
+      .mockResolvedValueOnce(done)
+      .mockResolvedValueOnce(done);
+
+    await executor.record(page);
+
+    expect(execute.mock.calls.map(([target]) => target)).toEqual([page, newPage]);
+    expect(observe.mock.calls.map(([target]) => target)).toEqual([
+      page,
+      newPage,
+      newPage,
+      newPage,
+      newPage,
+      newPage,
+      newPage,
+    ]);
+    expect(payload(5).goal).toBe('goal yes');
+    expect(payload(6).goal).toBe('goal after');
+  });
+
+  it('passes a tab opened by a dependency to the dependent task', async () => {
+    const { executor, page, execute, observe } = fixture([
+      task('after', { dependsOn: ['open'] }),
+      task('open'),
+    ]);
+    const newPage = {} as Page;
+    execute.mockResolvedValue(newPage);
+    generate
+      .mockResolvedValueOnce(action('click', { ref: 'e1' }))
+      .mockResolvedValueOnce(done)
+      .mockResolvedValueOnce(done);
+
+    await executor.record(page);
+
+    expect(observe.mock.calls.map(([target]) => target)).toEqual([page, newPage, newPage]);
   });
 
   it('rejects malformed JSON without executing', async () => {

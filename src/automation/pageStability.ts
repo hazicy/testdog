@@ -7,7 +7,9 @@ export async function performAndWaitForStablePage(
   action: () => Promise<unknown>,
   timeout = 15000,
   quietMs = 500,
-): Promise<void> {
+): Promise<Page> {
+  const context = page.context();
+  let activePage = page;
   const pending = new Set<Request>();
   let lastActivity = Date.now();
   let activityVersion = 0;
@@ -36,11 +38,39 @@ export async function performAndWaitForStablePage(
     markActivity();
   };
 
-  // Attach before the action so a slow login request cannot be missed.
-  page.on('request', started);
-  page.on('requestfinished', finished);
-  page.on('requestfailed', finished);
-  page.on('framenavigated', navigated);
+  const attach = (target: Page) => {
+    target.on('request', started);
+    target.on('requestfinished', finished);
+    target.on('requestfailed', finished);
+    target.on('framenavigated', navigated);
+    target.on('close', closed);
+  };
+  const detach = (target: Page) => {
+    target.off('request', started);
+    target.off('requestfinished', finished);
+    target.off('requestfailed', finished);
+    target.off('framenavigated', navigated);
+    target.off('close', closed);
+  };
+  const activate = (target: Page) => {
+    detach(activePage);
+    pending.clear();
+    activePage = target;
+    attach(target);
+    markActivity();
+  };
+  const opened = (target: Page) => {
+    if (!target.isClosed()) activate(target);
+  };
+  const closed = () => {
+    const remaining = context.pages().filter((target) => !target.isClosed());
+    const target = remaining.at(-1);
+    if (target) activate(target);
+  };
+
+  // Listen before acting: a click can create a new tab before it resolves.
+  context.on('page', opened);
+  attach(activePage);
   try {
     await action();
     const deadline = Date.now() + timeout;
@@ -49,10 +79,14 @@ export async function performAndWaitForStablePage(
         await new Promise((resolve) => setTimeout(resolve, Math.min(50, deadline - Date.now())));
         continue;
       }
-      await page.waitForLoadState('domcontentloaded', { timeout: deadline - Date.now() });
+      const observedPage = activePage;
       const activityBefore = activityVersion;
       try {
-        const quiet = await page.evaluate(
+        await observedPage.waitForLoadState('domcontentloaded', {
+          timeout: Math.max(1, deadline - Date.now()),
+        });
+        if (observedPage !== activePage) continue;
+        const quiet = await observedPage.evaluate(
           ({ quietMs, remaining }) =>
             new Promise<boolean>((resolve) => {
               let quietTimer: ReturnType<typeof setTimeout>;
@@ -77,9 +111,10 @@ export async function performAndWaitForStablePage(
             }),
           { quietMs, remaining: Math.max(1, deadline - Date.now()) },
         );
-        if (quiet && pending.size === 0 && activityVersion === activityBefore) return;
+        if (quiet && pending.size === 0 && activityVersion === activityBefore) return activePage;
       } catch (error) {
         // A redirect can destroy the old document while it is being observed.
+        if (observedPage !== activePage) continue;
         if (!String(error).includes('Execution context was destroyed')) throw error;
         markActivity();
       }
@@ -88,9 +123,7 @@ export async function performAndWaitForStablePage(
       `Page did not stabilize within ${timeout}ms (${pending.size} pending requests)`,
     );
   } finally {
-    page.off('request', started);
-    page.off('requestfinished', finished);
-    page.off('requestfailed', finished);
-    page.off('framenavigated', navigated);
+    context.off('page', opened);
+    detach(activePage);
   }
 }

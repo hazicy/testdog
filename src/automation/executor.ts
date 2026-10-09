@@ -24,7 +24,7 @@ export class Executor {
   async record(page: Page) {
     const startUrl = this.startUrl;
     if (startUrl) {
-      await performAndWaitForStablePage(page, () =>
+      page = await performAndWaitForStablePage(page, () =>
         page.goto(startUrl, { waitUntil: 'domcontentloaded' }),
       );
     }
@@ -36,26 +36,26 @@ export class Executor {
     page: Page,
     completed = new Set<string>(),
     visiting = new Set<string>(),
-  ): Promise<void> {
-    if (completed.has(id)) return;
+  ): Promise<Page> {
+    if (completed.has(id)) return page;
     if (visiting.has(id)) throw new Error(`Cycle detected at node ${id}`);
     const node = this.executionPlan.nodes[id];
     if (!node) throw new Error(`Unknown plan node: ${id}`);
     visiting.add(id);
     try {
       for (const dependency of node.dependsOn) {
-        await this.dfs(dependency, page, completed, visiting);
+        page = await this.dfs(dependency, page, completed, visiting);
       }
       if (node.kind === 'group') {
         for (const child of node.children) {
-          await this.dfs(child, page, completed, visiting);
+          page = await this.dfs(child, page, completed, visiting);
         }
       } else if (node.kind === 'branch') {
         const selected = await this.selectBranch(node, page);
-        if (selected !== undefined) await this.dfs(selected, page, completed, visiting);
+        if (selected !== undefined) page = await this.dfs(selected, page, completed, visiting);
       } else {
         try {
-          await this.runAction(node, page);
+          page = await this.runAction(node, page);
         } catch (cause) {
           throw new Error(`Step ${node.id} (${node.goal}) failed`, { cause });
         }
@@ -64,6 +64,7 @@ export class Executor {
         }
       }
       completed.add(id);
+      return page;
     } finally {
       visiting.delete(id);
     }
@@ -90,7 +91,7 @@ export class Executor {
         completedSteps,
       });
 
-      if (decision.done) return;
+      if (decision.done) return page;
 
       if (!decision.steps.length) {
         throw new Error(`Planner returned no action before completing intent: ${node.goal}`);
@@ -98,7 +99,7 @@ export class Executor {
 
       if (completedSteps.length + decision.steps.length > Executor.maxStepsPerAtomicIntent) break;
       for (const step of decision.steps) {
-        await this.execute(page, step);
+        page = await this.execute(page, step);
         completedSteps.push(step);
       }
       ariaTree = await this.observer.observe(page);
@@ -148,8 +149,7 @@ export class Executor {
   }
 
   async execute(page: Page, step: Step): Promise<Page> {
-    await performAndWaitForStablePage(page, () => this.performAction(page, step));
-    return page;
+    return performAndWaitForStablePage(page, () => this.performAction(page, step));
   }
 
   private async performAction(page: Page, step: Step): Promise<void> {
