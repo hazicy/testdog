@@ -1,5 +1,5 @@
 import { Page } from 'playwright';
-import { waitForObservationReady } from './pageStability';
+import { waitForObservationReady } from './pageReadiness';
 
 type AriaNode = {
   role: string;

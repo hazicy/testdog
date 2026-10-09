@@ -1,4 +1,6 @@
-import type { Page } from 'playwright';
+import { EventEmitter } from 'node:events';
+import type { BrowserContext, Page } from 'playwright';
+import { BrowserSession } from './browserSession';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Plan, PlanNode } from './compiler/schema';
 import { Observer } from './observer';
@@ -6,12 +8,6 @@ import { Executor } from './executor';
 
 const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
 vi.mock('./deepseek', () => ({ generateWithOpenAI: generate }));
-vi.mock('./pageStability', () => ({
-  performAndWaitForStablePage: async (page: Page, action: () => Promise<unknown>) => {
-    await action();
-    return page;
-  },
-}));
 
 const task = (
   id: string,
@@ -47,6 +43,15 @@ const action = (name: string, args: unknown) => ({
 });
 const passed = { structuredContent: { passed: true, evidence: 'Visible success message' } };
 
+function mockPage(context: BrowserContext): Page {
+  return Object.assign(new EventEmitter(), {
+    context: () => context,
+    goto: vi.fn().mockResolvedValue(undefined),
+    isClosed: () => false,
+    url: () => 'https://example.com',
+  }) as unknown as Page;
+}
+
 function fixture(nodes: PlanNode[] = [group('root', [])], startUrl?: string) {
   const plan: Plan = {
     rootId: nodes[0].id,
@@ -55,9 +60,12 @@ function fixture(nodes: PlanNode[] = [group('root', [])], startUrl?: string) {
   const observation = { tree: {}, page: { url: 'https://example.com', focused: null } };
   const observer = new Observer();
   const observe = vi.spyOn(observer, 'observe').mockResolvedValue(observation);
-  const page = { goto: vi.fn().mockResolvedValue(undefined) } as unknown as Page;
+  const context = Object.assign(new EventEmitter(), {
+    pages: () => [page],
+  }) as unknown as BrowserContext;
+  const page = mockPage(context);
   const executor = new Executor(observer, plan, startUrl);
-  const execute = vi.spyOn(executor, 'execute').mockResolvedValue(page);
+  const execute = vi.spyOn(executor, 'execute').mockResolvedValue(undefined);
   return { executor, observe, observation, page, execute };
 }
 
@@ -65,7 +73,10 @@ function payload(index: number) {
   return JSON.parse(generate.mock.calls[index][0].messages[0].content.text);
 }
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.restoreAllMocks();
+  generate.mockReset();
+});
 
 describe('Executor Plan recording', () => {
   it('sends a plain string URL schema without the unsupported uri format', async () => {
@@ -124,6 +135,7 @@ describe('Executor Plan recording', () => {
         'click',
         'fill',
         'press',
+        'wait',
       ]);
       expect(request).not.toHaveProperty('responseFormat');
       expect(generate.mock.calls[1][0].messages).toHaveLength(1);
@@ -187,8 +199,10 @@ describe('Executor Plan recording', () => {
       task('no'),
       task('after'),
     ]);
-    const newPage = {} as Page;
-    execute.mockResolvedValue(newPage);
+    const newPage = mockPage(page.context());
+    execute.mockImplementationOnce(async () => {
+      (page.context() as unknown as EventEmitter).emit('page', newPage);
+    });
     generate
       .mockResolvedValueOnce(action('click', { ref: 'e1' }))
       .mockResolvedValueOnce(action('fill', { ref: 'e2', value: 'new tab input' }))
@@ -219,8 +233,10 @@ describe('Executor Plan recording', () => {
       task('after', { dependsOn: ['open'] }),
       task('open'),
     ]);
-    const newPage = {} as Page;
-    execute.mockResolvedValue(newPage);
+    const newPage = mockPage(page.context());
+    execute.mockImplementationOnce(async () => {
+      (page.context() as unknown as EventEmitter).emit('page', newPage);
+    });
     generate
       .mockResolvedValueOnce(action('click', { ref: 'e1' }))
       .mockResolvedValueOnce(done)
@@ -229,6 +245,116 @@ describe('Executor Plan recording', () => {
     await executor.record(page);
 
     expect(observe.mock.calls.map(([target]) => target)).toEqual([page, newPage, newPage]);
+  });
+
+  it('waits and reobserves loading results without repeating the click', async () => {
+    const { executor, page, execute, observe } = fixture([task('video')]);
+    const wait = vi.spyOn(BrowserSession.prototype, 'wait').mockResolvedValue(undefined);
+    generate
+      .mockResolvedValueOnce(action('click', { ref: 'e1' }))
+      .mockResolvedValueOnce(
+        action('wait', { condition: 'text', value: 'Video player', timeoutMs: 5000 }),
+      )
+      .mockResolvedValueOnce(done);
+
+    await executor.record(page);
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(wait).toHaveBeenCalledExactlyOnceWith({
+      type: 'wait',
+      condition: 'text',
+      value: 'Video player',
+      timeoutMs: 5000,
+    });
+    expect(observe).toHaveBeenCalledTimes(3);
+    expect(payload(2).remainingWaitMs).toBe(10000);
+    expect(payload(2).completedSteps.map((step: { type: string }) => step.type)).toEqual([
+      'click',
+      'wait',
+    ]);
+  });
+
+  it('bounds repeated waits separately from browser actions', async () => {
+    const { executor, page, execute } = fixture([task('loading')]);
+    const wait = vi.spyOn(BrowserSession.prototype, 'wait').mockResolvedValue(undefined);
+    generate.mockResolvedValue(
+      action('wait', { condition: 'observe', value: '', timeoutMs: 5000 }),
+    );
+
+    await expect(executor.record(page)).rejects.toMatchObject({
+      cause: expect.objectContaining({
+        message: expect.stringContaining('Expected result did not appear within the wait budget'),
+      }),
+    });
+
+    expect(wait).toHaveBeenCalledTimes(3);
+    expect(execute).not.toHaveBeenCalled();
+    expect(payload(3).remainingWaitMs).toBe(0);
+  });
+
+  it.each([
+    { condition: 'text', value: '', timeoutMs: 1000 },
+    { condition: 'url', value: ' ', timeoutMs: 1000 },
+    { condition: 'observe', value: '', timeoutMs: 0 },
+    { condition: 'observe', value: '', timeoutMs: 5001 },
+  ])('rejects invalid waits before executing: %j', async (args) => {
+    const { executor, page, execute } = fixture([task('invalid_wait')]);
+    generate.mockResolvedValueOnce(action('wait', args));
+    await expect(executor.record(page)).rejects.toThrow('Step invalid_wait');
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects batched wait and action calls before dispatch', async () => {
+    const { executor, page, execute } = fixture([task('batch_wait')]);
+    generate.mockResolvedValueOnce({
+      content: { text: '' },
+      toolCalls: [
+        ...action('click', { ref: 'e1' }).toolCalls,
+        ...action('wait', { condition: 'observe', value: '', timeoutMs: 1000 }).toolCalls,
+      ],
+    });
+    await expect(executor.record(page)).rejects.toThrow('Step batch_wait');
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('reobserves before using further batched refs when a tab opens unexpectedly', async () => {
+    const { executor, page, execute, observe } = fixture([task('new_tab')]);
+    const popup = mockPage(page.context());
+    execute.mockImplementationOnce(async () => {
+      (page.context() as unknown as EventEmitter).emit('page', popup);
+    });
+    generate
+      .mockResolvedValueOnce({
+        content: { text: '' },
+        toolCalls: [
+          ...action('click', { ref: 'e1' }).toolCalls,
+          ...action('fill', { ref: 'e2', value: 'stale' }).toolCalls,
+        ],
+      })
+      .mockResolvedValueOnce(done);
+
+    await executor.record(page);
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(observe).toHaveBeenLastCalledWith(popup);
+    expect(payload(1).completedSteps).toHaveLength(1);
+  });
+
+  it('discards a plan if a delayed popup opens while the model is responding', async () => {
+    const { executor, page, execute, observe } = fixture([task('delayed_tab')]);
+    const popup = mockPage(page.context());
+    generate
+      .mockImplementationOnce(async () => {
+        (page.context() as unknown as EventEmitter).emit('page', popup);
+        return action('click', { ref: 'e1' });
+      })
+      .mockResolvedValueOnce(done);
+
+    await executor.record(page);
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(observe).toHaveBeenLastCalledWith(popup);
+    expect(payload(1).completedSteps).toEqual([]);
   });
 
   it('rejects malformed JSON without executing', async () => {

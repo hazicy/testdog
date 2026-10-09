@@ -4,7 +4,7 @@ import { Planner } from './planner';
 import { generateWithOpenAI } from './deepseek';
 import type { Assertion, Plan, PlanNode, Step, Target } from './compiler/schema';
 import { Observer } from './observer';
-import { performAndWaitForStablePage } from './pageStability';
+import { BrowserSession } from './browserSession';
 
 const AssertionDecisionSchema = z.object({
   passed: z.boolean(),
@@ -22,87 +22,120 @@ export class Executor {
   ) {}
 
   async record(page: Page) {
-    const startUrl = this.startUrl;
-    if (startUrl) {
-      page = await performAndWaitForStablePage(page, () =>
-        page.goto(startUrl, { waitUntil: 'domcontentloaded' }),
-      );
+    const session = new BrowserSession(page);
+    try {
+      const startUrl = this.startUrl;
+      if (startUrl) {
+        await session.perform((current) =>
+          current.goto(startUrl, { waitUntil: 'domcontentloaded' }),
+        );
+      }
+      await this.dfs(this.executionPlan.rootId, session);
+    } finally {
+      session.dispose();
     }
-    await this.dfs(this.executionPlan.rootId, page);
   }
 
   async dfs(
     id: string,
-    page: Page,
+    session: BrowserSession,
     completed = new Set<string>(),
     visiting = new Set<string>(),
-  ): Promise<Page> {
-    if (completed.has(id)) return page;
+  ): Promise<void> {
+    if (completed.has(id)) return;
     if (visiting.has(id)) throw new Error(`Cycle detected at node ${id}`);
     const node = this.executionPlan.nodes[id];
     if (!node) throw new Error(`Unknown plan node: ${id}`);
     visiting.add(id);
     try {
       for (const dependency of node.dependsOn) {
-        page = await this.dfs(dependency, page, completed, visiting);
+        await this.dfs(dependency, session, completed, visiting);
       }
       if (node.kind === 'group') {
         for (const child of node.children) {
-          page = await this.dfs(child, page, completed, visiting);
+          await this.dfs(child, session, completed, visiting);
         }
       } else if (node.kind === 'branch') {
-        const selected = await this.selectBranch(node, page);
-        if (selected !== undefined) page = await this.dfs(selected, page, completed, visiting);
+        const selected = await this.selectBranch(node, session);
+        if (selected !== undefined) await this.dfs(selected, session, completed, visiting);
       } else {
         try {
-          page = await this.runAction(node, page);
+          await this.runAction(node, session);
         } catch (cause) {
           throw new Error(`Step ${node.id} (${node.goal}) failed`, { cause });
         }
         for (const [index, assertion] of node.assertions.entries()) {
-          await this.assert(page, assertion, `${node.id}-assertion-${index + 1}`);
+          await this.assert(session, assertion, `${node.id}-assertion-${index + 1}`);
         }
       }
       completed.add(id);
-      return page;
     } finally {
       visiting.delete(id);
     }
   }
 
-  private async selectBranch(node: Extract<PlanNode, { kind: 'branch' }>, page: Page) {
+  private async selectBranch(node: Extract<PlanNode, { kind: 'branch' }>, session: BrowserSession) {
     try {
-      const decision = await this.evaluate(page, { condition: node.condition }, 'branch_result');
+      const decision = await this.evaluate(session, { condition: node.condition }, 'branch_result');
       return decision.passed ? node.then : node.otherwise;
     } catch (cause) {
       throw new Error(`Branch ${node.id} failed: ${node.condition}`, { cause });
     }
   }
 
-  private async runAction(node: Extract<PlanNode, { kind: 'task' }>, page: Page) {
+  private async runAction(node: Extract<PlanNode, { kind: 'task' }>, session: BrowserSession) {
     const completedSteps: Step[] = [];
-    let ariaTree = await this.observer.observe(page);
-    for (let attempt = 0; attempt <= Executor.maxStepsPerAtomicIntent; attempt++) {
+    let remainingWaitMs = 15000;
+    let actions = 0;
+    let ariaTree = await session.observe(this.observer);
+    while (true) {
+      const version = session.version;
       const decision = await this.planner.plan({
         goal: node.goal,
         inputs: {},
         preconditions: [],
         observation: ariaTree,
         completedSteps,
+        remainingWaitMs,
       });
 
-      if (decision.done) return page;
+      if (version !== session.version) {
+        ariaTree = await session.observe(this.observer);
+        continue;
+      }
+
+      if (decision.done) return;
 
       if (!decision.steps.length) {
         throw new Error(`Planner returned no action before completing intent: ${node.goal}`);
       }
 
-      if (completedSteps.length + decision.steps.length > Executor.maxStepsPerAtomicIntent) break;
+      if (
+        actions + decision.steps.filter((step) => step.type !== 'wait').length >
+        Executor.maxStepsPerAtomicIntent
+      )
+        break;
       for (const step of decision.steps) {
-        page = await this.execute(page, step);
-        completedSteps.push(step);
+        if (step.type === 'wait') {
+          if (remainingWaitMs <= 0) {
+            throw new Error(
+              `Expected result did not appear within the wait budget: ${node.goal}; URL: ${session.page.url()}; condition: ${step.condition} ${step.value}`,
+            );
+          }
+          const timeoutMs = Math.min(step.timeoutMs, remainingWaitMs);
+          // Reserve each wait's budget even if its condition is already met, bounding reobservations.
+          remainingWaitMs -= timeoutMs;
+          const wait = { ...step, timeoutMs };
+          await session.wait(wait);
+          completedSteps.push(wait);
+        } else {
+          const changedPage = await session.perform((current) => this.execute(current, step));
+          actions++;
+          completedSteps.push(step);
+          if (changedPage) break;
+        }
       }
-      ariaTree = await this.observer.observe(page);
+      ariaTree = await session.observe(this.observer);
     }
 
     throw new Error(
@@ -110,9 +143,9 @@ export class Executor {
     );
   }
 
-  private async assert(page: Page, assertion: Assertion, id: string): Promise<void> {
+  private async assert(session: BrowserSession, assertion: Assertion, id: string): Promise<void> {
     try {
-      const decision = await this.evaluate(page, { assertion }, 'assertion_result');
+      const decision = await this.evaluate(session, { assertion }, 'assertion_result');
       if (!decision.passed) throw new Error(decision.evidence);
     } catch (cause) {
       throw new Error(`Assertion ${id} failed: ${assertion.description}`, { cause });
@@ -120,11 +153,11 @@ export class Executor {
   }
 
   private async evaluate(
-    page: Page,
+    session: BrowserSession,
     subject: { condition: string } | { assertion: Assertion },
     name: string,
   ) {
-    const observation = await this.observer.observe(page);
+    const observation = await session.observe(this.observer);
     const response = await generateWithOpenAI({
       systemPrompt: `Evaluate the condition or assertion using only the supplied current observation.
       This is a read-only check: never propose or perform browser actions or setup to make it pass.
@@ -148,11 +181,7 @@ export class Executor {
     return AssertionDecisionSchema.parse(response.structuredContent);
   }
 
-  async execute(page: Page, step: Step): Promise<Page> {
-    return performAndWaitForStablePage(page, () => this.performAction(page, step));
-  }
-
-  private async performAction(page: Page, step: Step): Promise<void> {
+  async execute(page: Page, step: Exclude<Step, { type: 'wait' }>): Promise<void> {
     // 执行操作
     if (step.type === 'navigate') {
       await page.goto(step.value, { waitUntil: 'domcontentloaded' });

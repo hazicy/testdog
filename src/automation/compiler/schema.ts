@@ -7,11 +7,20 @@ export const TargetSchema = z.object({
   index: z.number().int().nonnegative().optional(),
 });
 
-export const StepSchema = z.object({
+const ActionStepSchema = z.object({
   type: z.enum(['navigate', 'click', 'fill', 'press']),
   target: TargetSchema,
   value: z.string(),
 });
+
+export const WaitStepSchema = z.object({
+  type: z.literal('wait'),
+  condition: z.enum(['observe', 'newPage', 'url', 'text']),
+  value: z.string(),
+  timeoutMs: z.number().int().min(1000).max(5000),
+});
+export const StepSchema = z.discriminatedUnion('type', [ActionStepSchema, WaitStepSchema]);
+export type WaitStep = z.infer<typeof WaitStepSchema>;
 
 const id = z.string().trim().min(1);
 const ids = z.array(id);
