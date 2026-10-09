@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StepSchema, type Step } from '../engine/compiler/schema';
+import { StepSchema, type Step } from './compiler/schema';
 import { generateWithOpenAI } from './deepseek';
 
 const RefSchema = z.string().regex(/^(?:f\d+)?e\d+$/, 'Expected an ARIA ref token');

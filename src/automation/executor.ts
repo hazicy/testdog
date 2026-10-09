@@ -1,7 +1,7 @@
 import type { Locator, Page } from 'playwright';
 import { type JSONType, z } from 'zod';
-import { Planner } from '../agent/planner';
-import { generateWithOpenAI } from '../agent/deepseek';
+import { Planner } from './planner';
+import { generateWithOpenAI } from './deepseek';
 import type { Assertion, Plan, PlanNode, Step, Target } from './compiler/schema';
 import { Observer } from './observer';
 import { performAndWaitForStablePage } from './pageStability';

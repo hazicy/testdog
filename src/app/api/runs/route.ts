@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { Executor } from '@/engine/executor';
-import { launchBrowser } from '@/engine/browser';
-import { TextCompiler } from '@/engine/compiler/textCompiler';
-import { Observer } from '@/engine/observer';
+import { Executor } from '@/automation/executor';
+import { launchBrowser } from '@/automation/browser';
+import { TextCompiler } from '@/automation/compiler/textCompiler';
+import { Observer } from '@/automation/observer';
 
 export const runtime = 'nodejs';
 

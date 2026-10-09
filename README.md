@@ -25,8 +25,7 @@ pnpm dev
 src/
   app/                 页面、布局与 API 路由
   components/          共享界面组件
-  agent/               模型请求适配与浏览器动作规划
-  engine/              浏览器启动、页面观察、稳定性等待和执行器
+  automation/          模型适配、动作规划、页面观察与自动化执行
     compiler/          文本用例编译、计划与动作的 schema / 类型
   db/                  数据库连接、表定义与查询
 drizzle/              数据库迁移
@@ -56,7 +55,7 @@ pnpm build
 默认测试不请求真实模型。需要模型服务的编译器集成测试单独运行：
 
 ```bash
-RUN_LIVE_TESTS=true pnpm exec vitest run src/engine/compiler/textCompiler.integration.test.ts
+RUN_LIVE_TESTS=true pnpm exec vitest run src/automation/compiler/textCompiler.integration.test.ts
 ```
 
 修改数据库表定义后运行 `pnpm db:generate` 生成迁移，再运行 `pnpm db:migrate` 应用。

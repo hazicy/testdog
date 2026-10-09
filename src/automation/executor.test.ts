@@ -5,7 +5,7 @@ import { Observer } from './observer';
 import { Executor } from './executor';
 
 const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
-vi.mock('../agent/deepseek', () => ({ generateWithOpenAI: generate }));
+vi.mock('./deepseek', () => ({ generateWithOpenAI: generate }));
 vi.mock('./pageStability', () => ({
   performAndWaitForStablePage: (_page: Page, action: () => Promise<unknown>) => action(),
 }));
