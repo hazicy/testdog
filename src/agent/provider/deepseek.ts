@@ -1,6 +1,10 @@
 import OpenAI from 'openai';
 
-import type { ResponseInputContent, ResponseInputItem } from 'openai/resources/responses/responses';
+import type {
+  FunctionTool,
+  ResponseInputContent,
+  ResponseInputItem,
+} from 'openai/resources/responses/responses';
 import type { JSONType } from 'zod/v4';
 
 type LLMContentBlock =
@@ -46,6 +50,8 @@ type LLMGenerateParams = {
   systemPrompt?: string;
 
   temperature?: number;
+
+  tools?: FunctionTool[];
 
   responseFormat?:
     | {
@@ -94,17 +100,16 @@ function messageContent(content: LLMContentBlock | LLMContentBlock[]): ResponseI
     }
 
     throw new TypeError(
-      `Automation tool content (${block.type}) is not supported by this JSON Schema-only adapter`,
+      `Tool history (${block.type}) is not supported; send current state in a fresh request`,
     );
   });
 }
 
 export async function generateWithOpenAI(params: LLMGenerateParams) {
-  if (params.responseFormat?.type !== 'json_schema') {
-    throw new TypeError('Automation only issues structured generations');
-  }
-
-  if (!isJSONObject(params.responseFormat.schema)) {
+  if (
+    params.responseFormat?.type === 'json_schema' &&
+    !isJSONObject(params.responseFormat.schema)
+  ) {
     throw new TypeError('The JSON Schema response format requires an object schema');
   }
 
@@ -123,20 +128,24 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
     instructions: params.systemPrompt,
     input,
     temperature: params.temperature,
-    text: {
-      format: {
-        type: 'json_schema',
-        name: params.responseFormat.name,
-        schema: params.responseFormat.schema,
-        strict: true,
-      },
-    },
+    ...(params.responseFormat?.type === 'json_schema'
+      ? {
+          text: {
+            format: {
+              type: 'json_schema' as const,
+              name: params.responseFormat.name,
+              schema: params.responseFormat.schema as Record<string, unknown>,
+            },
+          },
+        }
+      : {}),
+    ...(params.tools?.length
+      ? { tools: params.tools, parallel_tool_calls: false, tool_choice: 'auto' as const }
+      : {}),
     reasoning: {
       effort: 'none',
     },
   });
-
-  console.log('response', response);
 
   return {
     role: 'assistant' as const,
@@ -146,8 +155,15 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
       text: response.output_text,
     },
 
-    outputFormat: 'json_schema' as const,
+    toolCalls: response.output
+      .filter((item) => item.type === 'function_call')
+      .map((item) => ({ id: item.call_id, name: item.name, arguments: item.arguments })),
 
-    structuredContent: parseStructuredContent(response.output_text),
+    outputFormat: params.responseFormat?.type ?? 'text',
+
+    structuredContent:
+      params.responseFormat?.type === 'json_schema'
+        ? parseStructuredContent(response.output_text)
+        : undefined,
   };
 }

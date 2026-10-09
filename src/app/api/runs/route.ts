@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const page = await context.newPage();
     const observer = new Observer();
-    const executor = new Executor(observer, testCase);
+    const executor = new Executor(observer, testCase, input.url);
 
     await executor.record(page);
 

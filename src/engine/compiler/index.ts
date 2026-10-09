@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const TargetSchema = z.object({
   kind: z.enum(['role', 'label', 'placeholder', 'testId', 'css', 'ariaRef']),
   value: z.string(),
-  name: z.string(),
+  name: z.string().default(''),
   index: z.number().int().nonnegative().optional(),
 });
 
@@ -42,12 +42,4 @@ export type Flow = z.infer<typeof FlowSchema>;
 
 export { FeishuCompiler } from './feishuCompiler';
 export { TextCompiler } from './textCompiler';
-export type {
-  Compiler,
-  TestCase,
-  TestStep,
-  ActionStep,
-  GroupStep,
-  AssertStep,
-  Assertion,
-} from './type';
+export type { Compiler, Plan, PlanNode, Assertion } from './type';

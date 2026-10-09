@@ -1,39 +1,78 @@
-import { generateWithOpenAI } from '@/ai/provider/deepseek';
+import { generateWithOpenAI } from '@/agent/provider/deepseek';
 import { type JSONType, z } from 'zod';
-import type { Assertion, Compiler, TestCase, TestStep } from './type';
+import type { Compiler, Plan } from './type';
 
-const AssertionSchema = z.object({ description: z.string().min(1) }).strict();
-const InputSchema = z.object({ name: z.string().min(1), value: z.string() }).strict();
-type CompiledStep =
-  | { type: 'action'; goal: string; inputs: z.infer<typeof InputSchema>[] }
-  | { type: 'group'; name: string; steps: CompiledStep[] }
-  | { type: 'assert'; assertion: Assertion };
+const id = z.string().trim().min(1);
+const ids = z.array(id);
+const NodeSchema = z.discriminatedUnion('kind', [
+  z
+    .object({ kind: z.literal('group'), id, goal: id, children: ids.min(1), dependsOn: ids })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('task'),
+      id,
+      goal: id,
+      dependsOn: ids,
+      requirementIds: ids,
+      assertions: z.array(z.object({ description: id }).strict()),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('branch'),
+      id,
+      condition: id,
+      then: id,
+      otherwise: id.optional(),
+      dependsOn: ids,
+    })
+    .strict(),
+]);
+export const PlanSchema = z
+  .object({ rootId: id, nodes: z.record(id, NodeSchema) })
+  .strict()
+  .superRefine((plan, ctx) => {
+    const error = (message: string) => ctx.addIssue({ code: 'custom', message });
+    if (!Object.hasOwn(plan.nodes, plan.rootId)) error(`Missing root node: ${plan.rootId}`);
+    for (const [key, node] of Object.entries(plan.nodes)) {
+      if (key !== node.id) error(`Node key ${key} does not match id ${node.id}`);
+      const refs = [
+        ...node.dependsOn,
+        ...(node.kind === 'group'
+          ? node.children
+          : node.kind === 'branch'
+            ? [node.then, ...(node.otherwise ? [node.otherwise] : [])]
+            : []),
+      ];
+      for (const ref of refs) if (!Object.hasOwn(plan.nodes, ref)) error(`Missing node: ${ref}`);
+    }
+    const active = new Set<string>();
+    const visited = new Set<string>();
+    const visit = (key: string) => {
+      if (active.has(key)) {
+        error(`Cycle detected at node: ${key}`);
+        return;
+      }
+      if (visited.has(key) || !Object.hasOwn(plan.nodes, key)) return;
+      active.add(key);
+      const node = plan.nodes[key];
+      const refs = [
+        ...node.dependsOn,
+        ...(node.kind === 'group'
+          ? node.children
+          : node.kind === 'branch'
+            ? [node.then, ...(node.otherwise ? [node.otherwise] : [])]
+            : []),
+      ];
+      refs.forEach(visit);
+      active.delete(key);
+      visited.add(key);
+    };
+    Object.keys(plan.nodes).forEach(visit);
+  });
 
-const CompiledStepSchema: z.ZodType<CompiledStep> = z.lazy(() =>
-  z.discriminatedUnion('type', [
-    z
-      .object({ type: z.literal('action'), goal: z.string().min(1), inputs: z.array(InputSchema) })
-      .strict(),
-    z
-      .object({
-        type: z.literal('group'),
-        name: z.string().min(1),
-        steps: z.array(CompiledStepSchema).min(1),
-      })
-      .strict(),
-    z.object({ type: z.literal('assert'), assertion: AssertionSchema }).strict(),
-  ]),
-);
-const CompiledCaseSchema = z
-  .object({
-    name: z.string().min(1),
-    preconditions: z.array(z.string()),
-    steps: z.array(CompiledStepSchema).min(1),
-    assertions: z.array(AssertionSchema),
-  })
-  .strict();
-
-// Explicit provider dialect: anyOf branches are complete objects, recursion is in steps.items.
+// The provider uses strict objects; a node array avoids dynamic object keys in its schema.
 function objectSchema(properties: Record<string, JSONType>): JSONType {
   return {
     type: 'object',
@@ -43,81 +82,105 @@ function objectSchema(properties: Record<string, JSONType>): JSONType {
   };
 }
 const stringSchema = { type: 'string' };
-const assertionSchema = objectSchema({ description: stringSchema });
-const stepArraySchema = { type: 'array', items: { $ref: '#/$def/step' } };
-const caseSchema: JSONType = {
-  ...(objectSchema({
-    name: stringSchema,
-    preconditions: { type: 'array', items: stringSchema },
-    steps: stepArraySchema,
-    assertions: { type: 'array', items: assertionSchema },
-  }) as Record<string, JSONType>),
-  $def: {
-    step: {
+const arraySchema = { type: 'array', items: stringSchema };
+const schema = objectSchema({
+  rootId: stringSchema,
+  nodes: {
+    type: 'array',
+    items: {
       anyOf: [
         objectSchema({
-          type: { type: 'string', enum: ['action'] },
+          kind: { type: 'string', enum: ['group'] },
+          id: stringSchema,
           goal: stringSchema,
-          inputs: {
-            type: 'array',
-            items: objectSchema({ name: stringSchema, value: stringSchema }),
-          },
+          children: arraySchema,
+          dependsOn: arraySchema,
         }),
         objectSchema({
-          type: { type: 'string', enum: ['group'] },
-          name: stringSchema,
-          steps: stepArraySchema,
+          kind: { type: 'string', enum: ['task'] },
+          id: stringSchema,
+          goal: stringSchema,
+          dependsOn: arraySchema,
+          requirementIds: arraySchema,
+          assertions: { type: 'array', items: objectSchema({ description: stringSchema }) },
         }),
         objectSchema({
-          type: { type: 'string', enum: ['assert'] },
-          assertion: assertionSchema,
+          kind: { type: 'string', enum: ['branch'] },
+          id: stringSchema,
+          condition: stringSchema,
+          then: stringSchema,
+          otherwise: { type: ['string', 'null'] },
+          dependsOn: arraySchema,
         }),
       ],
     },
   },
-};
+});
+const CompiledSchema = z
+  .object({
+    rootId: id,
+    nodes: z
+      .array(
+        z.union([
+          NodeSchema,
+          z
+            .object({
+              kind: z.literal('branch'),
+              id,
+              condition: id,
+              then: id,
+              otherwise: z.null(),
+              dependsOn: ids,
+            })
+            .strict(),
+        ]),
+      )
+      .min(1),
+  })
+  .strict();
 
 export class TextCompiler implements Compiler {
-  async compile(goal: string, startUrl?: string): Promise<TestCase> {
+  async compile(goal: string, startUrl?: string): Promise<Plan> {
     const response = await generateWithOpenAI({
-      systemPrompt: `将用户的自动化测试用例编译为用例定义，只返回 JSON，不要 Markdown 代码块或解释。
-name 是简短的用例名称。preconditions 只保留用户明确指定的环境条件，不能把需要执行的操作放入前置条件。
-steps 按执行顺序排列，包含 action、group 或 assert。
-action 是可直接交给浏览器执行器完成的子目标，可以包含多次填写、点击或导航；例如登录和导入标签都可作为 action。
-group 仅用于有意义的步骤分组，必须有非空 steps，允许嵌套；不要机械地为每次点击分组。
-inputs 是 name/value 键值数组，保留用户指定的所有输入值，每个 action 内参数名唯一；没有输入时返回空数组。
-assert 步骤用于用户明确要求的中途验证；assertions 用于用户明确要求的最终验证。
-断言 description 必须忠实保留用户预期，不得编造业务规则、成功提示文案或额外验证。用户没有要求断言时返回空 assertions。
-保留用户指定的操作、顺序、URL、输入值和序号意图。不要编造 DOM 选择器或未提供的 URL。
-如果提供 startUrl，执行器会先导航到该地址，省略这一步初始导航。
-不要添加重试或重新开始的循环，不要在用户要求的操作序列完成后追加操作。`,
+      systemPrompt: `将用户的自动化测试用例编译为逻辑嵌套、结构扁平的执行计划，只返回 JSON。
+rootId 指向根节点。nodes 是节点数组，每个节点有唯一 id；所有引用只使用 id，禁止内嵌节点。
+group 用 goal 描述分组，children 是按执行顺序排列的非空节点 ID 数组，允许引用嵌套 group。
+task 是浏览器执行的完整子目标，goal 必须保留用户指定的输入值、URL、操作顺序和环境上下文。
+requirementIds 只使用用户明确提供的需求 ID，没有则为空数组，不得编造。
+assertions 只包含用户明确要求的验证，用 description 忠实保留预期，不得编造成功提示或额外验证。
+中途验证放在对应 task 的 assertions；最终验证放在相应最后一个 task 的 assertions。无操作的验证也可用 task 表达。
+branch 只用于用户明确要求的条件分支，condition 是可从当前页面观察判断的条件，then 和 otherwise 指向节点 ID；没有否则分支时 otherwise 返回 null。
+dependsOn 是必须先完成的节点 ID 数组，无依赖时为空。所有引用必须存在，不得有循环依赖。
+不要让分支后的任务直接依赖两条互斥分支，应依赖 branch 节点。不要在分支之外重复列出分支子节点。
+前置环境仅作为上下文保留在 goal 中，不要编造建立环境的操作。
+提供 startUrl 时执行器会先导航，省略这一步初始导航。不要编造 DOM 选择器、URL、重试或额外操作。`,
       messages: [
         { role: 'user', content: { type: 'text', text: JSON.stringify({ goal, startUrl }) } },
       ],
       temperature: 0,
-      responseFormat: { type: 'json_schema', name: 'test_case', schema: caseSchema },
+      responseFormat: { type: 'json_schema', name: 'plan', schema },
     });
-
-    const compiled = CompiledCaseSchema.parse(response.structuredContent);
-    let nextId = 0;
-    const toStep = (step: CompiledStep): TestStep => {
-      const id = `step-${++nextId}`;
-      if (step.type === 'group') return { id, ...step, steps: step.steps.map(toStep) };
-      if (step.type === 'assert') return { id, ...step };
-      const inputs: Record<string, string> = Object.fromEntries(
-        step.inputs.map(({ name, value }) => [name, value]),
-      );
-      if (Object.keys(inputs).length !== step.inputs.length) {
-        throw new Error(`Duplicate input names in action ${id}`);
-      }
-      return { id, type: 'action', goal: step.goal, inputs };
-    };
-    return {
-      name: compiled.name,
-      ...(startUrl !== undefined ? { startUrl } : {}),
-      preconditions: compiled.preconditions,
-      steps: compiled.steps.map(toStep),
-      assertions: compiled.assertions,
-    };
+    const compiled = CompiledSchema.parse(response.structuredContent);
+    const nodes: Plan['nodes'] = {};
+    for (const node of compiled.nodes) {
+      if (Object.hasOwn(nodes, node.id)) throw new Error(`Duplicate node id: ${node.id}`);
+      const normalized =
+        node.kind === 'branch' && node.otherwise === null
+          ? {
+              kind: node.kind,
+              id: node.id,
+              condition: node.condition,
+              then: node.then,
+              dependsOn: node.dependsOn,
+            }
+          : node;
+      Object.defineProperty(nodes, node.id, {
+        value: normalized,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+    }
+    return PlanSchema.parse({ rootId: compiled.rootId, nodes });
   }
 }

@@ -3,37 +3,30 @@ export type Assertion = {
   description: string;
 };
 
-export type ActionStep = {
-  id: string;
-  type: 'action';
-  goal: string;
-  inputs: Record<string, string>;
-};
+export type PlanNode =
+  | { kind: 'group'; id: string; goal: string; children: string[]; dependsOn: string[] }
+  | {
+      kind: 'task';
+      id: string;
+      goal: string;
+      dependsOn: string[];
+      requirementIds: string[];
+      assertions: Assertion[];
+    }
+  | {
+      kind: 'branch';
+      id: string;
+      condition: string;
+      then: string;
+      otherwise?: string;
+      dependsOn: string[];
+    };
 
-export type GroupStep = {
-  id: string;
-  type: 'group';
-  name: string;
-  steps: TestStep[];
-};
-
-export type AssertStep = {
-  id: string;
-  type: 'assert';
-  assertion: Assertion;
-};
-
-/** 数组顺序即执行顺序，group 仅用于组织步骤。 */
-export type TestStep = ActionStep | GroupStep | AssertStep;
-
-export type TestCase = {
-  name: string;
-  startUrl?: string;
-  preconditions: string[];
-  steps: TestStep[];
-  assertions: Assertion[];
+export type Plan = {
+  rootId: string;
+  nodes: Record<string, PlanNode>;
 };
 
 export interface Compiler {
-  compile(goal: string, startUrl?: string): Promise<TestCase>;
+  compile(goal: string, startUrl?: string): Promise<Plan>;
 }
