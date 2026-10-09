@@ -7,6 +7,9 @@ import { Executor } from './executor';
 const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
 vi.mock('../agent/provider/deepseek', () => ({ generateWithOpenAI: generate }));
 vi.mock('../agent/provider/jev', () => ({ jev: { decideClick: vi.fn() } }));
+vi.mock('./pageStability', () => ({
+  performAndWaitForStablePage: (_page: Page, action: () => Promise<unknown>) => action(),
+}));
 
 const task = (
   id: string,
@@ -155,11 +158,27 @@ describe('Executor Plan recording', () => {
     },
   );
 
-  it('rejects multiple calls and malformed JSON without executing', async () => {
+  it('executes multiple calls in order before observing again', async () => {
+    const { executor, page, execute, observe } = fixture([task('batch')]);
+    const first = action('fill', { ref: 'e1', value: 'account' });
+    const second = action('fill', { ref: 'e2', value: 'password' });
+    generate
+      .mockResolvedValueOnce({
+        content: { text: '' },
+        toolCalls: [...first.toolCalls, ...second.toolCalls],
+      })
+      .mockResolvedValueOnce(done);
+    await executor.record(page);
+    expect(execute.mock.calls.map(([, step]) => step.value)).toEqual(['account', 'password']);
+    expect(observe.mock.invocationCallOrder[1]).toBeGreaterThan(
+      execute.mock.invocationCallOrder[1],
+    );
+    expect(payload(1).completedSteps).toHaveLength(2);
+  });
+
+  it('rejects malformed JSON without executing', async () => {
     const { executor, page, execute } = fixture([task('bad')]);
     const call = action('click', { ref: 'e1' });
-    generate.mockResolvedValueOnce({ ...call, toolCalls: [...call.toolCalls, ...call.toolCalls] });
-    await expect(executor.record(page)).rejects.toThrow('Step bad');
     generate.mockResolvedValueOnce({
       ...call,
       toolCalls: [{ ...call.toolCalls[0], arguments: '{' }],
