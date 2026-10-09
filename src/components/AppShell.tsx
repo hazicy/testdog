@@ -78,7 +78,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </Surface>
       <div className="flex min-w-0 flex-col">
-        ·
         <Surface
           render={(props) => <header {...props} />}
           className="flex min-h-18 items-center justify-between gap-4 border-b border-border px-4 md:px-10"

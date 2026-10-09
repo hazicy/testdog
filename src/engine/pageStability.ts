@@ -56,7 +56,6 @@ export async function performAndWaitForStablePage(
           ({ quietMs, remaining }) =>
             new Promise<boolean>((resolve) => {
               let quietTimer: ReturnType<typeof setTimeout>;
-              let observer: MutationObserver;
               const finish = (result: boolean) => {
                 clearTimeout(quietTimer);
                 clearTimeout(deadlineTimer);
@@ -64,7 +63,7 @@ export async function performAndWaitForStablePage(
                 resolve(result);
               };
               const deadlineTimer = setTimeout(() => finish(false), remaining);
-              observer = new MutationObserver(() => {
+              const observer = new MutationObserver(() => {
                 clearTimeout(quietTimer);
                 quietTimer = setTimeout(() => finish(true), quietMs);
               });

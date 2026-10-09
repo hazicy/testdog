@@ -1,4 +1,2 @@
 allowBuilds:
-  '@larksuite/cli': false
   esbuild: false
-  protobufjs: false

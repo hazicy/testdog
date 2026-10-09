@@ -10,3 +10,6 @@ coverage/
 # Lockfiles are machine-generated.
 package-lock.json
 pnpm-lock.yaml
+
+# Generated database migration metadata
+drizzle/**/snapshot.json

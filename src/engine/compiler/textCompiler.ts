@@ -1,76 +1,9 @@
-import { generateWithOpenAI } from '@/agent/provider/deepseek';
+import { generateWithOpenAI } from '@/agent/deepseek';
 import { type JSONType, z } from 'zod';
-import type { Compiler, Plan } from './type';
+import { NodeSchema, PlanSchema, type Plan } from './schema';
 
 const id = z.string().trim().min(1);
 const ids = z.array(id);
-const NodeSchema = z.discriminatedUnion('kind', [
-  z
-    .object({ kind: z.literal('group'), id, goal: id, children: ids.min(1), dependsOn: ids })
-    .strict(),
-  z
-    .object({
-      kind: z.literal('task'),
-      id,
-      goal: id,
-      dependsOn: ids,
-      requirementIds: ids,
-      assertions: z.array(z.object({ description: id }).strict()),
-    })
-    .strict(),
-  z
-    .object({
-      kind: z.literal('branch'),
-      id,
-      condition: id,
-      then: id,
-      otherwise: id.optional(),
-      dependsOn: ids,
-    })
-    .strict(),
-]);
-export const PlanSchema = z
-  .object({ rootId: id, nodes: z.record(id, NodeSchema) })
-  .strict()
-  .superRefine((plan, ctx) => {
-    const error = (message: string) => ctx.addIssue({ code: 'custom', message });
-    if (!Object.hasOwn(plan.nodes, plan.rootId)) error(`Missing root node: ${plan.rootId}`);
-    for (const [key, node] of Object.entries(plan.nodes)) {
-      if (key !== node.id) error(`Node key ${key} does not match id ${node.id}`);
-      const refs = [
-        ...node.dependsOn,
-        ...(node.kind === 'group'
-          ? node.children
-          : node.kind === 'branch'
-            ? [node.then, ...(node.otherwise ? [node.otherwise] : [])]
-            : []),
-      ];
-      for (const ref of refs) if (!Object.hasOwn(plan.nodes, ref)) error(`Missing node: ${ref}`);
-    }
-    const active = new Set<string>();
-    const visited = new Set<string>();
-    const visit = (key: string) => {
-      if (active.has(key)) {
-        error(`Cycle detected at node: ${key}`);
-        return;
-      }
-      if (visited.has(key) || !Object.hasOwn(plan.nodes, key)) return;
-      active.add(key);
-      const node = plan.nodes[key];
-      const refs = [
-        ...node.dependsOn,
-        ...(node.kind === 'group'
-          ? node.children
-          : node.kind === 'branch'
-            ? [node.then, ...(node.otherwise ? [node.otherwise] : [])]
-            : []),
-      ];
-      refs.forEach(visit);
-      active.delete(key);
-      visited.add(key);
-    };
-    Object.keys(plan.nodes).forEach(visit);
-  });
 
 // The provider uses strict objects; a node array avoids dynamic object keys in its schema.
 function objectSchema(properties: Record<string, JSONType>): JSONType {
@@ -139,7 +72,7 @@ const CompiledSchema = z
   })
   .strict();
 
-export class TextCompiler implements Compiler {
+export class TextCompiler {
   async compile(goal: string, startUrl?: string): Promise<Plan> {
     const response = await generateWithOpenAI({
       systemPrompt: `将用户的自动化测试用例编译为逻辑嵌套、结构扁平的执行计划，只返回 JSON。

@@ -1,12 +1,11 @@
 import type { Page } from 'playwright';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Plan, PlanNode } from './compiler/type';
+import type { Plan, PlanNode } from './compiler/schema';
 import { Observer } from './observer';
 import { Executor } from './executor';
 
 const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
-vi.mock('../agent/provider/deepseek', () => ({ generateWithOpenAI: generate }));
-vi.mock('../agent/provider/jev', () => ({ jev: { decideClick: vi.fn() } }));
+vi.mock('../agent/deepseek', () => ({ generateWithOpenAI: generate }));
 vi.mock('./pageStability', () => ({
   performAndWaitForStablePage: (_page: Page, action: () => Promise<unknown>) => action(),
 }));

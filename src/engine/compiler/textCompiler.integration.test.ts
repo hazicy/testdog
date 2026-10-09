@@ -1,7 +1,7 @@
-import { expect, test } from 'vitest';
+import { test } from 'vitest';
 import { TextCompiler } from './textCompiler';
 
-test('compiler', async () => {
+test.skipIf(process.env.RUN_LIVE_TESTS !== 'true')('compiler', async () => {
   const compiler = new TextCompiler();
 
   const response = await compiler.compile(

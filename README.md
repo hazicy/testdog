@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CaseForge
 
-## Getting Started
+基于 Next.js、Playwright 和 DeepSeek 的自动化测试工作台。当前页面为基础框架，核心能力通过 API 提供：自然语言用例编译、浏览器操作、条件分支和结果断言。
 
-First, run the development server:
+## 本地运行
+
+使用 Node.js 22+ 和 pnpm。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env
+# 编辑 .env，填写模型密钥和数据库地址
+# 可选：启动本地 PostgreSQL
+docker compose up -d
+pnpm db:migrate
+pnpm exec playwright install chromium
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 http://localhost:3000。默认以有界面模式运行 Chromium；服务器环境设置 `AUTOMATION_HEADLESS=true`。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 目录
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```text
+src/
+  app/                 页面、布局与 API 路由
+  components/          共享界面组件
+  agent/               模型请求适配与浏览器动作规划
+  engine/              浏览器启动、页面观察、稳定性等待和执行器
+    compiler/          文本用例编译、计划与动作的 schema / 类型
+  db/                  数据库连接、表定义与查询
+drizzle/              数据库迁移
+```
 
-## Learn More
+测试与被测模块放在一起。新增功能按实际职责归入上述目录，避免为占位组件或单个适配器增加中间层。
 
-To learn more about Next.js, take a look at the following resources:
+## API
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `GET /api`：健康检查。
+- `GET /api/cases`：读取用例。
+- `POST /api/cases`：写入 `{ "id": 1, "goal": "测试目标" }`。
+- `POST /api/runs`：执行 `{ "case": "测试步骤与预期结果", "url": "https://example.com", "mode": "record" }`。`url` 可省略，`mode` 默认 `record`；`replay` 尚未实现。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+执行链路：TextCompiler → Executor → Planner / Observer → Playwright。计划支持分组、依赖与条件分支；断言只读取当前页面证据，不执行补救操作。
 
-## Deploy on Vercel
+## 验证与构建
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm test
+pnpm lint
+pnpm typecheck
+pnpm format:check
+pnpm build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+默认测试不请求真实模型。需要模型服务的编译器集成测试单独运行：
+
+```bash
+RUN_LIVE_TESTS=true pnpm exec vitest run src/engine/compiler/textCompiler.integration.test.ts
+```
+
+修改数据库表定义后运行 `pnpm db:generate` 生成迁移，再运行 `pnpm db:migrate` 应用。

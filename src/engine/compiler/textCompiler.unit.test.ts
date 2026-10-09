@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { generateWithOpenAI } from '@/agent/provider/deepseek';
+import { generateWithOpenAI } from '@/agent/deepseek';
 import { TextCompiler } from './textCompiler';
-vi.mock('@/ai/provider/deepseek', () => ({ generateWithOpenAI: vi.fn() }));
+vi.mock('@/agent/deepseek', () => ({ generateWithOpenAI: vi.fn() }));
 const generate = vi.mocked(generateWithOpenAI);
 const task = {
   kind: 'task',

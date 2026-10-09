@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Executor } from '@/engine/executor';
-import { BrowserClient } from '@/engine/browser';
-import { TextCompiler } from '@/engine/compiler';
+import { launchBrowser } from '@/engine/browser';
+import { TextCompiler } from '@/engine/compiler/textCompiler';
 import { Observer } from '@/engine/observer';
 
 export const runtime = 'nodejs';
 
 const RequestSchema = z.union([
-  z.object({ mode: z.literal('replay'), flowId: z.string().uuid() }),
+  z.object({ mode: z.literal('replay'), flowId: z.uuid() }),
   z.object({
     mode: z.literal('record').default('record'),
     case: z.string().trim().min(1),
-    url: z.string().url().optional(),
+    url: z.url().optional(),
   }),
 ]);
 
@@ -32,9 +32,7 @@ export async function POST(request: NextRequest) {
     const textCompiler = new TextCompiler();
 
     const testCase = await textCompiler.compile(input.case, input.url);
-    const browserClient = await BrowserClient.create();
-
-    browser = browserClient.getBrowser();
+    browser = await launchBrowser();
 
     const context = await browser.newContext();
 

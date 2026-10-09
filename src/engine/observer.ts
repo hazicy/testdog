@@ -20,8 +20,6 @@ type FocusedElement = {
 };
 
 export class Observer {
-  constructor() {}
-
   async observe(page: Page) {
     const tree = (await page.locator('body').ariaSnapshotJSON({
       mode: 'ai',

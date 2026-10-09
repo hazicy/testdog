@@ -73,7 +73,8 @@ function parseStructuredContent(outputText: string): JSONType {
   const content = JSON.parse(outputText) as JSONType;
 
   if (isJSONObject(content) && '$schema' in content) {
-    const { $schema: _schema, ...result } = content;
+    const result = { ...content };
+    delete result.$schema;
     return result;
   }
 
