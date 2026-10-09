@@ -52,6 +52,25 @@ export type RunArtifact = {
   contentType: string;
   size: number;
 };
+export type BrowserLog = {
+  id: string;
+  kind: 'console' | 'network';
+  at: string;
+  elapsedMs: number;
+  pageId: string;
+  pageUrl: string;
+  stepId?: string;
+  level?: string;
+  message?: string;
+  url?: string;
+  method?: string;
+  resourceType?: string;
+  status?: number;
+  durationMs?: number;
+  requestHeaders?: Record<string, string>;
+  responseHeaders?: Record<string, string>;
+  failure?: string;
+};
 export type TestRun = {
   id: string;
   testId?: string;
@@ -68,6 +87,7 @@ export type TestRun = {
   durationMs?: number;
   error?: string;
   events: RunEvent[];
+  browserLogs?: BrowserLog[];
   plan?: Plan;
   replayable: boolean;
   cancelRequested: boolean;

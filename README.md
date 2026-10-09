@@ -76,3 +76,5 @@ RUN_LIVE_TESTS=true pnpm exec vitest run src/automation/compiler/textCompiler.in
 下载 Trace 后，可以通过 `pnpm exec playwright show-trace <trace.zip>` 查看页面快照和浏览器动作。
 
 修改表定义后运行 `pnpm db:generate`，确认目标数据库后运行 `pnpm db:migrate`。生产构建默认使用 Webpack。
+
+执行回放支持 Console 与 Network 记录：包含控制台输出、未捕获页面异常，以及请求方法、URL、状态码、耗时、请求/响应头和失败原因。可搜索、筛选错误，并按当前步骤或画面回放时间查看；录制和重放均会采集，失败或停止后保留已采集记录。每次执行最多采集 2000 条，单条文本最多 16000 字符，请求头中的认证、Cookie 与 token 字段会隐藏。请求/响应正文暂不采集。历史执行不会补录，需重新执行。升级后先运行 `pnpm db:migrate`。

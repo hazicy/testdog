@@ -15,6 +15,7 @@ import {
 import { sql } from 'drizzle-orm';
 import type { Plan, Assertion } from '@/automation/compiler/schema';
 import type {
+  BrowserLog,
   RecordedAction,
   RunEvent,
   ExecutionStep,
@@ -59,6 +60,7 @@ export const testRuns = pgTable(
       .default('record'),
     status: text({ enum: ['running', 'passed', 'failed', 'cancelled'] }).notNull(),
     plan: jsonb().$type<Plan>(),
+    browserLogs: jsonb().$type<BrowserLog[]>().notNull().default([]),
     events: jsonb().$type<RunEvent[]>().notNull().default([]),
     replayable: boolean().notNull().default(false),
     cancelRequested: boolean().notNull().default(false),

@@ -4,11 +4,14 @@ import { join } from 'node:path';
 import type { BrowserContext, Page } from 'playwright';
 import type { ExecutionStep, RunArtifact, StepSignal, TestRun } from './types';
 import { insertArtifact, insertStep, finishStep } from './store';
+import { BrowserLogs } from './browserLogs';
 import { recordAction } from './locator';
 export const artifactRoot = () =>
   join(process.env.CASEFORGE_DATA_DIR || join(process.cwd(), '.automation'), 'artifacts');
 export class RunRecorder {
   private page?: Page;
+  private logs: BrowserLogs;
+  private activeSteps = new Map<Page, string>();
   private pages = new Map<Page, string>();
   private steps = new Map<string, ExecutionStep>();
   private sequence = 0;
@@ -18,6 +21,10 @@ export class RunRecorder {
   private livePending = false;
   readonly directory: string;
   constructor(private run: TestRun) {
+    this.logs = new BrowserLogs(run.id, run.startedAt, (page) => ({
+      pageId: this.pageId(page),
+      stepId: this.activeSteps.get(page),
+    }));
     this.directory = join(artifactRoot(), run.id);
   }
   pageId = (page: Page) => {
@@ -30,6 +37,7 @@ export class RunRecorder {
   };
   async start(context: BrowserContext) {
     await mkdir(this.directory, { recursive: true });
+    this.logs.start(context);
     context.pages().forEach(this.pageId);
     context.on('page', this.onPage);
     await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
@@ -49,6 +57,7 @@ export class RunRecorder {
   onStep = async (event: StepSignal, page: Page) => {
     if (this.captureError) throw this.captureError;
     if (event.phase === 'start') {
+      this.activeSteps.set(page, event.id);
       const recorded = event.action
         ? await recordAction(page, event.action).catch(() => ({
             action: event.action!,
@@ -91,6 +100,7 @@ export class RunRecorder {
         error: event.error,
       });
       await this.capture(page, 'after', event.id);
+      this.activeSteps.delete(page);
     }
   };
   capture(page: Page, stage: RunArtifact['stage'], stepId?: string) {
@@ -129,6 +139,13 @@ export class RunRecorder {
     return operation;
   }
   async stop(context: BrowserContext, interrupted = false) {
+    try {
+      await this.stopArtifacts(context, interrupted);
+    } finally {
+      await this.logs.stop(context);
+    }
+  }
+  private async stopArtifacts(context: BrowserContext, interrupted: boolean) {
     if (this.timer) clearInterval(this.timer);
     await this.queue;
     if (!interrupted && this.page && !this.page.isClosed()) await this.capture(this.page, 'final');

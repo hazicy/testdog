@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ExecutionStep, RunArtifact, TestRun } from '@/workspace/types';
+import { BrowserLogPanel } from './BrowserLogPanel';
 import { PlanBoard } from './PlanBoard';
 import { RecordingEditor } from './RecordingEditor';
 import { WorkspaceIcon as Icon } from './WorkspaceIcon';
@@ -39,7 +40,7 @@ export function RunDetail({ id }: { id: string }) {
   const [mode, setMode] = useState<'frames' | 'video'>('frames');
   const [videoId, setVideoId] = useState('');
   const [view, setView] = useState<'execution' | 'plan' | 'recording'>('execution');
-  const [tab, setTab] = useState<'step' | 'case' | 'logs'>('step');
+  const [tab, setTab] = useState<'step' | 'case' | 'logs' | 'console' | 'network'>('step');
   const refresh = useCallback(async () => {
     try {
       const data = await request<{ run: TestRun }>(`/api/runs/${id}`);
@@ -478,6 +479,8 @@ export function RunDetail({ id }: { id: string }) {
               { id: 'step' as const, label: '步骤详情' },
               { id: 'case' as const, label: '用例快照' },
               { id: 'logs' as const, label: '执行日志' },
+              { id: 'console' as const, label: 'Console' },
+              { id: 'network' as const, label: 'Network' },
             ].map((item) => (
               <button
                 key={item.id}
@@ -582,6 +585,13 @@ export function RunDetail({ id }: { id: string }) {
                   {run?.error || '选择右侧步骤，查看操作、验证证据和前后画面。'}
                 </p>
               )
+            ) : tab === 'console' || tab === 'network' ? (
+              <BrowserLogPanel
+                logs={run?.browserLogs || []}
+                kind={tab}
+                stepId={selectedStep?.id}
+                elapsedMs={currentFrame?.elapsedMs}
+              />
             ) : tab === 'case' ? (
               <>
                 <p className="mb-3 text-xs text-page-muted">

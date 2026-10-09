@@ -33,6 +33,7 @@ function runRecord(row: typeof testRuns.$inferSelect): TestRun {
     error: optional(row.error),
     plan: optional(row.plan),
     events: row.events,
+    browserLogs: row.browserLogs,
     replayable: row.replayable,
     cancelRequested: row.cancelRequested,
     steps: [],
@@ -316,4 +317,14 @@ export async function saveRecordingVersion(runId: string, code: string) {
   }
   const [version] = await db.insert(recordingVersions).values({ runId, code, steps }).returning();
   return version;
+}
+
+export async function appendBrowserLogs(id: string, logs: import('./types').BrowserLog[]) {
+  if (!logs.length) return;
+  await db
+    .update(testRuns)
+    .set({
+      browserLogs: sql`${testRuns.browserLogs} || ${JSON.stringify(logs)}::jsonb`,
+    })
+    .where(eq(testRuns.id, id));
 }
