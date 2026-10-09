@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { MarketingDemo } from '@/components/MarketingDemo';
-import { MarketingMotion } from '@/components/MarketingMotion';
+import { MarketingDemo } from '@/components/marketing/MarketingDemo';
+import { MarketingMotion } from '@/components/marketing/MarketingMotion';
 
 const containerClassName =
   'w-[min(1200px,_calc(100%_-_112px))] mx-auto min-[1600px]:w-[min(1320px,_calc(100%_-_160px))] max-[1100px]:w-[calc(100%_-_64px)] max-[800px]:w-[calc(100%_-_40px)] max-[540px]:w-[calc(100%_-_32px)]';

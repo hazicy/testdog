@@ -46,6 +46,11 @@ describe('execution API with PostgreSQL persistence', () => {
       404,
     );
     expect((await POST(request({ mode: 'replay' }))).status).toBe(400);
+    expect(
+      (await POST(request({ case: 'Check', sourceRunId: '62534c46-a8eb-4991-993e-af6df14bece0' })))
+        .status,
+    ).toBe(400);
+    expect((await POST(request({ case: 'Check', unexpected: true }))).status).toBe(400);
     expect(mocks.after).not.toHaveBeenCalled();
   });
 });

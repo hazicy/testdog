@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { WorkspaceIcon } from './WorkspaceIcon';
+import { WorkspaceIcon } from '../shared/WorkspaceIcon';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);

@@ -11,3 +11,17 @@ export const testSchema = z.object({
   goal: z.string().trim().min(1).max(20000),
   tags: z.array(z.string().trim().min(1).max(30)).max(10).default([]),
 });
+export const runRequestSchema = z.union([
+  z.strictObject({ testId: z.uuid(), mode: z.literal('record').optional() }),
+  z.strictObject({
+    mode: z.literal('replay'),
+    sourceRunId: z.uuid(),
+    recordingVersionId: z.uuid().optional(),
+  }),
+  z.strictObject({
+    mode: z.literal('record').default('record'),
+    case: z.string().trim().min(1).max(20000),
+    url: websiteSchema.optional(),
+  }),
+]);
+export type RunRequest = z.input<typeof runRequestSchema>;

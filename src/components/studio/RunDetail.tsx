@@ -2,12 +2,15 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ExecutionStep, RunArtifact, TestRun } from '@/workspace/types';
-import { PlanBoard } from './PlanBoard';
-import { RecordingEditor } from './RecordingEditor';
-import { WorkspaceIcon as Icon } from './WorkspaceIcon';
+import { HttpError, requestJson as request } from '@/client/api';
+import { ErrorState } from '../shared/ErrorState';
+import { usePolling } from '@/client/usePolling';
+import { downloadRunReport } from '@/client/download';
+import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
 const statuses = { running: '执行中', passed: '已通过', failed: '失败', cancelled: '已停止' };
 const kinds = { action: '操作', navigate: '导航', wait: '等待', assertion: '断言', branch: '分支' };
 const time = (ms: number) =>
@@ -18,18 +21,31 @@ const time = (ms: number) =>
     .padStart(2, '0')}`;
 const asset = (runId: string, artifact: RunArtifact) =>
   `/api/runs/${runId}/artifacts/${artifact.id}`;
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, { cache: 'no-store', ...init });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.message || '请求失败');
-  return data;
-}
+const PlanBoard = dynamic(() => import('./PlanBoard').then((module) => module.PlanBoard), {
+  loading: () => (
+    <p role="status" className="p-6 text-sm text-page-muted">
+      正在加载计划画板…
+    </p>
+  ),
+});
+const RecordingEditor = dynamic(
+  () => import('./RecordingEditor').then((module) => module.RecordingEditor),
+  {
+    loading: () => (
+      <p role="status" className="p-6 text-sm text-page-muted">
+        正在加载录制编辑器…
+      </p>
+    ),
+  },
+);
 
 export function RunDetail({ id }: { id: string }) {
   const router = useRouter();
   const [run, setRun] = useState<TestRun>();
   const [error, setError] = useState('');
+  const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [now, setNow] = useState(0);
   const [follow, setFollow] = useState(true);
   const [frameIndex, setFrameIndex] = useState(0);
@@ -39,28 +55,28 @@ export function RunDetail({ id }: { id: string }) {
   const [mode, setMode] = useState<'frames' | 'video'>('frames');
   const [videoId, setVideoId] = useState('');
   const [view, setView] = useState<'execution' | 'plan' | 'recording'>('execution');
+  const [editorOpened, setEditorOpened] = useState(false);
   const [tab, setTab] = useState<'step' | 'case' | 'logs'>('step');
-  const refresh = useCallback(async () => {
-    try {
-      const data = await request<{ run: TestRun }>(`/api/runs/${id}`);
-      setRun(data.run);
-      setNow(Date.now());
-      setError('');
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '无法读取执行记录');
-    }
-  }, [id]);
-  useEffect(() => {
-    const timer = setTimeout(() => void refresh(), 0);
-    return () => clearTimeout(timer);
-  }, [refresh]);
-  useEffect(() => {
-    if (run && run.status !== 'running') return;
-    const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') void refresh();
-    }, 1500);
-    return () => clearInterval(timer);
-  }, [refresh, run]);
+  const load = useCallback(
+    async (signal: AbortSignal) => {
+      try {
+        const data = await request<{ run: TestRun }>(`/api/runs/${id}`, { signal });
+        if (signal.aborted) return;
+        setRun(data.run);
+        setNow(Date.now());
+        setError('');
+        setUnavailable(false);
+      } catch (cause) {
+        if (signal.aborted) return;
+        setError(cause instanceof Error ? cause.message : '无法读取执行记录');
+        setUnavailable(
+          cause instanceof HttpError && (cause.status === 400 || cause.status === 404),
+        );
+      }
+    },
+    [id],
+  );
+  const refresh = usePolling(load, unavailable || (run && run.status !== 'running') ? null : 1500);
   const frames = useMemo(
     () => run?.artifacts.filter((artifact) => artifact.kind === 'screenshot') || [],
     [run],
@@ -126,16 +142,26 @@ export function RunDetail({ id }: { id: string }) {
       setBusy(false);
     }
   }
-  function exportReport() {
-    const href = URL.createObjectURL(
-      new Blob([JSON.stringify(run, null, 2)], { type: 'application/json' }),
-    );
-    const link = document.createElement('a');
-    link.href = href;
-    link.download = `caseforge-${id}.json`;
-    link.click();
-    URL.revokeObjectURL(href);
+  async function exportReport() {
+    setExporting(true);
+    try {
+      await downloadRunReport(id);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '导出失败');
+    } finally {
+      setExporting(false);
+    }
   }
+  if (unavailable || (!run && error))
+    return (
+      <ErrorState
+        title={unavailable ? '执行记录不存在' : '无法加载执行记录'}
+        message={error}
+        retry={() => void refresh()}
+        href="/runs"
+        linkLabel="返回执行记录"
+      />
+    );
   return (
     <div className="mx-auto max-w-[1500px]">
       <Link
@@ -208,11 +234,11 @@ export function RunDetail({ id }: { id: string }) {
             )
           )}
           <button
-            disabled={!run}
+            disabled={!run || exporting}
             className="ws-icon-button"
             aria-label="导出执行报告"
             title="导出执行报告"
-            onClick={exportReport}
+            onClick={() => void exportReport()}
           >
             <Icon name="download" />
           </button>
@@ -243,6 +269,7 @@ export function RunDetail({ id }: { id: string }) {
             aria-pressed={view === item.id}
             onClick={() => {
               setView(item.id);
+              if (item.id === 'recording') setEditorOpened(true);
               setPlaying(false);
             }}
           >
@@ -253,7 +280,7 @@ export function RunDetail({ id }: { id: string }) {
       {view === 'plan' && (
         <PlanBoard plan={run?.plan} steps={run?.steps || []} onStep={selectStep} />
       )}
-      {run && run.status !== 'running' && (
+      {editorOpened && run && run.status !== 'running' && (
         <div hidden={view !== 'recording'}>
           <RecordingEditor key={run.id} run={run} />
         </div>

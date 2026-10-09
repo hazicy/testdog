@@ -16,6 +16,7 @@ export class RunRecorder {
   private timer?: ReturnType<typeof setInterval>;
   private captureError?: unknown;
   private livePending = false;
+  private stopping?: Promise<void>;
   readonly directory: string;
   constructor(private run: TestRun) {
     this.directory = join(artifactRoot(), run.id);
@@ -31,8 +32,8 @@ export class RunRecorder {
   async start(context: BrowserContext) {
     await mkdir(this.directory, { recursive: true });
     context.pages().forEach(this.pageId);
-    context.on('page', this.onPage);
     await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
+    context.on('page', this.onPage);
     this.timer = setInterval(() => {
       if (this.page && !this.page.isClosed() && !this.livePending) {
         this.livePending = true;
@@ -94,6 +95,7 @@ export class RunRecorder {
     }
   };
   capture(page: Page, stage: RunArtifact['stage'], stepId?: string) {
+    if (this.stopping && stage !== 'final') return Promise.resolve();
     const operation = this.queue.then(async () => {
       if (page.isClosed()) return;
       const id = randomUUID();
@@ -128,30 +130,47 @@ export class RunRecorder {
     this.queue = operation.catch(() => {});
     return operation;
   }
-  async stop(context: BrowserContext, interrupted = false) {
+  stop(context: BrowserContext, interrupted = false) {
+    return (this.stopping ??= this.archive(context, interrupted));
+  }
+  private async archive(context: BrowserContext, interrupted: boolean) {
     if (this.timer) clearInterval(this.timer);
+    context.off('page', this.onPage);
+    const errors: unknown[] = [];
+    const attempt = async (operation: () => Promise<unknown>) => {
+      try {
+        await operation();
+      } catch (error) {
+        errors.push(error);
+      }
+    };
     await this.queue;
-    if (!interrupted && this.page && !this.page.isClosed()) await this.capture(this.page, 'final');
+    if (this.captureError) errors.push(this.captureError);
+    if (!interrupted && this.page && !this.page.isClosed())
+      await attempt(() => this.capture(this.page!, 'final'));
     const trace = join(this.directory, 'trace.zip');
     if (!interrupted) {
-      await context.tracing.stop({ path: trace });
-      await this.addFile(
-        trace,
-        'trace',
-        'application/zip',
-        this.page ? this.pageId(this.page) : 'page-1',
-        this.page?.url() || '',
-      );
+      await attempt(async () => {
+        await context.tracing.stop({ path: trace });
+        await this.addFile(
+          trace,
+          'trace',
+          'application/zip',
+          this.page ? this.pageId(this.page) : 'page-1',
+          this.page?.url() || '',
+        );
+      });
     }
     const videos = [...this.pages].map(([page, id]) => ({
       video: page.video(),
       id,
       url: page.url(),
     }));
-    context.off('page', this.onPage);
-    await context.close().catch(() => {});
+    await attempt(() => context.close());
     for (const { video, id, url } of videos)
-      if (video) await this.addFile(await video.path(), 'video', 'video/webm', id, url);
+      if (video)
+        await attempt(async () => this.addFile(await video.path(), 'video', 'video/webm', id, url));
+    if (errors.length) throw new AggregateError(errors, '执行附件归档失败', { cause: errors[0] });
   }
   private async addFile(
     path: string,

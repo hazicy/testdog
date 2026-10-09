@@ -1,19 +1,12 @@
-import { randomUUID } from 'node:crypto';
-import { and, asc, desc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { testCases, testRuns, runSteps, runArtifacts, recordingVersions } from '@/db/schema';
 import { parseRecordingScript, ScriptError } from './recordingScript';
-import type { TestCase, TestRun, ExecutionStep, RunArtifact } from './types';
-const state = globalThis as typeof globalThis & { caseforgeWorkerId?: string };
-export const owner = (state.caseforgeWorkerId ??= randomUUID());
-export class WorkspaceError extends Error {
-  constructor(
-    message: string,
-    public status = 400,
-  ) {
-    super(message);
-  }
-}
+import type { TestCase, TestRun, RunSummary, ExecutionStep, RunArtifact } from './types';
+import { WorkspaceError } from './errors';
+import { owner, recoverExpiredRuns } from './runLifecycle';
+import { runRequestSchema, testSchema, type RunRequest } from './validation';
+
 const optional = <T>(value: T | null) => value ?? undefined;
 function runRecord(row: typeof testRuns.$inferSelect): TestRun {
   return {
@@ -59,46 +52,14 @@ function artifactRecord(row: typeof runArtifacts.$inferSelect): RunArtifact {
   void _path;
   return { ...artifact, stepId: optional(row.stepId) };
 }
-export async function recoverExpiredRuns() {
-  const finishedAt = new Date().toISOString();
-  await db
-    .update(testRuns)
-    .set({
-      status: 'failed',
-      error: '执行服务连接中断，请重新运行。',
-      finishedAt,
-      durationMs: sql`greatest(0, round(extract(epoch from (${finishedAt}::timestamptz - ${testRuns.startedAt})) * 1000))::integer`,
-      replayable: false,
-    })
-    .where(
-      and(
-        eq(testRuns.status, 'running'),
-        lt(testRuns.heartbeatAt, new Date(Date.now() - 60000).toISOString()),
-      ),
-    );
-  await db
-    .update(runSteps)
-    .set({
-      status: 'failed',
-      error: '执行服务连接中断',
-      finishedAt,
-      durationMs: sql`greatest(0, round(extract(epoch from (${finishedAt}::timestamptz - ${runSteps.startedAt})) * 1000))::integer`,
-    })
-    .where(
-      and(
-        eq(runSteps.status, 'running'),
-        inArray(
-          runSteps.runId,
-          db.select({ id: testRuns.id }).from(testRuns).where(eq(testRuns.status, 'failed')),
-        ),
-      ),
-    );
-}
 export const listTests = () => db.select().from(testCases).orderBy(desc(testCases.updatedAt));
 export async function saveTest(
-  input: Pick<TestCase, 'name' | 'url' | 'goal' | 'tags'>,
+  request: Pick<TestCase, 'name' | 'url' | 'goal' | 'tags'>,
   id?: string,
 ) {
+  const parsed = testSchema.safeParse(request);
+  if (!parsed.success) throw new WorkspaceError('请填写名称、有效的网站地址和测试步骤。');
+  const input = parsed.data;
   const [test] = id
     ? await db
         .update(testCases)
@@ -116,14 +77,43 @@ export async function deleteTest(id: string) {
     .returning({ id: testCases.id });
   if (!rows.length) throw new WorkspaceError('用例不存在。', 404);
 }
-export async function listRuns() {
+export async function listRuns(): Promise<RunSummary[]> {
   await recoverExpiredRuns();
-  return (await db.select().from(testRuns).orderBy(desc(testRuns.startedAt))).map(runRecord);
+  const rows = await db
+    .select({
+      id: testRuns.id,
+      testId: testRuns.testId,
+      name: testRuns.name,
+      url: testRuns.url,
+      mode: testRuns.mode,
+      status: testRuns.status,
+      startedAt: testRuns.startedAt,
+      finishedAt: testRuns.finishedAt,
+      durationMs: testRuns.durationMs,
+      error: testRuns.error,
+      sourceRunId: testRuns.sourceRunId,
+      replayable: testRuns.replayable,
+      cancelRequested: testRuns.cancelRequested,
+    })
+    .from(testRuns)
+    .orderBy(desc(testRuns.startedAt), desc(testRuns.id));
+  return rows.map((row) => ({
+    ...row,
+    testId: optional(row.testId),
+    finishedAt: optional(row.finishedAt),
+    durationMs: optional(row.durationMs),
+    error: optional(row.error),
+    sourceRunId: optional(row.sourceRunId),
+  }));
 }
-export async function getRun(id: string): Promise<TestRun> {
+async function getRunSnapshot(id: string): Promise<TestRun> {
   await recoverExpiredRuns();
   const [run] = await db.select().from(testRuns).where(eq(testRuns.id, id));
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
+  return runRecord(run);
+}
+export async function getRun(id: string): Promise<TestRun> {
+  const run = await getRunSnapshot(id);
   const [steps, artifacts] = await Promise.all([
     db.select().from(runSteps).where(eq(runSteps.runId, id)).orderBy(asc(runSteps.sequence)),
     db
@@ -133,19 +123,15 @@ export async function getRun(id: string): Promise<TestRun> {
       .orderBy(asc(runArtifacts.elapsedMs)),
   ]);
   return {
-    ...runRecord(run),
+    ...run,
     steps: steps.map(stepRecord),
     artifacts: artifacts.map(artifactRecord),
   };
 }
-export async function createRun(input: {
-  testId?: string;
-  case?: string;
-  url?: string;
-  sourceRunId?: string;
-  recordingVersionId?: string;
-  mode?: 'record' | 'replay';
-}) {
+export async function createRun(request: RunRequest) {
+  const parsed = runRequestSchema.safeParse(request);
+  if (!parsed.success) throw new WorkspaceError('执行参数无效，请指定用例、测试描述或重放来源。');
+  const input = parsed.data;
   await recoverExpiredRuns();
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(481516234)`);
@@ -165,7 +151,7 @@ export async function createRun(input: {
       recordingSteps?: ExecutionStep[];
       mode: 'record' | 'replay';
     };
-    if (input.mode === 'replay' && input.sourceRunId) {
+    if (input.mode === 'replay') {
       const [source] = await tx.select().from(testRuns).where(eq(testRuns.id, input.sourceRunId));
       if (!source) throw new WorkspaceError('原执行不存在。', 404);
       const [version] = input.recordingVersionId
@@ -194,7 +180,7 @@ export async function createRun(input: {
         recordingVersionId: version?.id,
         recordingSteps: version?.steps,
       };
-    } else if (input.testId) {
+    } else if ('testId' in input) {
       const [test] = await tx.select().from(testCases).where(eq(testCases.id, input.testId));
       if (!test) throw new WorkspaceError('用例不存在。', 404);
       snapshot = {
@@ -205,7 +191,7 @@ export async function createRun(input: {
         mode: 'record',
       };
     } else {
-      snapshot = { name: '临时测试', url: input.url || '', goal: input.case || '', mode: 'record' };
+      snapshot = { name: '临时测试', url: input.url || '', goal: input.case, mode: 'record' };
     }
     const [run] = await tx
       .insert(testRuns)
@@ -223,53 +209,6 @@ export async function appendEvent(id: string, message: string) {
 }
 export async function savePlan(id: string, plan: TestRun['plan']) {
   await db.update(testRuns).set({ plan }).where(eq(testRuns.id, id));
-}
-export async function heartbeat(id: string) {
-  const [run] = await db
-    .update(testRuns)
-    .set({ heartbeatAt: new Date().toISOString() })
-    .where(and(eq(testRuns.id, id), eq(testRuns.workerId, owner), eq(testRuns.status, 'running')))
-    .returning({ cancelRequested: testRuns.cancelRequested });
-  return run;
-}
-export async function requestCancellation(id: string) {
-  const [run] = await db
-    .update(testRuns)
-    .set({ cancelRequested: true })
-    .where(and(eq(testRuns.id, id), eq(testRuns.status, 'running')))
-    .returning();
-  if (!run) throw new WorkspaceError('该测试已结束或不存在。', 409);
-}
-export async function finishRun(
-  id: string,
-  status: TestRun['status'],
-  startedAt: string,
-  error?: string,
-) {
-  const steps = await db
-    .select({ replayable: runSteps.replayable, status: runSteps.status })
-    .from(runSteps)
-    .where(eq(runSteps.runId, id));
-  const finishedAt = new Date().toISOString();
-  await db
-    .update(testRuns)
-    .set({
-      status: sql`case when ${testRuns.cancelRequested} then 'cancelled' else ${status} end`,
-      finishedAt,
-      durationMs: Date.parse(finishedAt) - Date.parse(startedAt),
-      error,
-      replayable: sql`not ${testRuns.cancelRequested} and ${status === 'passed' && steps.length > 0 && steps.every((step) => step.replayable && step.status === 'passed')}`,
-    })
-    .where(and(eq(testRuns.id, id), eq(testRuns.status, 'running')));
-  await db
-    .update(runSteps)
-    .set({
-      status: 'failed',
-      finishedAt,
-      error: error || '执行中断',
-      durationMs: sql`greatest(0, round(extract(epoch from (${finishedAt}::timestamptz - ${runSteps.startedAt})) * 1000))::integer`,
-    })
-    .where(and(eq(runSteps.runId, id), eq(runSteps.status, 'running')));
 }
 export async function insertStep(step: ExecutionStep) {
   await db.insert(runSteps).values(step);
@@ -289,16 +228,22 @@ export async function getArtifact(runId: string, id: string) {
   return artifact;
 }
 
+const recordingVersionFields = {
+  id: recordingVersions.id,
+  runId: recordingVersions.runId,
+  code: recordingVersions.code,
+  createdAt: recordingVersions.createdAt,
+};
 export async function listRecordingVersions(runId: string) {
-  await getRun(runId);
+  await getRunSnapshot(runId);
   return db
-    .select()
+    .select(recordingVersionFields)
     .from(recordingVersions)
     .where(eq(recordingVersions.runId, runId))
     .orderBy(desc(recordingVersions.createdAt), desc(recordingVersions.id));
 }
 export async function saveRecordingVersion(runId: string, code: string) {
-  const run = await getRun(runId);
+  const run = await getRunSnapshot(runId);
   if (run.status === 'running') throw new WorkspaceError('请等待录制结束后编辑。', 409);
   let steps: ExecutionStep[];
   try {
@@ -314,6 +259,9 @@ export async function saveRecordingVersion(runId: string, code: string) {
     if (step.planNodeId && !run.plan?.nodes[step.planNodeId])
       throw new WorkspaceError(`计划节点 ${step.planNodeId} 不存在。`);
   }
-  const [version] = await db.insert(recordingVersions).values({ runId, code, steps }).returning();
+  const [version] = await db
+    .insert(recordingVersions)
+    .values({ runId, code, steps })
+    .returning(recordingVersionFields);
   return version;
 }

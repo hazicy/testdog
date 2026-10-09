@@ -5,6 +5,8 @@ out/
 build/
 .pnpm-store/
 coverage/
+test-results/
+playwright-report/
 *.tsbuildinfo
 
 # Lockfiles are machine-generated.

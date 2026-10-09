@@ -4,7 +4,8 @@ import { launchBrowser } from '@/automation/browser';
 import { TextCompiler } from '@/automation/compiler/textCompiler';
 import { Observer } from '@/automation/observer';
 import { Planner } from '@/automation/planner';
-import { appendEvent, finishRun, getRun, heartbeat, savePlan } from './store';
+import { appendEvent, getRun, savePlan } from './store';
+import { finishRun, heartbeat } from './runLifecycle';
 import { RunRecorder } from './recorder';
 import type { TestRun } from './types';
 const state = globalThis as typeof globalThis & { caseforgeJobs?: Map<string, AbortController> };
@@ -14,6 +15,8 @@ export function cancelRun(id: string) {
 }
 export function errorMessage(error: unknown): string {
   if (!(error instanceof Error)) return String(error);
+  if (error instanceof AggregateError)
+    return `${error.message}\n${error.errors.map(errorMessage).join('\n')}`;
   return error.cause ? `${error.message}\n${errorMessage(error.cause)}` : error.message;
 }
 export async function executeRun(run: TestRun) {
@@ -102,14 +105,6 @@ export async function executeRun(run: TestRun) {
     status = 'failed';
     error = errorMessage(controller.signal.aborted ? controller.signal.reason : cause);
   } finally {
-    clearInterval(heartbeatTimer);
-    clearTimeout(deadline);
-    controller.signal.removeEventListener('abort', abort);
-    if (controller.signal.aborted) {
-      const current = await getRun(run.id).catch(() => undefined);
-      cancelled ||= current?.cancelRequested ?? false;
-      if (cancelled) status = 'cancelled';
-    }
     if (context && recorder) {
       try {
         await recorder.stop(context, controller.signal.aborted);
@@ -119,7 +114,16 @@ export async function executeRun(run: TestRun) {
       }
     }
     await browser?.close().catch(() => {});
+    clearInterval(heartbeatTimer);
+    clearTimeout(deadline);
+    controller.signal.removeEventListener('abort', abort);
+    if (controller.signal.aborted) {
+      const current = await getRun(run.id).catch(() => undefined);
+      cancelled ||= current?.cancelRequested ?? false;
+      status = cancelled ? 'cancelled' : 'failed';
+      error ||= errorMessage(controller.signal.reason);
+    }
     jobs.delete(run.id);
-    await finishRun(run.id, status, run.startedAt, error);
+    await finishRun(run.id, status, error);
   }
 }

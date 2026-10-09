@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { WorkspaceError } from './store';
+import { WorkspaceError } from './errors';
 export function validId(id: string) {
   if (!z.uuid().safeParse(id).success) throw new WorkspaceError('无效的记录 ID。');
 }

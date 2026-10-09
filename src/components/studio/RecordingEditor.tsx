@@ -4,12 +4,8 @@ import { useRouter } from 'next/navigation';
 import type { RecordingVersion, TestRun } from '@/workspace/types';
 import { parseRecordingScript, recordingScript } from '@/workspace/recordingScript';
 import { CodeEditor } from './CodeEditor';
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, { cache: 'no-store', ...init });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.message || '请求失败');
-  return data;
-}
+import { requestJson as request } from '@/client/api';
+import { downloadText } from '@/client/download';
 export function RecordingEditor({ run }: { run: TestRun }) {
   const router = useRouter();
   const original = useMemo(
@@ -26,16 +22,18 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   const base = versions.find((v) => v.id === selected)?.code || original;
   const dirty = code !== base;
   useEffect(() => {
-    let active = true;
-    void request<{ versions: RecordingVersion[] }>(`/api/runs/${run.id}/recording`)
+    const controller = new AbortController();
+    void request<{ versions: RecordingVersion[] }>(`/api/runs/${run.id}/recording`, {
+      signal: controller.signal,
+    })
       .then((data) => {
-        if (active) setVersions(data.versions);
+        if (!controller.signal.aborted) setVersions(data.versions);
       })
       .catch((e) => {
-        if (active) setError(e.message);
+        if (!controller.signal.aborted) setError(e.message);
       });
     return () => {
-      active = false;
+      controller.abort();
     };
   }, [run.id]);
   useEffect(() => {
@@ -84,12 +82,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
     }
   }
   function download() {
-    const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `recording-${run.id.slice(0, 8)}.js`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadText(code, `recording-${run.id.slice(0, 8)}.js`, 'text/javascript');
   }
   if (run.status === 'running')
     return (

@@ -1,0 +1,36 @@
+name: Quality
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      AUTOMATION_HEADLESS: 'true'
+      RUN_LIVE_TESTS: 'false'
+      RUN_WORKSPACE_LIVE_TESTS: 'false'
+      OPENAI_API_KEY: test-placeholder
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/caseforge
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm check

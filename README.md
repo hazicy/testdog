@@ -4,7 +4,7 @@
 
 ## 本地运行
 
-使用 Node.js 22+ 和 pnpm。
+使用 Node.js 22.13+ 和 pnpm 12.10.1。CI 使用 Node.js 24；仓库通过 `packageManager` 固定 pnpm 版本。
 
 ```bash
 pnpm install
@@ -31,6 +31,8 @@ pnpm dev
 
 默认有界面运行 Chromium；服务器环境设置 `AUTOMATION_HEADLESS=true`。模型适配器使用 `OPENAI_API_KEY`，连接 DeepSeek。数据库和画面附件需要持久存储。
 
+附件接口使用流式读取，录像拖动时仅读取浏览器请求的字节范围，避免将完整录像或 Trace 加载到服务端内存。支持 `HEAD` 查询文件大小；附件路径及其符号链接目标必须位于配置的附件目录内。
+
 ## 数据库与 API
 
 结构、状态和接口示例见 [工作台接口文档](docs/workspace.md)。迁移仅新增工作台表和约束，保留原有 `case` 与 `users` 表。
@@ -43,6 +45,12 @@ pnpm dev
 src/
   app/                 页面、布局与 API 路由
   components/          营销页、工作台与执行工作室
+    marketing/         首页演示与动效
+    shell/             工作区导航与布局
+    workspace/         用例和结果列表、用例编辑与删除弹窗
+    studio/            执行详情、画板、录制与代码编辑器
+    shared/            图标与原生模态框
+  client/              浏览器端 JSON 请求、串行刷新与轮询生命周期
   automation/          编译、规划、页面观察、浏览器会话与执行
     compiler/          用例计划和动作 schema
   workspace/           数据库仓库、步骤记录、画面附件与运行生命周期
@@ -53,13 +61,26 @@ docs/                 数据模型和 API 文档
 
 ## 验证
 
+提交前运行统一检查；遇到失败会立即停止后续步骤：
+
+```bash
+pnpm check
+```
+
+该命令依次检查格式、Lint、类型、默认测试，再构建生产版本并执行 UI 测试。`.github/workflows/quality.yml` 在 push 和 pull request 时执行相同检查，使用锁文件安装依赖和真实 Chromium。CI 不连接实际数据库或调用真实模型。浏览器组件的 Lint 规则禁止直接导入数据库、仓库和运行器模块。
+
+也可以单独运行：
+
 ```bash
 pnpm test
 pnpm lint
 pnpm typecheck
 pnpm format:check
 pnpm build
+pnpm test:ui
 ```
+
+`pnpm test:ui` 构建并启动本地生产服务器，用 Chromium 验证工作台增删改、复制、失败重试、编辑器延迟加载和草稿保留。UI 测试模拟 API，不访问实际数据库或模型；需要本机 3100 端口可用。
 
 默认测试使用隔离的 PostgreSQL WASM 引擎和真实 Chromium，不连接 `.env` 的远程数据库，不调用真实模型。真实模型录制与重放验证使用本地示例网站和隔离数据库，可单独运行：
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getRun, requestCancellation } from '@/workspace/store';
+import { getRun } from '@/workspace/store';
+import { requestCancellation } from '@/workspace/runLifecycle';
 import { cancelRun } from '@/workspace/run';
 import { apiError, validId } from '@/workspace/http';
 export const runtime = 'nodejs';

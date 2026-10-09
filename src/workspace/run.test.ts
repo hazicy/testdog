@@ -13,7 +13,8 @@ vi.mock('@/db', async () => {
   mocks.client = result.client;
   return { db: result.db };
 });
-import { createRun, getRun, getArtifact, requestCancellation, saveRecordingVersion } from './store';
+import { createRun, getRun, getArtifact, saveRecordingVersion } from './store';
+import { requestCancellation } from './runLifecycle';
 import { recordingScript } from './recordingScript';
 import { executeRun, cancelRun } from './run';
 import { GET as serveArtifact } from '@/app/api/runs/[id]/artifacts/[artifactId]/route';

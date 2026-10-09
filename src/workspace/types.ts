@@ -74,6 +74,23 @@ export type TestRun = {
   steps: ExecutionStep[];
   artifacts: RunArtifact[];
 };
+/** Fields required by history rows and the case library's latest-run status. */
+export type RunSummary = Pick<
+  TestRun,
+  | 'id'
+  | 'testId'
+  | 'name'
+  | 'url'
+  | 'mode'
+  | 'status'
+  | 'startedAt'
+  | 'finishedAt'
+  | 'durationMs'
+  | 'error'
+  | 'sourceRunId'
+  | 'replayable'
+  | 'cancelRequested'
+>;
 export type StepSignal = {
   id: string;
   phase: 'start' | 'finish' | 'error';
@@ -98,6 +115,5 @@ export type RecordingVersion = {
   id: string;
   runId: string;
   code: string;
-  steps: ExecutionStep[];
   createdAt: string;
 };

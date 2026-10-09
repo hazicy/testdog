@@ -2,12 +2,17 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { TestCase, TestRun } from '@/workspace/types';
-import { WorkspaceIcon as Icon } from './WorkspaceIcon';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { TestCase, TestRun, RunSummary } from '@/workspace/types';
+import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
+import { requestJson as api } from '@/client/api';
+import { usePolling } from '@/client/usePolling';
+import { downloadRunReport } from '@/client/download';
+import { TestEditor } from './TestEditor';
+import { DeleteTestDialog } from './DeleteTestDialog';
 
 const statusLabels = { running: '执行中', passed: '已通过', failed: '失败', cancelled: '已停止' };
-function Status({ status }: { status?: TestRun['status'] }) {
+function Status({ status }: { status?: RunSummary['status'] }) {
   return (
     <span className={`ws-status ${status || 'none'}`}>
       <span />
@@ -23,18 +28,12 @@ function date(value: string) {
     minute: '2-digit',
   });
 }
-function duration(run: TestRun) {
+function duration(run: RunSummary) {
   return run.durationMs == null
     ? '—'
     : run.durationMs < 1000
       ? `${run.durationMs} ms`
       : `${(run.durationMs / 1000).toFixed(1)} s`;
-}
-async function api<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, { cache: 'no-store', ...init });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.message || '操作失败，请重试。');
-  return data;
 }
 const json = (body: unknown, method = 'POST'): RequestInit => ({
   method,
@@ -46,108 +45,42 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const router = useRouter();
   const params = useSearchParams();
   const [tests, setTests] = useState<TestCase[]>([]);
-  const [runs, setRuns] = useState<TestRun[]>([]);
+  const [runs, setRuns] = useState<RunSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
-  const [saving, setSaving] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [editing, setEditing] = useState<TestCase | null | undefined>(undefined);
+  const [exporting, setExporting] = useState(false);
+  const [editing, setEditing] = useState<{ test?: TestCase; duplicate?: boolean }>();
   const [deleting, setDeleting] = useState<TestCase | null>(null);
-  const [formError, setFormError] = useState('');
-  const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
-  const [goal, setGoal] = useState('');
-  const [tags, setTags] = useState('');
-  const dialog = useRef<HTMLDialogElement>(null);
-  const deleteDialog = useRef<HTMLDialogElement>(null);
   const selectedId = params.get('run');
   const running = runs.some((run) => run.status === 'running');
   const isTests = view === 'tests';
 
-  const refresh = useCallback(async () => {
+  const load = useCallback(async (signal: AbortSignal) => {
     try {
       const [testData, runData] = await Promise.all([
-        api<{ tests: TestCase[] }>('/api/tests'),
-        api<{ runs: TestRun[] }>('/api/runs'),
+        api<{ tests: TestCase[] }>('/api/tests', { signal }),
+        api<{ runs: RunSummary[] }>('/api/runs', { signal }),
       ]);
+      if (signal.aborted) return;
       setTests(testData.tests);
       setRuns(runData.runs);
       setError('');
     } catch (cause) {
+      if (signal.aborted) return;
       setError(cause instanceof Error ? cause.message : '无法加载工作区');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, []);
-  useEffect(() => {
-    const timer = window.setTimeout(() => void refresh(), 0);
-    return () => window.clearTimeout(timer);
-  }, [refresh]);
-  useEffect(() => {
-    const timer = setInterval(
-      () => {
-        if (document.visibilityState === 'visible') void refresh();
-      },
-      running ? 2000 : 15000,
-    );
-    const onFocus = () => {
-      void refresh();
-    };
-    window.addEventListener('focus', onFocus);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener('focus', onFocus);
-    };
-  }, [refresh, running]);
-  useEffect(() => {
-    if (editing !== undefined) dialog.current?.showModal();
-    else dialog.current?.close();
-  }, [editing]);
+  const refresh = usePolling(load, running ? 2000 : 15000);
   useEffect(() => {
     if (selectedId) router.replace(`/runs/${selectedId}`);
   }, [selectedId, router]);
-  useEffect(() => {
-    if (deleting) deleteDialog.current?.showModal();
-    else deleteDialog.current?.close();
-  }, [deleting]);
-
   function openEditor(test?: TestCase, duplicate = false) {
-    setEditing(duplicate || !test ? null : test);
-    setName(test ? `${test.name}${duplicate ? '（副本）' : ''}` : '');
-    setUrl(test?.url || '');
-    setGoal(test?.goal || '');
-    setTags(test?.tags.join(', ') || '');
-    setFormError('');
-  }
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
-    setSaving(true);
-    setFormError('');
-    try {
-      await api(
-        editing ? `/api/tests/${editing.id}` : '/api/tests',
-        json(
-          {
-            name,
-            url: url.trim(),
-            goal,
-            tags: tags
-              .split(/[,，]/)
-              .map((tag) => tag.trim())
-              .filter(Boolean),
-          },
-          editing ? 'PATCH' : 'POST',
-        ),
-      );
-      setEditing(undefined);
-      await refresh();
-    } catch (cause) {
-      setFormError(cause instanceof Error ? cause.message : '保存失败');
-    } finally {
-      setSaving(false);
-    }
+    setEditing({ test, duplicate });
   }
   async function start(testId: string) {
     setStarting(true);
@@ -162,31 +95,23 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       setStarting(false);
     }
   }
-  async function remove() {
-    if (!deleting) return;
-    setSaving(true);
+  async function exportRun(run: RunSummary) {
+    setExporting(true);
+    setError('');
     try {
-      await api(`/api/tests/${deleting.id}`, { method: 'DELETE' });
-      setDeleting(null);
-      await refresh();
+      await downloadRunReport(run.id);
     } catch (cause) {
-      setFormError(cause instanceof Error ? cause.message : '删除失败');
+      setError(cause instanceof Error ? cause.message : '导出失败');
     } finally {
-      setSaving(false);
+      setExporting(false);
     }
   }
-  function exportRun(run: TestRun) {
-    const report = run;
-    const href = URL.createObjectURL(
-      new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }),
-    );
-    const link = document.createElement('a');
-    link.href = href;
-    link.download = `caseforge-${run.id}.json`;
-    link.click();
-    URL.revokeObjectURL(href);
-  }
-  const latest = (id: string) => runs.find((run) => run.testId === id);
+  const latestRuns = useMemo(() => {
+    const latest = new Map<string, RunSummary>();
+    for (const run of runs) if (run.testId && !latest.has(run.testId)) latest.set(run.testId, run);
+    return latest;
+  }, [runs]);
+  const latest = (id: string) => latestRuns.get(id);
   const visibleTests = tests.filter(
     (test) =>
       `${test.name} ${test.url} ${test.tags.join(' ')}`
@@ -441,7 +366,6 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                                 aria-label={`删除 ${test.name}`}
                                 title="删除"
                                 onClick={() => {
-                                  setFormError('');
                                   setDeleting(test);
                                 }}
                               >
@@ -479,7 +403,8 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                               className="ws-icon-button"
                               title="导出结果"
                               aria-label={`导出 ${run.name} 的结果`}
-                              onClick={() => exportRun(run)}
+                              disabled={exporting}
+                              onClick={() => void exportRun(run)}
                             >
                               <Icon name="download" width="16" />
                             </button>
@@ -501,143 +426,26 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           </span>
         </div>
       </section>
-      <dialog
-        ref={dialog}
-        className="ws-dialog"
-        onCancel={(event) => {
-          if (saving) event.preventDefault();
-          else setEditing(undefined);
-        }}
-        onClose={() => setEditing(undefined)}
-        aria-labelledby="editor-title"
-      >
-        <form onSubmit={(event) => void save(event)}>
-          <div className="ws-dialog-header">
-            <div>
-              <h2 id="editor-title" className="text-lg font-semibold">
-                {editing ? '编辑测试' : '新建测试'}
-              </h2>
-              <p className="mt-1 text-xs text-[#858578]">描述操作与预期结果，由 AI 规划执行。</p>
-            </div>
-            <button
-              type="button"
-              className="ws-icon-button"
-              disabled={saving}
-              aria-label="关闭编辑器"
-              onClick={() => setEditing(undefined)}
-            >
-              <Icon name="close" />
-            </button>
-          </div>
-          <div className="space-y-5 p-6">
-            <label className="ws-label">
-              测试名称
-              <input
-                className="ws-input"
-                required
-                maxLength={120}
-                value={name}
-                disabled={saving}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="例如：验证登录页面"
-              />
-            </label>
-            <label className="ws-label">
-              网站地址
-              <input
-                className="ws-input"
-                required
-                type="url"
-                value={url}
-                disabled={saving}
-                onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://your-app.com"
-              />
-            </label>
-            <label className="ws-label">
-              测试步骤与预期结果
-              <textarea
-                className="ws-input min-h-48 resize-y leading-6"
-                required
-                maxLength={20000}
-                value={goal}
-                disabled={saving}
-                onChange={(event) => setGoal(event.target.value)}
-                placeholder={
-                  '1. 打开网站首页\n2. 点击登录按钮\n3. 验证页面包含邮箱输入框和提交按钮'
-                }
-              />
-            </label>
-            <p className="text-xs leading-5 text-[#858578]">
-              测试会实际操作目标网站。建议使用测试环境，并写明判断通过的条件。
-            </p>
-            <label className="ws-label">
-              标签 <span className="font-normal text-[#98998b]">（可选，逗号分隔）</span>
-              <input
-                className="ws-input"
-                value={tags}
-                disabled={saving}
-                onChange={(event) => setTags(event.target.value)}
-                placeholder="冒烟测试, 登录"
-              />
-            </label>
-            {formError && (
-              <p role="alert" className="text-sm text-red-700">
-                {formError}
-              </p>
-            )}
-          </div>
-          <div className="ws-dialog-footer">
-            <button
-              type="button"
-              disabled={saving}
-              className="ws-button"
-              onClick={() => setEditing(undefined)}
-            >
-              取消
-            </button>
-            <button type="submit" disabled={saving} className="ws-button primary">
-              {saving ? '保存中…' : '保存测试'}
-            </button>
-          </div>
-        </form>
-      </dialog>
-      <dialog
-        ref={deleteDialog}
-        className="ws-dialog max-w-md"
-        aria-labelledby="delete-title"
-        onCancel={(event) => {
-          if (saving) event.preventDefault();
-          else setDeleting(null);
-        }}
-        onClose={() => setDeleting(null)}
-      >
-        <div className="p-6">
-          <h2 id="delete-title" className="text-lg font-semibold">
-            删除测试？
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-[#78796f]">
-            将删除「{deleting?.name}」。历史执行结果会保留。
-          </p>
-          {formError && (
-            <p role="alert" className="mt-3 text-sm text-red-700">
-              {formError}
-            </p>
-          )}
-        </div>
-        <div className="ws-dialog-footer">
-          <button disabled={saving} className="ws-button" onClick={() => setDeleting(null)}>
-            取消
-          </button>
-          <button
-            disabled={saving}
-            className="ws-button border-red-200 text-red-700"
-            onClick={() => void remove()}
-          >
-            {saving ? '删除中…' : '删除测试'}
-          </button>
-        </div>
-      </dialog>
+      {editing && (
+        <TestEditor
+          {...editing}
+          onClose={() => setEditing(undefined)}
+          onSaved={async () => {
+            setEditing(undefined);
+            await refresh();
+          }}
+        />
+      )}
+      {deleting && (
+        <DeleteTestDialog
+          test={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={async () => {
+            setDeleting(null);
+            await refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
