@@ -1,7 +1,9 @@
+import { Suspense } from 'react';
+import { Workspace } from '@/components/Workspace';
 export default function Cases() {
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Cases</h1>
-    </div>
+    <Suspense fallback={<p>正在加载…</p>}>
+      <Workspace view="tests" />
+    </Suspense>
   );
 }

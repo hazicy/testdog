@@ -97,3 +97,23 @@ describe('TextCompiler flat plan', () => {
     });
   });
 });
+
+it('regenerates a plan after validation feedback, without accepting an ancestor dependency cycle', async () => {
+  const original = compiled();
+  const invalid = {
+    ...original,
+    nodes: original.nodes.map((n) => (n.id === 'login' ? { ...n, dependsOn: ['branch'] } : n)),
+  };
+  respond(compiled());
+  generate.mockResolvedValueOnce({
+    role: 'assistant',
+    content: { type: 'text', text: JSON.stringify(invalid) },
+    toolCalls: [],
+    outputFormat: 'json_schema',
+    structuredContent: invalid,
+  } as Awaited<ReturnType<typeof generateWithOpenAI>>);
+  const result = await new TextCompiler().compile('登录');
+  expect(result.nodes.login.dependsOn).toEqual([]);
+  expect(generate).toHaveBeenCalledTimes(2);
+  expect(JSON.stringify(generate.mock.calls[1][0].messages)).toContain('Cycle detected');
+});

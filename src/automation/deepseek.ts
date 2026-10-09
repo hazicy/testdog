@@ -42,6 +42,7 @@ type LLMContentBlock =
     };
 
 type LLMGenerateParams = {
+  signal?: AbortSignal;
   messages: Array<{
     role: 'user' | 'assistant';
     content: LLMContentBlock | LLMContentBlock[];
@@ -124,29 +125,32 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
     baseURL: 'https://api.deepseek.com/beta',
   });
 
-  const response = await openai.responses.create({
-    model: 'deepseek-flash',
-    instructions: params.systemPrompt,
-    input,
-    temperature: params.temperature,
-    ...(params.responseFormat?.type === 'json_schema'
-      ? {
-          text: {
-            format: {
-              type: 'json_schema' as const,
-              name: params.responseFormat.name,
-              schema: params.responseFormat.schema as Record<string, unknown>,
+  const response = await openai.responses.create(
+    {
+      model: 'deepseek-flash',
+      instructions: params.systemPrompt,
+      input,
+      temperature: params.temperature,
+      ...(params.responseFormat?.type === 'json_schema'
+        ? {
+            text: {
+              format: {
+                type: 'json_schema' as const,
+                name: params.responseFormat.name,
+                schema: params.responseFormat.schema as Record<string, unknown>,
+              },
             },
-          },
-        }
-      : {}),
-    ...(params.tools?.length
-      ? { tools: params.tools, parallel_tool_calls: false, tool_choice: 'auto' as const }
-      : {}),
-    reasoning: {
-      effort: 'none',
+          }
+        : {}),
+      ...(params.tools?.length
+        ? { tools: params.tools, parallel_tool_calls: false, tool_choice: 'auto' as const }
+        : {}),
+      reasoning: {
+        effort: 'none',
+      },
     },
-  });
+    { signal: params.signal },
+  );
 
   return {
     role: 'assistant' as const,

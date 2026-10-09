@@ -73,9 +73,13 @@ const CompiledSchema = z
   .strict();
 
 export class TextCompiler {
-  async compile(goal: string, startUrl?: string): Promise<Plan> {
-    const response = await generateWithOpenAI({
-      systemPrompt: `将用户的自动化测试用例编译为逻辑嵌套、结构扁平的执行计划，只返回 JSON。
+  async compile(goal: string, startUrl?: string, signal?: AbortSignal): Promise<Plan> {
+    let feedback = '';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      signal?.throwIfAborted();
+      const response = await generateWithOpenAI({
+        signal,
+        systemPrompt: `将用户的自动化测试用例编译为逻辑嵌套、结构扁平的执行计划，只返回 JSON。
 rootId 指向根节点。nodes 是节点数组，每个节点有唯一 id；所有引用只使用 id，禁止内嵌节点。
 group 用 goal 描述分组，children 是按执行顺序排列的非空节点 ID 数组，允许引用嵌套 group。
 task 是浏览器执行的完整子目标，goal 必须保留用户指定的输入值、URL、操作顺序和环境上下文。
@@ -84,36 +88,48 @@ assertions 只包含用户明确要求的验证，用 description 忠实保留�
 中途验证放在对应 task 的 assertions；最终验证放在相应最后一个 task 的 assertions。无操作的验证也可用 task 表达。
 branch 只用于用户明确要求的条件分支，condition 是可从当前页面观察判断的条件，then 和 otherwise 指向节点 ID；没有否则分支时 otherwise 返回 null。
 dependsOn 是必须先完成的节点 ID 数组，无依赖时为空。所有引用必须存在，不得有循环依赖。
+children、then、otherwise 已经表达父节点到子节点的执行关系，子节点绝对不能 dependsOn 自己的父节点或任何祖先。分支子任务不得依赖包含它的 branch，分组子任务不得依赖包含它的 group。
 不要让分支后的任务直接依赖两条互斥分支，应依赖 branch 节点。不要在分支之外重复列出分支子节点。
 前置环境仅作为上下文保留在 goal 中，不要编造建立环境的操作。
 提供 startUrl 时执行器会先导航，省略这一步初始导航。不要编造 DOM 选择器、URL、重试或额外操作。`,
-      messages: [
-        { role: 'user', content: { type: 'text', text: JSON.stringify({ goal, startUrl }) } },
-      ],
-      temperature: 0,
-      responseFormat: { type: 'json_schema', name: 'plan', schema },
-    });
-    const compiled = CompiledSchema.parse(response.structuredContent);
-    const nodes: Plan['nodes'] = {};
-    for (const node of compiled.nodes) {
-      if (Object.hasOwn(nodes, node.id)) throw new Error(`Duplicate node id: ${node.id}`);
-      const normalized =
-        node.kind === 'branch' && node.otherwise === null
-          ? {
-              kind: node.kind,
-              id: node.id,
-              condition: node.condition,
-              then: node.then,
-              dependsOn: node.dependsOn,
-            }
-          : node;
-      Object.defineProperty(nodes, node.id, {
-        value: normalized,
-        enumerable: true,
-        configurable: true,
-        writable: true,
+        messages: [
+          { role: 'user', content: { type: 'text', text: JSON.stringify({ goal, startUrl }) } },
+          ...(feedback
+            ? [{ role: 'user' as const, content: { type: 'text' as const, text: feedback } }]
+            : []),
+        ],
+        temperature: 0,
+        responseFormat: { type: 'json_schema', name: 'plan', schema },
       });
+      try {
+        const compiled = CompiledSchema.parse(response.structuredContent);
+        const nodes: Plan['nodes'] = {};
+        for (const node of compiled.nodes) {
+          if (Object.hasOwn(nodes, node.id)) throw new Error(`Duplicate node id: ${node.id}`);
+          const normalized =
+            node.kind === 'branch' && node.otherwise === null
+              ? {
+                  kind: node.kind,
+                  id: node.id,
+                  condition: node.condition,
+                  then: node.then,
+                  dependsOn: node.dependsOn,
+                }
+              : node;
+          Object.defineProperty(nodes, node.id, {
+            value: normalized,
+            enumerable: true,
+            configurable: true,
+            writable: true,
+          });
+        }
+        return PlanSchema.parse({ rootId: compiled.rootId, nodes });
+      } catch (error) {
+        signal?.throwIfAborted();
+        if (attempt === 1) throw error;
+        feedback = `上一份计划未通过结构校验。请修正后重新生成完整计划，保留原用例的全部操作和预期。错误：${error instanceof Error ? error.message : String(error)}\n上一份计划：${JSON.stringify(response.structuredContent)}`;
+      }
     }
-    return PlanSchema.parse({ rootId: compiled.rootId, nodes });
+    throw new Error('计划编译失败');
   }
 }

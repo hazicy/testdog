@@ -1,6 +1,6 @@
 # CaseForge
 
-基于 Next.js、Playwright 和 DeepSeek 的自动化测试工作台。当前页面为基础框架，核心能力通过 API 提供：自然语言用例编译、浏览器操作、条件分支和结果断言。
+基于 Next.js、PostgreSQL、Playwright 和 DeepSeek 的自然语言测试工作台。编写用例、录制执行、观察浏览器画面、查看逐步证据，并按记录重放操作。
 
 ## 本地运行
 
@@ -9,42 +9,49 @@
 ```bash
 pnpm install
 cp .env.example .env
-# 编辑 .env，填写模型密钥和数据库地址
-# 可选：启动本地 PostgreSQL
+# 配置 DATABASE_URL 和 OPENAI_API_KEY
+# 使用现有开发数据库，或启动本地 PostgreSQL：
 docker compose up -d
 pnpm db:migrate
 pnpm exec playwright install chromium
 pnpm dev
 ```
 
-打开 http://localhost:3000。默认以有界面模式运行 Chromium；服务器环境设置 `AUTOMATION_HEADLESS=true`。
+打开 http://localhost:3000，进入工作台：
+
+- `/cases`（Tests）：创建、编辑、复制与删除用例，搜索名称、地址和标签，按最近执行状态筛选，发起录制。
+- `/runs`（Results）：查看历史执行、状态和耗时。
+- `/runs/:id`（Execution Studio）：观察持续更新的浏览器画面，查看每个步骤的前后截图、稳定定位器、断言证据和错误；拖动时间轴回看，播放完整录像，下载录像、Playwright Trace 或 JSON 报告；在计划画板中查看分组、分支和依赖，在 CodeMirror 中编辑录制操作与预期，保存版本后重放。
+
+工作台使用 PostgreSQL 存储用例、执行快照、步骤和附件元数据。图片、视频和 Trace 存在 `.automation/artifacts`；可设置 `CASEFORGE_DATA_DIR` 指定附件数据目录。旧版本的 `.automation/workspace.json` 不再作为工作台数据源，原文件不会被删除。
+
+每次执行保存用例快照。编辑或删除用例不会改变历史结果；删除用例后，历史记录仍可回看和重放。录制中的页面每秒采样画面，界面每 1.5 秒读取最新执行详情，按钮操作前后另外保存截图。视频和 Trace 在执行结束时完成归档。运行中可以停止执行。
+
+“画面回看”播放保存的画面或录像；“重放操作”创建新的执行，使用记录中的稳定定位器、输入值和页面编号执行原动作顺序，重新验证原断言与条件分支，不调用模型重新规划动作。自然语言断言和分支验证仍需要模型；编辑器也支持直接执行原生 Playwright 断言。原始录制要求成功且每步均可稳定定位；失败录制可修正为独立版本后重放。编辑版本与执行快照保存在数据库，原始录制保持完整。重放可再次影响被测应用。
+
+默认有界面运行 Chromium；服务器环境设置 `AUTOMATION_HEADLESS=true`。模型适配器使用 `OPENAI_API_KEY`，连接 DeepSeek。数据库和画面附件需要持久存储。
+
+## 数据库与 API
+
+结构、状态和接口示例见 [工作台接口文档](docs/workspace.md)。迁移仅新增工作台表和约束，保留原有 `case` 与 `users` 表。
+
+运行器使用常驻 Node 服务，通过 PostgreSQL 事务锁限制同时执行一条测试。每 5 秒更新租约；60 秒未续约的执行标记为中断。每次执行最多 5 分钟，超时关闭浏览器并保存失败结果。当前部署适用于有本地持久磁盘的 Node 服务器；不适用于会冻结后台任务或没有持久磁盘的短生命周期函数。
 
 ## 目录
 
 ```text
 src/
   app/                 页面、布局与 API 路由
-  components/          共享界面组件
-  automation/          模型适配、动作规划、页面观察与自动化执行
-    compiler/          文本用例编译、计划与动作的 schema / 类型
-  db/                  数据库连接、表定义与查询
+  components/          营销页、工作台与执行工作室
+  automation/          编译、规划、页面观察、浏览器会话与执行
+    compiler/          用例计划和动作 schema
+  workspace/           数据库仓库、步骤记录、画面附件与运行生命周期
+  db/                  Drizzle 表定义与 PostgreSQL 连接
 drizzle/              数据库迁移
+docs/                 数据模型和 API 文档
 ```
 
-测试与被测模块放在一起。新增功能按实际职责归入上述目录，避免为占位组件或单个适配器增加中间层。
-
-## API
-
-- `GET /api`：健康检查。
-- `GET /api/cases`：读取用例。
-- `POST /api/cases`：写入 `{ "id": 1, "goal": "测试目标" }`。
-- `POST /api/runs`：执行 `{ "case": "测试步骤与预期结果", "url": "https://example.com", "mode": "record" }`。`url` 可省略，`mode` 默认 `record`；`replay` 尚未实现。
-
-执行链路：TextCompiler → Executor → Planner / Observer → Playwright。计划支持分组、依赖与条件分支；断言只读取当前页面证据，不执行补救操作。
-
-每个用例共用一个 `BrowserSession`，自动跟随新标签页，并在当前标签页关闭后回到仍打开的页面。页面切换或导航后重新观察，再使用新的定位引用。Planner 可等待新标签页、URL 片段或可见文本，也可暂停后重新观察；每个任务最多执行 20 次操作，另有 15 秒等待预算，按每次申请的等待时长扣减。页面持续更新或存在后台请求不会阻止观察，是否完成仍由当前页面证据决定。
-
-## 验证与构建
+## 验证
 
 ```bash
 pnpm test
@@ -54,10 +61,18 @@ pnpm format:check
 pnpm build
 ```
 
-默认测试不请求真实模型。需要模型服务的编译器集成测试单独运行：
+默认测试使用隔离的 PostgreSQL WASM 引擎和真实 Chromium，不连接 `.env` 的远程数据库，不调用真实模型。真实模型录制与重放验证使用本地示例网站和隔离数据库，可单独运行：
+
+```bash
+RUN_WORKSPACE_LIVE_TESTS=true pnpm exec vitest run src/workspace/liveRun.integration.test.ts
+```
+
+只验证用例编译的原有集成测试：
 
 ```bash
 RUN_LIVE_TESTS=true pnpm exec vitest run src/automation/compiler/textCompiler.integration.test.ts
 ```
 
-修改数据库表定义后运行 `pnpm db:generate` 生成迁移，再运行 `pnpm db:migrate` 应用。
+下载 Trace 后，可以通过 `pnpm exec playwright show-trace <trace.zip>` 查看页面快照和浏览器动作。
+
+修改表定义后运行 `pnpm db:generate`，确认目标数据库后运行 `pnpm db:migrate`。生产构建默认使用 Webpack。

@@ -1,57 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { Executor } from '@/automation/executor';
-import { launchBrowser } from '@/automation/browser';
-import { TextCompiler } from '@/automation/compiler/textCompiler';
-import { Observer } from '@/automation/observer';
-
+import { createRun, listRuns } from '@/workspace/store';
+import { executeRun } from '@/workspace/run';
+import { apiError } from '@/workspace/http';
+import { websiteSchema } from '@/workspace/validation';
 export const runtime = 'nodejs';
-
-const RequestSchema = z.union([
-  z.object({ mode: z.literal('replay'), flowId: z.uuid() }),
+export const maxDuration = 300;
+const requestSchema = z.union([
+  z.object({ testId: z.uuid(), mode: z.literal('record').optional() }),
+  z.object({
+    mode: z.literal('replay'),
+    sourceRunId: z.uuid(),
+    recordingVersionId: z.uuid().optional(),
+  }),
   z.object({
     mode: z.literal('record').default('record'),
-    case: z.string().trim().min(1),
-    url: z.url().optional(),
+    case: z.string().trim().min(1).max(20000),
+    url: websiteSchema.optional(),
   }),
 ]);
-
-export async function POST(request: NextRequest) {
-  const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
-
-  if (!parsed.success)
-    return NextResponse.json({ success: false, message: parsed.error.message }, { status: 400 });
-
-  let browser;
-
+export async function GET() {
   try {
-    const input = parsed.data;
-
-    if (input.mode !== 'record') throw new Error('缺少流程');
-
-    const textCompiler = new TextCompiler();
-
-    const testCase = await textCompiler.compile(input.case, input.url);
-    browser = await launchBrowser();
-
-    const context = await browser.newContext();
-
-    context.setDefaultTimeout(15000);
-
-    const page = await context.newPage();
-    const observer = new Observer();
-    const executor = new Executor(observer, testCase, input.url);
-
-    await executor.record(page);
-
-    return NextResponse.json({
-      success: true,
-      mode: 'record',
-    });
+    return NextResponse.json({ runs: await listRuns() });
   } catch (error) {
-    console.error('用例执行失败', error);
-    return NextResponse.json({ success: false, message: String(error) }, { status: 500 });
-  } finally {
-    await browser?.close();
+    return apiError(error);
+  }
+}
+export async function POST(request: Request) {
+  const parsed = requestSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success)
+    return NextResponse.json(
+      { success: false, message: '请提供用例 ID，或重放来源 ID，或测试描述与网站地址。' },
+      { status: 400 },
+    );
+  try {
+    const run = await createRun(parsed.data);
+    after(() => executeRun(run));
+    return NextResponse.json({ success: true, run }, { status: 202 });
+  } catch (error) {
+    return apiError(error);
   }
 }

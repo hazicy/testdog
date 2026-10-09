@@ -27,6 +27,15 @@ export class BrowserSession {
     return this.revision;
   }
 
+  activate(page: Page) {
+    if (!this.pages.has(page) || page.isClosed())
+      throw new Error('Requested page is not open in this browser session');
+    if (this.active !== page) {
+      this.active = page;
+      this.revision++;
+    }
+  }
+
   private track(page: Page) {
     this.pages.add(page);
     page.on('close', this.closed);

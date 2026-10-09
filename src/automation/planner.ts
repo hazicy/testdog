@@ -29,6 +29,7 @@ const ActionTools = Object.entries(ActionArguments).map(([name, schema]) => ({
 }));
 
 export class Planner {
+  constructor(private signal?: AbortSignal) {}
   async plan(input: {
     goal: string;
     inputs: Record<string, string>;
@@ -38,6 +39,7 @@ export class Planner {
     remainingWaitMs: number;
   }) {
     const response = await generateWithOpenAI({
+      signal: this.signal,
       systemPrompt: `Plan the next one or more browser actions toward the goal, in execution order.
       inputs contains the explicit values to use for this goal.
       preconditions are context only, not instructions to execute. Never invent setup actions

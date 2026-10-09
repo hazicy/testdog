@@ -131,3 +131,281 @@ body {
     background-position: 100% 50%;
   }
 }
+
+@layer components {
+  .workspace-shell {
+    background: #faf9f6;
+    color: #23241f;
+    --accent: #f16b43;
+    font-size: 14px;
+  }
+  .ws-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 9px 15px;
+    border: 1px solid #dfded4;
+    background: #fffefa;
+    font-size: 12px;
+    font-weight: 500;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .ws-button:hover {
+    background: #f5f5f5;
+  }
+  .ws-button.primary {
+    background: #f16b43;
+    border-color: #f16b43;
+    color: #181818;
+  }
+  .ws-button.primary:hover {
+    background: #df5c37;
+  }
+  .ws-button:disabled,
+  .ws-icon-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+  .ws-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 32px;
+    color: #777;
+    cursor: pointer;
+  }
+  .ws-icon-button:hover {
+    background: #eee;
+    color: #23241f;
+  }
+  .ws-input {
+    display: block;
+    width: 100%;
+    border: 1px solid #dfded4;
+    background: #fffefa;
+    padding: 9px 11px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #333;
+  }
+  .ws-input::placeholder {
+    color: #aaa;
+  }
+  .ws-input:focus {
+    outline: 1px solid #f16b43;
+    outline-offset: 0;
+    border-color: #f16b43;
+  }
+  .ws-input:disabled {
+    background: #f6f6f6;
+  }
+  .ws-input.pl-9 {
+    padding-left: 36px;
+  }
+  .ws-input.w-auto {
+    width: auto;
+  }
+  .ws-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease;
+  }
+  .ws-label .ws-input {
+    margin-top: 8px;
+  }
+  .ws-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .ws-table th {
+    padding: 12px 18px;
+    background: #f5f4ee;
+    font-size: 11px;
+    color: #888;
+    font-weight: 500;
+    border-bottom: 1px solid #e2e1da;
+  }
+  .ws-table td {
+    padding: 18px;
+    font-size: 13px;
+    border-bottom: 1px solid #eee;
+  }
+  .ws-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .ws-table tbody tr:hover {
+    background: #fdfdfb;
+  }
+  .ws-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .ws-status > span {
+    width: 6px;
+    height: 6px;
+    border-radius: 100%;
+    background: currentColor;
+  }
+  .ws-status.passed {
+    color: #49815a;
+  }
+  .ws-status.failed {
+    color: #c55348;
+  }
+  .ws-status.running {
+    color: #cf7800;
+  }
+  .ws-status.cancelled {
+    color: #8e8779;
+  }
+  .ws-button.selected {
+    border-color: #d1c7b5;
+    background: #f0ece1;
+  }
+  .ws-status.none {
+    color: #999;
+  }
+  .ws-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: calc(100% - 32px);
+    max-width: 620px;
+    max-height: calc(100dvh - 48px);
+    padding: 0;
+    border: 1px solid #ddd;
+    background: #fffefa;
+    color: #23241f;
+    overflow-y: auto;
+    box-shadow: 0 20px 80px #0002;
+  }
+  .ws-dialog.max-w-md {
+    max-width: 448px;
+  }
+  .ws-dialog.max-w-3xl {
+    max-width: 768px;
+  }
+  .ws-dialog::backdrop {
+    background: #0005;
+    backdrop-filter: blur(2px);
+  }
+  .ws-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e2e1da;
+  }
+  .ws-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid #e2e1da;
+    background: #f5f4ee;
+  }
+}
+
+.plan-viewport {
+  position: relative;
+  height: 600px;
+  overflow: hidden;
+  touch-action: none;
+  background-color: #f5f4ee;
+  background-image: radial-gradient(#d8d5c9 1px, transparent 1px);
+  background-size: 20px 20px;
+  cursor: grab;
+}
+.plan-viewport:active {
+  cursor: grabbing;
+}
+.plan-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: max-content;
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  transform-origin: 0 0;
+}
+.plan-node {
+  position: relative;
+  min-width: 250px;
+  max-width: 1100px;
+  border: 1px solid #dcd8c9;
+  background: #fffefa;
+  box-shadow: 0 4px 12px #302c1708;
+}
+.plan-node.task {
+  width: 260px;
+}
+.plan-node.group {
+  background: #eeece2;
+}
+.plan-node.branch {
+  background: #f7eee7;
+}
+.plan-node.active {
+  outline: 2px solid #f16b43;
+  outline-offset: 2px;
+}
+.plan-node-header {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  padding: 16px;
+  cursor: pointer;
+}
+.plan-children {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 0 20px 20px;
+}
+.plan-branches {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 0 20px 20px;
+}
+.plan-reference {
+  display: inline-block;
+  margin: 3px;
+  border: 1px dashed #bbb49a;
+  padding: 8px 12px;
+  background: #fffefa;
+  font-size: 11px;
+  color: #7b7565;
+}
+.plan-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 3;
+}
+@media (max-width: 640px) {
+  .plan-viewport {
+    height: 440px;
+  }
+}

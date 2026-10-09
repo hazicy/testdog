@@ -1,124 +1,115 @@
 'use client';
 
-import { Avatar, Breadcrumbs, Button, Surface } from '@heroui/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
+import { WorkspaceIcon } from './WorkspaceIcon';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
-
-  if (pathname === '/') return children;
-
+  if (pathname === '/' || pathname === '/onboarding') return children;
+  const results = pathname.startsWith('/runs');
   return (
     <div
-      className={`grid min-h-dvh grid-cols-[64px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[76px_minmax(0,1fr)]' : 'md:grid-cols-[236px_minmax(0,1fr)]'}`}
+      className={`workspace-shell grid min-h-dvh grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[232px_minmax(0,1fr)]'}`}
     >
       <a
-        className="sr-only z-50 rounded bg-surface p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
         href="#main-content"
+        className="sr-only z-50 bg-[#faf9f6] p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         跳转到主内容
       </a>
-      <Surface
-        render={(props) => <aside {...props} />}
-        className="sticky top-0 flex h-dvh flex-col border-r border-border px-2 py-6 md:px-3"
-        aria-label="工作区导航"
-      >
+      <aside className="sticky top-0 flex h-dvh flex-col border-r border-[#e2e1da] bg-[#f3f2eb]">
         <Link
           href="/"
-          className="flex items-center gap-3 px-2 text-3xl font-bold tracking-tight"
+          className="flex h-14 shrink-0 items-center gap-3 border-b border-[#e2e1da] px-4"
           aria-label="CaseForge 首页"
         >
-          {!collapsed && <span className="hidden text-2xl md:inline">caseforge.</span>}
+          <span className="grid h-7 w-7 shrink-0 place-items-center bg-transparent text-brand text-2xl font-semibold -rotate-45">
+            ↳
+          </span>
+          {!collapsed && (
+            <span className="hidden text-xl font-bold tracking-[-1px] md:block">caseforge.</span>
+          )}
         </Link>
-        <div className="my-8 flex items-center gap-3 px-2">
-          <Avatar size="sm" aria-label="默认工作区">
-            <Avatar.Fallback>P</Avatar.Fallback>
-          </Avatar>
-          {!collapsed && (
-            <div className="hidden min-w-0 md:block">
-              <p className="text-xs font-semibold">默认工作区</p>
-              <p className="mt-1 text-[10px] text-muted">自动化测试平台</p>
-            </div>
-          )}
-        </div>
-        <nav id="workspace-navigation" aria-label="主导航">
-          {!collapsed && (
-            <p className="mb-3 hidden px-3 text-[10px] tracking-widest text-muted md:block">
-              WORKSPACE
-            </p>
-          )}
-          <Link
-            href="/cases"
-            aria-current={pathname === '/cases' ? 'page' : undefined}
-            aria-label="测试用例"
-            title="测试用例"
-            className={`flex min-h-11 items-center gap-3 rounded-lg px-3 hover:bg-accent/15 ${pathname === '/cases' ? 'bg-accent/10 text-accent' : 'text-muted'}`}
-          >
-            <span aria-hidden="true">▤</span>
-            {!collapsed && <span className="hidden text-sm font-medium md:inline">测试用例</span>}
-          </Link>
-          <Link
-            href="/runs"
-            aria-current={pathname === '/runs' ? 'page' : undefined}
-            aria-label="执行记录"
-            title="执行记录"
-            className={`mt-2 flex min-h-11 items-center gap-3 rounded-lg px-3 hover:bg-accent/15 ${pathname === '/runs' ? 'bg-accent/10 text-accent' : 'text-muted'}`}
-          >
-            <span aria-hidden="true">↻</span>
-            {!collapsed && <span className="hidden text-sm font-medium md:inline">执行记录</span>}
-          </Link>
-        </nav>
-        <div className="mt-auto hidden md:block">
-          {!collapsed && (
-            <p className="px-3 py-4 text-[10px] text-muted">让每一次测试，都更简单。</p>
-          )}
-          <Button
-            variant="ghost"
-            fullWidth
-            isIconOnly={collapsed}
-            className="justify-start"
-            onPress={() => setCollapsed(!collapsed)}
-            aria-expanded={!collapsed}
-            aria-controls="workspace-navigation"
-            aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
-          >
-            <span className="text-xl" aria-hidden="true">
-              {collapsed ? '»' : '«'}
-            </span>
-            {!collapsed && <span className="text-xs">收起侧栏</span>}
-          </Button>
-        </div>
-      </Surface>
-      <div className="flex min-w-0 flex-col">
-        <Surface
-          render={(props) => <header {...props} />}
-          className="flex min-h-18 items-center justify-between gap-4 border-b border-border px-4 md:px-10"
-        >
-          <Breadcrumbs aria-label="当前位置">
-            <Breadcrumbs.Item href="/cases">工作区</Breadcrumbs.Item>
-            <Breadcrumbs.Item>{pathname === '/runs' ? '执行记录' : '测试用例'}</Breadcrumbs.Item>
-          </Breadcrumbs>
-          <div className="flex items-center gap-4">
-            <span className="hidden text-xs text-muted sm:inline">本地工作区</span>
-            <Avatar size="sm" aria-label="默认工作区">
-              <Avatar.Fallback>P</Avatar.Fallback>
-            </Avatar>
+        <div className="px-3 pt-9">
+          <div className="mb-6 flex items-center gap-3 px-2 text-sm">
+            <WorkspaceIcon name="globe" />
+            {!collapsed && <span className="hidden font-medium md:block">浏览器测试工作区</span>}
           </div>
-        </Surface>
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 md:px-10 md:py-12"
+          <nav aria-label="工作区导航" className="space-y-2">
+            {[
+              { href: '/cases', name: 'Tests', icon: 'tests' as const, active: !results },
+              { href: '/runs', name: 'Results', icon: 'results' as const, active: results },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={item.name}
+                aria-label={item.name}
+                aria-current={item.active ? 'page' : undefined}
+                className={`flex h-11 items-center gap-3 px-2 text-sm hover:bg-[#eeece3] ${item.active ? 'bg-[#eeece3] font-medium border-l-2 border-brand' : ''}`}
+              >
+                <WorkspaceIcon name={item.icon} />
+                {!collapsed && <span className="hidden md:block">{item.name}</span>}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        {!collapsed && (
+          <div className="mx-3 mt-auto mb-4 hidden border border-[#e2e1da] bg-[#faf9f6] p-3 md:block">
+            <p className="text-xs font-medium">
+              从你的第一个测试开始 <span className="float-right text-[#f16b43]">↗</span>
+            </p>
+            <p className="mt-2 text-[11px] leading-5 text-[#858585]">
+              描述操作步骤，让 AI 在真实浏览器中验证。
+            </p>
+            <div className="mt-3 flex gap-1">
+              <span className="h-1 flex-1 bg-[#f16b43]" />
+              <span className="h-1 flex-1 bg-[#ead8c6]" />
+              <span className="h-1 flex-1 bg-[#ead8c6]" />
+            </div>
+          </div>
+        )}
+        <div
+          className={`${collapsed ? 'mt-auto' : 'max-md:mt-auto'} border-t border-[#e2e1da] p-3`}
         >
+          <div className="flex items-center gap-3 border border-[#e2e1da] bg-[#faf9f6] p-2">
+            <span className="grid h-7 w-7 shrink-0 place-items-center bg-[#f3e2d1] text-xs font-medium text-[#8b5129]">
+              L
+            </span>
+            {!collapsed && (
+              <div className="hidden min-w-0 md:block">
+                <p className="text-xs font-medium">本地工作区</p>
+                <p className="mt-0.5 text-[10px] text-[#858585]">Local workspace</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+      <div className="min-w-0">
+        <header className="flex h-14 items-center gap-3 border-b border-[#e2e1da] bg-[#faf9f6] px-5 md:px-7">
+          <button
+            className="ws-icon-button hidden md:flex"
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
+            aria-expanded={!collapsed}
+          >
+            <WorkspaceIcon name="menu" />
+          </button>
+          <Link href="/" className="text-sm text-[#78796f]">
+            Workspace
+          </Link>
+          <WorkspaceIcon name="chevron" className="text-[#98998b]" width="14" />
+          <span className="truncate text-sm">浏览器测试工作区</span>
+          <span className="ml-auto hidden border border-[#e2e1da] px-2 py-1 text-[10px] text-[#78796f] sm:block">
+            CASEFORGE / 001
+          </span>
+        </header>
+        <main id="main-content" tabIndex={-1} className="px-5 py-9 md:px-9 md:py-12">
           {children}
         </main>
-        <footer className="flex justify-between gap-3 px-4 py-5 text-[10px] text-muted md:px-10">
-          <span>CaseForge · 自动化测试工作台</span>
-          <span className="hidden sm:inline">少一些重复，多一些专注。</span>
-        </footer>
       </div>
     </div>
   );

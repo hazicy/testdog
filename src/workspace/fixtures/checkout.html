@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fieldnotes — 订阅更新</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #faf9f6;
+        color: #23241f;
+        font-family: Arial, sans-serif;
+      }
+      header {
+        padding: 26px 60px;
+        border-bottom: 1px solid #e2e1da;
+        font-weight: bold;
+        font-size: 24px;
+      }
+      header span {
+        color: #f16b43;
+      }
+      main {
+        width: 560px;
+        margin: 70px auto;
+      }
+      small {
+        font-family: monospace;
+        letter-spacing: 2px;
+        color: #858578;
+      }
+      h1 {
+        font-size: 42px;
+        font-weight: 500;
+        line-height: 1.3;
+        letter-spacing: -1px;
+      }
+      p {
+        color: #78796f;
+        font-size: 14px;
+        line-height: 1.9;
+      }
+      form {
+        margin-top: 32px;
+        border: 1px solid #e2e1da;
+        padding: 30px;
+        background: #fffefa;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+      input {
+        display: block;
+        width: 100%;
+        margin-top: 9px;
+        padding: 14px;
+        border: 1px solid #deddd4;
+        background: #faf9f6;
+        font-size: 14px;
+      }
+      button {
+        background: #f16b43;
+        border: 0;
+        width: 100%;
+        padding: 16px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      #success {
+        display: none;
+        border: 1px solid #cdd5bf;
+        background: #edf0e5;
+        padding: 30px;
+        margin-top: 30px;
+      }
+      footer {
+        margin-top: 32px;
+        border-top: 1px solid #e2e1da;
+        padding-top: 20px;
+        color: #98998b;
+        font-size: 10px;
+        letter-spacing: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>fieldnotes<span>.</span></header>
+    <main>
+      <small>GOOD IDEAS, DELIVERED.</small>
+      <h1>让灵感，<br />在下一封邮件相遇。</h1>
+      <p>关于产品、设计与创造的每月笔记。<br />留下一点信息，保持联系。</p>
+      <form>
+        <label>姓名<input data-testid="name" required /></label
+        ><label>邮箱<input data-testid="email" type="email" required /></label
+        ><button data-testid="subscribe" type="submit">订阅更新</button>
+      </form>
+      <section id="success" role="status">
+        <h2></h2>
+        <p></p>
+      </section>
+      <footer>SMALL NOTES. BIG POSSIBILITIES.</footer>
+    </main>
+    <script>
+      document.querySelector('form').onsubmit = (e) => {
+        e.preventDefault();
+        document.querySelector('#success h2').textContent =
+          '订阅成功，' + document.querySelector('[data-testid=name]').value;
+        document.querySelector('#success p').textContent =
+          '下一封笔记将发送至 ' + document.querySelector('[data-testid=email]').value;
+        document.querySelector('form').style.display = 'none';
+        document.querySelector('#success').style.display = 'block';
+      };
+    </script>
+  </body>
+</html>

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const TargetSchema = z.object({
-  kind: z.enum(['role', 'label', 'placeholder', 'testId', 'css', 'ariaRef']),
+  kind: z.enum(['role', 'label', 'placeholder', 'testId', 'css', 'text', 'ariaRef']),
   value: z.string(),
   name: z.string().default(''),
   index: z.number().int().nonnegative().optional(),
