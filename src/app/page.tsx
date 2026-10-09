@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { MarketingDemo } from '@/components/MarketingDemo';
+import { MarketingMotion } from '@/components/MarketingMotion';
 
 const containerClassName =
   'w-[min(1200px,_calc(100%_-_112px))] mx-auto min-[1600px]:w-[min(1320px,_calc(100%_-_160px))] max-[1100px]:w-[calc(100%_-_64px)] max-[800px]:w-[calc(100%_-_40px)] max-[540px]:w-[calc(100%_-_32px)]';
@@ -63,7 +64,7 @@ const faqs = [
 
 export default function Home() {
   return (
-    <div className="motion-reduce:[&_*]:transition-none bg-page text-ink text-[14px] leading-[1.6] [&_a]:no-underline [&_button]:[-webkit-tap-highlight-color:transparent] [&_a]:[-webkit-tap-highlight-color:transparent] [&_summary]:[-webkit-tap-highlight-color:transparent] [&_:focus-visible]:outline-brand [&_section[id]]:scroll-mt-25 [&_h1[id]]:scroll-mt-25">
+    <MarketingMotion className="motion-safe:[&_[data-motion=pending]]:opacity-0 motion-reduce:[&_*]:transition-none bg-page text-ink text-[14px] leading-[1.6] [&_a]:no-underline [&_button]:[-webkit-tap-highlight-color:transparent] [&_a]:[-webkit-tap-highlight-color:transparent] [&_summary]:[-webkit-tap-highlight-color:transparent] [&_:focus-visible]:outline-brand [&_section[id]]:scroll-mt-25 [&_h1[id]]:scroll-mt-25">
       <a
         className="fixed left-5 -top-25 z-100 py-3 px-5 bg-ink text-white focus:top-3"
         href="#main-content"
@@ -111,51 +112,65 @@ export default function Home() {
         >
           <div className="flex justify-between items-center py-[22px] px-[30px] border-b border-b-page-line font-mono text-[10px] leading-[normal] tracking-[0.8px] text-page-muted [&_>_span:first-child]:flex [&_>_span:first-child]:items-center [&_>_span:first-child]:gap-[9px] max-[800px]:py-[18px] max-[800px]:px-5 max-[800px]:text-[8px] max-[540px]:px-4 max-[540px]:tracking-[0.1px]">
             <span>
-              <i className="status-dot inline-block flex-none h-1.5 w-1.5 rounded-full bg-[#78a576]" />{' '}
+              <i className="motion-safe:animate-pulse status-dot inline-block flex-none h-1.5 w-1.5 rounded-full bg-[#78a576]" />{' '}
               BUILT FOR THE WAY YOU TEST
             </span>
             <span className="max-[540px]:hidden">[ CASEFORGE / 001 ]</span>
           </div>
           <div className="grid grid-cols-[1.15fr_1fr] min-h-[598px] min-[1600px]:min-h-[640px] max-[800px]:grid-cols-1">
             <div className="pt-[70px] pr-[30px] pb-9 pl-[46px] relative z-2 min-[1600px]:pl-15 min-[1600px]:pt-22 max-[1100px]:pl-7 max-[1100px]:pr-[15px] max-[800px]:pt-[49px] max-[800px]:px-7 max-[800px]:pb-[35px] max-[540px]:pt-[41px] max-[540px]:px-5 max-[540px]:pb-[30px]">
-              <p className={eyebrowClassName}>LESS SCRIPT. MORE CONFIDENCE.</p>
+              <p data-entrance="0" className={eyebrowClassName}>
+                LESS SCRIPT. MORE CONFIDENCE.
+              </p>
               <h1
+                data-entrance="90"
                 id="hero-title"
                 className="mt-6 mb-[25px] text-[clamp(46px,4.6vw,66px)] font-[650] leading-[1.24] tracking-[-3px] min-[1600px]:text-[72px] max-[1100px]:text-[49px] max-[1100px]:tracking-[-2px] max-[800px]:text-[58px] max-[540px]:text-[clamp(37px,10.5vw,55px)] max-[540px]:tracking-[-1.8px] max-[540px]:mt-[23px]"
               >
                 用自然语言，
                 <br />
                 让测试
-                <span className="text-brand">
+                <span className="text-brand motion-safe:bg-[linear-gradient(100deg,#cf4f2e_0%,#f16b43_35%,#ffb38a_50%,#f16b43_65%,#cf4f2e_100%)] motion-safe:bg-[length:220%_100%] motion-safe:bg-clip-text motion-safe:text-transparent motion-safe:animate-title-shine">
                   发生<span className="ml-1">.</span>
                 </span>
               </h1>
-              <p className="text-[#77786f] text-[15px] leading-[1.95] max-[800px]:text-[14px] max-[540px]:text-[12px]">
+              <p
+                data-entrance="180"
+                className="text-[#77786f] text-[15px] leading-[1.95] max-[800px]:text-[14px] max-[540px]:text-[12px]"
+              >
                 把重复操作交给 AI，把专注留给创造。
                 <br />
                 从一句测试描述，到一次真实的浏览器验证。
               </p>
-              <div className="flex gap-[17px] items-center mt-[33px] max-[1100px]:gap-1.5 max-[540px]:mt-[26px] max-[540px]:gap-2">
+              <div
+                data-entrance="270"
+                className="flex gap-[17px] items-center mt-[33px] max-[1100px]:gap-1.5 max-[540px]:mt-[26px] max-[540px]:gap-2"
+              >
                 <Link
-                  className="inline-flex items-center justify-between gap-9 py-[15px] px-[23px] min-h-13 text-[13px] font-medium transition duration-200 hover:-translate-y-0.5 [&_span]:text-[18px] [&_span]:leading-none max-[1100px]:gap-[22px] max-[1100px]:px-[18px] max-[540px]:text-[11px] max-[540px]:py-[13px] max-[540px]:px-[15px] max-[540px]:min-h-[46px] max-[540px]:gap-5 bg-brand text-[#fff] hover:bg-[#dc5c36]"
+                  className="inline-flex items-center justify-between gap-9 py-[15px] px-[23px] min-h-13 text-[13px] font-medium transition duration-200 hover:-translate-y-0.5 [&_span]:text-[18px] [&_span]:leading-none [&_span]:transition-transform [&_span]:duration-300 hover:[&_span]:translate-x-1 hover:[&_span]:-translate-y-0.5 max-[1100px]:gap-[22px] max-[1100px]:px-[18px] max-[540px]:text-[11px] max-[540px]:py-[13px] max-[540px]:px-[15px] max-[540px]:min-h-[46px] max-[540px]:gap-5 bg-brand text-[#fff] hover:bg-[#dc5c36]"
                   href="/cases"
                 >
                   开始构建用例 <span aria-hidden="true">↗</span>
                 </Link>
                 <a
-                  className="inline-flex items-center justify-between py-[15px] min-h-13 text-[13px] font-medium transition duration-200 hover:-translate-y-0.5 [&_span]:text-[18px] [&_span]:leading-none max-[1100px]:gap-[22px] max-[1100px]:px-[18px] max-[540px]:py-[13px] max-[540px]:min-h-[46px] text-[#606258] px-3 gap-[18px] hover:bg-[#efeee8] max-[540px]:px-[5px] max-[540px]:gap-2.5 max-[540px]:text-[10px]"
+                  className="inline-flex items-center justify-between py-[15px] min-h-13 text-[13px] font-medium transition duration-200 hover:-translate-y-0.5 [&_span]:text-[18px] [&_span]:leading-none [&_span]:transition-transform [&_span]:duration-300 hover:[&_span]:translate-x-1 hover:[&_span]:-translate-y-0.5 max-[1100px]:gap-[22px] max-[1100px]:px-[18px] max-[540px]:py-[13px] max-[540px]:min-h-[46px] text-[#606258] px-3 gap-[18px] hover:bg-[#efeee8] max-[540px]:px-[5px] max-[540px]:gap-2.5 max-[540px]:text-[10px]"
                   href="#workflow"
                 >
                   看看它如何工作 <span aria-hidden="true">↓</span>
                 </a>
               </div>
-              <div className="flex gap-3 items-center mt-13 text-[#85867b] text-[10px] whitespace-nowrap max-[1100px]:gap-2 max-[1100px]:text-[9px] max-[800px]:mt-8 max-[540px]:text-[8px] max-[540px]:gap-[7px] max-[540px]:[&_.tiny-cross]:hidden">
+              <div
+                data-entrance="360"
+                className="flex gap-3 items-center mt-13 text-[#85867b] text-[10px] whitespace-nowrap max-[1100px]:gap-2 max-[1100px]:text-[9px] max-[800px]:mt-8 max-[540px]:text-[8px] max-[540px]:gap-[7px] max-[540px]:[&_.tiny-cross]:hidden"
+              >
                 <span className="tiny-cross text-brand text-[16px] font-mono">+</span> 自然语言驱动{' '}
                 <span className="inline-block h-[9px] w-px bg-[#d3d3c9]" /> Playwright 执行{' '}
                 <span className="inline-block h-[9px] w-px bg-[#d3d3c9]" /> 页面证据验证
               </div>
             </div>
             <div
+              data-hero-art
+              data-entrance="180"
               className="relative min-w-0 overflow-hidden border-l border-l-page-line [background:radial-gradient(ellipse_at_50%_50%,_#ecece2_0,_transparent_65%)] max-[800px]:h-[350px] max-[800px]:border-l-0 max-[800px]:border-t max-[800px]:border-t-page-line max-[540px]:h-[300px]"
               aria-hidden="true"
             >
@@ -163,11 +178,19 @@ export default function Home() {
                 FIG. 01 — THE TESTING ENGINE
               </div>
               <div className="art-grid" />
+              <div className="pointer-events-none absolute left-[8%] right-[8%] top-[12%] h-px bg-gradient-to-r from-transparent via-brand/40 to-transparent opacity-0 motion-safe:animate-forge-scan" />
               <div className="absolute w-[292px] h-[324px] left-1/2 top-[49%] [transform:translate(-50%,_-50%)_rotate(-8deg)] [filter:drop-shadow(15px_25px_12px_#77786325)] min-[1600px]:[transform:translate(-50%,_-50%)_rotate(-8deg)_scale(1.12)] max-[1100px]:[transform:translate(-50%,_-50%)_rotate(-8deg)_scale(0.85)] max-[800px]:[transform:translate(-50%,_-50%)_rotate(-8deg)_scale(0.85)] max-[540px]:[transform:translate(-50%,_-50%)_rotate(-8deg)_scale(0.7)]">
-                <div className="forge-bar w-[78px] h-[262px] left-[25px] top-[30px] [transform:skewY(-23deg)]" />
-                <div className="forge-bar w-[216px] h-[74px] top-2 left-[25px] [transform:skewY(-23deg)]" />
-                <div className="forge-bar w-[148px] h-[68px] top-[128px] left-[25px] [transform:skewY(-23deg)]" />
-                <div className="forge-cut" />
+                <div className="absolute inset-0 motion-safe:animate-forge-float">
+                  <div
+                    data-forge-tilt
+                    className="absolute inset-0 transition-transform duration-700 ease-out [transform:perspective(900px)_rotateX(var(--forge-rx,0deg))_rotateY(var(--forge-ry,0deg))]"
+                  >
+                    <div className="forge-bar w-[78px] h-[262px] left-[25px] top-[30px] [transform:skewY(-23deg)]" />
+                    <div className="forge-bar w-[216px] h-[74px] top-2 left-[25px] [transform:skewY(-23deg)]" />
+                    <div className="forge-bar w-[148px] h-[68px] top-[128px] left-[25px] [transform:skewY(-23deg)]" />
+                    <div className="forge-cut" />
+                  </div>
+                </div>
               </div>
               <div className="absolute z-2 bg-page border border-[#cfd0c3] py-[9px] px-[11px] flex items-center gap-2.5 font-mono text-[9px] leading-[normal] tracking-[0.3px] max-[540px]:text-[7px] max-[540px]:p-[7px] max-[540px]:gap-[7px] top-[23%] left-[6%] max-[800px]:left-[15%] max-[800px]:top-[25%] max-[540px]:left-[5%] max-[540px]:top-[24%]">
                 <span className="label-dot w-[5px] h-[5px] bg-[#8c947e]" /> HUMAN INTENT
@@ -218,7 +241,10 @@ export default function Home() {
           id="capabilities"
           aria-labelledby="capabilities-title"
         >
-          <div className="flex justify-between items-end gap-8 mb-[46px] max-[800px]:items-start max-[800px]:gap-[25px] max-[800px]:mb-[30px] max-[540px]:block">
+          <div
+            data-reveal="0"
+            className="flex justify-between items-end gap-8 mb-[46px] max-[800px]:items-start max-[800px]:gap-[25px] max-[800px]:mb-[30px] max-[540px]:block"
+          >
             <div>
               <p className={eyebrowClassName}>
                 <span className="tiny-cross text-brand text-[16px] font-mono">+</span> THE TOOLKIT
@@ -238,7 +264,8 @@ export default function Home() {
           <div className="grid grid-cols-3 border border-page-line max-[540px]:grid-cols-1">
             {features.map((feature) => (
               <article
-                className="relative pt-[26px] px-[30px] pb-[22px] transition-colors duration-200 hover:bg-[#f3f2eb] not-first:border-l not-first:border-page-line max-[1100px]:px-[23px] max-[800px]:py-[22px] max-[800px]:px-[19px] max-[540px]:py-[23px] max-[540px]:px-6 max-[540px]:not-first:border-l-0 max-[540px]:not-first:border-t"
+                data-reveal={String(Number(feature.number) * 100)}
+                className="group/feature relative pt-[26px] px-[30px] pb-[22px] transition-colors duration-200 hover:bg-[#f3f2eb] not-first:border-l not-first:border-page-line max-[1100px]:px-[23px] max-[800px]:py-[22px] max-[800px]:px-[19px] max-[540px]:py-[23px] max-[540px]:px-6 max-[540px]:not-first:border-l-0 max-[540px]:not-first:border-t"
                 key={feature.number}
               >
                 <div className="flex justify-between font-mono text-[9px] leading-[normal] tracking-[0.5px] text-[#939487] max-[800px]:text-[7px] max-[540px]:text-[9px]">
@@ -246,7 +273,7 @@ export default function Home() {
                   <span>/{feature.number}</span>
                 </div>
                 <div
-                  className={`w-19 h-19 mt-[35px] mb-[25px] border grid place-items-center font-mono leading-[normal] tracking-[-4px] relative max-[800px]:mt-7 max-[540px]:w-[62px] max-[540px]:h-[62px] max-[540px]:mt-6 max-[540px]:mb-5 ${feature.appearance}`}
+                  className={`transition-transform duration-500 ease-out group-hover/feature:-translate-y-1 group-hover/feature:rotate-3 w-19 h-19 mt-[35px] mb-[25px] border grid place-items-center font-mono leading-[normal] tracking-[-4px] relative max-[800px]:mt-7 max-[540px]:w-[62px] max-[540px]:h-[62px] max-[540px]:mt-6 max-[540px]:mb-5 ${feature.appearance}`}
                   aria-hidden="true"
                 >
                   {feature.symbol}
@@ -277,7 +304,10 @@ export default function Home() {
           aria-labelledby="workflow-title"
         >
           <div className={`${containerClassName} py-25 max-[800px]:py-16 max-[540px]:py-13`}>
-            <div className="flex justify-between items-end gap-8 mb-[46px] max-[800px]:items-start max-[800px]:gap-[25px] max-[800px]:mb-[30px] max-[540px]:block">
+            <div
+              data-reveal="0"
+              className="flex justify-between items-end gap-8 mb-[46px] max-[800px]:items-start max-[800px]:gap-[25px] max-[800px]:mb-[30px] max-[540px]:block"
+            >
               <div>
                 <p className={eyebrowClassName}>
                   <span className="tiny-cross text-brand text-[16px] font-mono">+</span> FROM WORDS
@@ -296,7 +326,10 @@ export default function Home() {
               </p>
             </div>
             <MarketingDemo />
-            <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-x-[58px] mt-11 [&_>_div_>_span]:font-mono [&_>_div_>_span]:text-[9px] [&_>_div_>_span]:leading-[normal] [&_>_div_>_span]:text-[#979b8c] [&_h3]:text-[16px] [&_h3]:font-medium [&_h3]:mt-3 [&_p]:text-[#939789] [&_p]:mt-1.5 [&_p]:text-[11px] max-[1100px]:gap-x-[30px] max-[800px]:gap-x-[15px] max-[800px]:[&_h3]:text-[14px] max-[800px]:[&_p]:text-[10px] max-[540px]:grid-cols-1 max-[540px]:gap-[23px] max-[540px]:pl-[18px] max-[540px]:border-l max-[540px]:border-l-[#d7dbca] max-[540px]:mt-[31px] max-[540px]:[&_h3]:text-[15px] max-[540px]:[&_h3]:mt-2 max-[540px]:[&_p]:text-[11px]">
+            <div
+              data-reveal="80"
+              className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-x-[58px] mt-11 [&_>_div_>_span]:font-mono [&_>_div_>_span]:text-[9px] [&_>_div_>_span]:leading-[normal] [&_>_div_>_span]:text-[#979b8c] [&_h3]:text-[16px] [&_h3]:font-medium [&_h3]:mt-3 [&_p]:text-[#939789] [&_p]:mt-1.5 [&_p]:text-[11px] max-[1100px]:gap-x-[30px] max-[800px]:gap-x-[15px] max-[800px]:[&_h3]:text-[14px] max-[800px]:[&_p]:text-[10px] max-[540px]:grid-cols-1 max-[540px]:gap-[23px] max-[540px]:pl-[18px] max-[540px]:border-l max-[540px]:border-l-[#d7dbca] max-[540px]:mt-[31px] max-[540px]:[&_h3]:text-[15px] max-[540px]:[&_h3]:mt-2 max-[540px]:[&_p]:text-[11px]"
+            >
               <div>
                 <span>01 / DESCRIBE</span>
                 <h3>写下测试目标</h3>
@@ -323,6 +356,7 @@ export default function Home() {
         </section>
 
         <section
+          data-reveal="0"
           className={`pt-[94px] pb-[67px] border-b border-b-page-line [&_h2_>_span]:block [&_h2_>_span]:text-[#a5aa93] max-[800px]:pt-[65px] max-[800px]:pb-[45px] ${containerClassName}`}
         >
           <p className={eyebrowClassName}>
@@ -353,6 +387,7 @@ export default function Home() {
 
         <section
           className={`grid grid-cols-[1fr_1.45fr] gap-[65px] max-[1100px]:gap-10 max-[800px]:grid-cols-1 max-[800px]:gap-[33px] ${containerClassName} py-25 max-[800px]:py-16 max-[540px]:py-13`}
+          data-reveal="0"
           id="faq"
           aria-labelledby="faq-title"
         >
@@ -389,7 +424,10 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="bg-[#e9ebde] border-y border-y-[#daddcc] [&_h2_span]:text-brand">
+        <section
+          data-reveal="0"
+          className="bg-[#e9ebde] border-y border-y-[#daddcc] [&_h2_span]:text-brand"
+        >
           <div
             className={`${containerClassName} flex justify-between items-center gap-[45px] pt-[65px] pb-[70px] max-[800px]:py-12 max-[540px]:flex-col max-[540px]:items-start max-[540px]:gap-[21px]`}
           >
@@ -403,7 +441,7 @@ export default function Home() {
             </div>
             <div className="pt-[25px] [&_p]:text-[#909780] [&_p]:text-[10px] [&_p]:mt-[15px] max-[800px]:[&_a]:text-[11px] max-[800px]:[&_a]:gap-5 max-[540px]:pt-0 max-[540px]:[&_a]:gap-[70px] max-[540px]:[&_p]:mt-2.5">
               <Link
-                className="inline-flex items-center justify-between py-[15px] px-[23px] min-h-13 text-[13px] font-medium transition duration-200 hover:-translate-y-0.5 [&_span]:text-[18px] [&_span]:leading-none max-[1100px]:gap-[22px] max-[1100px]:px-[18px] max-[540px]:text-[11px] max-[540px]:py-[13px] max-[540px]:px-[15px] max-[540px]:min-h-[46px] max-[540px]:gap-5 bg-[#2d3325] text-[#f6f7f0] gap-[65px] hover:bg-[#414b35]"
+                className="inline-flex items-center justify-between py-[15px] px-[23px] min-h-13 text-[13px] font-medium transition duration-200 hover:-translate-y-0.5 [&_span]:text-[18px] [&_span]:leading-none [&_span]:transition-transform [&_span]:duration-300 hover:[&_span]:translate-x-1 hover:[&_span]:-translate-y-0.5 max-[1100px]:gap-[22px] max-[1100px]:px-[18px] max-[540px]:text-[11px] max-[540px]:py-[13px] max-[540px]:px-[15px] max-[540px]:min-h-[46px] max-[540px]:gap-5 bg-[#2d3325] text-[#f6f7f0] gap-[65px] hover:bg-[#414b35]"
                 href="/cases"
               >
                 开始使用 CaseForge <span aria-hidden="true">↗</span>
@@ -447,6 +485,6 @@ export default function Home() {
           <a href="#hero-title">回到顶部 ↑</a>
         </div>
       </footer>
-    </div>
+    </MarketingMotion>
   );
 }

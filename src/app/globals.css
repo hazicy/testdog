@@ -27,6 +27,10 @@ body {
 @theme inline {
   --animate-cursor-blink: cursor-blink 1.4s steps(1) infinite;
   --animate-preview-enter: preview-enter 0.3s ease-out;
+  --animate-forge-float: forge-float 7s ease-in-out infinite;
+  --animate-forge-scan: forge-scan 5s ease-in-out infinite;
+  --animate-title-shine: title-shine 6s ease-in-out infinite;
+  --animate-log-step: preview-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   --color-page: #faf9f6;
   --color-ink: #23241f;
   --color-page-muted: #78796f;
@@ -89,5 +93,41 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes forge-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -16px, 0) rotate(2deg);
+  }
+}
+
+@keyframes forge-scan {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15%,
+  75% {
+    opacity: 0.5;
+  }
+  90% {
+    transform: translateY(410px);
+    opacity: 0;
+  }
+}
+
+@keyframes title-shine {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
   }
 }

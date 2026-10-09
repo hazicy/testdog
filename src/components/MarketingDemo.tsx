@@ -67,7 +67,7 @@ export function MarketingDemo() {
   const example = examples[active];
 
   return (
-    <div className="border border-[#d3d4c8] shadow-[0_10px_24px_#25291e05]">
+    <div data-reveal="80" className="border border-[#d3d4c8] shadow-[0_10px_24px_#25291e05]">
       <div className="flex justify-between items-center bg-[#faf9f6] border-b border-b-[#d3d4c8] py-0 px-[22px] max-[540px]:px-[13px]">
         <div className="flex gap-7 max-[540px]:gap-5" role="tablist" aria-label="用例示例">
           {examples.map((item, index) => (
@@ -142,8 +142,9 @@ export function MarketingDemo() {
             </div>
             {example.steps.map((step, index) => (
               <div
-                className="flex items-baseline gap-2.5 font-mono text-[10px] leading-[2.5] text-[#bbc3ad] max-[1100px]:text-[9px] max-[800px]:text-[11px] max-[540px]:text-[9px] max-[540px]:gap-[7px]"
-                key={step}
+                data-step={index}
+                className="motion-safe:animate-log-step motion-safe:data-[step=0]:[animation-delay:80ms] motion-safe:data-[step=1]:[animation-delay:240ms] motion-safe:data-[step=2]:[animation-delay:400ms] motion-safe:data-[step=3]:[animation-delay:560ms] flex items-baseline gap-2.5 font-mono text-[10px] leading-[2.5] text-[#bbc3ad] max-[1100px]:text-[9px] max-[800px]:text-[11px] max-[540px]:text-[9px] max-[540px]:gap-[7px]"
+                key={`${active}-${step}`}
               >
                 <span className="text-[#6e7960] text-[9px]">00:0{index + 1}</span>
                 <span className="text-[#afc397]">✓</span>
