@@ -154,6 +154,12 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
 
     return { nodes, edges };
   } finally {
-    elk.terminateWorker();
+    // elk.bundled 的 PromisedWorker 在部分环境(如 node/某些 worker 配置)没有 terminate,
+    // 清理失败不应让已经成功的布局结果变成异常。
+    try {
+      elk.terminateWorker();
+    } catch {
+      /* ignore */
+    }
   }
 }
