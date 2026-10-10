@@ -38,7 +38,7 @@ flowchart TB
 | 当前入口                                    | 现状                                          | 目标职责                                            |
 | ------------------------------------------- | --------------------------------------------- | --------------------------------------------------- |
 | `src/server/runs/run.ts`                    | API 后台任务启动 Chromium，固定 1280×800      | worker 执行生命周期、选择 adapter、取消、超时及归档 |
-| `src/automation/platform/web/executor.ts`   | 遍历 DAG，同时执行 DOM 动作及 Playwright 断言 | 共享 PlanRunner；浏览器动作与原生断言留在 adapter   |
+| `src/automation/planRunner.ts`              | 遍历 DAG 并统一编排动作、断言与重放              | Web 与原生 session 提供平台动作和观察能力          |
 | `browserSession.ts`、`observer.ts`          | 管理 Page 和 ARIA 观察                        | PlaywrightSession 内部实现                          |
 | `planner.ts`、`compiler/schema.ts`          | 动作含 css/ariaRef，等待含 newPage            | 保留意图 DAG；动作使用平台判别联合及能力约束        |
 | `src/server/runs/recorder.ts`、`locator.ts` | Page hooks、DOM 稳定定位、截图及 trace        | 通用事件 sink + adapter 录制定位与附件提供者        |
@@ -159,7 +159,7 @@ Next.js API 仅校验、保存快照、入队并返回 202，独立长驻 Node w
 
 | 阶段 | 交付                                              | 验收证据                                                                                                    |
 | ---- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 1    | 抽出 session/PlanRunner/事件 sink，旧 Web adapter | 现有录制、popup、停止、分支、编辑重放及附件回归通过；共享模块无 Playwright Page 引用                        |
+| 1    | 抽出 session/PlanRunner/事件 sink                 | 现有录制、popup、停止、分支、编辑重放及附件回归通过；共享模块无 Playwright Page 引用                        |
 | 2    | target schema、mobile Web、历史兼容迁移           | Chromium 与 WebKit 移动配置真实运行；触摸/viewport/UA 校验；旧桌面录制仍可重放                              |
 | 3    | PostgreSQL 队列、独立 worker、资源租约            | API 重启不丢任务；双 worker 不重复领取；过期 owner 无法写入；失联设备隔离；取消可终结                       |
 | 4    | AgentDevice adapter、设备选择、原生证据 UI        | Android emulator 与 iOS simulator 各完成启动→输入→点击→等待→断言→截图→稳定定位重放；过期 ref 拒绝、歧义失败 |
@@ -171,7 +171,7 @@ Next.js API 仅校验、保存快照、入队并返回 202，独立长驻 Node w
 
 ### Web 实现目录
 
-Web 专用实现集中在 `src/automation/platform/web/`。`webActions.ts` 执行浏览器动作，`webLocator.ts` 解析元素定位器，供 `PlaywrightSession`、录制定位和旧 `Executor` 共用。工作台运行通过统一 `PlanRunner` 编排；旧 `Executor` 保留既有录制与重放接口，但会话和录制定位不再需要构造空计划的执行器。
+Web 专用实现集中在 `src/automation/platform/web/`。`webActions.ts` 执行浏览器动作，`webLocator.ts` 解析元素定位器，供 `PlaywrightSession` 和录制定位共用。Web 与原生工作台运行统一通过 `PlanRunner` 编排；平台差异由各自的 session、planner 和 replay adapter 处理。
 
 ### 执行依赖装配与平台边界
 
@@ -181,6 +181,6 @@ Web 专用实现集中在 `src/automation/platform/web/`。`webActions.ts` 执�
 
 session 的 `executionPolicy.reobserveAfterAction` 声明动作后是否必须重新观察。原生会话逐动作重新规划，Web 可执行同一观察中的批量动作；任一会话 revision 变化都使剩余批次失效。自然语言断言和分支通过注入的 `Evaluator` 使用当前观察判断，确定性平台断言继续交给 session 检查。
 
-模型请求、响应和工具定义集中在 `automation/llm/contracts.ts`，不依赖供应商 SDK。`TextCompiler`、Web/Native planner、`SemanticEvaluator` 和旧 Web 执行器都接收 `ModelClient`，不直接引用 DeepSeek 或 OpenAI SDK。`server/shared/model.ts` 是默认模型的选择点，编译与运行时装配共用同一个客户端；新增模型适配器实现该接口后在此选择。`llm/jev.ts` 当前为空占位文件，尚未提供可调用实现。
+模型请求、响应和工具定义集中在 `automation/llm/contracts.ts`，不依赖供应商 SDK。`TextCompiler`、Web/Native planner 和 `SemanticEvaluator` 都接收 `ModelClient`，不直接引用 DeepSeek 或 OpenAI SDK。`server/shared/model.ts` 是默认模型的选择点，编译与运行时装配共用同一个客户端；新增模型适配器实现该接口后在此选择。`llm/jev.ts` 当前为空占位文件，尚未提供可调用实现。
 
 稳定录制定位由 `platform/web/recordingLocator.ts` 提供，`RecordedAction` 定义在 `platform/web/types.ts`。Web session 与服务端录制器共用该平台能力；工作台执行记录和数据库表定义引用 Web 领域类型，session 不再导入工作台服务端定位模块。

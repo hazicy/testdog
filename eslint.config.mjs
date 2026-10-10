@@ -38,7 +38,6 @@ const eslintConfig = defineConfig([
       'src/automation/compiler/textCompiler.ts',
       'src/automation/evaluator.ts',
       'src/automation/platform/web/webPlanner.ts',
-      'src/automation/platform/web/executor.ts',
       'src/automation/platform/native/nativePlanner.ts',
     ],
     rules: {
@@ -103,7 +102,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: `(?:^|/)(?:db(?:/.*)?|automation/(?:planRunner|evaluator|llm(?:/.*)?|platform/web/(?:browserSession|executor|observer|pageReadiness|webPlanner|webActions|webLocator|recordingLocator|replay)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$|${serverImportPattern}`,
+              regex: `(?:^|/)(?:db(?:/.*)?|automation/(?:planRunner|evaluator|llm(?:/.*)?|platform/web/(?:browserSession|observer|pageReadiness|webPlanner|webActions|webLocator|recordingLocator|replay)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$|${serverImportPattern}`,
               allowTypeImports: true,
               message: '浏览器组件通过 API 访问服务端功能；共享类型请使用 import type。',
             },

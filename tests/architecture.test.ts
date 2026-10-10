@@ -31,7 +31,6 @@ it.each([
   '@/automation/platform/web/webActions',
   '@/automation/platform/web/webLocator',
   '@/automation/platform/web/recordingLocator',
-  '@/automation/platform/web/executor',
   '@/automation/platform/native/nativePlanner',
   '../../automation/compiler/textCompiler.ts',
   '@/server/runs/recordings',
@@ -52,7 +51,6 @@ it.each([
 it.each([
   "import { renderToStaticMarkup } from 'react-dom/server'; export { renderToStaticMarkup };",
   "import type { TestRun } from '@/features/runs/types'; export type Run = TestRun;",
-  "import type { Executor } from '../../automation/platform/web/executor'; export type Runner = Executor;",
   "import { recordingScript } from '@/features/runs/lib/recordingScript'; export { recordingScript };",
   "import { planForest } from '@/features/runs/lib/planTree'; export { planForest };",
   "import { testSchema } from '@/features/test-cases/schemas'; export { testSchema };",
@@ -108,7 +106,6 @@ it.each([
   'src/automation/compiler/textCompiler.ts',
   'src/automation/evaluator.ts',
   'src/automation/platform/web/webPlanner.ts',
-  'src/automation/platform/web/executor.ts',
   'src/automation/platform/native/nativePlanner.ts',
 ])(
   'requires model injection and permits the provider independent contract in %s',
