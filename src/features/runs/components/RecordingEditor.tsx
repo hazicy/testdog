@@ -131,8 +131,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
     );
 
   return (
-    <section className="border border-page-line bg-surface" aria-label="录制编辑器">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-page-line p-5">
+    <section className="studio-panel" aria-label="录制编辑器">
+      <div className="studio-panel-toolbar items-start">
         <div>
           <h2 className="text-sm font-medium">
             {platform === 'web' ? 'Playwright 操作与预期' : '设备动作与预期（JSON）'}

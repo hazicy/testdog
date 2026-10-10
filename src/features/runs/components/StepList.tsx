@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 
 import { actionIcon } from '../lib/actionIcon';
 import { statuses } from '../presentation';
-import { memo } from 'react';
+import { memo, useId, useState, type ReactNode } from 'react';
 import type { ExecutionStep } from '@/features/runs/types';
 
 const kinds = { action: '操作', navigate: '导航', wait: '等待', assertion: '断言', branch: '分支' };
@@ -17,26 +17,38 @@ export const StepList = memo(function StepList({
   selectedId,
   running,
   onSelect,
+  renderDetails,
 }: {
   steps: ExecutionStep[];
   selectedId?: string;
   running: boolean;
   onSelect: (step: ExecutionStep) => void;
+  renderDetails: (step: ExecutionStep) => ReactNode;
 }) {
+  const detailsId = useId();
+  const [collapsedId, setCollapsedId] = useState<string>();
+
   return (
-    <section aria-label="执行步骤" className="border-t border-page-line xl:border-t-0">
+    <section aria-label="执行步骤" className="min-w-0">
       <div className="flex h-12 items-center justify-between border-b border-page-line px-5">
         <h2 className="text-xs font-medium">执行步骤</h2>
         <span className="font-mono text-xs text-page-muted">
           {steps.filter((step) => step.status === 'passed').length || 0} / {steps.length || 0}
         </span>
       </div>
-      <div className="max-h-[620px] overflow-y-auto">
+      <div className="min-w-0">
         <ol>
           {steps.map((step) => (
             <li key={step.id}>
               <Button
-                onClick={() => onSelect(step)}
+                aria-expanded={selectedId === step.id && collapsedId !== step.id}
+                aria-controls={`${detailsId}-${step.id}`}
+                onClick={() => {
+                  setCollapsedId(
+                    selectedId === step.id && collapsedId !== step.id ? step.id : undefined,
+                  );
+                  onSelect(step);
+                }}
                 className={`flex w-full items-start gap-3 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-step-hover ${selectedId === step.id ? 'bg-step-selected' : ''}`}
               >
                 <span
@@ -57,7 +69,20 @@ export const StepList = memo(function StepList({
                       : `${(step.durationMs / 1000).toFixed(1)}s`}
                   </span>
                 </span>
+                <span aria-hidden="true" className="self-center text-page-muted">
+                  {selectedId === step.id && collapsedId !== step.id ? '⌃' : '⌄'}
+                </span>
               </Button>
+              <div
+                id={`${detailsId}-${step.id}`}
+                hidden={selectedId !== step.id || collapsedId === step.id}
+              >
+                {selectedId === step.id && collapsedId !== step.id && (
+                  <div className="studio-content border-b border-page-line">
+                    {renderDetails(step)}
+                  </div>
+                )}
+              </div>
             </li>
           ))}
         </ol>

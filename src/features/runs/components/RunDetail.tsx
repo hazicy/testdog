@@ -2,6 +2,7 @@
 
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
+import { DockTabs, type DockTab } from '@/components/ui/DockTabs';
 
 import { isActiveRun } from '@/features/runs/types';
 import dynamic from 'next/dynamic';
@@ -17,7 +18,38 @@ import { useRunData } from '../hooks/useRunData';
 import { useRunPlayback } from '../hooks/useRunPlayback';
 import { RunHeader } from './RunHeader';
 import { RunPlayer } from './RunPlayer';
-import { RunInspector, type InspectorTab } from './RunInspector';
+import { BrowserLogPanel } from './BrowserLogPanel';
+import { RunLogs } from './RunLogs';
+import { StepDetails } from './StepDetails';
+import { RunSnapshot } from './RunSnapshot';
+
+import './run-studio.css';
+
+const workspaceTabs = [
+  { id: 'steps', label: '执行步骤', initiallyVisible: true, initialWidthRatio: 0.382 },
+  { id: 'plan', label: '计划画板', reference: 'steps' },
+  {
+    id: 'execution',
+    label: '执行回放',
+    reference: 'steps',
+    direction: 'right',
+    initiallyVisible: true,
+  },
+  { id: 'recording', label: '编辑录制', reference: 'execution' },
+  {
+    id: 'logs',
+    label: '执行日志',
+    reference: 'execution',
+    direction: 'below',
+    initialHeight: 260,
+    initiallyCollapsed: true,
+  },
+  { id: 'console', label: 'Console', reference: 'logs' },
+  { id: 'network', label: 'Network', reference: 'logs' },
+] as const satisfies readonly DockTab[];
+
+type PanelId = (typeof workspaceTabs)[number]['id'];
+type View = Exclude<PanelId, 'steps' | 'logs' | 'console' | 'network'>;
 
 const emptySteps: ExecutionStep[] = [];
 
@@ -53,11 +85,12 @@ export function RunDetail({ id }: { id: string }) {
     videoElement,
     elapsedMs,
     setPlaying,
+    showFrame,
     selectStep: selectPlaybackStep,
   } = playback;
-  const [view, setView] = useState<'execution' | 'plan' | 'recording'>('execution');
-  const [editorOpened, setEditorOpened] = useState(false);
-  const [tab, setTab] = useState<InspectorTab>('step');
+  const [view, setView] = useState<View>('execution');
+  const [logTab, setLogTab] = useState<'logs' | 'console' | 'network'>('logs');
+  const [revealPanels, setRevealPanels] = useState<readonly PanelId[]>([]);
   const { run, error, setError, unavailable, now, previewUrl, clearPreview, refresh } = useRunData(
     id,
     follow && view === 'execution',
@@ -87,7 +120,7 @@ export function RunDetail({ id }: { id: string }) {
   const selectStep = useCallback(
     (step: ExecutionStep) => {
       setView('execution');
-      setTab('step');
+      setRevealPanels(['execution', 'steps']);
       const positions = stepFrames.get(step.id);
 
       const index = positions ? (positions.after ?? positions.first) : undefined;
@@ -95,6 +128,21 @@ export function RunDetail({ id }: { id: string }) {
       selectPlaybackStep(step.id, index === undefined ? 0 : frames[index].elapsedMs, index);
     },
     [stepFrames, selectPlaybackStep, frames],
+  );
+
+  const renderStepDetails = useCallback(
+    (step: ExecutionStep) => (
+      <StepDetails
+        step={step}
+        runError={run?.error}
+        stepFrames={stepFrames}
+        onShowFrame={(index) => {
+          setView('execution');
+          showFrame(index, frames[index].elapsedMs);
+        }}
+      />
+    ),
+    [run?.error, stepFrames, frames, showFrame],
   );
 
   async function start(mode: 'record' | 'replay') {
@@ -137,80 +185,27 @@ export function RunDetail({ id }: { id: string }) {
     }
   }
 
-  if (unavailable || (!run && error))
-    return (
-      <ErrorState
-        title={unavailable ? '执行记录不存在' : '无法加载执行记录'}
-        message={error}
-        retry={() => void refresh()}
-        href="/runs"
-        linkLabel="返回执行记录"
-      />
-    );
-
-  return (
-    <div className="mx-auto max-w-[1500px]">
-      <RunHeader
-        id={id}
-        run={run}
-        now={now}
-        busy={busy}
-        exporting={exporting}
-        start={start}
-        cancel={cancel}
-        exportReport={exportReport}
-      />
-      {run?.evidenceComplete === false && (
-        <p role="alert" className="mt-5 border border-error-line p-4 text-sm text-error-ink">
-          本次执行的证据归档不完整，请查看执行错误。
-        </p>
-      )}
-      {error && (
-        <div
-          role="alert"
-          className="mt-5 flex justify-between gap-3 border border-error-line bg-error-soft p-4 text-sm text-error-ink"
-        >
-          <span>{error}</span>
-          <Button onClick={() => void refresh()} className="underline">
-            刷新
-          </Button>
-        </div>
-      )}
-      <nav className="mt-7 mb-5 flex flex-wrap gap-2" aria-label="执行视图">
-        {(
-          [
-            { id: 'execution', label: '执行回放' },
-            { id: 'plan', label: '计划画板' },
-            { id: 'recording', label: '编辑录制' },
-          ] as const
-        ).map((item) => (
-          <Button
-            key={item.id}
-            className={`ws-button ${view === item.id ? 'selected' : ''}`}
-            aria-pressed={view === item.id}
-            onClick={() => {
-              setView(item.id);
-              if (item.id === 'recording') setEditorOpened(true);
-              setPlaying(false);
-            }}
-          >
-            {item.label}
-          </Button>
-        ))}
-      </nav>
-      {view === 'plan' && (
-        <PlanBoard plan={run?.plan} steps={run?.steps || []} onStep={selectStep} />
-      )}
-      {editorOpened && run && !isActiveRun(run.status) && (
-        <div hidden={view !== 'recording'}>
-          <RecordingEditor key={run.id} run={run} />
-        </div>
-      )}
-      {view === 'recording' && run && isActiveRun(run.status) && (
-        <p className="p-6 text-sm text-page-muted">录制结束后可以编辑操作和预期。</p>
-      )}
-      <div hidden={view !== 'execution'}>
-        <div className="mt-7 grid overflow-hidden rounded-lg border border-page-line bg-surface xl:grid-cols-[minmax(0,1fr)_320px]">
+  function renderPanel(panel: PanelId) {
+    switch (panel) {
+      case 'steps':
+        return (
+          <div>
+            <RunSnapshot run={run} />
+            <StepList
+              steps={run?.steps || emptySteps}
+              selectedId={selectedStep?.id}
+              running={run?.status === 'running'}
+              onSelect={selectStep}
+              renderDetails={renderStepDetails}
+            />
+          </div>
+        );
+      case 'plan':
+        return <PlanBoard plan={run?.plan} steps={run?.steps || []} onStep={selectStep} />;
+      case 'recording':
+        return run ? <RecordingEditor key={run.id} run={run} /> : null;
+      case 'execution':
+        return (
           <RunPlayer
             id={id}
             run={run}
@@ -223,31 +218,89 @@ export function RunDetail({ id }: { id: string }) {
             playback={playback}
             durationMs={durationMs}
           />
-          <StepList
-            steps={run?.steps || emptySteps}
-            selectedId={selectedStep?.id}
-            running={run?.status === 'running'}
-            onSelect={selectStep}
-          />
+        );
+      case 'console':
+      case 'network':
+        return (
+          <div className="studio-content">
+            <BrowserLogPanel
+              runId={id}
+              kind={panel}
+              enabled={logTab === panel}
+              active={!!run && isActiveRun(run.status) && logTab === panel}
+              revision={run?.browserLogRevision ?? run?.realtimeRevision}
+              elapsedMs={elapsedMs}
+            />
+          </div>
+        );
+      case 'logs':
+        return <RunLogs id={id} run={run} video={video} trace={trace} diagnostics={diagnostics} />;
+    }
+  }
+
+  function changePanel(panel: PanelId) {
+    switch (panel) {
+      case 'steps':
+        return;
+      case 'logs':
+      case 'console':
+      case 'network':
+        setLogTab(panel);
+
+        return;
+      default:
+        setView(panel);
+        setPlaying(false);
+    }
+  }
+
+  if (unavailable || (!run && error))
+    return (
+      <ErrorState
+        title={unavailable ? '执行记录不存在' : '无法加载执行记录'}
+        message={error}
+        retry={() => void refresh()}
+        href="/runs"
+        linkLabel="返回执行记录"
+      />
+    );
+
+  return (
+    <div className="run-studio">
+      <RunHeader
+        id={id}
+        run={run}
+        now={now}
+        busy={busy}
+        exporting={exporting}
+        start={start}
+        cancel={cancel}
+        exportReport={exportReport}
+      />
+      {run?.evidenceComplete === false && (
+        <p role="alert" className="studio-alert">
+          本次执行的证据归档不完整，请查看执行错误。
+        </p>
+      )}
+      {error && (
+        <div role="alert" className="studio-alert flex justify-between gap-3">
+          <span>{error}</span>
+          <Button onClick={() => void refresh()} className="underline">
+            刷新
+          </Button>
         </div>
-        {view === 'execution' && (
-          <RunInspector
-            id={id}
-            run={run}
-            tab={tab}
-            setTab={setTab}
-            selectedStep={selectedStep}
-            currentFrame={currentFrame}
-            video={video}
-            trace={trace}
-            diagnostics={diagnostics}
-            stepFrames={stepFrames}
-            onShowFrame={(index) => {
-              playback.showFrame(index, frames[index].elapsedMs);
-            }}
-          />
-        )}
-      </div>
+      )}
+      <DockTabs
+        key={id}
+        label="执行工作台"
+        className="run-studio-dock"
+        tabs={workspaceTabs}
+        revealPanels={revealPanels}
+        value={view}
+        onChange={changePanel}
+      >
+        {renderPanel}
+      </DockTabs>
     </div>
   );
 }

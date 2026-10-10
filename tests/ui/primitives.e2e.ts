@@ -133,8 +133,12 @@ test('example tabs navigate with arrow keys and expose the matching panel', asyn
     'aria-selected',
     'true',
   );
-  await expect(page.getByRole('tabpanel')).toContainText('app.example.com/contact');
+  await expect(page.getByRole('tabpanel', { name: '表单提交', exact: true })).toContainText(
+    'app.example.com/contact',
+  );
   await page.keyboard.press('End');
   await expect(tabs.getByRole('tab', { name: '页面导航', exact: true })).toBeFocused();
-  await expect(page.getByRole('tabpanel')).toContainText('app.example.com/settings');
+  await expect(page.getByRole('tabpanel', { name: '页面导航', exact: true })).toContainText(
+    'app.example.com/settings',
+  );
 });

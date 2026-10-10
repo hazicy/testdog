@@ -1,0 +1,188 @@
+/* Flat workspace: shared surfaces, panel spacing and one-pixel split separators. */
+.run-studio-main {
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--page);
+}
+.run-studio,
+.studio-panel,
+.run-replay-panel {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--surface);
+}
+.run-studio-toolbar,
+.studio-panel-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--page);
+}
+.run-studio-toolbar {
+  min-height: 64px;
+  flex-shrink: 0;
+  gap: 24px;
+}
+.studio-panel-toolbar {
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--page-line);
+}
+.studio-content {
+  padding: 20px;
+}
+.studio-alert {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--error-line);
+  background: var(--error-soft);
+  color: var(--error-ink);
+  font-size: 14px;
+}
+.run-studio-dock {
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid var(--page-line);
+}
+/* Set variables on Dockview's theme element so its defaults cannot shadow them. */
+.caseforge-dock .dockview-theme-light {
+  --dv-background-color: var(--page-line);
+  --dv-group-view-background-color: var(--surface);
+  --dv-tabs-and-actions-container-background-color: var(--page);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--surface);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--surface);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--page);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--page);
+  --dv-activegroup-visiblepanel-tab-color: var(--ink);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--ink);
+  --dv-activegroup-hiddenpanel-tab-color: var(--page-muted);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--page-muted);
+  --dv-separator-border: var(--page-line);
+  --dv-tabs-and-actions-container-height: 40px;
+  --dv-tab-font-size: 13px;
+}
+.caseforge-dock .dv-groupview {
+  overflow: hidden;
+  border-radius: 0;
+}
+.caseforge-dock .dv-sash {
+  background: transparent;
+}
+.dock-panel {
+  height: 100%;
+  overflow: auto;
+}
+.dock-tab-button {
+  height: 100%;
+  padding: 0 20px;
+  font-size: 13px;
+}
+.dock-tab-button[aria-pressed='true'] {
+  font-weight: 600;
+  box-shadow: inset 0 -2px var(--brand);
+}
+.dock-tab-button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+.run-replay-panel {
+  flex: 1;
+  height: auto;
+}
+.run-replay-surface {
+  display: grid;
+  flex: 1;
+  min-height: 120px;
+  place-items: center;
+  overflow: hidden;
+  padding: 20px;
+}
+.run-replay-controls {
+  border-top: 1px solid var(--page-line);
+  border-bottom: 0;
+}
+.run-studio .ws-icon-button.primary {
+  background: var(--brand);
+  color: var(--brand-foreground);
+}
+.run-studio .ws-icon-button.primary:hover {
+  background: var(--brand-hover);
+}
+.run-studio .plan-viewport {
+  height: calc(100dvh - 190px);
+}
+@media (max-width: 640px) {
+  .run-studio-toolbar {
+    gap: 12px;
+    padding: 8px 12px;
+  }
+  .studio-back {
+    font-size: 0;
+  }
+  .studio-back::before {
+    content: '←';
+    font-size: 18px;
+  }
+  .studio-content,
+  .studio-panel-toolbar {
+    padding: 12px;
+  }
+  .dock-tab-button {
+    padding: 0 12px;
+  }
+}
+
+.dock-group-actions {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 4px;
+  opacity: 0;
+  pointer-events: none;
+}
+.dv-groupview:hover .dock-group-actions,
+.dv-groupview:focus-within .dock-group-actions,
+.dock-collapsed-side .dock-group-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+.dock-group-actions button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--page-muted);
+  border-radius: 4px;
+}
+.dock-group-actions button:hover {
+  background: var(--page-line);
+  color: var(--page-ink);
+}
+.dock-group-actions button:focus-visible {
+  outline: 2px solid var(--brand);
+}
+.dock-collapsed-side .dv-tabs-container {
+  display: none;
+}
+.dock-collapsed-side .dv-tabs-and-actions-container {
+  height: 76px;
+}
+.dock-collapsed-side .dock-group-actions {
+  flex-direction: column;
+  justify-content: center;
+}
+@media (hover: none) {
+  .dock-group-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Hide inactive content at the panel boundary, including children with explicit visibility. */
+.caseforge-dock .dock-panel[hidden] {
+  display: none;
+}

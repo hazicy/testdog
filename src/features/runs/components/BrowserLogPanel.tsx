@@ -16,8 +16,10 @@ export function BrowserLogPanel({
   kind,
   elapsedMs,
   stepId,
+  enabled = true,
 }: {
   runId: string;
+  enabled?: boolean;
   revision?: number;
   active?: boolean;
   kind: BrowserLog['kind'];
@@ -44,15 +46,15 @@ export function BrowserLogPanel({
   if (scope === 'time' && elapsedMs !== undefined) params.set('untilMs', String(elapsedMs));
   if (cursors.length) params.set('cursor', cursors.at(-1)!);
   const data = useSWR<{ logs: BrowserLog[]; nextCursor: string | null }>(
-    runId ? `/api/runs/${runId}/logs?${params}` : null,
+    enabled && runId ? `/api/runs/${runId}/logs?${params}` : null,
     fetchJson,
     { refreshInterval: active ? 5000 : 0 },
   );
   const mutate = data.mutate;
 
   useEffect(() => {
-    if (runId) void mutate();
-  }, [revision, runId, mutate]);
+    if (enabled && runId) void mutate();
+  }, [revision, runId, mutate, enabled]);
   const visible = data.data?.logs ?? [];
 
   return (

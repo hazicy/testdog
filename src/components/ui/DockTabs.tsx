@@ -1,0 +1,307 @@
+'use client';
+
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  DockviewReact,
+  themeLight,
+  type DockviewApi,
+  type DockviewGroupPanelApi,
+  type IDockviewHeaderActionsProps,
+  type IDockviewPanelProps,
+  type IDockviewPanelHeaderProps,
+} from 'dockview-react';
+import 'dockview-react/dist/styles/dockview.css';
+import { Icon } from '@iconify/react/offline';
+import maximizeIcon from '@iconify-icons/lucide/maximize';
+import minimizeIcon from '@iconify-icons/lucide/minimize';
+import collapseIcon from '@iconify-icons/lucide/chevron-down';
+import expandIcon from '@iconify-icons/lucide/chevron-up';
+
+export type DockTab = {
+  id: string;
+  label: string;
+  reference?: string;
+  direction?: 'right' | 'below' | 'within';
+  initialWidth?: number;
+  initialWidthRatio?: number;
+  initialHeight?: number;
+  initiallyVisible?: boolean;
+  initiallyCollapsed?: boolean;
+};
+const ContentContext = createContext<{
+  render: (id: string) => ReactNode;
+  visited: Set<string>;
+  collapsedGroups: Set<string>;
+  select: (id: string) => void;
+  collapse: (api: DockviewGroupPanelApi, collapsed: boolean) => void;
+}>({
+  render: () => null,
+  visited: new Set(),
+  collapsedGroups: new Set(),
+  select: () => {},
+  collapse: () => {},
+});
+
+function Content({ api }: IDockviewPanelProps) {
+  const { render, visited, collapsedGroups } = useContext(ContentContext);
+  const [visible, setVisible] = useState(api.isVisible);
+
+  useEffect(() => {
+    const subscription = api.onDidVisibilityChange(() => setVisible(api.isVisible));
+
+    return () => subscription.dispose();
+  }, [api]);
+
+  return (
+    <div className="dock-panel" hidden={!visible || collapsedGroups.has(api.group.id)}>
+      {visited.has(api.id) && render(api.id)}
+    </div>
+  );
+}
+
+function Header({ api }: IDockviewPanelHeaderProps) {
+  const { select, collapsedGroups } = useContext(ContentContext);
+  const [active, setActive] = useState(api.isVisible);
+
+  useEffect(() => {
+    const subscription = api.onDidVisibilityChange(() => setActive(api.isVisible));
+
+    return () => subscription.dispose();
+  }, [api]);
+
+  return (
+    <button
+      type="button"
+      className="dock-tab-button"
+      aria-pressed={active}
+      aria-expanded={!collapsedGroups.has(api.group.id)}
+      onClick={() => select(api.id)}
+    >
+      {api.title}
+    </button>
+  );
+}
+
+function GroupActions({ api, containerApi }: IDockviewHeaderActionsProps) {
+  const { collapsedGroups, collapse } = useContext(ContentContext);
+  const collapsed = collapsedGroups.has(api.id);
+  const [maximized, setMaximized] = useState(api.isMaximized());
+  const restoredSize = useRef<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const subscription = containerApi.onDidMaximizedGroupChange(() =>
+      setMaximized(api.isMaximized()),
+    );
+
+    return () => subscription.dispose();
+  }, [api, containerApi]);
+
+  return (
+    <div className="dock-group-actions" onPointerDown={(event) => event.stopPropagation()}>
+      <button
+        type="button"
+        aria-label={maximized ? '还原分组' : '最大化分组'}
+        title={maximized ? '还原' : '最大化'}
+        onClick={() => {
+          if (maximized) {
+            api.exitMaximized();
+            if (restoredSize.current) api.setSize(restoredSize.current);
+          } else {
+            if (collapsed) collapse(api, false);
+            restoredSize.current = { width: api.width, height: api.height };
+            api.maximize();
+          }
+        }}
+      >
+        <Icon icon={maximized ? minimizeIcon : maximizeIcon} />
+      </button>
+      <button
+        type="button"
+        aria-label={collapsed ? '展开分组' : '折叠分组'}
+        title={collapsed ? '展开' : '折叠'}
+        aria-expanded={!collapsed}
+        onClick={() => {
+          if (api.isMaximized()) {
+            api.exitMaximized();
+            if (restoredSize.current) api.setSize(restoredSize.current);
+          }
+
+          collapse(api, !collapsed);
+        }}
+      >
+        <Icon icon={collapsed ? expandIcon : collapseIcon} />
+      </button>
+    </div>
+  );
+}
+
+const components = { content: Content };
+const tabTheme = { ...themeLight, gap: 1 };
+
+/** Dockview owns tab ordering and activation; visited panels keep their local state. */
+export function DockTabs<T extends string>({
+  tabs,
+  value,
+  onChange,
+  children,
+  className = '',
+  label,
+  revealPanels,
+}: {
+  tabs: readonly (Omit<DockTab, 'id'> & { id: T })[];
+  value: T;
+  onChange: (value: T) => void;
+  children: (value: T) => ReactNode;
+  className?: string;
+  label: string;
+  revealPanels?: readonly T[];
+}) {
+  const dock = useRef<DockviewApi | null>(null);
+  const initial = useRef({ tabs, value });
+  const change = useRef(onChange);
+  const collapsedHeight = 40;
+  const expandedHeights = useRef(new Map<string, number>());
+  const collapsedWidths = useRef(new Map<string, number>());
+  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set<string>());
+  const [visited, setVisited] = useState(
+    () =>
+      new Set<string>([value, ...tabs.filter((tab) => tab.initiallyVisible).map((tab) => tab.id)]),
+  );
+
+  useEffect(() => {
+    change.current = onChange;
+  }, [onChange]);
+  useEffect(() => {
+    const panel = dock.current?.getPanel(value);
+
+    if (panel && !panel.api.isActive) panel.api.setActive();
+  }, [value]);
+
+  useEffect(() => {
+    for (const id of revealPanels ?? []) dock.current?.getPanel(id)?.api.setActive();
+  }, [revealPanels]);
+
+  function collapse(api: DockviewGroupPanelApi, collapsed: boolean) {
+    if (api.isMaximized()) api.exitMaximized();
+    const group = dock.current?.groups.find((group) => group.id === api.id);
+
+    if (!group) return;
+    const sideways =
+      collapsedWidths.current.has(api.id) ||
+      (api.height >= (dock.current?.height ?? 0) - 1 && api.width < (dock.current?.width ?? 0) - 1);
+
+    if (sideways) {
+      if (collapsed) collapsedWidths.current.set(api.id, api.width);
+      api.setConstraints({
+        minimumWidth: 40,
+        maximumWidth: collapsed ? 40 : Number.POSITIVE_INFINITY,
+      });
+      api.setSize({ width: collapsed ? 40 : collapsedWidths.current.get(api.id) });
+      group.element.classList.toggle('dock-collapsed-side', collapsed);
+    } else {
+      if (collapsed) expandedHeights.current.set(api.id, api.height);
+      api.setConstraints({
+        minimumHeight: collapsedHeight,
+        maximumHeight: collapsed ? collapsedHeight : Number.POSITIVE_INFINITY,
+      });
+      api.setSize({ height: collapsed ? collapsedHeight : expandedHeights.current.get(api.id) });
+    }
+
+    setCollapsedGroups((previous) => {
+      const next = new Set(previous);
+
+      if (collapsed) next.add(api.id);
+      else next.delete(api.id);
+
+      return next;
+    });
+  }
+
+  function select(id: string) {
+    const panel = dock.current?.getPanel(id);
+
+    if (!panel) return;
+    const group = panel.group;
+
+    if (collapsedGroups.has(group.id)) collapse(group.api, false);
+    else if (expandedHeights.current.has(group.id) && group.activePanel?.id === id)
+      collapse(group.api, true);
+
+    setVisited((previous) => (previous.has(id) ? previous : new Set([...previous, id])));
+    panel.api.setActive();
+    change.current(id as T);
+  }
+
+  return (
+    <ContentContext.Provider
+      value={{ render: (id) => children(id as T), visited, collapsedGroups, select, collapse }}
+    >
+      <div aria-label={label} className={`caseforge-dock dockview-theme-light ${className}`}>
+        <DockviewReact
+          theme={tabTheme}
+          components={components}
+          defaultTabComponent={Header}
+          rightHeaderActionsComponent={GroupActions}
+          onReady={({ api }) => {
+            dock.current = api;
+            for (const tab of initial.current.tabs) {
+              api.addPanel({
+                id: tab.id,
+                title: tab.label,
+                component: 'content',
+                renderer: 'always',
+                inactive: true,
+                initialWidth: tab.initialWidth,
+                initialHeight: tab.initialHeight,
+                position: tab.reference
+                  ? { referencePanel: tab.reference, direction: tab.direction ?? 'within' }
+                  : api.panels[0]
+                    ? { referencePanel: api.panels[0].id }
+                    : undefined,
+              });
+            }
+
+            for (const tab of initial.current.tabs) {
+              const width =
+                tab.initialWidthRatio === undefined
+                  ? tab.initialWidth
+                  : api.width * tab.initialWidthRatio;
+
+              if (width || tab.initialHeight) {
+                api.getPanel(tab.id)?.group.api.setSize({ width, height: tab.initialHeight });
+              }
+
+              if (tab.initiallyVisible) api.getPanel(tab.id)?.api.setActive();
+            }
+
+            const collapsed = new Set<string>();
+
+            for (const tab of initial.current.tabs) {
+              if (!tab.initiallyCollapsed) continue;
+              const group = api.getPanel(tab.id)?.group;
+
+              if (!group) continue;
+              expandedHeights.current.set(group.id, tab.initialHeight ?? group.api.height);
+              group.api.setConstraints({
+                minimumHeight: collapsedHeight,
+                maximumHeight: collapsedHeight,
+              });
+              group.api.setSize({ height: collapsedHeight });
+              collapsed.add(group.id);
+            }
+
+            setCollapsedGroups(collapsed);
+            api.getPanel(initial.current.value)?.api.setActive();
+            api.onDidActivePanelChange(({ panel }) => {
+              if (!panel) return;
+              setVisited((previous) =>
+                previous.has(panel.id) ? previous : new Set([...previous, panel.id]),
+              );
+              change.current(panel.id as T);
+            });
+          }}
+        />
+      </div>
+    </ContentContext.Provider>
+  );
+}

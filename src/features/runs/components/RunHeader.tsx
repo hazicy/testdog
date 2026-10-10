@@ -19,20 +19,18 @@ type Props = {
 
 export function RunHeader({ id, run, now, busy, exporting, start, cancel, exportReport }: Props) {
   return (
-    <>
+    <header className="run-studio-toolbar">
       <Link
         href="/runs"
-        className="mb-6 inline-flex items-center gap-2 text-xs text-page-muted hover:text-brand"
+        className="studio-back inline-flex items-center gap-2 text-sm font-medium text-page-muted hover:text-brand"
       >
         ← 返回执行记录
       </Link>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="mb-3 font-mono text-xs text-page-muted">执行记录 / {id.slice(0, 8)}</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">
-            {run?.name || '加载执行记录…'}
-          </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-page-muted">
+      <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="sr-only">执行记录 / {id.slice(0, 8)}</p>
+          <h1 className="truncate text-sm font-semibold">{run?.name || '加载执行记录…'}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-page-muted">
             {run && (
               <>
                 <span className={`ws-status ${run.status}`}>
@@ -98,6 +96,6 @@ export function RunHeader({ id, run, now, busy, exporting, start, cancel, export
           </Button>
         </div>
       </div>
-    </>
+    </header>
   );
 }

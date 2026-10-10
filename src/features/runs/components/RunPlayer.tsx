@@ -12,7 +12,6 @@ import resultsIcon from '@iconify-icons/lucide/play';
 import { isActiveRun, type TestRun, type RunArtifact } from '@/features/runs/types';
 import { asset, time } from '../presentation';
 import { actionIcon } from '../lib/actionIcon';
-import { BrowserLogPanel } from './BrowserLogPanel';
 
 type Props = {
   id: string;
@@ -40,7 +39,6 @@ export function RunPlayer({
   playback,
 }: Props) {
   const [dimensions, setDimensions] = useState({ width: 1280, height: 800 });
-  const [tab, setTab] = useState<'replay' | 'console' | 'network'>('replay');
   const [videoDuration, setVideoDuration] = useState(0);
   const [failedVideo, setFailedVideo] = useState<string>();
   const { follow, playing, speed, videoElement, elapsedMs, setElapsedMs } = playback;
@@ -51,7 +49,7 @@ export function RunPlayer({
     useVideo || playing ? elapsedMs : follow ? currentFrame?.elapsedMs || 0 : elapsedMs;
 
   useEffect(() => {
-    if (!playing || useVideo || tab !== 'replay') return;
+    if (!playing || useVideo) return;
     let previous = performance.now();
     const timer = setInterval(() => {
       const now = performance.now();
@@ -62,7 +60,7 @@ export function RunPlayer({
     }, 50);
 
     return () => clearInterval(timer);
-  }, [playing, useVideo, tab, speed, total, setElapsedMs]);
+  }, [playing, useVideo, speed, total, setElapsedMs]);
   const marks = (run?.steps || []).flatMap((step) => {
     const before = frames.find((frame) => frame.stepId === step.id && frame.stage === 'before');
     const elapsed = before?.elapsedMs ?? Date.parse(step.startedAt) - Date.parse(run!.startedAt);
@@ -76,12 +74,6 @@ export function RunPlayer({
   useEffect(() => {
     if (!useVideo && elapsedMs >= total) setPlaying(false);
   }, [useVideo, elapsedMs, total, setPlaying]);
-  useEffect(() => {
-    if (tab !== 'replay') {
-      videoElement.current?.pause();
-      setPlaying(false);
-    }
-  }, [tab, videoElement, setPlaying]);
 
   function seek(ms: number) {
     playback.seek(ms);
@@ -93,27 +85,8 @@ export function RunPlayer({
   }
 
   return (
-    <section aria-label="浏览器画面" className="min-w-0 xl:border-r xl:border-page-line">
-      <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-page-line px-4 py-2">
-        <div role="tablist" aria-label="回放面板" className="flex gap-1 bg-page p-1">
-          {(
-            [
-              { id: 'replay', label: 'Replay' },
-              { id: 'console', label: 'Console' },
-              { id: 'network', label: 'Network' },
-            ] as const
-          ).map((item) => (
-            <Button
-              key={item.id}
-              role="tab"
-              aria-selected={tab === item.id}
-              onClick={() => setTab(item.id)}
-              className={`px-3 py-2 text-sm ${tab === item.id ? 'bg-surface font-medium text-ink shadow-sm' : 'text-page-muted'}`}
-            >
-              {item.label}
-            </Button>
-          ))}
-        </div>
+    <section aria-label="浏览器画面" className="studio-panel">
+      <div className="studio-panel-toolbar">
         <span className="font-mono text-xs text-page-muted">
           {dimensions.width} × {dimensions.height} ·{' '}
           {active && follow
@@ -123,11 +96,8 @@ export function RunPlayer({
               : run.targetSnapshot.platform.toUpperCase()}
         </span>
       </div>
-      <div hidden={tab !== 'replay'}>
-        <div
-          className="relative grid place-items-center overflow-hidden bg-surface p-5 sm:p-8"
-          style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}
-        >
+      <div className="run-replay-panel">
+        <div className="run-replay-surface">
           {useVideo ? (
             <video
               ref={videoElement}
@@ -195,9 +165,9 @@ export function RunPlayer({
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-3 border-t border-page-line px-4 py-4">
+        <div className="studio-panel-toolbar run-replay-controls">
           <Button
-            className="grid h-11 w-11 shrink-0 place-items-center bg-ink text-surface"
+            className="ws-icon-button primary"
             disabled={!useVideo && frames.length < 2}
             aria-label={playing ? '暂停回看' : '播放回看'}
             onClick={toggle}
@@ -288,18 +258,6 @@ export function RunPlayer({
           )}
         </div>
       </div>
-      {tab !== 'replay' && (
-        <div className="min-h-80 p-5">
-          <BrowserLogPanel
-            key={`${id}:${tab}`}
-            runId={id}
-            revision={run?.browserLogRevision ?? run?.realtimeRevision}
-            active={active}
-            kind={tab}
-            elapsedMs={position}
-          />
-        </div>
-      )}
     </section>
   );
 }

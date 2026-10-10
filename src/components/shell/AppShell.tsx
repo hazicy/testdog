@@ -17,6 +17,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   if (pathname === '/' || pathname === '/onboarding') return children;
+  if (/^\/runs\/[^/]+$/.test(pathname)) {
+    return (
+      <main id="main-content" tabIndex={-1} className="run-studio-main">
+        {children}
+      </main>
+    );
+  }
+
   const results = pathname.startsWith('/runs');
 
   return (
