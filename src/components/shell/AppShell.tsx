@@ -50,6 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="flex h-14 shrink-0 items-center gap-3 border-b border-page-line px-4"
           aria-label="testdog 首页"
         >
+
           <span className="md:hidden">
             <Brand compact />
           </span>
