@@ -14,8 +14,10 @@ import { defaultHighlightStyle, syntaxHighlighting, bracketMatching } from '@cod
 export function CodeEditor({
   value,
   onChange,
+  label = 'Playwright 录制脚本',
 }: {
   value: string;
+  label?: string;
   onChange: (code: string) => void;
 }) {
   const parent = useRef<HTMLDivElement>(null);
@@ -41,7 +43,7 @@ export function CodeEditor({
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({
-            'aria-label': 'Playwright 录制脚本',
+            'aria-label': label,
             spellcheck: 'false',
           }),
           EditorView.updateListener.of((update) => {

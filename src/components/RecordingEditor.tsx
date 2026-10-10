@@ -1,8 +1,10 @@
 'use client';
+import { isActiveRun } from '@/workspace/types';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { RecordingVersion, TestRun } from '@/workspace/types';
 import { parseRecordingScript, recordingScript } from '@/workspace/recordingScript';
+import { deviceRecordingScript, parseDeviceRecordingScript } from '@/workspace/deviceRecording';
 import { CodeEditor } from './CodeEditor';
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { cache: 'no-store', ...init });
@@ -12,9 +14,13 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 export function RecordingEditor({ run }: { run: TestRun }) {
   const router = useRouter();
+  const platform = run.targetSnapshot?.platform ?? 'web';
   const original = useMemo(
-    () => recordingScript(run.recordingSteps || run.steps),
-    [run.recordingSteps, run.steps],
+    () =>
+      platform === 'web'
+        ? recordingScript(run.recordingSteps || run.steps)
+        : deviceRecordingScript(platform, run.recordingSteps || run.steps),
+    [run.recordingSteps, run.steps, platform],
   );
   const [code, setCode] = useState(original);
   const [versions, setVersions] = useState<RecordingVersion[]>([]);
@@ -41,13 +47,18 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        setValidation({ count: parseRecordingScript(code).length });
+        setValidation({
+          count: (platform === 'web'
+            ? parseRecordingScript(code)
+            : parseDeviceRecordingScript(code, platform)
+          ).length,
+        });
       } catch (e) {
         setValidation({ count: 0, error: e instanceof Error ? e.message : '脚本无效' });
       }
     }, 250);
     return () => clearTimeout(timer);
-  }, [code]);
+  }, [code, platform]);
   async function save(execute = false) {
     setBusy(true);
     setError('');
@@ -87,11 +98,11 @@ export function RecordingEditor({ run }: { run: TestRun }) {
     const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `recording-${run.id.slice(0, 8)}.js`;
+    link.download = `recording-${run.id.slice(0, 8)}.${platform === 'web' ? 'js' : 'json'}`;
     link.click();
     URL.revokeObjectURL(url);
   }
-  if (run.status === 'running')
+  if (isActiveRun(run.status))
     return (
       <p className="border border-page-line p-6 text-sm text-page-muted">
         录制进行中，结束后可编辑操作和预期。
@@ -101,7 +112,9 @@ export function RecordingEditor({ run }: { run: TestRun }) {
     <section className="border border-page-line bg-[#fffefa]" aria-label="录制编辑器">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-page-line p-5">
         <div>
-          <h2 className="text-sm font-medium">Playwright 操作与预期</h2>
+          <h2 className="text-sm font-medium">
+            {platform === 'web' ? 'Playwright 操作与预期' : '设备动作与预期（JSON）'}
+          </h2>
           <p className="mt-2 text-xs leading-6 text-page-muted">
             修改定位器、操作顺序、输入值和断言。保存为独立版本后重放。
           </p>
@@ -161,7 +174,11 @@ export function RecordingEditor({ run }: { run: TestRun }) {
               </button>
             )}
           </div>
-          <CodeEditor value={code} onChange={setCode} />
+          <CodeEditor
+            value={code}
+            onChange={setCode}
+            label={platform === 'web' ? 'Playwright 录制脚本' : '原生设备录制 JSON'}
+          />
           {(error || validation.error) && (
             <p role="alert" className="mt-3 whitespace-pre-wrap text-xs leading-6 text-red-700">
               {error || validation.error}
@@ -174,23 +191,50 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           )}
         </div>
         <aside className="border-t border-page-line p-5 text-xs leading-6 lg:border-t-0 lg:border-l">
-          <p className="font-medium">支持的写法</p>
-          <p className="mt-3 text-page-muted">
-            page1 为初始页面，新标签页依次为 page2、page3。每行一个 await 调用。
-          </p>
-          <pre className="mt-4 whitespace-pre-wrap break-all text-[10px]">
-            {
-              'await page1.getByRole("button", { name: "提交", exact: true }).click();\n\nawait page1.getByLabel("邮箱", { exact: true }).fill("ada@example.com");\n\nawait expect(page1.getByText("成功", { exact: true })).toBeVisible();\n\nawait expectPage(page1, "已登录，显示用户名 Ada");\n\nawait waitFor(page1, "newPage", "", 5000);'
-            }
-          </pre>
-          <p className="mt-4 text-page-muted">
-            定位器支持 role、label、placeholder、testId、CSS 和 nth。文本定位器用于断言。断言支持
-            toBeVisible、toHaveText、toContainText、toHaveValue、toHaveURL 和 .not。
-          </p>
-          <p className="mt-4 text-page-muted">
-            expectPage / expectBranch 保留录制时的模型验证。等待时间为 1000–5000 毫秒。@node
-            注释用于关联画板节点。
-          </p>
+          {platform !== 'web' ? (
+            <>
+              <p className="font-medium">设备录制格式</p>
+              <p className="mt-3 text-page-muted">
+                JSON 包含 schemaVersion、platform 和 steps。每步填写 title 及 action、assertion 或
+                condition。
+              </p>
+              <pre className="mt-4 whitespace-pre-wrap break-all text-[10px]">
+                {JSON.stringify(
+                  {
+                    title: '点击提交',
+                    action: { type: 'tap', target: { kind: 'identifier', value: 'submit' } },
+                  },
+                  null,
+                  2,
+                )}
+              </pre>
+              <p className="mt-4 text-page-muted">
+                动作支持 tap、fill、back 和等待指定文本。定位使用 identifier 或唯一 label，可附加
+                role。临时 ref 和坐标手势不能用于重放。
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">支持的写法</p>
+              <p className="mt-3 text-page-muted">
+                page1 为初始页面，新标签页依次为 page2、page3。每行一个 await 调用。
+              </p>
+              <pre className="mt-4 whitespace-pre-wrap break-all text-[10px]">
+                {
+                  'await page1.getByRole("button", { name: "提交", exact: true }).click();\n\nawait page1.getByLabel("邮箱", { exact: true }).fill("ada@example.com");\n\nawait expect(page1.getByText("成功", { exact: true })).toBeVisible();\n\nawait expectPage(page1, "已登录，显示用户名 Ada");\n\nawait waitFor(page1, "newPage", "", 5000);'
+                }
+              </pre>
+              <p className="mt-4 text-page-muted">
+                定位器支持 role、label、placeholder、testId、CSS 和
+                nth。文本定位器用于断言。断言支持
+                toBeVisible、toHaveText、toContainText、toHaveValue、toHaveURL 和 .not。
+              </p>
+              <p className="mt-4 text-page-muted">
+                expectPage / expectBranch 保留录制时的模型验证。等待时间为 1000–5000 毫秒。@node
+                注释用于关联画板节点。
+              </p>
+            </>
+          )}
         </aside>
       </div>
     </section>

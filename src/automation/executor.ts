@@ -25,6 +25,7 @@ export class Executor {
     private planner = new Planner(),
     private report?: (message: string) => Promise<void>,
     private hooks: ExecutionHooks = {},
+    private useTouch = false,
   ) {}
 
   async record(page: Page) {
@@ -377,7 +378,8 @@ export class Executor {
       await page.goto(step.value, { waitUntil: 'domcontentloaded' });
     } else if (step.type === 'click') {
       const target = this.locate(page, step.target);
-      await target.click();
+      if (this.useTouch) await target.tap();
+      else await target.click();
     } else if (step.type === 'fill') {
       const target = this.locate(page, step.target);
       await target.fill(step.value);

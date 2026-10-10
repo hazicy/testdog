@@ -1,7 +1,7 @@
-import { after, NextResponse } from 'next/server';
+import { TestTargetSchema } from '@/automation/platform/target';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createRun, listRuns } from '@/workspace/store';
-import { executeRun } from '@/workspace/run';
 import { apiError } from '@/workspace/http';
 import { websiteSchema } from '@/workspace/validation';
 export const runtime = 'nodejs';
@@ -11,12 +11,14 @@ const requestSchema = z.union([
   z.object({
     mode: z.literal('replay'),
     sourceRunId: z.uuid(),
+    target: TestTargetSchema.optional(),
     recordingVersionId: z.uuid().optional(),
   }),
   z.object({
     mode: z.literal('record').default('record'),
     case: z.string().trim().min(1).max(20000),
     url: websiteSchema.optional(),
+    target: TestTargetSchema.optional(),
   }),
 ]);
 export async function GET() {
@@ -35,7 +37,6 @@ export async function POST(request: Request) {
     );
   try {
     const run = await createRun(parsed.data);
-    after(() => executeRun(run));
     return NextResponse.json({ success: true, run }, { status: 202 });
   } catch (error) {
     return apiError(error);

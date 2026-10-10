@@ -1,3 +1,10 @@
+import type {
+  PlatformAction,
+  PlatformAssertion,
+  Observation,
+  CapabilitySet,
+} from '@/automation/platform/contracts';
+import type { TestTarget } from '@/automation/platform/target';
 import {
   integer,
   pgTable,
@@ -34,6 +41,7 @@ export const users = pgTable('users', {
 
 // Execution records are independent snapshots; deleting a case does not delete history.
 export const testCases = pgTable('test_cases', {
+  target: jsonb().$type<TestTarget>(),
   id: uuid().primaryKey().defaultRandom(),
   name: text().notNull(),
   url: text().notNull(),
@@ -51,6 +59,10 @@ export const testRuns = pgTable(
       onDelete: 'set null',
     }),
     recordingSteps: jsonb().$type<ExecutionStep[]>(),
+    targetSnapshot: jsonb().$type<TestTarget>(),
+    environmentSnapshot: jsonb().$type<Record<string, unknown>>(),
+    capabilities: jsonb().$type<CapabilitySet>(),
+    evidenceComplete: boolean().notNull().default(true),
     sourceRunId: uuid().references((): AnyPgColumn => testRuns.id, { onDelete: 'set null' }),
     name: text().notNull(),
     url: text().notNull(),
@@ -58,13 +70,25 @@ export const testRuns = pgTable(
     mode: text({ enum: ['record', 'replay'] })
       .notNull()
       .default('record'),
-    status: text({ enum: ['running', 'passed', 'failed', 'cancelled'] }).notNull(),
+    status: text({
+      enum: ['queued', 'preparing', 'running', 'finalizing', 'passed', 'failed', 'cancelled'],
+    }).notNull(),
     plan: jsonb().$type<Plan>(),
     browserLogs: jsonb().$type<BrowserLog[]>().notNull().default([]),
     events: jsonb().$type<RunEvent[]>().notNull().default([]),
     replayable: boolean().notNull().default(false),
     cancelRequested: boolean().notNull().default(false),
-    workerId: text().notNull(),
+    workerId: text(),
+    resourceId: text(),
+    batchId: uuid(),
+    attempt: integer().notNull().default(1),
+    fencingToken: integer().notNull().default(0),
+    leaseUntil: timestamp({ withTimezone: true, mode: 'string' }),
+    queuedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    preparingAt: timestamp({ withTimezone: true, mode: 'string' }),
+    executingAt: timestamp({ withTimezone: true, mode: 'string' }),
+    finalizingAt: timestamp({ withTimezone: true, mode: 'string' }),
+    errorCode: text(),
     heartbeatAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     startedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     finishedAt: timestamp({ withTimezone: true, mode: 'string' }),
@@ -77,7 +101,7 @@ export const testRuns = pgTable(
     index('test_runs_status_idx').on(table.status),
     check(
       'test_runs_status_check',
-      sql`${table.status} in ('running','passed','failed','cancelled')`,
+      sql`${table.status} in ('queued','preparing','running','finalizing','passed','failed','cancelled')`,
     ),
     check('test_runs_mode_check', sql`${table.mode} in ('record','replay')`),
     check('test_runs_duration_check', sql`${table.durationMs} is null or ${table.durationMs} >= 0`),
@@ -90,6 +114,9 @@ export const runSteps = pgTable(
     runId: uuid()
       .notNull()
       .references(() => testRuns.id, { onDelete: 'cascade' }),
+    platformAction: jsonb().$type<PlatformAction>(),
+    surface: jsonb().$type<Observation['surface']>(),
+    observationRevision: integer(),
     sequence: integer().notNull(),
     kind: text({ enum: ['navigate', 'action', 'assertion', 'wait', 'branch'] }).notNull(),
     title: text().notNull(),
@@ -102,6 +129,7 @@ export const runSteps = pgTable(
     planNodeId: text(),
     action: jsonb().$type<RecordedAction>(),
     assertion: jsonb().$type<Assertion>(),
+    platformAssertion: jsonb().$type<PlatformAssertion>(),
     playwrightAssertion: jsonb().$type<PlaywrightAssertion>(),
     condition: text(),
     decision: boolean(),
@@ -127,19 +155,27 @@ export const runArtifacts = pgTable(
       .notNull()
       .references(() => testRuns.id, { onDelete: 'cascade' }),
     stepId: uuid().references(() => runSteps.id, { onDelete: 'set null' }),
-    kind: text({ enum: ['screenshot', 'video', 'trace'] }).notNull(),
+    kind: text({
+      enum: ['screenshot', 'video', 'trace', 'snapshot', 'log', 'device-trace'],
+    }).notNull(),
     stage: text({ enum: ['before', 'after', 'live', 'final'] }).notNull(),
     pageId: text().notNull(),
     pageUrl: text().notNull(),
     capturedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
     elapsedMs: integer().notNull(),
+    surface: jsonb().$type<Observation['surface']>(),
+    producer: text(),
+    format: text(),
     path: text().notNull(),
     contentType: text().notNull(),
     size: integer().notNull(),
   },
   (table) => [
     index('run_artifacts_timeline_idx').on(table.runId, table.elapsedMs),
-    check('run_artifacts_kind_check', sql`${table.kind} in ('screenshot','video','trace')`),
+    check(
+      'run_artifacts_kind_check',
+      sql`${table.kind} in ('screenshot','video','trace','snapshot','log','device-trace')`,
+    ),
     check('run_artifacts_stage_check', sql`${table.stage} in ('before','after','live','final')`),
     check('run_artifacts_size_check', sql`${table.size} >= 0 and ${table.elapsedMs} >= 0`),
   ],
@@ -148,6 +184,11 @@ export const runArtifacts = pgTable(
 export const recordingVersions = pgTable(
   'recording_versions',
   {
+    schemaVersion: integer().notNull().default(1),
+    platform: text({ enum: ['web', 'android', 'ios'] })
+      .notNull()
+      .default('web'),
+    targetSnapshot: jsonb().$type<TestTarget>(),
     id: uuid().primaryKey().defaultRandom(),
     runId: uuid()
       .notNull()
@@ -158,3 +199,64 @@ export const recordingVersions = pgTable(
   },
   (table) => [index('recording_versions_run_idx').on(table.runId, table.createdAt)],
 );
+
+export const automationWorkers = pgTable('automation_workers', {
+  id: text().primaryKey(),
+  hostId: text().notNull(),
+  platforms: jsonb().$type<string[]>().notNull(),
+  heartbeatAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+});
+export const automationResources = pgTable(
+  'automation_resources',
+  {
+    id: text().primaryKey(),
+    hostId: text().notNull(),
+    platform: text({ enum: ['web', 'android', 'ios'] }).notNull(),
+    profileId: text().notNull(),
+    deviceId: text(),
+    status: text({ enum: ['available', 'busy', 'quarantined'] })
+      .notNull()
+      .default('available'),
+    owner: text(),
+    runId: uuid().references(() => testRuns.id, { onDelete: 'set null' }),
+    fencingToken: integer().notNull().default(0),
+    leaseUntil: timestamp({ withTimezone: true, mode: 'string' }),
+    metadata: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+  },
+  (table) => [
+    uniqueIndex('automation_resource_device_unique').on(
+      table.hostId,
+      table.platform,
+      table.deviceId,
+    ),
+    check(
+      'automation_resource_status_check',
+      sql`${table.status} in ('available','busy','quarantined')`,
+    ),
+  ],
+);
+export const automationRunEvents = pgTable(
+  'automation_run_events',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    runId: uuid()
+      .notNull()
+      .references(() => testRuns.id, { onDelete: 'cascade' }),
+    attempt: integer().notNull(),
+    sequence: integer().notNull(),
+    at: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    message: text().notNull(),
+  },
+  (table) => [
+    uniqueIndex('automation_event_sequence_unique').on(table.runId, table.attempt, table.sequence),
+  ],
+);
+
+export const automationBuilds = pgTable('automation_builds', {
+  id: uuid().primaryKey().defaultRandom(),
+  platform: text({ enum: ['android', 'ios'] }).notNull(),
+  appId: text().notNull(),
+  sha256: text().notNull(),
+  path: text().notNull(),
+  createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+});

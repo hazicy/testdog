@@ -1,7 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import { relative, isAbsolute } from 'node:path';
 import { getArtifact } from '@/workspace/store';
-import { artifactRoot } from '@/workspace/recorder';
+import { readArtifactFile } from '@/workspace/artifactStorage';
 import { apiError, validId } from '@/workspace/http';
 export const runtime = 'nodejs';
 export async function GET(
@@ -13,19 +11,28 @@ export async function GET(
     validId(id);
     validId(artifactId);
     const artifact = await getArtifact(id, artifactId);
-    const local = relative(artifactRoot(), artifact.path);
-    if (local.startsWith('..') || isAbsolute(local))
-      return new Response('Invalid artifact path', { status: 403 });
-    const file = await readFile(artifact.path);
+    const file = await readArtifactFile(id, artifactId, artifact.path);
     const headers: Record<string, string> = {
       'Content-Type': artifact.contentType,
       'Accept-Ranges': 'bytes',
       'Cache-Control': 'private, max-age=31536000, immutable',
       'X-Content-Type-Options': 'nosniff',
     };
-    if (artifact.kind === 'trace' || new URL(request.url).searchParams.has('download'))
+    if (artifact.kind === 'trace' || new URL(request.url).searchParams.has('download')) {
+      const extensions: Record<string, string> = {
+        'application/zip': 'zip',
+        'video/webm': 'webm',
+        'video/mp4': 'mp4',
+        'image/png': 'png',
+        'image/jpeg': 'jpg',
+        'application/json': 'json',
+        'application/x-ndjson': 'ndjson',
+        'text/plain': 'log',
+      };
+      const extension = extensions[artifact.contentType] || 'bin';
       headers['Content-Disposition'] =
-        `attachment; filename="${artifact.kind}-${artifact.id}.${artifact.kind === 'trace' ? 'zip' : artifact.kind === 'video' ? 'webm' : 'jpg'}"`;
+        `attachment; filename="${artifact.kind}-${artifact.id}.${extension}"`;
+    }
     const range = request.headers.get('range');
     if (range) {
       const match = /^bytes=(\d*)-(\d*)$/.exec(range);

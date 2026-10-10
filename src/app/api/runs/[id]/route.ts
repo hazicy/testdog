@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getRun, requestCancellation } from '@/workspace/store';
-import { cancelRun } from '@/workspace/run';
 import { apiError, validId } from '@/workspace/http';
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
@@ -18,7 +17,6 @@ export async function DELETE(_request: Request, context: Context) {
   try {
     validId(id);
     await requestCancellation(id);
-    cancelRun(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     return apiError(error);

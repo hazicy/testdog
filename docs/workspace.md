@@ -20,11 +20,17 @@ erDiagram
 
 所有主键使用 UUID。步骤序号在执行内唯一，外键约束保证记录归属。删除用例会将历史记录的用例 ID 置空，保留快照。附件文件路径不出现在 API 输出中，只通过按执行和附件 ID 校验的接口访问。
 
-执行状态为 `running`、`passed`、`failed`、`cancelled`。步骤状态为 `running`、`passed`、`failed`，取消时未完成的步骤标记为中断。模式为 `record` 或 `replay`。数据库检查约束限制状态、类型、正序号和非负大小。
+执行状态为 `queued`、`preparing`、`running`、`finalizing`、`passed`、`failed`、`cancelled`。步骤状态为 `running`、`passed`、`failed`，取消时未完成的步骤标记为中断。模式为 `record` 或 `replay`。数据库检查约束限制状态、类型、正序号和非负大小。
 
 ## 接口
 
-所有响应为 JSON，附件接口除外。创建和更新字段均在服务器用 Zod 校验。错误响应含 `message`：400 参数错误或不符合重放条件，404 记录不存在，409 已有执行或停止已结束的记录，503 数据库不可用。发起执行返回 202，表示后台工作已接受，不表示测试通过。
+平台使用版本化 target：Web 包含 URL/browser/deviceProfile，原生包含 appId/deviceProfileId/buildArtifactId/resetPolicy/launchUrl。可选 inputs 保存普通值或 secretRef，原生 evidence 按能力请求 video/trace/logs。运行详情提供冻结 target、实际 environment、capabilities 和 evidenceComplete。
+
+`POST /api/run-batches` 接收 testId 与 variants（每项 target 和可选 goal），事务内创建独立 run 并返回 batchId。`GET /api/resources` 返回 workers/resources，`GET /api/builds` 返回构建身份与摘要，均不暴露私有路径。原生录制编辑保存版本化 JSON IR，支持 structured check、semantic assertion 和分支。
+
+生产模式默认要求认证，附件也受认证与运行归属校验保护。跨主机附件可使用私有 S3。部署切换与实测证据见 [实施记录](automation-implementation.md)。
+
+所有响应为 JSON，附件接口除外。创建和更新字段均在服务器用 Zod 校验。错误响应含 `message`：400 参数错误或不符合重放条件，404 记录不存在，409 平台/录制不兼容或停止已结束的记录，503 数据库不可用。发起执行返回 202，表示后台工作已接受，不表示测试通过。
 
 ### 用例
 
@@ -71,7 +77,7 @@ erDiagram
 { "mode": "record", "case": "打开首页，验证标题。", "url": "https://example.com" }
 ```
 
-直接执行时 URL 可省略，测试必须自行描述导航目标。发起执行采用数据库事务与 advisory lock，避免重复占用浏览器。后台通过 `after()` 启动，常驻 Node 进程负责生命周期和续约。租约丢失不会伪报成功。
+直接执行时 URL 可省略，测试必须自行描述导航目标。API 只持久化入队；独立 worker 按资源采用 FOR UPDATE SKIP LOCKED 原子领取，运行过程中续约并检查 fencingToken。失联资源进入隔离，旧 worker 不能写入步骤、附件或结果。
 
 ### 步骤与重放
 
@@ -131,3 +137,31 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 - `POST /api/runs`，`{mode:"replay",sourceRunId,recordingVersionId}`：重放选中的编辑版本，返回 202。
 
 需运行 `pnpm db:migrate` 应用新增的版本表与节点、原生断言、重放快照字段。
+
+## 多平台扩展（实施中）
+
+用例支持 versioned `target`，Web 的 `url` 与原生的 `appId/deviceProfileId` 分别校验。新 Web 用例默认为 Pixel 7 / Chromium；迁移只为历史记录回填 legacy-desktop，不改变原录制。
+
+```json
+{
+  "name": "登录",
+  "goal": "填写用户并提交，验证登录成功",
+  "tags": ["smoke"],
+  "target": {
+    "schemaVersion": 1,
+    "platform": "ios",
+    "appId": "com.example.app",
+    "deviceProfileId": "iphone",
+    "resetPolicy": "preserve"
+  }
+}
+```
+
+- `GET /api/resources`：已登记资源与 worker，包含 available/busy/quarantined 状态。
+- `GET /api/builds`：构建元数据与摘要，私有路径不输出。
+- `POST /api/run-batches`：`{testId, variants:[{target, goal?}]}`，在同一事务创建各平台独立执行并以 batchId 关联。
+- 原生录制版本使用 `{schemaVersion:1, platform, steps}` JSON，保留语义断言与分支，拒绝临时 refs 和坐标手势。
+
+执行详情增加 targetSnapshot、environmentSnapshot、capabilities、resourceId、batchId 和 evidenceComplete。原生步骤使用 platformAction，旧 Web action/pageId/pageUrl 可继续读取。原生截图 MIME 为 image/png，附件下载保留正确扩展名。
+
+当前实现与尚未完成的项目见 [实施记录](automation-implementation.md)。

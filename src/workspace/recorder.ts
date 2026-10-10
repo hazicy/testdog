@@ -1,3 +1,4 @@
+import { SecretInputs } from '@/automation/platform/inputs';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -6,10 +7,11 @@ import type { ExecutionStep, RunArtifact, StepSignal, TestRun } from './types';
 import { insertArtifact, insertStep, finishStep } from './store';
 import { BrowserLogs } from './browserLogs';
 import { recordAction } from './locator';
-export const artifactRoot = () =>
-  join(process.env.CASEFORGE_DATA_DIR || join(process.cwd(), '.automation'), 'artifacts');
+import { artifactRoot } from './artifactStorage';
+export { artifactRoot } from './artifactStorage';
 export class RunRecorder {
   private page?: Page;
+  private secrets: SecretInputs;
   private logs: BrowserLogs;
   private activeSteps = new Map<Page, string>();
   private pages = new Map<Page, string>();
@@ -21,10 +23,16 @@ export class RunRecorder {
   private livePending = false;
   readonly directory: string;
   constructor(private run: TestRun) {
-    this.logs = new BrowserLogs(run.id, run.startedAt, (page) => ({
-      pageId: this.pageId(page),
-      stepId: this.activeSteps.get(page),
-    }));
+    this.secrets = new SecretInputs(run.targetSnapshot?.inputs);
+    this.logs = new BrowserLogs(
+      run.id,
+      run.startedAt,
+      (page) => ({
+        pageId: this.pageId(page),
+        stepId: this.activeSteps.get(page),
+      }),
+      this.secrets,
+    );
     this.directory = join(artifactRoot(), run.id);
   }
   pageId = (page: Page) => {
@@ -40,7 +48,8 @@ export class RunRecorder {
     this.logs.start(context);
     context.pages().forEach(this.pageId);
     context.on('page', this.onPage);
-    await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
+    if (!this.secrets.enabled)
+      await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
     this.timer = setInterval(() => {
       if (this.page && !this.page.isClosed() && !this.livePending) {
         this.livePending = true;
@@ -81,6 +90,7 @@ export class RunRecorder {
         action: recorded?.action,
         replayable: recorded?.replayable ?? true,
         assertion: event.assertion,
+        platformAssertion: event.platformAssertion,
         playwrightAssertion: event.playwrightAssertion,
         condition: event.condition,
       };
@@ -110,7 +120,17 @@ export class RunRecorder {
       const capturedAt = new Date().toISOString();
       let bytes: Buffer;
       try {
-        bytes = await page.screenshot({ type: 'jpeg', quality: 72, timeout: 3000 });
+        bytes = await page.screenshot({
+          type: 'jpeg',
+          quality: 72,
+          timeout: 3000,
+          mask: this.secrets.enabled
+            ? [
+                page.locator('input[type=password], [data-caseforge-secret]'),
+                ...this.secrets.maskValues.map((value) => page.getByText(value, { exact: false })),
+              ]
+            : undefined,
+        });
       } catch (error) {
         if (page.isClosed() || /Target.*closed|navigation|Execution context/.test(String(error)))
           return;
@@ -135,7 +155,9 @@ export class RunRecorder {
         path,
       );
     });
-    this.queue = operation.catch(() => {});
+    this.queue = operation.catch((error) => {
+      this.captureError ??= error;
+    });
     return operation;
   }
   async stop(context: BrowserContext, interrupted = false) {
@@ -149,8 +171,9 @@ export class RunRecorder {
     if (this.timer) clearInterval(this.timer);
     await this.queue;
     if (!interrupted && this.page && !this.page.isClosed()) await this.capture(this.page, 'final');
+    if (this.captureError) throw this.captureError;
     const trace = join(this.directory, 'trace.zip');
-    if (!interrupted) {
+    if (!interrupted && !this.secrets.enabled) {
       await context.tracing.stop({ path: trace });
       await this.addFile(
         trace,

@@ -1,12 +1,21 @@
 'use client';
 
+import { isActiveRun } from '@/workspace/types';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TestCase, TestRun } from '@/workspace/types';
 import { WorkspaceIcon as Icon } from './WorkspaceIcon';
 
-const statusLabels = { running: '执行中', passed: '已通过', failed: '失败', cancelled: '已停止' };
+const statusLabels = {
+  queued: '排队中',
+  preparing: '准备中',
+  finalizing: '归档中',
+  running: '执行中',
+  passed: '已通过',
+  failed: '失败',
+  cancelled: '已停止',
+};
 function Status({ status }: { status?: TestRun['status'] }) {
   return (
     <span className={`ws-status ${status || 'none'}`}>
@@ -55,15 +64,38 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const [starting, setStarting] = useState(false);
   const [editing, setEditing] = useState<TestCase | null | undefined>(undefined);
   const [deleting, setDeleting] = useState<TestCase | null>(null);
+  const [matrixTest, setMatrixTest] = useState<TestCase | null>(null);
+  const [matrixCode, setMatrixCode] = useState('');
+  const [matrixError, setMatrixError] = useState('');
+  const matrixDialog = useRef<HTMLDialogElement>(null);
   const [formError, setFormError] = useState('');
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
+  const [platform, setPlatform] = useState<'web' | 'android' | 'ios'>('web');
+  const [webProfile, setWebProfile] = useState('Pixel 7');
+  const [appId, setAppId] = useState('');
+  const [deviceProfileId, setDeviceProfileId] = useState('');
+  const [buildArtifactId, setBuildArtifactId] = useState('');
+  const [resetPolicy, setResetPolicy] = useState<'preserve' | 'clear-data' | 'reinstall'>(
+    'preserve',
+  );
+  const [launchUrl, setLaunchUrl] = useState('');
+  const [nativeVideo, setNativeVideo] = useState(false);
+  const [nativeTrace, setNativeTrace] = useState(false);
+  const [nativeLogs, setNativeLogs] = useState(false);
+  const [inputRefs, setInputRefs] = useState('{}');
+  const [builds, setBuilds] = useState<
+    { id: string; platform: string; appId: string; sha256: string }[]
+  >([]);
+  const [deviceResources, setDeviceResources] = useState<
+    { id: string; platform: string; profileId: string; status: string }[]
+  >([]);
   const [goal, setGoal] = useState('');
   const [tags, setTags] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
   const deleteDialog = useRef<HTMLDialogElement>(null);
   const selectedId = params.get('run');
-  const running = runs.some((run) => run.status === 'running');
+  const running = runs.some((run) => isActiveRun(run.status));
   const isTests = view === 'tests';
 
   const refresh = useCallback(async () => {
@@ -117,6 +149,32 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
     setEditing(duplicate || !test ? null : test);
     setName(test ? `${test.name}${duplicate ? '（副本）' : ''}` : '');
     setUrl(test?.url || '');
+    setPlatform(test?.target?.platform ?? 'web');
+    setWebProfile(
+      test?.target?.platform === 'web'
+        ? test.target.deviceProfile
+        : test
+          ? 'legacy-desktop'
+          : 'Pixel 7',
+    );
+    setAppId(test?.target && test.target.platform !== 'web' ? test.target.appId : '');
+    setDeviceProfileId(
+      test?.target && test.target.platform !== 'web' ? test.target.deviceProfileId : '',
+    );
+    const native = test?.target && test.target.platform !== 'web' ? test.target : undefined;
+    setBuildArtifactId(native?.buildArtifactId || '');
+    setResetPolicy(native?.resetPolicy || 'preserve');
+    setLaunchUrl(native?.launchUrl || '');
+    setNativeVideo(native?.evidence?.video || false);
+    setNativeTrace(native?.evidence?.trace || false);
+    setNativeLogs(native?.evidence?.logs || false);
+    setInputRefs(JSON.stringify(test?.target?.inputs || {}, null, 2));
+    void api<{ builds: typeof builds }>('/api/builds')
+      .then((data) => setBuilds(data.builds))
+      .catch(() => {});
+    void api<{ resources: typeof deviceResources }>('/api/resources')
+      .then((data) => setDeviceResources(data.resources))
+      .catch(() => {});
     setGoal(test?.goal || '');
     setTags(test?.tags.join(', ') || '');
     setFormError('');
@@ -131,7 +189,31 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         json(
           {
             name,
-            url: url.trim(),
+            ...(platform === 'web'
+              ? {
+                  url: url.trim(),
+                  target: {
+                    schemaVersion: 1,
+                    platform,
+                    url: url.trim(),
+                    browser: webProfile === 'iPhone 13' ? 'webkit' : 'chromium',
+                    deviceProfile: webProfile,
+                    inputs: JSON.parse(inputRefs),
+                  },
+                }
+              : {
+                  target: {
+                    schemaVersion: 1,
+                    platform,
+                    appId,
+                    deviceProfileId,
+                    inputs: JSON.parse(inputRefs),
+                    resetPolicy,
+                    evidence: { video: nativeVideo, trace: nativeTrace, logs: nativeLogs },
+                    ...(buildArtifactId ? { buildArtifactId } : {}),
+                    ...(launchUrl.trim() ? { launchUrl: launchUrl.trim() } : {}),
+                  },
+                }),
             goal,
             tags: tags
               .split(/[,，]/)
@@ -158,6 +240,39 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '启动失败');
+    } finally {
+      setStarting(false);
+    }
+  }
+  function openMatrix(test: TestCase) {
+    setMatrixTest(test);
+    setMatrixError('');
+    const target = test.target || {
+      schemaVersion: 1,
+      platform: 'web',
+      url: test.url,
+      browser: 'chromium',
+      deviceProfile: 'legacy-desktop',
+    };
+    setMatrixCode(JSON.stringify([{ target, goal: test.goal }], null, 2));
+    matrixDialog.current?.showModal();
+  }
+  async function startMatrix(event: React.FormEvent) {
+    event.preventDefault();
+    if (!matrixTest) return;
+    setStarting(true);
+    setMatrixError('');
+    try {
+      await api(
+        '/api/run-batches',
+        json({ testId: matrixTest.id, variants: JSON.parse(matrixCode) }),
+      );
+      matrixDialog.current?.close();
+      setMatrixTest(null);
+      router.push('/runs');
+      await refresh();
+    } catch (cause) {
+      setMatrixError(cause instanceof Error ? cause.message : '矩阵启动失败');
     } finally {
       setStarting(false);
     }
@@ -189,7 +304,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const latest = (id: string) => runs.find((run) => run.testId === id);
   const visibleTests = tests.filter(
     (test) =>
-      `${test.name} ${test.url} ${test.tags.join(' ')}`
+      `${test.name} ${test.target && test.target.platform !== 'web' ? `${test.target.platform} · ${test.target.appId}` : test.url} ${test.target?.platform} ${test.target && test.target.platform !== 'web' ? test.target.appId : ''} ${test.tags.join(' ')}`
         .toLowerCase()
         .includes(query.toLowerCase()) &&
       (filter === 'all' || (latest(test.id)?.status || 'none') === filter),
@@ -257,7 +372,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           },
           {
             label: '执行中',
-            value: runs.filter((run) => run.status === 'running').length,
+            value: runs.filter((run) => isActiveRun(run.status)).length,
             note: running ? '结果自动更新' : '等待下一次测试',
           },
         ].map((stat) => (
@@ -305,7 +420,10 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
               <option value="all">全部状态</option>
               <option value="passed">已通过</option>
               <option value="failed">失败</option>
+              <option value="queued">排队中</option>
+              <option value="preparing">准备中</option>
               <option value="running">执行中</option>
+              <option value="finalizing">归档中</option>
               <option value="cancelled">已停止</option>
               {isTests && <option value="none">未运行</option>}
             </select>
@@ -380,7 +498,9 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                               {test.name}
                             </button>
                             <p className="mt-1 max-w-96 truncate text-xs text-[#98998b]">
-                              {test.url}
+                              {test.target && test.target.platform !== 'web'
+                                ? `${test.target.platform} · ${test.target.appId}`
+                                : test.url}
                             </p>
                             {test.tags.length > 0 && (
                               <div className="mt-2 flex gap-1">
@@ -415,10 +535,17 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                             <div className="flex justify-end gap-1">
                               <button
                                 className="ws-button mr-2"
-                                disabled={running || starting}
+                                disabled={starting}
                                 onClick={() => void start(test.id)}
                               >
                                 <Icon name="results" width="14" /> 运行
+                              </button>
+                              <button
+                                className="ws-button"
+                                disabled={starting}
+                                onClick={() => openMatrix(test)}
+                              >
+                                矩阵
                               </button>
                               <button
                                 className="ws-icon-button"
@@ -543,16 +670,187 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
               />
             </label>
             <label className="ws-label">
-              网站地址
-              <input
+              平台
+              <select
                 className="ws-input"
-                required
-                type="url"
-                value={url}
+                aria-label="平台"
+                value={platform}
                 disabled={saving}
-                onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://your-app.com"
+                onChange={(event) => setPlatform(event.target.value as typeof platform)}
+              >
+                <option value="web">Web · 移动浏览器</option>
+                <option value="android">Android · 原生应用</option>
+                <option value="ios">iOS · 原生应用</option>
+              </select>
+            </label>
+            {platform === 'web' ? (
+              <>
+                <label className="ws-label">
+                  网站地址
+                  <input
+                    className="ws-input"
+                    required
+                    type="url"
+                    value={url}
+                    disabled={saving}
+                    onChange={(event) => setUrl(event.target.value)}
+                    placeholder="https://your-app.com"
+                  />
+                </label>
+                <label className="ws-label">
+                  浏览器与设备
+                  <select
+                    className="ws-input"
+                    aria-label="浏览器与设备"
+                    value={webProfile}
+                    disabled={saving}
+                    onChange={(event) => setWebProfile(event.target.value)}
+                  >
+                    <option value="Pixel 7">Pixel 7 · Chromium</option>
+                    <option value="iPhone 13">iPhone 13 · WebKit</option>
+                    {webProfile === 'legacy-desktop' && (
+                      <option value="legacy-desktop">历史桌面 Chromium</option>
+                    )}
+                  </select>
+                </label>
+              </>
+            ) : (
+              <>
+                <label className="ws-label">
+                  应用标识
+                  <input
+                    className="ws-input"
+                    required
+                    value={appId}
+                    disabled={saving}
+                    onChange={(event) => setAppId(event.target.value)}
+                    placeholder="com.example.app"
+                  />
+                </label>
+                <label className="ws-label">
+                  设备配置
+                  <select
+                    className="ws-input"
+                    required
+                    aria-label="设备配置"
+                    value={deviceProfileId}
+                    disabled={saving}
+                    onChange={(event) => setDeviceProfileId(event.target.value)}
+                  >
+                    <option value="">选择已登记的设备配置</option>
+                    {deviceResources
+                      .filter((resource) => resource.platform === platform)
+                      .map((resource) => (
+                        <option key={resource.id} value={resource.profileId}>
+                          {resource.profileId} ·{' '}
+                          {resource.status === 'quarantined'
+                            ? '隔离中'
+                            : resource.status === 'busy'
+                              ? '使用中'
+                              : '可用'}
+                        </option>
+                      ))}
+                    {deviceProfileId &&
+                      !deviceResources.some(
+                        (resource) =>
+                          resource.profileId === deviceProfileId && resource.platform === platform,
+                      ) && <option value={deviceProfileId}>{deviceProfileId} · 未连接</option>}
+                  </select>
+                </label>
+                <label className="ws-label">
+                  应用构建
+                  <select
+                    className="ws-input"
+                    aria-label="应用构建"
+                    value={buildArtifactId}
+                    disabled={saving}
+                    onChange={(event) => setBuildArtifactId(event.target.value)}
+                  >
+                    <option value="">使用设备上已安装的应用</option>
+                    {builds
+                      .filter((build) => build.platform === platform && build.appId === appId)
+                      .map((build) => (
+                        <option key={build.id} value={build.id}>
+                          {build.appId} · {build.sha256.slice(0, 12)}
+                        </option>
+                      ))}
+                    {buildArtifactId && !builds.some((build) => build.id === buildArtifactId) && (
+                      <option value={buildArtifactId}>{buildArtifactId} · 不可用</option>
+                    )}
+                  </select>
+                </label>
+                <label className="ws-label">
+                  初始化策略
+                  <select
+                    className="ws-input"
+                    aria-label="初始化策略"
+                    value={resetPolicy}
+                    disabled={saving}
+                    onChange={(event) => setResetPolicy(event.target.value as typeof resetPolicy)}
+                  >
+                    <option value="preserve">保留应用数据</option>
+                    <option value="clear-data">清除应用数据</option>
+                    <option value="reinstall">重新安装所选构建</option>
+                  </select>
+                </label>
+                <fieldset className="space-y-2 text-xs text-page-muted">
+                  <legend className="mb-2">诊断附件</legend>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={nativeVideo}
+                      disabled={saving}
+                      onChange={(event) => setNativeVideo(event.target.checked)}
+                    />{' '}
+                    视频
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={nativeTrace}
+                      disabled={saving}
+                      onChange={(event) => setNativeTrace(event.target.checked)}
+                    />{' '}
+                    设备 trace
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={nativeLogs}
+                      disabled={saving}
+                      onChange={(event) => setNativeLogs(event.target.checked)}
+                    />{' '}
+                    应用日志
+                  </label>
+                </fieldset>
+                <label className="ws-label">
+                  启动链接（可选）
+                  <input
+                    className="ws-input"
+                    value={launchUrl}
+                    disabled={saving}
+                    onChange={(event) => setLaunchUrl(event.target.value)}
+                    placeholder="myapp://login"
+                  />
+                </label>
+                <p className="text-xs text-page-muted">
+                  设备繁忙时会排队。重新安装及 iOS 清除数据需要选择应用构建。
+                </p>
+              </>
+            )}
+            <label className="ws-label">
+              输入引用（JSON，可选）
+              <textarea
+                className="ws-input min-h-24 font-mono text-xs"
+                aria-label="输入引用（JSON，可选）"
+                value={inputRefs}
+                disabled={saving}
+                onChange={(event) => setInputRefs(event.target.value)}
               />
+              <span className="text-xs text-page-muted">
+                步骤中用 {'${input.name}'} 引用输入。普通输入：{'{"name":{"value":"Ada"}}'}；密码：
+                {'{"password":{"secretRef":"LOGIN_PASSWORD"}}'}。密钥由 worker 配置。
+              </span>
             </label>
             <label className="ws-label">
               测试步骤与预期结果
@@ -560,6 +858,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                 className="ws-input min-h-48 resize-y leading-6"
                 required
                 maxLength={20000}
+                aria-label="测试步骤与预期结果"
                 value={goal}
                 disabled={saving}
                 onChange={(event) => setGoal(event.target.value)}
@@ -598,6 +897,93 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
             </button>
             <button type="submit" disabled={saving} className="ws-button primary">
               {saving ? '保存中…' : '保存测试'}
+            </button>
+          </div>
+        </form>
+      </dialog>
+      <dialog
+        ref={matrixDialog}
+        className="ws-dialog"
+        aria-labelledby="matrix-title"
+        onCancel={(event) => {
+          if (starting) event.preventDefault();
+        }}
+        onClose={() => setMatrixTest(null)}
+      >
+        <form onSubmit={(event) => void startMatrix(event)}>
+          <div className="ws-dialog-header">
+            <h2 id="matrix-title" className="text-lg font-semibold">
+              平台矩阵 · {matrixTest?.name}
+            </h2>
+          </div>
+          <div className="space-y-4 p-6">
+            <p className="text-sm text-page-muted">
+              填写 1–10 个运行配置。每项包含 target，可用 goal
+              覆盖该平台的步骤与预期。所有运行一起创建，各自排队。
+            </p>
+            <label className="ws-label">
+              运行配置（JSON）
+              <textarea
+                className="ws-input min-h-72 font-mono text-xs"
+                required
+                aria-label="运行配置（JSON）"
+                value={matrixCode}
+                disabled={starting}
+                onChange={(event) => setMatrixCode(event.target.value)}
+              />
+            </label>
+            <details className="text-xs text-page-muted">
+              <summary>平台配置示例</summary>
+              <pre className="mt-2 overflow-auto">
+                {JSON.stringify(
+                  [
+                    {
+                      target: {
+                        platform: 'web',
+                        url: 'https://example.com',
+                        browser: 'chromium',
+                        deviceProfile: 'Pixel 7',
+                      },
+                    },
+                    {
+                      target: {
+                        platform: 'android',
+                        appId: 'com.example.app',
+                        deviceProfileId: 'android-phone',
+                        resetPolicy: 'preserve',
+                      },
+                    },
+                    {
+                      target: {
+                        platform: 'ios',
+                        appId: 'com.example.app',
+                        deviceProfileId: 'iphone-simulator',
+                        resetPolicy: 'preserve',
+                      },
+                    },
+                  ],
+                  null,
+                  2,
+                )}
+              </pre>
+            </details>
+            {matrixError && (
+              <p role="alert" className="text-sm text-red-700">
+                {matrixError}
+              </p>
+            )}
+          </div>
+          <div className="ws-dialog-footer">
+            <button
+              type="button"
+              className="ws-button"
+              disabled={starting}
+              onClick={() => matrixDialog.current?.close()}
+            >
+              取消
+            </button>
+            <button type="submit" className="ws-button primary" disabled={starting}>
+              {starting ? '创建中…' : '运行矩阵'}
             </button>
           </div>
         </form>

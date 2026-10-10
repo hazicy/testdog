@@ -210,7 +210,7 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     ).toBe(true);
     expect(saved.replayable).toBe(false);
     expect(saved.browserLogs?.some((log) => log.kind === 'network')).toBe(true);
-  });
+  }, 30000);
   it('records and replays a popup with the correct page and per-page videos', async () => {
     mocks.generate.mockImplementation(async (input) => {
       if (input.responseFormat?.name === 'plan')
@@ -312,9 +312,16 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     );
     const run = await createRun({ case: 'Cancel active browser', url });
     const job = executeRun(run);
-    await vi.waitFor(() =>
-      expect(mocks.generate.mock.calls.some(([input]) => input.tools)).toBe(true),
-    );
+    try {
+      await vi.waitFor(
+        () => expect(mocks.generate.mock.calls.some(([input]) => input.tools)).toBe(true),
+        { timeout: 15000 },
+      );
+    } catch (error) {
+      cancelRun(run.id);
+      await job.catch(() => {});
+      throw error;
+    }
     await requestCancellation(run.id);
     cancelRun(run.id);
     await job;
