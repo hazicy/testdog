@@ -1,4 +1,5 @@
 'use client';
+import { Button } from '@/components/ui/Button';
 
 import { memo } from 'react';
 import type { ExecutionStep } from '@/workspace/types';
@@ -29,7 +30,7 @@ export const StepList = memo(function StepList({
         <ol>
           {steps.map((step) => (
             <li key={step.id}>
-              <button
+              <Button
                 onClick={() => onSelect(step)}
                 className={`flex w-full items-start gap-3 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-[#f2f1e9] ${selectedId === step.id ? 'bg-[#f3eee4]' : ''}`}
               >
@@ -53,7 +54,7 @@ export const StepList = memo(function StepList({
                       : `${(step.durationMs / 1000).toFixed(1)}s`}
                   </span>
                 </span>
-              </button>
+              </Button>
             </li>
           ))}
         </ol>

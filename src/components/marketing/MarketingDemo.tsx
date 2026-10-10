@@ -1,6 +1,5 @@
 'use client';
-
-import { useState } from 'react';
+import { Tabs } from '@/components/ui/Tabs';
 
 const examples = [
   {
@@ -63,93 +62,71 @@ const examples = [
 ];
 
 export function MarketingDemo() {
-  const [active, setActive] = useState(0);
-  const example = examples[active];
-
   return (
-    <div className="overflow-hidden rounded-lg border border-page-line bg-[#fffefa]">
+    <Tabs.Root
+      defaultValue={0}
+      className="overflow-hidden rounded-lg border border-page-line bg-[#fffefa]"
+    >
       <div className="flex flex-wrap items-center justify-between gap-x-4 border-b border-page-line px-5">
-        <div className="flex gap-6" role="tablist" aria-label="用例示例">
+        <Tabs.List activateOnFocus className="flex gap-6" aria-label="用例示例">
           {examples.map((item, index) => (
-            <button
+            <Tabs.Tab
               key={item.name}
-              id={`demo-tab-${index}`}
-              type="button"
-              role="tab"
-              aria-selected={active === index}
-              aria-controls="demo-panel"
-              tabIndex={active === index ? 0 : -1}
+              value={index}
               className="cursor-pointer border-b-2 border-transparent py-4 text-sm text-[#64665d] hover:text-ink aria-selected:border-[#b84c2e] aria-selected:text-ink"
-              onClick={() => setActive(index)}
-              onKeyDown={(event) => {
-                let next = index;
-                if (event.key === 'ArrowRight') next = (index + 1) % examples.length;
-                else if (event.key === 'ArrowLeft')
-                  next = (index - 1 + examples.length) % examples.length;
-                else if (event.key === 'Home') next = 0;
-                else if (event.key === 'End') next = examples.length - 1;
-                else return;
-                event.preventDefault();
-                setActive(next);
-                document.getElementById(`demo-tab-${next}`)?.focus();
-              }}
             >
               {item.name}
-            </button>
+            </Tabs.Tab>
           ))}
-        </div>
+        </Tabs.List>
         <span className="py-3 text-xs text-[#73766b]">交互示例</span>
       </div>
-      <div
-        id="demo-panel"
-        role="tabpanel"
-        aria-labelledby={`demo-tab-${active}`}
-        tabIndex={0}
-        className="grid md:grid-cols-2"
-      >
-        <section
-          className="border-b border-page-line p-6 sm:p-8 md:border-b-0 md:border-r"
-          aria-label="测试描述"
-        >
-          <h3 className="mb-5 text-sm font-semibold">测试描述</h3>
-          <p className="mb-5 break-all rounded-md bg-[#f3f3ef] px-3 py-2 font-mono text-xs text-[#64665d]">
-            https://{example.url}
-          </p>
-          <ol className="space-y-4">
-            {example.input.map((line, index) => (
-              <li key={line} className="flex gap-3 text-sm leading-6">
-                <span className="w-5 shrink-0 tabular-nums text-[#73766b]">{index + 1}.</span>
-                <span>{line}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-        <section className="p-6 sm:p-8" aria-label="示例执行结果">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold">执行记录</h3>
-            <span className="ws-status passed">
-              <span />
-              已通过
-            </span>
-          </div>
-          <ol className="space-y-4">
-            {example.steps.map((step) => (
-              <li key={step} className="flex gap-3 text-sm leading-6">
-                <span aria-hidden="true" className="text-[#49815a]">
-                  ✓
-                </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-          <div className="mt-6 rounded-md border border-[#d7e1d5] bg-[#f4f8f2] px-4 py-3">
-            <p className="text-sm font-medium text-[#42664a]">页面证据：{example.title}</p>
-            <p className="mt-1 text-xs leading-5 text-[#64665d]">
-              预期结果与页面状态一致 · 示例包含 4 个步骤、1 个断言
+      {examples.map((example, index) => (
+        <Tabs.Panel key={example.name} value={index} className="grid md:grid-cols-2">
+          <section
+            className="border-b border-page-line p-6 sm:p-8 md:border-b-0 md:border-r"
+            aria-label="测试描述"
+          >
+            <h3 className="mb-5 text-sm font-semibold">测试描述</h3>
+            <p className="mb-5 break-all rounded-md bg-[#f3f3ef] px-3 py-2 font-mono text-xs text-[#64665d]">
+              https://{example.url}
             </p>
-          </div>
-        </section>
-      </div>
-    </div>
+            <ol className="space-y-4">
+              {example.input.map((line, index) => (
+                <li key={line} className="flex gap-3 text-sm leading-6">
+                  <span className="w-5 shrink-0 tabular-nums text-[#73766b]">{index + 1}.</span>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+          <section className="p-6 sm:p-8" aria-label="示例执行结果">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold">执行记录</h3>
+              <span className="ws-status passed">
+                <span />
+                已通过
+              </span>
+            </div>
+            <ol className="space-y-4">
+              {example.steps.map((step) => (
+                <li key={step} className="flex gap-3 text-sm leading-6">
+                  <span aria-hidden="true" className="text-[#49815a]">
+                    ✓
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-6 rounded-md border border-[#d7e1d5] bg-[#f4f8f2] px-4 py-3">
+              <p className="text-sm font-medium text-[#42664a]">页面证据：{example.title}</p>
+              <p className="mt-1 text-xs leading-5 text-[#64665d]">
+                预期结果与页面状态一致 · 示例包含 4 个步骤、1 个断言
+              </p>
+            </div>
+          </section>
+        </Tabs.Panel>
+      ))}
+    </Tabs.Root>
   );
 }

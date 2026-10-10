@@ -1,0 +1,64 @@
+'use client';
+import { Select as BaseSelect } from '@base-ui/react/select';
+import type { ReactNode } from 'react';
+type Item = { value: string | number; label: ReactNode; disabled?: boolean };
+type Props = {
+  items: (Item | Item[] | false | null | undefined)[];
+  value: string | number;
+  onValueChange: (value: string) => void;
+  className?: string;
+  disabled?: boolean;
+  required?: boolean;
+  name?: string;
+  'aria-label'?: string;
+};
+export function Select({ items, value, onValueChange, className = 'ws-input', ...props }: Props) {
+  const options = items
+    .flat()
+    .filter((item): item is Item => !!item)
+    .map((item) => ({ ...item, value: String(item.value) }));
+  return (
+    <BaseSelect.Root
+      items={options}
+      value={String(value)}
+      onValueChange={(next) => {
+        if (next !== null) onValueChange(String(next));
+      }}
+      disabled={props.disabled}
+      required={props.required}
+      name={props.name}
+    >
+      <BaseSelect.Trigger className={`ws-select ${className}`} aria-label={props['aria-label']}>
+        <BaseSelect.Value />
+        <BaseSelect.Icon aria-hidden="true" className="ws-select-icon">
+          ⌄
+        </BaseSelect.Icon>
+      </BaseSelect.Trigger>
+      <BaseSelect.Portal>
+        <BaseSelect.Positioner
+          className="ws-select-positioner"
+          sideOffset={4}
+          alignItemWithTrigger={false}
+        >
+          <BaseSelect.Popup className="ws-select-popup">
+            <BaseSelect.List>
+              {options.map((item) => (
+                <BaseSelect.Item
+                  key={item.value}
+                  value={item.value}
+                  disabled={item.disabled}
+                  className="ws-select-item"
+                >
+                  <BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>
+                  <BaseSelect.ItemIndicator aria-hidden="true" className="ws-select-indicator">
+                    ✓
+                  </BaseSelect.ItemIndicator>
+                </BaseSelect.Item>
+              ))}
+            </BaseSelect.List>
+          </BaseSelect.Popup>
+        </BaseSelect.Positioner>
+      </BaseSelect.Portal>
+    </BaseSelect.Root>
+  );
+}

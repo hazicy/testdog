@@ -1,4 +1,8 @@
 'use client';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { useEffect, useState } from 'react';
 import type { TestCase } from '@/workspace/types';
 import { requestJson as api } from '@/client/api';
@@ -124,7 +128,7 @@ export function TestEditor({
             </h2>
             <p className="mt-1 text-xs text-[#73766b]">描述操作与预期结果，由 AI 规划执行。</p>
           </div>
-          <button
+          <Button
             type="button"
             className="ws-icon-button"
             disabled={saving}
@@ -132,12 +136,12 @@ export function TestEditor({
             onClick={() => onClose()}
           >
             <Icon name="close" />
-          </button>
+          </Button>
         </div>
         <div className="space-y-5 p-6">
           <label className="ws-label">
             测试名称
-            <input
+            <Input
               name="testName"
               className="ws-input"
               required
@@ -150,23 +154,24 @@ export function TestEditor({
           </label>
           <label className="ws-label">
             平台
-            <select
+            <Select
               className="ws-input"
               aria-label="平台"
               value={platform}
               disabled={saving}
-              onChange={(event) => setPlatform(event.target.value as typeof platform)}
-            >
-              <option value="web">Web · 移动浏览器</option>
-              <option value="android">Android · 原生应用</option>
-              <option value="ios">iOS · 原生应用</option>
-            </select>
+              onValueChange={(value) => setPlatform(value as typeof platform)}
+              items={[
+                { value: 'web', label: 'Web · 移动浏览器' },
+                { value: 'android', label: 'Android · 原生应用' },
+                { value: 'ios', label: 'iOS · 原生应用' },
+              ]}
+            />
           </label>
           {platform === 'web' ? (
             <>
               <label className="ws-label">
                 网站地址
-                <input
+                <Input
                   className="ws-input"
                   required
                   type="url"
@@ -178,26 +183,28 @@ export function TestEditor({
               </label>
               <label className="ws-label">
                 浏览器与设备
-                <select
+                <Select
                   className="ws-input"
                   aria-label="浏览器与设备"
                   value={webProfile}
                   disabled={saving}
-                  onChange={(event) => setWebProfile(event.target.value)}
-                >
-                  <option value="Pixel 7">Pixel 7 · Chromium</option>
-                  <option value="iPhone 13">iPhone 13 · WebKit</option>
-                  {webProfile === 'legacy-desktop' && (
-                    <option value="legacy-desktop">历史桌面 Chromium</option>
-                  )}
-                </select>
+                  onValueChange={(value) => setWebProfile(value)}
+                  items={[
+                    { value: 'Pixel 7', label: 'Pixel 7 · Chromium' },
+                    { value: 'iPhone 13', label: 'iPhone 13 · WebKit' },
+                    webProfile === 'legacy-desktop' && {
+                      value: 'legacy-desktop',
+                      label: '历史桌面 Chromium',
+                    },
+                  ]}
+                />
               </label>
             </>
           ) : (
             <>
               <label className="ws-label">
                 应用标识
-                <input
+                <Input
                   className="ws-input"
                   required
                   value={appId}
@@ -208,103 +215,111 @@ export function TestEditor({
               </label>
               <label className="ws-label">
                 设备配置
-                <select
+                <Select
                   className="ws-input"
                   required
                   aria-label="设备配置"
                   value={deviceProfileId}
                   disabled={saving}
-                  onChange={(event) => setDeviceProfileId(event.target.value)}
-                >
-                  <option value="">选择已登记的设备配置</option>
-                  {deviceResources
-                    .filter((resource) => resource.platform === platform)
-                    .map((resource) => (
-                      <option key={resource.id} value={resource.profileId}>
-                        {resource.profileId} ·{' '}
-                        {resource.status === 'quarantined'
-                          ? '隔离中'
-                          : resource.status === 'busy'
-                            ? '使用中'
-                            : '可用'}
-                      </option>
-                    ))}
-                  {deviceProfileId &&
-                    !deviceResources.some(
-                      (resource) =>
-                        resource.profileId === deviceProfileId && resource.platform === platform,
-                    ) && <option value={deviceProfileId}>{deviceProfileId} · 未连接</option>}
-                </select>
+                  onValueChange={(value) => setDeviceProfileId(value)}
+                  items={[
+                    { value: '', label: '选择已登记的设备配置' },
+                    deviceResources
+                      .filter((resource) => resource.platform === platform)
+                      .map((resource) => ({
+                        value: resource.profileId,
+                        label: (
+                          <>
+                            {resource.profileId} ·{' '}
+                            {resource.status === 'quarantined'
+                              ? '隔离中'
+                              : resource.status === 'busy'
+                                ? '使用中'
+                                : '可用'}
+                          </>
+                        ),
+                      })),
+                    !!deviceProfileId &&
+                      !deviceResources.some(
+                        (resource) =>
+                          resource.profileId === deviceProfileId && resource.platform === platform,
+                      ) && { value: deviceProfileId, label: <>{deviceProfileId} · 未连接</> },
+                  ]}
+                />
               </label>
               <label className="ws-label">
                 应用构建
-                <select
+                <Select
                   className="ws-input"
                   aria-label="应用构建"
                   value={buildArtifactId}
                   disabled={saving}
-                  onChange={(event) => setBuildArtifactId(event.target.value)}
-                >
-                  <option value="">使用设备上已安装的应用</option>
-                  {builds
-                    .filter((build) => build.platform === platform && build.appId === appId)
-                    .map((build) => (
-                      <option key={build.id} value={build.id}>
-                        {build.appId} · {build.sha256.slice(0, 12)}
-                      </option>
-                    ))}
-                  {buildArtifactId && !builds.some((build) => build.id === buildArtifactId) && (
-                    <option value={buildArtifactId}>{buildArtifactId} · 不可用</option>
-                  )}
-                </select>
+                  onValueChange={(value) => setBuildArtifactId(value)}
+                  items={[
+                    { value: '', label: '使用设备上已安装的应用' },
+                    builds
+                      .filter((build) => build.platform === platform && build.appId === appId)
+                      .map((build) => ({
+                        value: build.id,
+                        label: (
+                          <>
+                            {build.appId} · {build.sha256.slice(0, 12)}
+                          </>
+                        ),
+                      })),
+                    !!buildArtifactId &&
+                      !builds.some((build) => build.id === buildArtifactId) && {
+                        value: buildArtifactId,
+                        label: <>{buildArtifactId} · 不可用</>,
+                      },
+                  ]}
+                />
               </label>
               <label className="ws-label">
                 初始化策略
-                <select
+                <Select
                   className="ws-input"
                   aria-label="初始化策略"
                   value={resetPolicy}
                   disabled={saving}
-                  onChange={(event) => setResetPolicy(event.target.value as typeof resetPolicy)}
-                >
-                  <option value="preserve">保留应用数据</option>
-                  <option value="clear-data">清除应用数据</option>
-                  <option value="reinstall">重新安装所选构建</option>
-                </select>
+                  onValueChange={(value) => setResetPolicy(value as typeof resetPolicy)}
+                  items={[
+                    { value: 'preserve', label: '保留应用数据' },
+                    { value: 'clear-data', label: '清除应用数据' },
+                    { value: 'reinstall', label: '重新安装所选构建' },
+                  ]}
+                />
               </label>
               <fieldset className="space-y-2 text-xs text-page-muted">
                 <legend className="mb-2">诊断附件</legend>
                 <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={nativeVideo}
                     disabled={saving}
-                    onChange={(event) => setNativeVideo(event.target.checked)}
+                    onCheckedChange={(checked) => setNativeVideo(checked)}
                   />{' '}
                   视频
                 </label>
                 <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={nativeTrace}
                     disabled={saving}
-                    onChange={(event) => setNativeTrace(event.target.checked)}
+                    onCheckedChange={(checked) => setNativeTrace(checked)}
                   />{' '}
                   设备 trace
                 </label>
                 <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={nativeLogs}
                     disabled={saving}
-                    onChange={(event) => setNativeLogs(event.target.checked)}
+                    onCheckedChange={(checked) => setNativeLogs(checked)}
                   />{' '}
                   应用日志
                 </label>
               </fieldset>
               <label className="ws-label">
                 启动链接（可选）
-                <input
+                <Input
                   className="ws-input"
                   value={launchUrl}
                   disabled={saving}
@@ -348,7 +363,7 @@ export function TestEditor({
           </p>
           <label className="ws-label">
             标签 <span className="font-normal text-[#73766b]">（可选，逗号分隔）</span>
-            <input
+            <Input
               className="ws-input"
               value={tags}
               disabled={saving}
@@ -363,12 +378,12 @@ export function TestEditor({
           )}
         </div>
         <div className="ws-dialog-footer">
-          <button type="button" disabled={saving} className="ws-button" onClick={() => onClose()}>
+          <Button type="button" disabled={saving} className="ws-button" onClick={() => onClose()}>
             取消
-          </button>
-          <button type="submit" disabled={saving} className="ws-button primary">
+          </Button>
+          <Button type="submit" disabled={saving} className="ws-button primary">
             {saving ? '保存中…' : '保存测试'}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

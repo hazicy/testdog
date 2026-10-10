@@ -1,4 +1,5 @@
 'use client';
+import { Button } from '@/components/ui/Button';
 
 import { memo } from 'react';
 import type { Plan } from '@/automation/compiler/schema';
@@ -22,9 +23,9 @@ export const PlanNodes = memo(function PlanNodes({
     const n = plan.nodes[tree.id];
     if (tree.reference)
       return (
-        <button key={tree.id} className="plan-reference" onClick={() => onSelect(tree.id)}>
+        <Button key={tree.id} className="plan-reference" onClick={() => onSelect(tree.id)}>
           ↗ 引用 {tree.id}
-        </button>
+        </Button>
       );
     const recorded = stepsByNode.get(n.id) || [];
     const state = recorded.some((s) => s.status === 'failed')
@@ -40,7 +41,7 @@ export const PlanNodes = memo(function PlanNodes({
         data-plan-node={n.id}
         className={`plan-node ${n.kind} ${selected === n.id ? 'active' : ''}`}
       >
-        <button
+        <Button
           className="plan-node-header"
           onClick={() => onSelect(n.id)}
           aria-label={`查看节点 ${n.id}`}
@@ -70,7 +71,7 @@ export const PlanNodes = memo(function PlanNodes({
               {n.requirementIds.length ? ` · ${n.requirementIds.join(', ')}` : ''}
             </span>
           )}
-        </button>
+        </Button>
         {n.kind === 'group' && <div className="plan-children">{tree.children.map(render)}</div>}
         {n.kind === 'branch' && (
           <div className="plan-branches">

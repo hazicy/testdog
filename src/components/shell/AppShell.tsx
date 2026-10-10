@@ -1,4 +1,5 @@
 'use client';
+import { Button } from '@/components/ui/Button';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -73,14 +74,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
       <div className="min-w-0">
         <header className="flex h-14 items-center gap-3 border-b border-[#e2e1da] bg-[#faf9f6] px-5 md:px-7">
-          <button
+          <Button
             className="ws-icon-button hidden md:flex"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
             aria-expanded={!collapsed}
           >
             <WorkspaceIcon name="menu" />
-          </button>
+          </Button>
           <Link href="/" className="text-sm text-[#78796f]">
             工作区
           </Link>

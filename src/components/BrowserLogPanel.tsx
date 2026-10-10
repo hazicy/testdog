@@ -1,4 +1,7 @@
 'use client';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { useState } from 'react';
 import type { BrowserLog } from '@/workspace/types';
 export function BrowserLogPanel({
@@ -30,29 +33,26 @@ export function BrowserLogPanel({
   return (
     <section aria-label={kind === 'console' ? 'Console 记录' : 'Network 记录'}>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <input
+        <Input
           aria-label="搜索浏览器记录"
           className="ws-input max-w-xs"
           placeholder="搜索内容、URL、状态码…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <select
+        <Select
           aria-label="记录范围"
           className="ws-input w-auto"
           value={scope}
-          onChange={(e) => setScope(e.target.value)}
-        >
-          <option value="all">全部记录</option>
-          <option value="step" disabled={!stepId}>
-            当前步骤
-          </option>
-          <option value="time" disabled={elapsedMs == null}>
-            截至回放时间
-          </option>
-        </select>
+          onValueChange={(value) => setScope(value)}
+          items={[
+            { value: 'all', label: '全部记录' },
+            { value: 'step', label: '当前步骤', disabled: !stepId },
+            { value: 'time', label: '截至回放时间', disabled: elapsedMs == null },
+          ]}
+        />
         <label className="flex gap-2 text-xs">
-          <input type="checkbox" checked={errors} onChange={(e) => setErrors(e.target.checked)} />
+          <Checkbox checked={errors} onCheckedChange={(checked) => setErrors(checked)} />
           仅错误
         </label>
         <span className="text-xs text-page-muted">{visible.length} 条</span>

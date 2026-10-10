@@ -1,4 +1,5 @@
 'use client';
+import { Button } from '@/components/ui/Button';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Plan } from '@/automation/compiler/schema';
 import type { ExecutionStep } from '@/workspace/types';
@@ -140,36 +141,36 @@ export function PlanBoard({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
+          <Button
             className="ws-button"
             onClick={() => setShowEdges(!showEdges)}
             aria-pressed={showEdges}
           >
             依赖连线
-          </button>
-          <button
+          </Button>
+          <Button
             className="ws-button"
             aria-label="缩小画板"
             onClick={() => setView((v) => ({ ...v, scale: Math.max(0.15, v.scale / 1.2) }))}
           >
             −
-          </button>
+          </Button>
           <span className="w-10 text-center font-mono text-xs">
             {Math.round(view.scale * 100)}%
           </span>
-          <button
+          <Button
             className="ws-button"
             aria-label="放大画板"
             onClick={() => setView((v) => ({ ...v, scale: Math.min(2, v.scale * 1.2) }))}
           >
             +
-          </button>
-          <button className="ws-button" onClick={fit}>
+          </Button>
+          <Button className="ws-button" onClick={fit}>
             适应画板
-          </button>
-          <button className="ws-button" onClick={() => setView({ x: 24, y: 24, scale: 1 })}>
+          </Button>
+          <Button className="ws-button" onClick={() => setView({ x: 24, y: 24, scale: 1 })}>
             重置
-          </button>
+          </Button>
         </div>
       </div>
       <div className="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -273,15 +274,15 @@ export function PlanBoard({
                 <div className="mt-4">
                   <p className="mb-2 text-xs text-page-muted">前置依赖</p>
                   {node.dependsOn.map((dep) => (
-                    <button key={dep} className="plan-reference" onClick={() => setSelected(dep)}>
+                    <Button key={dep} className="plan-reference" onClick={() => setSelected(dep)}>
                       {dep} ↗
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
               <p className="mt-6 mb-3 text-xs text-page-muted">该节点的录制步骤</p>
               {selectedSteps.map((s) => (
-                <button
+                <Button
                   key={s.id}
                   className="mb-2 w-full border border-page-line p-3 text-left text-xs leading-5 hover:border-brand"
                   onClick={() => onStep(s)}
@@ -290,7 +291,7 @@ export function PlanBoard({
                     <span />#{s.sequence}
                   </span>
                   <span className="mt-1 block">{s.title}</span>
-                </button>
+                </Button>
               ))}
               {!selectedSteps.length && (
                 <p className="text-xs leading-6 text-page-muted">

@@ -9,6 +9,7 @@
 }
 
 body {
+  position: relative;
   margin: 0;
   min-height: 100dvh;
   background: var(--background);
@@ -31,6 +32,10 @@ body {
   --color-brand: #b84c2e;
   --font-sans: var(--font-geist-sans), 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
+}
+
+.app-root {
+  isolation: isolate;
 }
 
 @layer components {
@@ -118,6 +123,82 @@ body {
   .ws-input.w-auto {
     width: auto;
   }
+  .ws-select {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .ws-select-icon {
+    margin-left: auto;
+    color: #78796f;
+  }
+  .ws-select-positioner {
+    z-index: 60;
+  }
+  .ws-select-popup {
+    min-width: var(--anchor-width);
+    max-height: min(320px, var(--available-height));
+    max-width: var(--available-width);
+    overflow-y: auto;
+    padding: 4px;
+    border: 1px solid #dfded4;
+    border-radius: 6px;
+    background: #fffefa;
+    color: #23241f;
+    box-shadow: 0 8px 24px #0002;
+    font-size: 13px;
+  }
+  .ws-select-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .ws-select-item[data-highlighted] {
+    background: #faf0eb;
+    color: #9e3f25;
+  }
+  .ws-select-item[data-disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .ws-select-item[data-selected] {
+    font-weight: 500;
+  }
+  .ws-select-indicator {
+    color: #b84c2e;
+  }
+  .ws-checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #dfded4;
+    border-radius: 3px;
+    background: #fffefa;
+    cursor: pointer;
+  }
+  .ws-checkbox[data-checked] {
+    background: #b84c2e;
+    border-color: #b84c2e;
+    color: white;
+  }
+  .ws-checkbox[data-disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .ws-checkbox-indicator {
+    font-size: 12px;
+    line-height: 1;
+  }
   .ws-label {
     display: block;
     font-size: 13px;
@@ -190,10 +271,8 @@ body {
   }
   .ws-dialog {
     border-radius: 12px;
-    position: fixed;
-    inset: 0;
-    margin: auto;
-    width: calc(100% - 32px);
+    position: relative;
+    width: 100%;
     max-width: 620px;
     max-height: calc(100dvh - 48px);
     padding: 0;
@@ -209,7 +288,19 @@ body {
   .ws-dialog.max-w-3xl {
     max-width: 768px;
   }
-  .ws-dialog::backdrop {
+  .ws-dialog-viewport {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  .ws-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
     background: #0005;
     backdrop-filter: blur(2px);
   }

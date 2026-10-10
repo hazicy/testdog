@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
 
 export function ErrorState({
   title,
@@ -24,9 +25,9 @@ export function ErrorState({
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         {retry && (
-          <button className="ws-button primary" onClick={retry}>
+          <Button className="ws-button primary" onClick={retry}>
             重试
-          </button>
+          </Button>
         )}
         <Link className="ws-button" href={href}>
           {linkLabel}

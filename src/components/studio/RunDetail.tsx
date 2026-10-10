@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 
 import { BrowserLogPanel } from '../BrowserLogPanel';
 import { isActiveRun } from '@/workspace/types';
@@ -214,17 +216,17 @@ export function RunDetail({ id }: { id: string }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {run && isActiveRun(run.status) ? (
-            <button
+            <Button
               disabled={busy || run.cancelRequested}
               onClick={() => void cancel()}
               className="ws-button"
             >
               {run.cancelRequested ? '正在停止…' : '停止执行'}
-            </button>
+            </Button>
           ) : (
             run && (
               <>
-                <button
+                <Button
                   disabled={busy || !run.replayable}
                   title={
                     run.replayable
@@ -235,20 +237,20 @@ export function RunDetail({ id }: { id: string }) {
                   onClick={() => void start('replay')}
                 >
                   <Icon name="results" width="14" /> 重放操作
-                </button>
+                </Button>
                 {run.testId && (
-                  <button
+                  <Button
                     disabled={busy}
                     className="ws-button"
                     onClick={() => void start('record')}
                   >
                     重新录制
-                  </button>
+                  </Button>
                 )}
               </>
             )
           )}
-          <button
+          <Button
             disabled={!run || exporting}
             className="ws-icon-button"
             aria-label="导出执行报告"
@@ -256,7 +258,7 @@ export function RunDetail({ id }: { id: string }) {
             onClick={() => void exportReport()}
           >
             <Icon name="download" />
-          </button>
+          </Button>
         </div>
       </div>
       {run?.evidenceComplete === false && (
@@ -270,9 +272,9 @@ export function RunDetail({ id }: { id: string }) {
           className="mt-5 flex justify-between gap-3 border border-red-200 bg-red-50 p-4 text-sm text-red-700"
         >
           <span>{error}</span>
-          <button onClick={() => void refresh()} className="underline">
+          <Button onClick={() => void refresh()} className="underline">
             刷新
-          </button>
+          </Button>
         </div>
       )}
       <nav className="mt-7 mb-5 flex flex-wrap gap-2" aria-label="执行视图">
@@ -283,7 +285,7 @@ export function RunDetail({ id }: { id: string }) {
             { id: 'recording', label: '编辑录制' },
           ] as const
         ).map((item) => (
-          <button
+          <Button
             key={item.id}
             className={`ws-button ${view === item.id ? 'selected' : ''}`}
             aria-pressed={view === item.id}
@@ -294,7 +296,7 @@ export function RunDetail({ id }: { id: string }) {
             }}
           >
             {item.label}
-          </button>
+          </Button>
         ))}
       </nav>
       {view === 'plan' && (
@@ -370,13 +372,13 @@ export function RunDetail({ id }: { id: string }) {
             </div>
             <div className="border-t border-page-line px-4 py-4">
               <div className="mb-4 flex flex-wrap items-center gap-2">
-                <button
+                <Button
                   className={`ws-button ${mode === 'frames' ? 'selected' : ''}`}
                   onClick={() => setMode('frames')}
                 >
                   画面回看
-                </button>
-                <button
+                </Button>
+                <Button
                   disabled={!videos.length}
                   title={
                     !run?.capabilities?.artifacts.includes('video')
@@ -390,23 +392,18 @@ export function RunDetail({ id }: { id: string }) {
                   }}
                 >
                   完整录像
-                </button>
+                </Button>
                 {mode === 'video' && videos.length > 1 && (
-                  <select
+                  <Select
                     aria-label="录像页面"
                     value={video?.id || ''}
-                    onChange={(event) => setVideoId(event.target.value)}
+                    onValueChange={(value) => setVideoId(value)}
                     className="ws-input w-auto"
-                  >
-                    {videos.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.pageId}
-                      </option>
-                    ))}
-                  </select>
+                    items={[videos.map((item) => ({ value: item.id, label: <>{item.pageId}</> }))]}
+                  />
                 )}
                 {run && isActiveRun(run.status) && (
-                  <button
+                  <Button
                     className={`ws-button ml-auto ${follow ? 'selected' : ''}`}
                     onClick={() => {
                       setFollow(true);
@@ -416,12 +413,12 @@ export function RunDetail({ id }: { id: string }) {
                     }}
                   >
                     跟随实时画面
-                  </button>
+                  </Button>
                 )}
               </div>
               {mode === 'frames' && (
                 <div className="flex items-center gap-3">
-                  <button
+                  <Button
                     className="ws-icon-button"
                     disabled={frames.length < 2}
                     aria-label={
@@ -439,7 +436,7 @@ export function RunDetail({ id }: { id: string }) {
                       name={playing && currentIndex < frames.length - 1 ? 'pause' : 'results'}
                       width="17"
                     />
-                  </button>
+                  </Button>
                   <span className="font-mono text-xs text-page-muted">
                     {time(currentFrame?.elapsedMs || 0)}
                   </span>
@@ -461,16 +458,17 @@ export function RunDetail({ id }: { id: string }) {
                   <span className="font-mono text-xs text-page-muted">
                     {time(frames.at(-1)?.elapsedMs || 0)}
                   </span>
-                  <select
+                  <Select
                     aria-label="回看速度"
                     value={speed}
-                    onChange={(event) => setSpeed(Number(event.target.value))}
+                    onValueChange={(value) => setSpeed(Number(value))}
                     className="border border-page-line bg-transparent p-1 font-mono text-xs"
-                  >
-                    <option value={0.5}>0.5×</option>
-                    <option value={1}>1×</option>
-                    <option value={2}>2×</option>
-                  </select>
+                    items={[
+                      { value: 0.5, label: '0.5×' },
+                      { value: 1, label: '1×' },
+                      { value: 2, label: '2×' },
+                    ]}
+                  />
                 </div>
               )}
             </div>
@@ -491,13 +489,13 @@ export function RunDetail({ id }: { id: string }) {
               { id: 'console' as const, label: 'Console' },
               { id: 'network' as const, label: 'Network' },
             ].map((item) => (
-              <button
+              <Button
                 key={item.id}
                 onClick={() => setTab(item.id)}
                 className={`whitespace-nowrap border-b-2 py-4 text-xs ${tab === item.id ? 'border-brand text-ink' : 'border-transparent text-page-muted'}`}
               >
                 {item.label}
-              </button>
+              </Button>
             ))}
             <div className="ml-auto flex w-full gap-3 pb-3 sm:w-auto sm:pb-0">
               {video && (
@@ -592,7 +590,7 @@ export function RunDetail({ id }: { id: string }) {
                     {(['before', 'after'] as const).map((stage) => {
                       const index = stepFrames.get(selectedStep.id)?.[stage] ?? -1;
                       return (
-                        <button
+                        <Button
                           key={stage}
                           disabled={index < 0}
                           className="ws-button"
@@ -604,7 +602,7 @@ export function RunDetail({ id }: { id: string }) {
                           }}
                         >
                           {stage === 'before' ? '查看执行前' : '查看执行后'}
-                        </button>
+                        </Button>
                       );
                     })}
                     {!selectedStep.replayable && (

@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { isActiveRun } from '@/workspace/types';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -123,15 +125,15 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="ws-button" onClick={download}>
+          <Button className="ws-button" onClick={download}>
             下载脚本
-          </button>
-          <button className="ws-button" disabled={!canSave} onClick={() => void save()}>
+          </Button>
+          <Button className="ws-button" disabled={!canSave} onClick={() => void save()}>
             保存版本
-          </button>
-          <button className="ws-button primary" disabled={!canSave} onClick={() => void save(true)}>
+          </Button>
+          <Button className="ws-button primary" disabled={!canSave} onClick={() => void save(true)}>
             {busy ? '处理中…' : '保存并重放'}
-          </button>
+          </Button>
         </div>
       </div>
       <div className="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -139,26 +141,32 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           <div className="mb-3 flex flex-wrap items-center gap-3">
             <label className="text-xs text-page-muted">
               版本{' '}
-              <select
+              <Select
                 aria-label="录制版本"
                 className="ml-2 max-w-full border border-page-line bg-page p-2 text-ink"
                 value={selected}
                 disabled={busy}
-                onChange={(e) => {
-                  setSelected(e.target.value);
-                  setCode(versions.find((v) => v.id === e.target.value)?.code || original);
+                onValueChange={(value) => {
+                  setSelected(value);
+                  setCode(versions.find((v) => v.id === value)?.code || original);
                   setMessage('');
                 }}
-              >
-                <option value="">
-                  {run.recordingVersionId ? '本次执行的编辑快照' : '原始录制'}
-                </option>
-                {versions.map((v, index) => (
-                  <option key={v.id} value={v.id}>
-                    版本 {versions.length - index} · {new Date(v.createdAt).toLocaleString('zh-CN')}
-                  </option>
-                ))}
-              </select>
+                items={[
+                  {
+                    value: '',
+                    label: <>{run.recordingVersionId ? '本次执行的编辑快照' : '原始录制'}</>,
+                  },
+                  versions.map((v, index) => ({
+                    value: v.id,
+                    label: (
+                      <>
+                        版本 {versions.length - index} ·{' '}
+                        {new Date(v.createdAt).toLocaleString('zh-CN')}
+                      </>
+                    ),
+                  })),
+                ]}
+              />
             </label>
             <span className="text-xs text-page-muted">
               {dirty ? '有未保存修改' : '已载入'}
@@ -169,9 +177,9 @@ export function RecordingEditor({ run }: { run: TestRun }) {
                   : ''}
             </span>
             {dirty && (
-              <button className="text-xs text-brand" disabled={busy} onClick={() => setCode(base)}>
+              <Button className="text-xs text-brand" disabled={busy} onClick={() => setCode(base)}>
                 还原当前版本
-              </button>
+              </Button>
             )}
           </div>
           <CodeEditor

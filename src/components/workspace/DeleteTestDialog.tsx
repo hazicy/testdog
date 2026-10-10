@@ -1,4 +1,5 @@
 'use client';
+import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
 import type { TestCase } from '@/workspace/types';
 import { requestJson as api } from '@/client/api';
@@ -43,16 +44,16 @@ export function DeleteTestDialog({
         )}
       </div>
       <div className="ws-dialog-footer">
-        <button disabled={saving} className="ws-button" onClick={() => onClose()}>
+        <Button disabled={saving} className="ws-button" onClick={() => onClose()}>
           取消
-        </button>
-        <button
+        </Button>
+        <Button
           disabled={saving}
           className="ws-button border-red-200 text-red-700"
           onClick={() => void remove()}
         >
           {saving ? '删除中…' : '删除测试'}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

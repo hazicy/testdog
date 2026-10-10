@@ -1,8 +1,11 @@
 'use client';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TestCase, TestRun, RunSummary } from '@/workspace/types';
 import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
 import { requestJson as api } from '@/client/api';
@@ -10,6 +13,7 @@ import { usePolling } from '@/client/usePolling';
 import { downloadRunReport } from '@/client/download';
 import { TestEditor } from './TestEditor';
 import { DeleteTestDialog } from './DeleteTestDialog';
+import { Dialog } from '../shared/Dialog';
 
 const statusLabels = {
   queued: '排队中',
@@ -65,7 +69,6 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const [matrixTest, setMatrixTest] = useState<TestCase | null>(null);
   const [matrixCode, setMatrixCode] = useState('');
   const [matrixError, setMatrixError] = useState('');
-  const matrixDialog = useRef<HTMLDialogElement>(null);
   const selectedId = params.get('run');
   const { counts, latestRuns } = useMemo(() => {
     const counts = {
@@ -138,7 +141,6 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       deviceProfile: 'legacy-desktop',
     };
     setMatrixCode(JSON.stringify([{ target, goal: test.goal }], null, 2));
-    matrixDialog.current?.showModal();
   }
   async function startMatrix(event: React.FormEvent) {
     event.preventDefault();
@@ -150,7 +152,6 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         '/api/run-batches',
         json({ testId: matrixTest.id, variants: JSON.parse(matrixCode) }),
       );
-      matrixDialog.current?.close();
       setMatrixTest(null);
       router.push('/runs');
       await refresh();
@@ -217,14 +218,14 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         </div>
         <div className="flex gap-2">
           {!isTests && (
-            <button className="ws-button" onClick={() => void refresh()}>
+            <Button className="ws-button" onClick={() => void refresh()}>
               刷新
-            </button>
+            </Button>
           )}
           {isTests ? (
-            <button className="ws-button primary" onClick={() => openEditor()}>
+            <Button className="ws-button primary" onClick={() => openEditor()}>
               <Icon name="plus" /> 新建测试
-            </button>
+            </Button>
           ) : (
             <Link href="/cases" className="ws-button primary">
               <Icon name="tests" /> 前往测试
@@ -268,9 +269,9 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           className="mt-5 flex items-center justify-between gap-4 border border-red-200 bg-red-50 p-3 text-sm text-red-700"
         >
           <span>{error}</span>
-          <button onClick={() => void refresh()} className="shrink-0 underline">
+          <Button onClick={() => void refresh()} className="shrink-0 underline">
             重试
-          </button>
+          </Button>
         </div>
       )}
       <section
@@ -280,7 +281,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e1da] p-4">
           <div className="relative w-full sm:w-80">
             <Icon name="search" className="absolute top-2.5 left-3 text-[#73766b]" width="16" />
-            <input
+            <Input
               aria-label={isTests ? '搜索测试' : '搜索结果'}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -290,22 +291,23 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-[#73766b]">状态</span>
-            <select
+            <Select
               aria-label="状态筛选"
               value={filter}
-              onChange={(event) => setFilter(event.target.value)}
+              onValueChange={(value) => setFilter(value)}
               className="ws-input w-auto"
-            >
-              <option value="all">全部状态</option>
-              <option value="passed">已通过</option>
-              <option value="failed">失败</option>
-              <option value="queued">排队中</option>
-              <option value="preparing">准备中</option>
-              <option value="finalizing">归档中</option>
-              <option value="running">执行中</option>
-              <option value="cancelled">已停止</option>
-              {isTests && <option value="none">未运行</option>}
-            </select>
+              items={[
+                { value: 'all', label: '全部状态' },
+                { value: 'passed', label: '已通过' },
+                { value: 'failed', label: '失败' },
+                { value: 'queued', label: '排队中' },
+                { value: 'preparing', label: '准备中' },
+                { value: 'finalizing', label: '归档中' },
+                { value: 'running', label: '执行中' },
+                { value: 'cancelled', label: '已停止' },
+                isTests && { value: 'none', label: '未运行' },
+              ]}
+            />
           </div>
         </div>
         {loading ? (
@@ -332,7 +334,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                   : '运行一个测试用例，查看执行状态、耗时与详细日志。'}
             </p>
             {query || filter !== 'all' ? (
-              <button
+              <Button
                 className="ws-button mt-6"
                 onClick={() => {
                   setQuery('');
@@ -340,11 +342,11 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                 }}
               >
                 清除筛选
-              </button>
+              </Button>
             ) : isTests ? (
-              <button className="ws-button primary mt-6" onClick={() => openEditor()}>
+              <Button className="ws-button primary mt-6" onClick={() => openEditor()}>
                 <Icon name="plus" /> 新建测试
-              </button>
+              </Button>
             ) : (
               <Link href="/cases" className="ws-button mt-6">
                 浏览测试 <Icon name="chevron" width="14" />
@@ -379,12 +381,12 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                         return (
                           <tr key={test.id}>
                             <td>
-                              <button
+                              <Button
                                 onClick={() => openEditor(test)}
                                 className="text-left font-medium hover:text-[#cf4f2e]"
                               >
                                 {test.name}
-                              </button>
+                              </Button>
                               <p className="mt-1 max-w-96 truncate text-xs text-[#73766b]">
                                 {test.target && test.target.platform !== 'web'
                                   ? `${test.target.platform} · ${test.target.appId}`
@@ -421,38 +423,38 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                             </td>
                             <td>
                               <div className="flex justify-end gap-1">
-                                <button
+                                <Button
                                   className="ws-button mr-2"
                                   title={running ? '请等待当前测试完成后再运行' : '运行测试'}
                                   disabled={starting}
                                   onClick={() => void start(test.id)}
                                 >
                                   <Icon name="results" width="14" /> 运行
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   className="ws-button"
                                   disabled={starting}
                                   onClick={() => openMatrix(test)}
                                 >
                                   矩阵运行
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   className="ws-icon-button"
                                   aria-label={`编辑 ${test.name}`}
                                   title="编辑"
                                   onClick={() => openEditor(test)}
                                 >
                                   <Icon name="edit" width="16" />
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   className="ws-icon-button"
                                   aria-label={`复制 ${test.name}`}
                                   title="复制"
                                   onClick={() => openEditor(test, true)}
                                 >
                                   <Icon name="copy" width="16" />
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   className="ws-icon-button"
                                   aria-label={`删除 ${test.name}`}
                                   title="删除"
@@ -461,7 +463,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                                   }}
                                 >
                                   <Icon name="trash" width="16" />
-                                </button>
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -490,7 +492,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                               <Link href={`/runs/${run.id}`} className="ws-button">
                                 查看详情 <Icon name="chevron" width="13" />
                               </Link>
-                              <button
+                              <Button
                                 className="ws-icon-button"
                                 title="导出结果"
                                 aria-label={`导出 ${run.name} 的结果`}
@@ -498,7 +500,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                                 onClick={() => void exportRun(run)}
                               >
                                 <Icon name="download" width="16" />
-                              </button>
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -518,93 +520,92 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           </span>
         </div>
       </section>
-      <dialog
-        ref={matrixDialog}
-        className="ws-dialog"
-        aria-labelledby="matrix-title"
-        onCancel={(event) => {
-          if (starting) event.preventDefault();
-        }}
-        onClose={() => setMatrixTest(null)}
-      >
-        <form onSubmit={(event) => void startMatrix(event)}>
-          <div className="ws-dialog-header">
-            <h2 id="matrix-title" className="text-lg font-semibold">
-              平台矩阵 · {matrixTest?.name}
-            </h2>
-          </div>
-          <div className="space-y-4 p-6">
-            <p className="text-sm text-page-muted">
-              填写 1–10 个运行配置。每项包含 target，可用 goal
-              覆盖该平台的步骤与预期。所有运行一起创建，各自排队。
-            </p>
-            <label className="ws-label">
-              运行配置（JSON）
-              <textarea
-                className="ws-input min-h-72 font-mono text-xs"
-                required
-                aria-label="运行配置（JSON）"
-                value={matrixCode}
-                disabled={starting}
-                onChange={(event) => setMatrixCode(event.target.value)}
-              />
-            </label>
-            <details className="text-xs text-page-muted">
-              <summary>平台配置示例</summary>
-              <pre className="mt-2 overflow-auto">
-                {JSON.stringify(
-                  [
-                    {
-                      target: {
-                        platform: 'web',
-                        url: 'https://example.com',
-                        browser: 'chromium',
-                        deviceProfile: 'Pixel 7',
-                      },
-                    },
-                    {
-                      target: {
-                        platform: 'android',
-                        appId: 'com.example.app',
-                        deviceProfileId: 'android-phone',
-                        resetPolicy: 'preserve',
-                      },
-                    },
-                    {
-                      target: {
-                        platform: 'ios',
-                        appId: 'com.example.app',
-                        deviceProfileId: 'iphone-simulator',
-                        resetPolicy: 'preserve',
-                      },
-                    },
-                  ],
-                  null,
-                  2,
-                )}
-              </pre>
-            </details>
-            {matrixError && (
-              <p role="alert" className="text-sm text-red-700">
-                {matrixError}
+      {matrixTest && (
+        <Dialog
+          titleId="matrix-title"
+          busy={starting}
+          onDismiss={() => setMatrixTest(null)}
+          initialFocus='[aria-label="运行配置（JSON）"]'
+        >
+          <form onSubmit={(event) => void startMatrix(event)}>
+            <div className="ws-dialog-header">
+              <h2 id="matrix-title" className="text-lg font-semibold">
+                平台矩阵 · {matrixTest?.name}
+              </h2>
+            </div>
+            <div className="space-y-4 p-6">
+              <p className="text-sm text-page-muted">
+                填写 1–10 个运行配置。每项包含 target，可用 goal
+                覆盖该平台的步骤与预期。所有运行一起创建，各自排队。
               </p>
-            )}
-          </div>
-          <div className="ws-dialog-footer">
-            <button
-              type="button"
-              className="ws-button"
-              disabled={starting}
-              onClick={() => matrixDialog.current?.close()}
-            >
-              取消
-            </button>
-            <button type="submit" className="ws-button primary" disabled={starting}>
-              {starting ? '创建中…' : '运行矩阵'}
-            </button>
-          </div>
-        </form>
-      </dialog>
+              <label className="ws-label">
+                运行配置（JSON）
+                <textarea
+                  className="ws-input min-h-72 font-mono text-xs"
+                  required
+                  aria-label="运行配置（JSON）"
+                  value={matrixCode}
+                  disabled={starting}
+                  onChange={(event) => setMatrixCode(event.target.value)}
+                />
+              </label>
+              <details className="text-xs text-page-muted">
+                <summary>平台配置示例</summary>
+                <pre className="mt-2 overflow-auto">
+                  {JSON.stringify(
+                    [
+                      {
+                        target: {
+                          platform: 'web',
+                          url: 'https://example.com',
+                          browser: 'chromium',
+                          deviceProfile: 'Pixel 7',
+                        },
+                      },
+                      {
+                        target: {
+                          platform: 'android',
+                          appId: 'com.example.app',
+                          deviceProfileId: 'android-phone',
+                          resetPolicy: 'preserve',
+                        },
+                      },
+                      {
+                        target: {
+                          platform: 'ios',
+                          appId: 'com.example.app',
+                          deviceProfileId: 'iphone-simulator',
+                          resetPolicy: 'preserve',
+                        },
+                      },
+                    ],
+                    null,
+                    2,
+                  )}
+                </pre>
+              </details>
+              {matrixError && (
+                <p role="alert" className="text-sm text-red-700">
+                  {matrixError}
+                </p>
+              )}
+            </div>
+            <div className="ws-dialog-footer">
+              <Button
+                type="button"
+                className="ws-button"
+                disabled={starting}
+                onClick={() => setMatrixTest(null)}
+              >
+                取消
+              </Button>
+              <Button type="submit" className="ws-button primary" disabled={starting}>
+                {starting ? '创建中…' : '运行矩阵'}
+              </Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
       {editing && (
         <TestEditor
           {...editing}

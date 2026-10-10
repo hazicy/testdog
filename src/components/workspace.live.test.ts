@@ -59,11 +59,15 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
       await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
       const dialog = page.getByRole('dialog');
       await dialog.getByLabel('测试名称', { exact: true }).fill('Native fixture');
-      await dialog.getByLabel('平台', { exact: true }).selectOption('ios');
+      await dialog.getByLabel('平台', { exact: true }).click();
+      await page.getByRole('option', { name: 'iOS · 原生应用' }).click();
       await dialog.getByLabel('应用标识', { exact: true }).fill('com.example.fixture');
-      await dialog.getByLabel('设备配置', { exact: true }).selectOption('iphone-fixture');
-      await dialog.getByLabel('应用构建', { exact: true }).selectOption(buildId);
-      await dialog.getByLabel('初始化策略', { exact: true }).selectOption('reinstall');
+      await dialog.getByLabel('设备配置', { exact: true }).click();
+      await page.getByRole('option', { name: 'iphone-fixture' }).click();
+      await dialog.getByLabel('应用构建', { exact: true }).click();
+      await page.getByRole('option', { name: /com.example.fixture · a{12}/ }).click();
+      await dialog.getByLabel('初始化策略', { exact: true }).click();
+      await page.getByRole('option', { name: '重新安装所选构建' }).click();
       await dialog.getByLabel('启动链接（可选）', { exact: true }).fill('fixture://login');
       await dialog
         .getByLabel('输入引用（JSON，可选）', { exact: true })

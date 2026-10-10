@@ -23,7 +23,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <AppShell>{children}</AppShell>
+        <div className="app-root">
+          <AppShell>{children}</AppShell>
+        </div>
       </body>
     </html>
   );
