@@ -8,7 +8,8 @@ import { useEffect, useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import { api } from '@/client/api';
 import { Dialog } from '@/components/shared/Dialog';
-import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
+import { Icon } from '@iconify/react/offline';
+import closeIcon from '@iconify-icons/lucide/x';
 
 export function TestEditor({
   test,
@@ -143,7 +144,7 @@ export function TestEditor({
             aria-label="关闭编辑器"
             onClick={() => onClose()}
           >
-            <Icon name="close" />
+            <Icon icon={closeIcon} width="18" aria-hidden="true" />
           </Button>
         </div>
         <div className="space-y-5 p-6">

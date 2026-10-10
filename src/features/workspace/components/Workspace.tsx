@@ -8,7 +8,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import type { TestRun, RunSummary } from '@/features/runs/types';
-import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
+import { Icon } from '@iconify/react/offline';
+import plusIcon from '@iconify-icons/lucide/plus';
+import testsIcon from '@iconify-icons/lucide/flask-conical';
 import { downloadRunReport } from '@/client/download';
 import { TestEditor } from '@/features/test-cases/components/TestEditor';
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
@@ -126,11 +128,11 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           )}
           {isTests ? (
             <Button className="ws-button primary" onClick={() => openEditor()}>
-              <Icon name="plus" /> 新建测试
+              <Icon icon={plusIcon} width="18" aria-hidden="true" /> 新建测试
             </Button>
           ) : (
             <Link href="/cases" className="ws-button primary">
-              <Icon name="tests" /> 前往测试
+              <Icon icon={testsIcon} width="18" aria-hidden="true" /> 前往测试
             </Link>
           )}
         </div>

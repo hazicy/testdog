@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
+import { Icon } from '@iconify/react/offline';
+import downloadIcon from '@iconify-icons/lucide/download';
+import resultsIcon from '@iconify-icons/lucide/play';
 import { isActiveRun, type TestRun } from '@/features/runs/types';
 import { statuses, time } from '../presentation';
 
@@ -71,7 +73,7 @@ export function RunHeader({ id, run, now, busy, exporting, start, cancel, export
                   className="ws-button primary"
                   onClick={() => void start('replay')}
                 >
-                  <Icon name="results" width="14" /> 重放操作
+                  <Icon icon={resultsIcon} width="14" aria-hidden="true" /> 重放操作
                 </Button>
                 {run.testId && (
                   <Button
@@ -92,7 +94,7 @@ export function RunHeader({ id, run, now, busy, exporting, start, cancel, export
             title="导出执行报告"
             onClick={() => void exportReport()}
           >
-            <Icon name="download" />
+            <Icon icon={downloadIcon} width="18" aria-hidden="true" />
           </Button>
         </div>
       </div>

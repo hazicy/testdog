@@ -5,7 +5,12 @@ import { type ComponentProps } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
+import { Icon } from '@iconify/react/offline';
+import chevronIcon from '@iconify-icons/lucide/chevron-right';
+import plusIcon from '@iconify-icons/lucide/plus';
+import resultsIcon from '@iconify-icons/lucide/play';
+import searchIcon from '@iconify-icons/lucide/search';
+import testsIcon from '@iconify-icons/lucide/flask-conical';
 import { WorkspaceRows } from './WorkspaceRows';
 
 type Props = Omit<ComponentProps<typeof WorkspaceRows>, 'visibleTests' | 'visibleRuns'> & {
@@ -59,7 +64,12 @@ export function WorkspaceList({
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-page-line p-4">
         <div className="relative w-full sm:w-80">
-          <Icon name="search" className="absolute top-2.5 left-3 text-text-subtle" width="16" />
+          <Icon
+            icon={searchIcon}
+            className="absolute top-2.5 left-3 text-text-subtle"
+            width="16"
+            aria-hidden="true"
+          />
           <Input
             aria-label={isTests ? '搜索测试' : '搜索结果'}
             value={query}
@@ -96,7 +106,12 @@ export function WorkspaceList({
       ) : (isTests ? visibleTests.length === 0 : visibleRuns.length === 0) ? (
         <div className="flex flex-col items-center px-5 py-14 text-center">
           <span className="mb-5 grid h-12 w-12 rounded-lg place-items-center border border-page-line bg-surface-muted text-text-disabled">
-            <Icon name={isTests ? 'tests' : 'results'} width="24" height="24" />
+            <Icon
+              icon={isTests ? testsIcon : resultsIcon}
+              width="24"
+              height="24"
+              aria-hidden="true"
+            />
           </span>
           <h2 className="text-base font-medium">
             {query || filter !== 'all'
@@ -124,11 +139,11 @@ export function WorkspaceList({
             </Button>
           ) : isTests ? (
             <Button className="ws-button primary mt-6" onClick={() => openEditor()}>
-              <Icon name="plus" /> 新建测试
+              <Icon icon={plusIcon} width="18" aria-hidden="true" /> 新建测试
             </Button>
           ) : (
             <Link href="/cases" className="ws-button mt-6">
-              浏览测试 <Icon name="chevron" width="14" />
+              浏览测试 <Icon icon={chevronIcon} width="14" aria-hidden="true" />
             </Link>
           )}
         </div>

@@ -6,28 +6,13 @@ import { useEffect, useState } from 'react';
 import type { useRunPlayback } from '../hooks/useRunPlayback';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
-import {
-  isActiveRun,
-  type TestRun,
-  type RunArtifact,
-  type ExecutionStep,
-} from '@/features/runs/types';
+import { Icon } from '@iconify/react/offline';
+import pauseIcon from '@iconify-icons/lucide/pause';
+import resultsIcon from '@iconify-icons/lucide/play';
+import { isActiveRun, type TestRun, type RunArtifact } from '@/features/runs/types';
 import { asset, time } from '../presentation';
+import { actionIcon } from '../lib/actionIcon';
 import { BrowserLogPanel } from './BrowserLogPanel';
-
-function actionIcon(step: ExecutionStep): Parameters<typeof Icon>[0]['name'] {
-  const action = step.platformAction?.action.type || step.action?.type;
-
-  if (step.kind === 'assertion') return 'check';
-  if (step.kind === 'branch') return 'branch';
-  if (step.kind === 'wait' || action === 'wait') return 'clock';
-  if (step.kind === 'navigate' || action === 'navigate') return 'globe';
-  if (action === 'fill' || action === 'press') return 'keyboard';
-  if (action === 'swipe') return 'scroll';
-
-  return 'pointer';
-}
 
 type Props = {
   id: string;
@@ -217,7 +202,7 @@ export function RunPlayer({
             aria-label={playing ? '暂停回看' : '播放回看'}
             onClick={toggle}
           >
-            <Icon name={playing ? 'pause' : 'results'} width="20" />
+            <Icon icon={playing ? pauseIcon : resultsIcon} width="20" aria-hidden="true" />
           </Button>
           <span aria-label="回放时间" className="whitespace-nowrap font-mono text-xs tabular-nums">
             {time(position)} / {time(total)}
@@ -264,7 +249,7 @@ export function RunPlayer({
                   className={`absolute top-0 grid h-5 w-5 -translate-x-1/2 place-items-center rounded bg-surface hover:bg-page focus-visible:outline-2 focus-visible:outline-brand ${step.status === 'failed' ? 'text-error-ink' : 'text-page-muted hover:text-brand'}`}
                   style={{ left: `${percent}%` }}
                 >
-                  <Icon name={actionIcon(step)} width="12" height="12" />
+                  <Icon icon={actionIcon(step)} aria-hidden="true" width="12" height="12" />
                 </Button>
               ))}
             </div>

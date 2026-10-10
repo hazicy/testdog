@@ -1,7 +1,11 @@
 'use client';
 
+import { Icon } from '@iconify/react/offline';
+
 import { Button } from '@/components/ui/Button';
 
+import { actionIcon } from '../lib/actionIcon';
+import { statuses } from '../presentation';
 import { memo } from 'react';
 import type { ExecutionStep } from '@/features/runs/types';
 
@@ -36,13 +40,11 @@ export const StepList = memo(function StepList({
                 className={`flex w-full items-start gap-3 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-step-hover ${selectedId === step.id ? 'bg-step-selected' : ''}`}
               >
                 <span
+                  title={statuses[step.status]}
+                  aria-label={statuses[step.status]}
                   className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center border font-mono text-xs ${step.status === 'failed' ? 'border-error-line text-error' : step.status === 'passed' ? 'border-step-success-line text-step-success' : 'border-brand text-brand'}`}
                 >
-                  {step.status === 'passed'
-                    ? '✓'
-                    : step.status === 'failed'
-                      ? '×'
-                      : step.sequence.toString().padStart(2, '0')}
+                  <Icon icon={actionIcon(step)} aria-hidden="true" width="14" height="14" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block break-words text-xs leading-5 text-ink">{step.title}</span>

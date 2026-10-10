@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
+import { Icon } from '@iconify/react/offline';
+import chevronIcon from '@iconify-icons/lucide/chevron-right';
+import copyIcon from '@iconify-icons/lucide/copy';
+import downloadIcon from '@iconify-icons/lucide/download';
+import editIcon from '@iconify-icons/lucide/pencil';
+import resultsIcon from '@iconify-icons/lucide/play';
+import trashIcon from '@iconify-icons/lucide/trash-2';
 import type { TestCase } from '@/features/test-cases/types';
 import type { RunSummary } from '@/features/runs/types';
 
@@ -128,7 +134,7 @@ export function WorkspaceRows({
                       disabled={starting}
                       onClick={() => void start(test.id)}
                     >
-                      <Icon name="results" width="14" /> 运行
+                      <Icon icon={resultsIcon} width="14" aria-hidden="true" /> 运行
                     </Button>
                     <Button
                       className="ws-button"
@@ -143,7 +149,7 @@ export function WorkspaceRows({
                       title="编辑"
                       onClick={() => openEditor(test)}
                     >
-                      <Icon name="edit" width="16" />
+                      <Icon icon={editIcon} width="16" aria-hidden="true" />
                     </Button>
                     <Button
                       className="ws-icon-button"
@@ -151,7 +157,7 @@ export function WorkspaceRows({
                       title="复制"
                       onClick={() => openEditor(test, true)}
                     >
-                      <Icon name="copy" width="16" />
+                      <Icon icon={copyIcon} width="16" aria-hidden="true" />
                     </Button>
                     <Button
                       className="ws-icon-button"
@@ -161,7 +167,7 @@ export function WorkspaceRows({
                         setDeleting(test);
                       }}
                     >
-                      <Icon name="trash" width="16" />
+                      <Icon icon={trashIcon} width="16" aria-hidden="true" />
                     </Button>
                   </div>
                 </td>
@@ -186,7 +192,7 @@ export function WorkspaceRows({
               <td>
                 <div className="flex justify-end gap-2">
                   <Link href={`/runs/${run.id}`} className="ws-button">
-                    查看详情 <Icon name="chevron" width="13" />
+                    查看详情 <Icon icon={chevronIcon} width="13" aria-hidden="true" />
                   </Link>
                   <Button
                     className="ws-icon-button"
@@ -195,7 +201,7 @@ export function WorkspaceRows({
                     disabled={exporting}
                     onClick={() => void exportRun(run)}
                   >
-                    <Icon name="download" width="16" />
+                    <Icon icon={downloadIcon} width="16" aria-hidden="true" />
                   </Button>
                 </div>
               </td>

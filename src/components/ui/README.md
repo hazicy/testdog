@@ -11,3 +11,5 @@
 应用根节点设置 `isolation: isolate`，弹窗和下拉列表拥有独立的层级。回放时间轴使用 Base UI Slider；多行文本、链接、表格保留原生 HTML；代码编辑器继续使用 CodeMirror。
 
 颜色统一在 `src/app/globals.css` 的 `:root` 中定义语义化 CSS 变量，`@theme inline` 将其映射为 Tailwind 工具类。页面和组件使用 `bg-surface`、`text-page-muted`、`border-page-line`、`text-brand` 等 token；CSS、SVG 和 CodeMirror 样式使用 `var(--surface)`、`var(--brand)` 等变量。新增颜色先定义 token，避免在组件中写十六进制颜色或使用 Tailwind 默认色板。品牌交互状态使用 `--brand-hover`、`--brand-soft`、`--brand-line` 等独立 token，调整主题时一并维护。
+
+图标直接使用 `@iconify/react/offline` 的 `Icon`，在调用文件中按需导入 `@iconify-icons/lucide` 图标数据并传给 `icon` 属性；尺寸和语义颜色由调用方设置，装饰性图标添加 `aria-hidden="true"`。动作类型到图标数据的映射由 `features/runs/lib/actionIcon.ts` 提供，时间轴与步骤列表共用。
