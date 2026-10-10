@@ -1,149 +1,217 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Brand } from '@/components/brand/Brand';
 import { MarketingDemo } from '@/features/marketing/components/MarketingDemo';
+import { MarketingMotion } from '@/features/marketing/components/MarketingMotion';
+import '@/features/marketing/components/marketing.css';
 
 const faqs = [
-  [
-    '适合哪些测试场景？',
-    '适合登录、表单提交、页面导航等具有明确操作步骤和预期结果的网页流程。复杂的数据准备和定制逻辑可以结合现有测试代码使用。',
-  ],
-  [
-    '需要编写 Playwright 脚本吗？',
-    '编写用例时只需描述操作步骤与预期结果。testdog 会组织执行计划，并通过 Playwright 操作真实浏览器。',
-  ],
-  [
-    '如何判断测试是否通过？',
-    '执行器会在操作后重新观察页面，将实际页面状态与预期结果比对。你可以在执行记录中查看步骤、截图和断言结果。',
-  ],
-  [
-    '可以在本地运行吗？',
-    '可以。配置数据库和模型服务后即可在本地运行，也可以通过 API 提交用例并发起测试。',
-  ],
+  ['需要编写测试脚本吗？', '描述步骤和预期即可。录制后，也可以编辑操作与 Playwright 断言。'],
+  ['支持哪些平台？', '支持 Web、Android 和 iOS。原生测试需配置设备 worker 与应用构建。'],
+  ['如何确认测试结果？', '通过截图、断言、日志和录像，查看执行结果与失败位置。'],
+  ['可以在本地部署吗？', '可以。配置 PostgreSQL、Redis 和模型服务后，启动应用与执行 worker。'],
 ];
 
 export default function Home() {
   return (
-    <div className="bg-page text-ink text-sm leading-relaxed">
-      <a
-        href="#main-content"
-        className="sr-only fixed left-4 top-4 z-50 bg-surface-raised p-3 focus:not-sr-only"
-      >
+    <MarketingMotion className="marketing">
+      <a href="#main-content" className="marketing-skip">
         跳转到主内容
       </a>
-      <header className="border-b border-page-line bg-page">
-        <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8">
-          <Link href="/" aria-label="testdog 首页" className="text-xl font-semibold tracking-tight">
+      <header className="marketing-header">
+        <div className="marketing-container marketing-nav">
+          <Link href="/" aria-label="testdog 首页">
             <Brand />
           </Link>
-          <nav
-            aria-label="页面导航"
-            className="ml-auto hidden items-center gap-7 text-text-secondary sm:flex"
-          >
-            <a href="#workflow" className="hover:text-ink">
-              使用流程
-            </a>
-            <a href="#faq" className="hover:text-ink">
-              常见问题
-            </a>
+          <nav aria-label="页面导航">
+            <a href="#features">产品能力</a>
+            <a href="#workflow">使用流程</a>
+            <a href="#faq">常见问题</a>
           </nav>
-          <Link href="/cases" className="ws-button">
+          <Link href="/cases" className="marketing-button small">
             进入工作台 <span aria-hidden="true">↗</span>
           </Link>
         </div>
       </header>
       <main id="main-content">
-        <section className="mx-auto max-w-6xl px-5 pb-14 pt-16 sm:px-8 sm:pt-24">
-          <div className="grid items-start gap-8 lg:grid-cols-[1.4fr_1fr] lg:gap-16">
-            <div>
-              <p className="mb-5 text-sm font-medium text-brand-hover">
-                浏览器测试，从清晰的描述开始
-              </p>
-              <h1 className="text-[28px] font-semibold leading-[1.4] tracking-tight min-[440px]:text-4xl sm:text-[40px] lg:text-[44px] xl:text-5xl">
-                用自然语言编写测试，
-                <br />
-                用页面证据验证结果。
-              </h1>
-              <Link href="/cases" className="ws-button primary mt-8">
-                新建第一个测试 <span aria-hidden="true">→</span>
+        <section className="marketing-hero marketing-container">
+          <div className="marketing-hero-copy">
+            <h1 data-entrance="100">
+              把测试交给 AI。
+              <br />
+              <span>把信心带回发布。</span>
+            </h1>
+            <p className="marketing-intro" data-entrance="200">
+              用自然语言写测试，在真实环境中验证。
+            </p>
+            <div className="marketing-actions" data-entrance="300">
+              <Link href="/cases" className="marketing-button primary">
+                开始使用 <span aria-hidden="true">↗</span>
               </Link>
+              <a href="#workflow" className="marketing-button">
+                查看演示 <span aria-hidden="true">↓</span>
+              </a>
             </div>
-            <div className="pt-1 lg:pt-11">
-              <p className="max-w-md text-base leading-8 text-text-secondary">
-                写下操作步骤和预期结果，testdog
-                会生成执行计划，在真实浏览器中完成测试，并保留可追溯的执行记录。
-              </p>
-              <p className="mt-5 text-sm text-text-subtle">
-                自然语言用例 · Playwright 执行 · 截图与断言记录
-              </p>
+          </div>
+          <div
+            className="marketing-art"
+            data-hero-art
+            data-entrance="150"
+            aria-label="testdog 将描述转化为测试证据的动态示意"
+          >
+            <div className="marketing-art-grid" />
+            <div className="marketing-orbit orbit-one" />
+            <div className="marketing-orbit orbit-two" />
+            <div className="marketing-orbit orbit-three" />
+            <div className="marketing-core" data-forge-tilt>
+              <div className="marketing-core-face">
+                <Image src="/brand/testdog-mark.svg" alt="" width={112} height={112} unoptimized />
+              </div>
+            </div>
+            <div className="marketing-art-label label-input">
+              <span className="art-icon">Aa</span>
+              <div>
+                <strong>「验证用户成功登录」</strong>
+              </div>
+            </div>
+            <div className="marketing-art-label label-execute">
+              <span className="art-icon">↗</span>
+              <div>
+                <strong>
+                  真实执行
+                  <span className="marketing-live" />
+                </strong>
+              </div>
+            </div>
+            <div className="marketing-art-label label-result">
+              <span className="art-icon green">✓</span>
+              <div>
+                <strong>验证通过</strong>
+              </div>
             </div>
           </div>
         </section>
-        <section
-          id="workflow"
-          aria-labelledby="workflow-title"
-          className="mx-auto max-w-6xl scroll-mt-8 px-5 pb-20 sm:px-8"
-        >
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="workflow-title" className="text-lg font-semibold">
-              从测试描述到执行结果
-            </h2>
-            <p className="text-sm text-text-subtle">选择一个示例，查看操作与验证过程</p>
+        <div className="marketing-platforms marketing-container">
+          <span>跨平台，轻松测。</span>
+          <div>
+            <span>◎ Web</span>
+            <span>◉ Android</span>
+            <span>◈ iOS</span>
           </div>
-          <MarketingDemo />
-          <div className="mt-10 grid gap-7 border-b border-page-line pb-12 sm:grid-cols-3 sm:gap-10">
-            {[
-              [
-                '描述用户路径',
-                '填写网站地址、操作步骤与预期结果。用例保存在工作区，方便持续维护。',
-              ],
-              [
-                '在浏览器中执行',
-                '根据当前页面组织操作，处理导航、表单与弹窗，记录每一步执行状态。',
-              ],
-              ['检查结果与证据', '查看断言、截图与执行日志，定位失败步骤，再验证修复。'],
-            ].map(([title, description], index) => (
-              <div key={title}>
-                <p className="mb-3 text-xs font-medium text-brand-hover">步骤 {index + 1}</p>
-                <h3 className="text-base font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-7 text-text-secondary">{description}</p>
+        </div>
+        <section id="features" className="marketing-section marketing-container">
+          <div className="marketing-section-heading" data-reveal>
+            <h2>测试，本该如此简单。</h2>
+          </div>
+          <div className="marketing-features">
+            <article className="marketing-feature feature-language" data-reveal>
+              <div className="marketing-feature-visual">
+                <div className="marketing-prompt">
+                  <span>测试用例</span>
+                  <p>
+                    打开登录页面
+                    <br />
+                    输入邮箱和密码
+                    <br />
+                    点击「登录」
+                    <br />
+                    <em>验证页面显示「欢迎回来」</em>
+                    <b className="marketing-caret">▍</b>
+                  </p>
+                </div>
               </div>
-            ))}
+              <h3>会表达，就能写测试。</h3>
+              <p>描述步骤与预期，AI 生成执行计划。</p>
+            </article>
+            <article className="marketing-feature" data-reveal="100">
+              <div className="marketing-feature-visual">
+                <div className="marketing-mini-flow">
+                  <span>观察页面</span>
+                  <i>↓</i>
+                  <span className="active">
+                    执行操作 <b className="marketing-live" />
+                  </span>
+                  <i>↓</i>
+                  <span>
+                    验证结果 <b>✓</b>
+                  </span>
+                </div>
+              </div>
+              <h3>在真实环境里，走一遍。</h3>
+              <p>浏览器与原生设备，真实操作，逐步验证。</p>
+            </article>
+            <article className="marketing-feature" data-reveal="200">
+              <div className="marketing-feature-visual">
+                <div className="marketing-evidence">
+                  <span className="marketing-evidence-check">✓</span>
+                  <strong>预期与页面状态一致</strong>
+                  <div>
+                    <span>截图证据</span>
+                    <span>执行日志</span>
+                    <span>操作重放</span>
+                  </div>
+                </div>
+              </div>
+              <h3>结果可信，也有迹可循。</h3>
+              <p>截图、日志与重放，让每一步有据可循。</p>
+            </article>
+          </div>
+        </section>
+        <section id="workflow" className="marketing-section marketing-container">
+          <div className="marketing-demo-heading" data-reveal>
+            <div>
+              <h2>写下步骤，见证结果。</h2>
+            </div>
+          </div>
+          <div className="marketing-demo" data-reveal>
+            <div className="marketing-demo-title">
+              <span>
+                <i />
+                <i />
+                <i />
+              </span>
+              <span>交互示例</span>
+            </div>
+            <MarketingDemo />
           </div>
         </section>
         <section
           id="faq"
-          aria-labelledby="faq-title"
-          className="mx-auto grid max-w-6xl gap-8 px-5 pb-20 sm:px-8 md:grid-cols-[1fr_2fr] md:gap-16"
+          className="marketing-section marketing-container marketing-faq"
+          data-reveal
         >
-          <h2 id="faq-title" className="text-2xl font-semibold tracking-tight">
-            常见问题
-          </h2>
-          <div className="border-t border-page-line">
+          <div>
+            <h2>常见问题</h2>
+          </div>
+          <div>
             {faqs.map(([question, answer]) => (
-              <details key={question} className="group border-b border-page-line">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-medium [&::-webkit-details-marker]:hidden">
+              <details key={question}>
+                <summary>
                   {question}
-                  <span
-                    aria-hidden="true"
-                    className="text-lg text-text-subtle group-open:rotate-45"
-                  >
-                    +
-                  </span>
+                  <span aria-hidden="true">+</span>
                 </summary>
-                <p className="max-w-2xl pb-5 pr-6 leading-7 text-text-secondary">{answer}</p>
+                <p>{answer}</p>
               </details>
             ))}
           </div>
         </section>
-      </main>
-      <footer className="border-t border-page-line">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-7 text-xs text-text-subtle sm:px-8">
-          <span>© {new Date().getFullYear()} testdog</span>
-          <Link href="/cases" className="hover:text-ink">
-            进入测试工作台 →
+        <section className="marketing-closing marketing-container" data-reveal>
+          <div className="marketing-closing-glow" />
+          <h2>
+            下一次发布，
+            <br />
+            <span>让信心先到位。</span>
+          </h2>
+          <Link href="/cases" className="marketing-button primary">
+            开始使用 testdog <span aria-hidden="true">↗</span>
           </Link>
-        </div>
+        </section>
+      </main>
+      <footer className="marketing-container marketing-footer">
+        <Brand />
+        <span>© {new Date().getFullYear()} testdog</span>
+        <a href="#main-content">回到顶部 ↑</a>
       </footer>
-    </div>
+    </MarketingMotion>
   );
 }

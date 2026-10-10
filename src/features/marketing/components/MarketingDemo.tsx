@@ -121,9 +121,6 @@ export function MarketingDemo() {
             </ol>
             <div className="mt-6 rounded-md border border-success-line bg-success-soft px-4 py-3">
               <p className="text-sm font-medium text-success-strong">页面证据：{example.title}</p>
-              <p className="mt-1 text-xs leading-5 text-text-secondary">
-                预期结果与页面状态一致 · 示例包含 4 个步骤、1 个断言
-              </p>
             </div>
           </section>
         </Tabs.Panel>
