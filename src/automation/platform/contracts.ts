@@ -128,7 +128,7 @@ export type SessionEvent = {
   action?: PlatformAction;
   assertion?: Assertion;
   platformAssertion?: PlatformAssertion;
-  playwrightAssertion?: import('@/workspace/types').PlaywrightAssertion;
+  playwrightAssertion?: import('@/features/runs/types').PlaywrightAssertion;
   condition?: string;
   decision?: boolean;
   evidence?: string;

@@ -1,10 +1,10 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { isActiveRun, type TestRun } from '@/workspace/types';
+import { isActiveRun, type TestRun } from '@/features/runs/types';
 import { createJsonReader, HttpError } from '@/client/api';
 import { useRealtime } from '@/client/useRealtime';
 import { usePolling } from '@/client/usePolling';
-import { applyRunUpdates, type Preview, type RunUpdate } from '@/workspace/realtime';
+import { applyRunUpdates, type Preview, type RunUpdate } from '@/features/runs/lib/realtime';
 
 export function useRunData(id: string, previewEnabled: boolean) {
   const [run, setRun] = useState<TestRun>();

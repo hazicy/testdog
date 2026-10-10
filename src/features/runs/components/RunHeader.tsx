@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
-import { isActiveRun, type TestRun } from '@/workspace/types';
+import { isActiveRun, type TestRun } from '@/features/runs/types';
 import { statuses, time } from '../presentation';
 
 type Props = {

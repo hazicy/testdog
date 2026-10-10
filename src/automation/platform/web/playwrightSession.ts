@@ -6,7 +6,7 @@ import { BrowserSession } from './browserSession';
 import { Observer } from './observer';
 import { executeWebAction } from './webActions';
 import { locateWebElement } from './webLocator';
-import type { ExecutionHooks } from '@/workspace/types';
+import type { ExecutionHooks } from '@/features/runs/types';
 import type {
   AutomationSession,
   Observation,

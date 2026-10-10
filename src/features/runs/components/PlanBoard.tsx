@@ -13,8 +13,8 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { Plan } from '@/automation/compiler/schema';
-import type { ExecutionStep } from '@/workspace/types';
-import { layoutPlan, type PlanLayout } from '@/workspace/planLayout';
+import type { ExecutionStep } from '@/features/runs/types';
+import { layoutPlan, type PlanLayout } from '@/features/runs/lib/planLayout';
 import { PlanNodes, type PlanFlowNode } from './PlanNodes';
 
 const nodeTypes = { plan: PlanNodes };

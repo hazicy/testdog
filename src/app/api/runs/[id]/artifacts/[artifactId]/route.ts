@@ -1,8 +1,8 @@
-import { artifactResponse } from '@/workspace/server/artifactResponse';
-import { getArtifact } from '@/workspace/server/store';
-import { artifactRoot } from '@/workspace/server/artifactStorage';
-import { apiError, validId } from '@/workspace/server/http';
-import { readArtifactFile } from '@/workspace/server/artifactStorage';
+import { artifactResponse } from '@/server/runs/artifactResponse';
+import { getArtifact } from '@/server/runs/repository';
+import { artifactRoot } from '@/server/runs/artifactStorage';
+import { apiError, validId } from '@/server/shared/http';
+import { readArtifactFile } from '@/server/runs/artifactStorage';
 
 export const runtime = 'nodejs';
 

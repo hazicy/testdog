@@ -8,7 +8,7 @@ const isolated = vi.hoisted(() => ({
 }));
 
 vi.mock('@/db', async () => {
-  const result = await (await import('@/workspace/server/testDatabase')).createTestDatabase();
+  const result = await (await import('@/server/testing/testDatabase')).createTestDatabase();
 
   isolated.client = result.client;
 

@@ -2,9 +2,9 @@ import { RESP_TYPES } from 'redis';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { testRuns } from '@/db/schema';
-import { readyRedis, redisKey } from '@/workspace/server/redis';
-import { apiError, validId } from '@/workspace/server/http';
-import type { Preview } from '@/workspace/realtime';
+import { readyRedis, redisKey } from '@/server/shared/redis';
+import { apiError, validId } from '@/server/shared/http';
+import type { Preview } from '@/features/runs/lib/realtime';
 
 export const runtime = 'nodejs';
 

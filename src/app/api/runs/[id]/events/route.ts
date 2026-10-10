@@ -1,5 +1,5 @@
-import { eventStream } from '@/workspace/server/eventStream';
-import { apiError, validId } from '@/workspace/server/http';
+import { eventStream } from '@/server/realtime/eventStream';
+import { apiError, validId } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
 

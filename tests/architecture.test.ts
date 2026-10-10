@@ -22,7 +22,7 @@ it.each([
   '@/automation/llm/jev',
   '@/automation/evaluator',
   '@/automation/planRunner',
-  '@/workspace/server/runtime',
+  '@/server/runs/runtime',
   '@/automation/platform/web/replay',
   '@/automation/platform/web/webPlanner',
   '@/automation/platform/web/browserSession',
@@ -34,22 +34,28 @@ it.each([
   '@/automation/platform/web/executor',
   '@/automation/platform/native/nativePlanner',
   '../../automation/compiler/textCompiler.ts',
-  '@/workspace/server/recordings',
-  '../../workspace/server/store',
-  '@/workspace/server/artifactResponse',
-  '@/workspace/server/artifactStorage',
-  '@/workspace/server/futureRepository',
-  '../../workspace/server/run.ts',
+  '@/server/runs/recordings',
+  '../../server/runs/repository',
+  '@/server/runs/artifactResponse',
+  '@/server/runs/artifactStorage',
+  '@/server/futureRepository',
+  '@/server/test-cases/repository',
+  '@/server/scheduling/scheduler',
+  '@/server/realtime/eventStream',
+  '@/server/shared/auth',
+  '@/server/testing/testDatabase',
+  '../../server/runs/run.ts',
 ])('blocks server runtime imports in browser components: %s', async (path) => {
   expect(await violations(`import '${path}';`)).toHaveLength(1);
 });
 
 it.each([
-  "import type { TestRun } from '@/workspace/types'; export type Run = TestRun;",
+  "import { renderToStaticMarkup } from 'react-dom/server'; export { renderToStaticMarkup };",
+  "import type { TestRun } from '@/features/runs/types'; export type Run = TestRun;",
   "import type { Executor } from '../../automation/platform/web/executor'; export type Runner = Executor;",
-  "import { recordingScript } from '@/workspace/recordingScript'; export { recordingScript };",
-  "import { planForest } from '@/workspace/planTree'; export { planForest };",
-  "import { testSchema } from '@/workspace/validation'; export { testSchema };",
+  "import { recordingScript } from '@/features/runs/lib/recordingScript'; export { recordingScript };",
+  "import { planForest } from '@/features/runs/lib/planTree'; export { planForest };",
+  "import { testSchema } from '@/features/test-cases/schemas'; export { testSchema };",
 ])('permits shared browser utilities and erased type imports', async (source) => {
   expect(await violations(source)).toEqual([]);
 });
@@ -59,11 +65,19 @@ it.each([
   'src/features/runs/hooks/useBoundaryProbe.ts',
   'src/features/test-cases/components/BoundaryProbe.tsx',
 ])('applies browser boundaries to feature components and hooks: %s', async (filePath) => {
-  for (const path of ['@/db', '@/workspace/server/runtime', '@/automation/llm/deepseek'])
+  for (const path of [
+    '@/db',
+    '@/server/runs/runtime',
+    '@/server/test-cases/repository',
+    '@/server/scheduling/lease',
+    '@/server/realtime/preview',
+    '@/server/shared/redis',
+    '@/automation/llm/deepseek',
+  ])
     expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
   expect(
     await violations(
-      "import type { TestRun } from '@/workspace/types'; export type Run = TestRun;",
+      "import type { TestRun } from '@/features/runs/types'; export type Run = TestRun;",
       filePath,
     ),
   ).toEqual([]);
@@ -73,7 +87,9 @@ it.each([
   './llm/deepseek',
   './platform/web/playwrightSession',
   '@/automation/platform/native/agentDeviceSession',
-  '@/workspace/server/runtime',
+  '@/server/runs/runtime',
+  '@/features/runs/components/RunDetail',
+  '@/features/runs/lib/recordingScript',
   '@/db',
 ])('keeps platform, model and persistence implementations out of PlanRunner: %s', async (path) => {
   expect(await violations(`import '${path}';`, 'src/automation/planRunner.ts')).toHaveLength(1);
@@ -101,7 +117,7 @@ it.each([
       '@/automation/llm/deepseek',
       '../../llm/jev.ts',
       'openai/resources/responses/responses',
-      '@/workspace/server/model',
+      '@/server/shared/model',
     ])
       expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
     expect(
@@ -117,11 +133,7 @@ it.each([
   'src/automation/platform/web/playwrightSession.ts',
   'src/automation/platform/web/recordingLocator.ts',
 ])('keeps Web sessions and recording locators independent of persistence: %s', async (filePath) => {
-  for (const path of [
-    '@/workspace/server/recorder',
-    '../../../../workspace/server/store.ts',
-    '@/db',
-  ])
+  for (const path of ['@/server/runs/recorder', '../../../../server/runs/repository.ts', '@/db'])
     expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
   expect(
     await violations(

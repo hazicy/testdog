@@ -1,8 +1,8 @@
-import { normalizeReplaySteps } from '@/workspace/replay';
+import { normalizeReplaySteps } from '@/server/runs/replay';
 import { SemanticEvaluator } from '@/automation/evaluator';
 import { deepseekClient } from '@/automation/llm/deepseek';
 import { PlanRunner } from '../../planRunner';
-import type { ExecutionStep } from '@/workspace/types';
+import type { ExecutionStep } from '@/features/runs/types';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { cp, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -16,7 +16,7 @@ const isolated = vi.hoisted(() => ({
 
 vi.mock('@/db', async (original) => {
   if (process.env.RUN_DEVICE_LIVE_TESTS !== 'true') return original<typeof import('@/db')>();
-  const result = await (await import('@/workspace/server/testDatabase')).createTestDatabase();
+  const result = await (await import('@/server/testing/testDatabase')).createTestDatabase();
 
   isolated.client = result.client;
 

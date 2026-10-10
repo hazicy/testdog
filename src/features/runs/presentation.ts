@@ -1,4 +1,4 @@
-import type { RunArtifact } from '@/workspace/types';
+import type { RunArtifact } from '@/features/runs/types';
 
 export const statuses = {
   queued: '排队中',

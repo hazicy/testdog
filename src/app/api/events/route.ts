@@ -1,4 +1,4 @@
-import { eventStream } from '@/workspace/server/eventStream';
+import { eventStream } from '@/server/realtime/eventStream';
 
 export const runtime = 'nodejs';
 

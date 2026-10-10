@@ -23,7 +23,12 @@ import {
 import { sql } from 'drizzle-orm';
 import type { RecordedAction } from '@/automation/platform/web/types';
 import type { Plan, Assertion } from '@/automation/compiler/schema';
-import type { BrowserLog, RunEvent, ExecutionStep, PlaywrightAssertion } from '@/workspace/types';
+import type {
+  BrowserLog,
+  RunEvent,
+  ExecutionStep,
+  PlaywrightAssertion,
+} from '@/features/runs/types';
 
 export const Case = pgTable('case', {
   id: integer(),

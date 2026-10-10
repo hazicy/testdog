@@ -1,16 +1,19 @@
 'use client';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { isActiveRun } from '@/workspace/types';
+import { isActiveRun } from '@/features/runs/types';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { RecordingVersion, TestRun } from '@/workspace/types';
-import { parseRecordingScript, recordingScript } from '@/workspace/recordingScript';
-import { deviceRecordingScript, parseDeviceRecordingScript } from '@/workspace/deviceRecording';
+import type { RecordingVersion, TestRun } from '@/features/runs/types';
+import { parseRecordingScript, recordingScript } from '@/features/runs/lib/recordingScript';
+import {
+  deviceRecordingScript,
+  parseDeviceRecordingScript,
+} from '@/features/runs/lib/deviceRecording';
 import { CodeEditor } from './CodeEditor';
 import { requestJson as request } from '@/client/api';
 import { downloadText } from '@/client/download';
-import { recordingCodeSchema, recordingInputMessage } from '@/workspace/validation';
+import { recordingCodeSchema, recordingInputMessage } from '@/features/runs/schemas';
 
 export function RecordingEditor({ run }: { run: TestRun }) {
   const router = useRouter();

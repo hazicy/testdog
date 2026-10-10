@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/db', async () => {
-  const result = await (await import('@/workspace/server/testDatabase')).createTestDatabase();
+  const result = await (await import('@/server/testing/testDatabase')).createTestDatabase();
 
   mocks.client = result.client;
 
@@ -17,8 +17,9 @@ vi.mock('next/server', async (original) => ({
   ...(await original<typeof import('next/server')>()),
   after: mocks.after,
 }));
-vi.mock('@/workspace/server/run', () => ({ executeRun: mocks.execute }));
-import { saveTest, getRun } from '@/workspace/server/store';
+vi.mock('@/server/runs/run', () => ({ executeRun: mocks.execute }));
+import { saveTest } from '@/server/test-cases/repository';
+import { getRun } from '@/server/runs/repository';
 import { POST, GET } from './route';
 
 beforeEach(async () => {

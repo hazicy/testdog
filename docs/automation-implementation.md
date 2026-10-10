@@ -27,7 +27,7 @@ pnpm typecheck
 pnpm format:check
 pnpm build
 RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/sdk pnpm exec vitest run src/automation/platform/native/agentDevice.live.test.ts
-CASEFORGE_TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/caseforge_test_scheduler pnpm exec vitest run src/workspace/server/scheduler.postgres.test.ts
+CASEFORGE_TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/caseforge_test_scheduler pnpm exec vitest run src/server/scheduling/scheduler.postgres.test.ts
 CASEFORGE_UI_URL=http://127.0.0.1:3015 pnpm exec vitest run src/features/workspace/workspace.live.test.ts
 ```
 

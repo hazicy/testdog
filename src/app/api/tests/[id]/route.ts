@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { saveTest, deleteTest } from '@/workspace/server/store';
-import { testSchema } from '@/workspace/validation';
-import { apiError, validId } from '@/workspace/server/http';
+import { saveTest, deleteTest } from '@/server/test-cases/repository';
+import { testSchema } from '@/features/test-cases/schemas';
+import { apiError, validId } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };

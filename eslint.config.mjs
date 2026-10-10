@@ -4,6 +4,8 @@ import nextTs from 'eslint-config-next/typescript';
 import prettier from 'eslint-config-prettier/flat';
 import stylistic from '@stylistic/eslint-plugin';
 
+const serverImportPattern = '^(?:@/|(?:\\.{1,2}/)+(?:src/)?)server(?:/|$)';
+
 const functionStatements = [
   'function',
   {
@@ -45,8 +47,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex:
-                '^openai(?:/|$)|(?:^|/)llm/(?!contracts(?:\\.[cm]?[jt]sx?)?$)|(?:^|/)workspace/server(?:/|$)',
+              regex: `^openai(?:/|$)|(?:^|/)llm/(?!contracts(?:\\.[cm]?[jt]sx?)?$)|${serverImportPattern}`,
               message: '模型消费者依赖 ModelClient；具体模型和 SDK 由装配层选择并注入。',
             },
           ],
@@ -65,7 +66,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: '(?:^|/)(?:workspace/server|db)(?:/.*)?$',
+              regex: `(?:^|/)db(?:/.*)?$|${serverImportPattern}`,
               message: 'Web 会话和录制定位依赖平台能力，不直接依赖工作台服务端或数据库。',
             },
           ],
@@ -81,7 +82,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: '(?:^|/)(?:llm|workspace|db|platform/(?:web|native))(?:/.*)?$',
+              regex: `(?:^|/)(?:llm|features|db|platform/(?:web|native))(?:/.*)?$|${serverImportPattern}`,
               allowTypeImports: true,
               message: 'PlanRunner 通过注入接口编排执行，不直接依赖平台驱动、模型或工作台存储。',
             },
@@ -102,8 +103,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex:
-                '(?:^|/)(?:db(?:/.*)?|workspace/server(?:/.*)?|automation/(?:planRunner|evaluator|llm(?:/.*)?|platform/web/(?:browserSession|executor|observer|pageReadiness|webPlanner|webActions|webLocator|recordingLocator|replay)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$',
+              regex: `(?:^|/)(?:db(?:/.*)?|automation/(?:planRunner|evaluator|llm(?:/.*)?|platform/web/(?:browserSession|executor|observer|pageReadiness|webPlanner|webActions|webLocator|recordingLocator|replay)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$|${serverImportPattern}`,
               allowTypeImports: true,
               message: '浏览器组件通过 API 访问服务端功能；共享类型请使用 import type。',
             },

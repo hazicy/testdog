@@ -1,16 +1,16 @@
 'use client';
 import { Button } from '@/components/ui/Button';
 
-import { isActiveRun } from '@/workspace/types';
+import { isActiveRun } from '@/features/runs/types';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { ExecutionStep, TestRun } from '@/workspace/types';
+import type { ExecutionStep, TestRun } from '@/features/runs/types';
 import { requestJson as request } from '@/client/api';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { downloadRunReport } from '@/client/download';
 import { StepList } from './StepList';
-import { indexRun } from '@/workspace/runIndex';
+import { indexRun } from '@/features/runs/lib/runIndex';
 import { useRunData } from '../hooks/useRunData';
 import { useRunPlayback } from '../hooks/useRunPlayback';
 import { RunHeader } from './RunHeader';

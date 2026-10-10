@@ -1,7 +1,7 @@
 'use client';
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
-import type { TestCase } from '@/workspace/types';
+import type { TestCase } from '@/features/test-cases/types';
 import { requestJson as api } from '@/client/api';
 import { Dialog } from '@/components/shared/Dialog';
 

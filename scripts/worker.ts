@@ -1,18 +1,18 @@
 import 'dotenv/config';
-import { startOutboxPublisher, stopOutboxPublisher } from '../src/workspace/server/realtime';
-import { closeRedis } from '../src/workspace/server/redis';
+import { startOutboxPublisher, stopOutboxPublisher } from '../src/server/realtime/realtime';
+import { closeRedis } from '../src/server/shared/redis';
 import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { executeRun } from '../src/workspace/server/run';
+import { executeRun } from '../src/server/runs/run';
 import {
   claimRun,
   recoverLeases,
   registerWorker,
   withLease,
-} from '../src/workspace/server/scheduler';
+} from '../src/server/scheduling/scheduler';
 import { pool } from '../src/db';
-import { cancelRun } from '../src/workspace/server/run';
+import { cancelRun } from '../src/server/runs/run';
 
 const configSchema = z
   .array(

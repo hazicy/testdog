@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it } from 'vitest';
 import { BrowserLogPanel } from './BrowserLogPanel';
-import type { BrowserLog } from '@/workspace/types';
+import type { BrowserLog } from '@/features/runs/types';
 
 it('renders saved console and network records with expandable details', () => {
   const base = {

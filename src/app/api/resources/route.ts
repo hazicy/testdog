@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { listResources, listWorkers } from '@/workspace/server/scheduler';
-import { apiError } from '@/workspace/server/http';
+import { listResources, listWorkers } from '@/server/scheduling/scheduler';
+import { apiError } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
 

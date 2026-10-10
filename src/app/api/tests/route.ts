@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { listTests, saveTest } from '@/workspace/server/store';
-import { testSchema } from '@/workspace/validation';
-import { apiError } from '@/workspace/server/http';
+import { listTests, saveTest } from '@/server/test-cases/repository';
+import { testSchema } from '@/features/test-cases/schemas';
+import { apiError } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
 

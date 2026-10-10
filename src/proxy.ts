@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { workspaceAuthorized } from './workspace/server/auth';
+import { workspaceAuthorized } from './server/shared/auth';
 
 export function proxy(request: NextRequest) {
   if (!workspaceAuthorized(request))

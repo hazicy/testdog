@@ -1,5 +1,5 @@
 import { requestJson } from './api';
-import type { TestRun } from '@/workspace/types';
+import type { TestRun } from '@/features/runs/types';
 
 export function downloadText(content: string, filename: string, type: string) {
   const href = URL.createObjectURL(new Blob([content], { type }));

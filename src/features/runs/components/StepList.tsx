@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/Button';
 
 import { memo } from 'react';
-import type { ExecutionStep } from '@/workspace/types';
+import type { ExecutionStep } from '@/features/runs/types';
 
 const kinds = { action: '操作', navigate: '导航', wait: '等待', assertion: '断言', branch: '分支' };
 

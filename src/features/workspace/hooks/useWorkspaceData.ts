@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { TestCase, RunSummary } from '@/workspace/types';
+import type { TestCase } from '@/features/test-cases/types';
+import type { RunSummary } from '@/features/runs/types';
 import { requestJson as api } from '@/client/api';
 import { useRealtime } from '@/client/useRealtime';
 import { usePolling } from '@/client/usePolling';

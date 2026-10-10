@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { Button } from '@/components/ui/Button';
 import type { PlanNode } from '@/automation/compiler/schema';
-import type { ExecutionStep } from '@/workspace/types';
+import type { ExecutionStep } from '@/features/runs/types';
 
 export type PlanFlowNode = Node<
   {

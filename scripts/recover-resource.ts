@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { hostname } from 'node:os';
-import { recoverLocalResource } from '../src/workspace/server/resourceRecovery';
+import { recoverLocalResource } from '../src/server/scheduling/resourceRecovery';
 import { pool } from '../src/db';
 
 const id = process.argv[2];

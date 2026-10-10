@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import type { TestCase, TestRun, RunSummary } from '../../src/workspace/types';
+import type { TestCase } from '../../src/features/test-cases/types';
+import type { TestRun, RunSummary } from '../../src/features/runs/types';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/builds', (route) => route.fulfill({ json: { builds: [] } }));

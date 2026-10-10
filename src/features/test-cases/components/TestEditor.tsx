@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useEffect, useState } from 'react';
-import type { TestCase } from '@/workspace/types';
+import type { TestCase } from '@/features/test-cases/types';
 import { requestJson as api } from '@/client/api';
 import { Dialog } from '@/components/shared/Dialog';
 import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';

@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { TestTargetSchema } from '@/automation/platform/target';
-import { createRun } from '@/workspace/server/store';
+import { createRun } from '@/server/runs/repository';
 import { db } from '@/db';
-import { apiError } from '@/workspace/server/http';
+import { apiError } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
 const schema = z.strictObject({

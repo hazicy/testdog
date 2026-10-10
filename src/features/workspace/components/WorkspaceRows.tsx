@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
-import type { TestCase, RunSummary } from '@/workspace/types';
+import type { TestCase } from '@/features/test-cases/types';
+import type { RunSummary } from '@/features/runs/types';
 
 const statusLabels = {
   queued: '排队中',

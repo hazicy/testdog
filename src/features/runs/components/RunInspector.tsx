@@ -1,7 +1,7 @@
 'use client';
 import { Button } from '@/components/ui/Button';
-import type { ExecutionStep, RunArtifact, TestRun } from '@/workspace/types';
-import type { indexRun } from '@/workspace/runIndex';
+import type { ExecutionStep, RunArtifact, TestRun } from '@/features/runs/types';
+import type { indexRun } from '@/features/runs/lib/runIndex';
 import { BrowserLogPanel } from './BrowserLogPanel';
 import { asset, statuses } from '../presentation';
 

@@ -2,8 +2,8 @@ import { chromium, type Browser, type Page } from 'playwright';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { PlaywrightSession } from './playwrightSession';
 import { PlanRunner } from '../../planRunner';
-import { normalizeReplaySteps } from '@/workspace/replay';
-import type { ExecutionStep } from '@/workspace/types';
+import { normalizeReplaySteps } from '@/server/runs/replay';
+import type { ExecutionStep } from '@/features/runs/types';
 
 let browser: Browser;
 let page: Page;

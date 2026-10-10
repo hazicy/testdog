@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { automationBuilds } from '@/db/schema';
-import { apiError } from '@/workspace/server/http';
+import { apiError } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
 

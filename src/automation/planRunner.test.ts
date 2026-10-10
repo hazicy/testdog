@@ -1,4 +1,4 @@
-import { normalizeReplaySteps } from '@/workspace/replay';
+import { normalizeReplaySteps } from '@/server/runs/replay';
 import { beforeEach, expect, it, vi } from 'vitest';
 import type {
   ActionPlanner,
@@ -6,7 +6,7 @@ import type {
   Observation,
   SessionEvent,
 } from './platform/contracts';
-import type { ExecutionStep } from '@/workspace/types';
+import type { ExecutionStep } from '@/features/runs/types';
 import { PlanRunner } from './planRunner';
 
 const evaluator = { evaluate: vi.fn(async () => ({ passed: true, evidence: 'Verified' })) };

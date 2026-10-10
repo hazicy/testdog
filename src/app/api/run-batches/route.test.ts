@@ -1,3 +1,4 @@
+import { WorkspaceError } from '@/server/shared/errors';
 import { afterAll, beforeEach, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
@@ -9,20 +10,20 @@ const fixture = vi.hoisted(() => ({
 }));
 
 vi.mock('@/db', async () => {
-  const isolated = await (await import('@/workspace/server/testDatabase')).createTestDatabase();
+  const isolated = await (await import('@/server/testing/testDatabase')).createTestDatabase();
 
   fixture.client = isolated.client;
 
   return { db: isolated.db };
 });
-vi.mock('@/workspace/server/store', async (original) => {
-  const store = await original<typeof import('@/workspace/server/store')>();
+vi.mock('@/server/runs/repository', async (original) => {
+  const store = await original<typeof import('@/server/runs/repository')>();
 
   return {
     ...store,
     createRun: (...args: Parameters<typeof store.createRun>) => {
       if (fixture.failSecond && ++fixture.calls === 2)
-        throw new store.WorkspaceError('Injected second variant failure');
+        throw new WorkspaceError('Injected second variant failure');
 
       return store.createRun(...args);
     },

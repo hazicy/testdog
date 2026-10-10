@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useState } from 'react';
-import type { BrowserLog } from '@/workspace/types';
+import type { BrowserLog } from '@/features/runs/types';
 
 export function BrowserLogPanel({
   logs,

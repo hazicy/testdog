@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { recordingRequestSchema, recordingInputMessage } from '@/workspace/validation';
-import { apiError, validId } from '@/workspace/server/http';
-import { listRecordingVersions, saveRecordingVersion } from '@/workspace/server/recordings';
+import { recordingRequestSchema, recordingInputMessage } from '@/features/runs/schemas';
+import { apiError, validId } from '@/server/shared/http';
+import { listRecordingVersions, saveRecordingVersion } from '@/server/runs/recordings';
 
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };

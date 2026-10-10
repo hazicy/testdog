@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { chromium, expect as browserExpect } from '@playwright/test';
 import { expect, it } from 'vitest';
-import type { TestCase, TestRun } from '@/workspace/types';
+import type { TestCase } from '@/features/test-cases/types';
+import type { TestRun } from '@/features/runs/types';
 
 it.skipIf(!process.env.CASEFORGE_UI_URL)(
   'edits native setup and submits a platform matrix in the real workspace UI',

@@ -1,7 +1,7 @@
 import { expect as playwrightExpect } from '@playwright/test';
 import type { Page } from 'playwright';
 import { randomUUID } from 'node:crypto';
-import type { ExecutionHooks, ExecutionStep, StepSignal } from '@/workspace/types';
+import type { ExecutionHooks, ExecutionStep, StepSignal } from '@/features/runs/types';
 import { type JSONType, z } from 'zod';
 import { WebActionPlanner } from './webPlanner';
 import type { ActionPlanner } from '../contracts';

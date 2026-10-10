@@ -58,7 +58,7 @@ SSE 重连从一致性快照恢复；连接中每 15 秒校验运行版本或列
 隔离 Redis 集成验证会启动临时本地 Redis，使用随机端口和独立 key 前缀，不访问开发数据库：
 
 ```bash
-CASEFORGE_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run src/workspace/server/realtime.integration.test.ts
+CASEFORGE_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run src/server/realtime/realtime.integration.test.ts
 ```
 
 ## 目录
@@ -66,11 +66,11 @@ CASEFORGE_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run src/works
 ```text
 src/
   app/                 页面、布局与 API 路由
-  features/            按业务功能组织的浏览器端组件与 hooks
+  features/            按业务功能组织的组件、hooks 与共享领域代码
     marketing/         首页演示与动效
-    test-cases/        用例编辑、删除与平台矩阵弹窗
+    test-cases/        用例类型、校验、编辑、删除与平台矩阵弹窗
     workspace/         用例和执行记录列表、统计与数据订阅
-    runs/              执行详情、播放器、证据面板、画板与录制编辑
+    runs/              执行类型、校验、纯函数、播放器、画板与录制编辑
   components/          跨功能复用的组件
     ui/                基础交互组件
     shell/             工作区导航与布局
@@ -84,8 +84,13 @@ src/
     platform/          统一会话协议、执行策略与目标配置
       web/             浏览器会话、观察、动作规划、执行与定位
       native/          Android/iOS 会话、规划、诊断与构建管理
-  workspace/           共享类型、校验、录制脚本解析与计划树
-    server/            运行时装配、数据库仓库、步骤记录、附件与运行生命周期
+  server/              API 与 worker 共用的后端业务层
+    test-cases/        用例 CRUD 与数据访问
+    runs/              执行记录、运行时、录制、日志与证据归档
+    scheduling/        worker 注册、资源分配、租约与恢复
+    realtime/          SSE、实时预览与事件发布
+    shared/            鉴权、错误、HTTP、Redis 与模型装配
+    testing/           隔离测试数据库辅助代码
   db/                  Drizzle 表定义与 PostgreSQL 连接
 drizzle/              数据库迁移
 docs/                 数据模型和 API 文档
@@ -119,7 +124,7 @@ pnpm test:ui
 真实模型录制与重放验证使用本地示例网站和隔离数据库，可单独运行：
 
 ```bash
-RUN_WORKSPACE_LIVE_TESTS=true pnpm exec vitest run src/workspace/server/liveRun.integration.test.ts
+RUN_WORKSPACE_LIVE_TESTS=true pnpm exec vitest run src/server/runs/liveRun.integration.test.ts
 ```
 
 只验证用例编译的原有集成测试：

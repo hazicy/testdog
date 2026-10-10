@@ -4,7 +4,7 @@ import type { useRunPlayback } from '../hooks/useRunPlayback';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
-import { isActiveRun, type TestRun, type RunArtifact } from '@/workspace/types';
+import { isActiveRun, type TestRun, type RunArtifact } from '@/features/runs/types';
 import { asset, time } from '../presentation';
 
 type Props = {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getRun, requestCancellation } from '@/workspace/server/store';
-import { apiError, validId } from '@/workspace/server/http';
-import { jsonResponse } from '@/workspace/server/jsonResponse';
+import { getRun, requestCancellation } from '@/server/runs/repository';
+import { apiError, validId } from '@/server/shared/http';
+import { jsonResponse } from '@/server/shared/jsonResponse';
 
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
