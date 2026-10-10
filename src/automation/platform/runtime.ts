@@ -20,6 +20,7 @@ export interface PlatformRuntime {
   environment: Record<string, unknown>;
   initial?: PlatformAction;
   finalize(interrupted: boolean): Promise<void>;
+  cleanup?(): Promise<void>;
   healthy: boolean;
 }
 
@@ -151,6 +152,8 @@ export async function openPlatformRuntime(input: {
     );
     if (secrets.enabled)
       session.capabilities.artifacts = ['screenshot', 'snapshot', 'console', 'network'];
+    let browserCleanup: Promise<void> | undefined;
+
     const runtime: PlatformRuntime = {
       session,
       planner: new WebActionPlanner(new Planner(signal)),
@@ -172,14 +175,18 @@ export async function openPlatformRuntime(input: {
           }
         : undefined,
       healthy: false,
+      cleanup() {
+        return (browserCleanup ??= browser!.close().then(() => {
+          runtime.healthy = true;
+        }));
+      },
       async finalize(interrupted) {
         signal.removeEventListener('abort', stop);
-        await session.close();
         try {
+          await session.close();
           await recorder!.stop(context!, interrupted);
         } finally {
-          await browser!.close();
-          runtime.healthy = true;
+          await runtime.cleanup!();
         }
         evidence.assertComplete();
       },

@@ -9,6 +9,7 @@ import { openPlatformRuntime, type PlatformRuntime } from '@/automation/platform
 import type { TestRun } from '../types';
 import { testRuns } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { finalizeRuntime } from './finalizeRuntime';
 
 const state = globalThis as typeof globalThis & { caseforgeJobs?: Map<string, AbortController> };
 const jobs = (state.caseforgeJobs ??= new Map());
@@ -137,23 +138,12 @@ export async function executeRun(
     if (current?.cancelRequested) status = 'cancelled';
     await setRunPhase(run.id, 'finalizing').catch(() => {});
     if (runtime) {
-      let archiveTimer: ReturnType<typeof setTimeout> | undefined;
       try {
-        await Promise.race([
-          runtime.finalize(controller.signal.aborted),
-          new Promise<never>((_resolve, reject) => {
-            archiveTimer = setTimeout(
-              () => reject(new Error('证据归档超过 30 秒上限，资源将保持隔离')),
-              30000,
-            );
-          }),
-        ]);
+        await finalizeRuntime(runtime, controller.signal.aborted);
       } catch (cause) {
         evidenceComplete = false;
         if (status !== 'cancelled') status = 'failed';
         error = `${error ? `${error}\n` : ''}无法归档执行证据：${errorMessage(cause)}`;
-      } finally {
-        clearTimeout(archiveTimer);
       }
     }
     jobs.delete(run.id);

@@ -23,6 +23,8 @@ import { requestCancellation } from './runLifecycle';
 import { recordingScript } from '../recordingScript';
 import { claimRun, registerWorker } from './scheduler';
 import { executeRun, cancelRun } from './run';
+import { RunRecorder } from './recorder';
+import { listResources } from './scheduler';
 import { GET as serveArtifact } from '@/app/api/runs/[id]/artifacts/[artifactId]/route';
 
 let server: Server;
@@ -329,6 +331,37 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     expect(wait).toBeDefined();
     expect(wait!.durationMs).toBeLessThan(2000);
     expect(result.steps.at(-1)?.evidence).toContain('Popup ready');
+  }, 30000);
+
+  it('fails incomplete evidence but releases the closed browser slot for the next run', async () => {
+    const original = RunRecorder.prototype.stop;
+    const archive = vi.spyOn(RunRecorder.prototype, 'stop').mockImplementationOnce(async function (
+      this: RunRecorder,
+      ...args
+    ) {
+      await original.apply(this, args);
+      throw new Error('evidence export failed');
+    });
+    try {
+      const run = await createRun({ case: 'Archive failure', url });
+
+      await executeRun(run);
+      const result = await getRun(run.id);
+
+      expect(result.status).toBe('failed');
+      expect(result.evidenceComplete).toBe(false);
+      expect(result.replayable).toBe(false);
+      expect(result.error).toContain('evidence export failed');
+      expect(
+        (await listResources()).find((resource) => resource.id === result.resourceId)?.status,
+      ).toBe('available');
+      const next = await createRun({ case: 'Next browser run', url });
+
+      await executeRun(next);
+      expect((await getRun(next.id)).status).toBe('passed');
+    } finally {
+      archive.mockRestore();
+    }
   }, 30000);
 
   it('closes an active browser on cancellation and archives its existing video', async () => {

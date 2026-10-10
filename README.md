@@ -130,7 +130,7 @@ API 和 worker 连接同一个数据库。本地附件模式需共享 CASEFORGE_
 
 生产模式默认要求认证。设置 CASEFORGE_AUTH_USER 和 CASEFORGE_AUTH_PASSWORD，通过 HTTPS 访问；浏览器使用标准认证对话框，API 使用 Basic Authorization。CASEFORGE_REQUIRE_AUTH=true 可在开发模式强制认证；受控本地部署可显式设置 CASEFORGE_ALLOW_UNAUTHENTICATED=true。
 
-worker 默认并发数为登记资源数，可用 CASEFORGE_WORKER_CONCURRENCY 降低。每条执行独占一个 slot/设备；排队默认上限 1 小时（CASEFORGE_QUEUE_TIMEOUT_MS），准备 2 分钟，执行 5 分钟，归档 30 秒。
+worker 默认并发数为登记资源数，可用 CASEFORGE_WORKER_CONCURRENCY 降低。每条执行独占一个 slot/设备；排队默认上限 1 小时（CASEFORGE_QUEUE_TIMEOUT_MS），准备 2 分钟，执行 5 分钟，归档 30 秒。Web 归档超时后另给浏览器清理最多 10 秒；确认浏览器关闭后释放 slot，但证据不完整的执行仍标记失败并禁止重放。清理失败或超时才隔离该 Web slot；原生资源继续按设备清理与诊断结果判断能否释放。
 
 浏览器日志使用独立的 `run_browser_logs` 表批量追加。升级此版本前先停止接收新执行并排空旧 worker，再运行 `pnpm db:migrate`，部署新版 API/worker；迁移会保留历史日志顺序，并清空运行主表里的旧日志 JSON。旧 worker 不应与新版同时写日志。Web 操作前后仍同步采集截图和快照，附件入库交给最多 16 项的共享队列；队列满时执行等待，保存失败会在后续操作或归档时报错。实时截图在步骤执行或证据入库繁忙时跳过，归档停止周期性日志刷新并等待证据队列排空后才确认完成。
 
