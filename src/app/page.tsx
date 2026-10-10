@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MarketingDemo } from '@/components/marketing/MarketingDemo';
+import { MarketingDemo } from '@/features/marketing/components/MarketingDemo';
 
 const faqs = [
   [

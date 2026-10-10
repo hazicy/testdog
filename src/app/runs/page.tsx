@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Workspace } from '@/components/workspace/Workspace';
+import { Workspace } from '@/features/workspace/components/Workspace';
 
 export default function Runs() {
   return (

@@ -66,13 +66,16 @@ CASEFORGE_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run src/works
 ```text
 src/
   app/                 页面、布局与 API 路由
-  components/          营销页、工作台与执行工作室
+  features/            按业务功能组织的浏览器端组件与 hooks
     marketing/         首页演示与动效
+    test-cases/        用例编辑、删除与平台矩阵弹窗
+    workspace/         用例和执行记录列表、统计与数据订阅
+    runs/              执行详情、播放器、证据面板、画板与录制编辑
+  components/          跨功能复用的组件
+    ui/                基础交互组件
     shell/             工作区导航与布局
-    workspace/         用例和结果列表、用例编辑与删除弹窗
-    studio/            执行详情、画板、录制与代码编辑器
-    shared/            图标与原生模态框
-  client/              浏览器端 JSON 请求、串行刷新与轮询生命周期
+    shared/            图标、错误状态与弹窗兼容导出
+  client/              浏览器端 JSON 请求、串行刷新、SSE 与轮询生命周期
   automation/          用例编译与统一计划执行
     compiler/          用例计划和动作 schema
     llm/               统一 ModelClient 契约与模型适配器
@@ -172,4 +175,4 @@ RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_RO
 
 该测试为 iOS 创建并删除独立 simulator；Android 需要指定已启动的专用 emulator。Android fixture 编译使用 SDK 36 与 build-tools 36.0.0，Java 路径可用 CASEFORGE_JAVA_HOME 设置。
 
-浏览器工作台验收使用真实页面和隔离 API fixtures：启动本地服务后运行 `CASEFORGE_UI_URL=http://localhost:3015 pnpm exec vitest run src/components/workspace.live.test.ts`。
+浏览器工作台验收使用真实页面和隔离 API fixtures：启动本地服务后运行 `CASEFORGE_UI_URL=http://localhost:3015 pnpm exec vitest run src/features/workspace/workspace.live.test.ts`。

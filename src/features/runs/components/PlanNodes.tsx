@@ -36,7 +36,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       <Handle type="target" position={Position.Left} style={{ top: 28 }} isConnectable={false} />
       <Handle type="source" position={Position.Right} style={{ top: 28 }} isConnectable={false} />
       <Button
-        className="plan-node-header nodrag"
+        className="plan-node-header nodrag pointer-events-auto"
         onClick={() => onSelect(n.id)}
         aria-label={data.reference ? `查看引用节点 ${n.id}` : `查看节点 ${n.id}`}
       >

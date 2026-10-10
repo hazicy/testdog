@@ -91,7 +91,11 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ['src/components/**/*.{ts,tsx}', 'src/client/**/*.{ts,tsx}'],
+    files: [
+      'src/components/**/*.{ts,tsx}',
+      'src/features/**/*.{ts,tsx}',
+      'src/client/**/*.{ts,tsx}',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',

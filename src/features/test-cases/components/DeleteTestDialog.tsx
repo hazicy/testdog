@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
 import type { TestCase } from '@/workspace/types';
 import { requestJson as api } from '@/client/api';
-import { Dialog } from '../shared/Dialog';
+import { Dialog } from '@/components/shared/Dialog';
 
 export function DeleteTestDialog({
   test,

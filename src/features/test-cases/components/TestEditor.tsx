@@ -6,8 +6,8 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { useEffect, useState } from 'react';
 import type { TestCase } from '@/workspace/types';
 import { requestJson as api } from '@/client/api';
-import { Dialog } from '../shared/Dialog';
-import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
+import { Dialog } from '@/components/shared/Dialog';
+import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
 
 export function TestEditor({
   test,

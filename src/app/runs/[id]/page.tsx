@@ -1,4 +1,4 @@
-import { RunDetail } from '@/components/studio/RunDetail';
+import { RunDetail } from '@/features/runs/components/RunDetail';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
 

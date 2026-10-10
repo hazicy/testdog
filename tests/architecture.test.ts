@@ -55,6 +55,21 @@ it.each([
 });
 
 it.each([
+  'src/features/workspace/components/BoundaryProbe.tsx',
+  'src/features/runs/hooks/useBoundaryProbe.ts',
+  'src/features/test-cases/components/BoundaryProbe.tsx',
+])('applies browser boundaries to feature components and hooks: %s', async (filePath) => {
+  for (const path of ['@/db', '@/workspace/server/runtime', '@/automation/llm/deepseek'])
+    expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
+  expect(
+    await violations(
+      "import type { TestRun } from '@/workspace/types'; export type Run = TestRun;",
+      filePath,
+    ),
+  ).toEqual([]);
+});
+
+it.each([
   './llm/deepseek',
   './platform/web/playwrightSession',
   '@/automation/platform/native/agentDeviceSession',
