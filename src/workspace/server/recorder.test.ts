@@ -77,6 +77,49 @@ async function fixture() {
 }
 
 describe('recorder cleanup and partial archive recovery', () => {
+  it('captures before/after evidence without waiting for slow storage and freezes page metadata', async () => {
+    const { recorder, context, browserContext, page } = await fixture();
+    let release!: () => void;
+
+    store.insertArtifact.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const id = randomUUID();
+    const browserPage = page as unknown as Page;
+
+    await recorder.onStep({ id, kind: 'assertion', title: 'Check', phase: 'start' }, browserPage);
+    page.url = () => 'https://example.com/after';
+    await recorder.onStep({ id, kind: 'assertion', title: 'Check', phase: 'finish' }, browserPage);
+    expect(page.screenshot).toHaveBeenCalledTimes(2);
+    expect(store.insertArtifact).toHaveBeenCalledTimes(1);
+    const stopping = recorder.stop(browserContext);
+
+    expect(context.close).not.toHaveBeenCalled();
+    release();
+    await stopping;
+    expect(
+      store.insertArtifact.mock.calls
+        .slice(0, 2)
+        .map(([artifact]) => [artifact.stage, artifact.pageUrl, artifact.stepId]),
+    ).toEqual([
+      ['before', 'https://example.com', id],
+      ['after', 'https://example.com/after', id],
+    ]);
+    expect(context.close).toHaveBeenCalledOnce();
+  });
+
+  it('reports background persistence failures and still archives trace/video and closes the context', async () => {
+    const { recorder, context, browserContext, page } = await fixture();
+
+    store.insertArtifact.mockRejectedValueOnce(new Error('database offline'));
+    await recorder.capture(page as unknown as Page, 'before');
+    await expect(recorder.stop(browserContext)).rejects.toThrow('执行附件归档失败');
+    expect(context.close).toHaveBeenCalledOnce();
+    expect(store.insertArtifact.mock.calls.map(([artifact]) => artifact.kind)).toContain('video');
+  });
   it.skipIf(process.platform === 'win32')(
     'restricts execution directories and archived attachments to the owner',
     async () => {

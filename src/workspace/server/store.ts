@@ -10,6 +10,7 @@ import {
   testRuns,
   runSteps,
   runArtifacts,
+  runBrowserLogs,
   recordingVersions,
   automationRunEvents,
 } from '@/db/schema';
@@ -178,19 +179,25 @@ async function getRunSnapshot(id: string): Promise<TestRun> {
 
 export async function getRun(id: string): Promise<TestRun> {
   const run = await getRunSnapshot(id);
-  const [steps, artifacts] = await Promise.all([
+  const [steps, artifacts, logs] = await Promise.all([
     db.select().from(runSteps).where(eq(runSteps.runId, id)).orderBy(asc(runSteps.sequence)),
     db
       .select()
       .from(runArtifacts)
       .where(eq(runArtifacts.runId, id))
       .orderBy(asc(runArtifacts.elapsedMs), asc(runArtifacts.capturedAt), asc(runArtifacts.id)),
+    db
+      .select({ data: runBrowserLogs.data })
+      .from(runBrowserLogs)
+      .where(eq(runBrowserLogs.runId, id))
+      .orderBy(asc(runBrowserLogs.sequence)),
   ]);
 
   return {
     ...run,
     steps: steps.map(stepRecord),
     artifacts: artifacts.map(artifactRecord),
+    browserLogs: [...(run.browserLogs ?? []), ...logs.map((log) => log.data)],
   };
 }
 
@@ -316,13 +323,17 @@ export async function appendEvent(id: string, message: string) {
       .set({ events: sql`${testRuns.events} || ${event}::jsonb` })
       .where(eq(testRuns.id, id));
 
-    const lease = leaseScope.getStore();
-    const [run] = await tx.select().from(testRuns).where(eq(testRuns.id, id));
+    const [run] = await tx
+      .select({
+        attempt: testRuns.attempt,
+        eventCount: sql<number>`jsonb_array_length(${testRuns.events})`,
+      })
+      .from(testRuns)
+      .where(eq(testRuns.id, id));
 
     await tx
       .insert(automationRunEvents)
-      .values({ runId: id, attempt: run.attempt, sequence: run.events.length, message });
-    void lease;
+      .values({ runId: id, attempt: run.attempt, sequence: run.eventCount, message });
   });
 }
 
@@ -449,13 +460,12 @@ export async function getArtifact(runId: string, id: string) {
 export { listRecordingVersions, saveRecordingVersion } from './recordings';
 
 export async function appendBrowserLogs(id: string, logs: import('../types').BrowserLog[]) {
+  if (!logs.length) return;
+
   return runWrite(id, async (tx) => {
-    if (!logs.length) return;
     await tx
-      .update(testRuns)
-      .set({
-        browserLogs: sql`${testRuns.browserLogs} || ${JSON.stringify(logs)}::jsonb`,
-      })
-      .where(eq(testRuns.id, id));
+      .insert(runBrowserLogs)
+      .values(logs.map((data) => ({ id: data.id, runId: id, data })))
+      .onConflictDoNothing();
   });
 }

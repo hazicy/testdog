@@ -116,7 +116,11 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
 export async function renewLease(lease: RunLease) {
   return db.transaction(async (tx) => {
     const [run] = await tx
-      .select()
+      .select({
+        id: testRuns.id,
+        resourceId: testRuns.resourceId,
+        cancelRequested: testRuns.cancelRequested,
+      })
       .from(testRuns)
       .where(
         and(
@@ -158,7 +162,11 @@ export async function renewLease(lease: RunLease) {
 export async function releaseLease(lease: RunLease, healthy: boolean) {
   await db.transaction(async (tx) => {
     const [run] = await tx
-      .select()
+      .select({
+        workerId: testRuns.workerId,
+        fencingToken: testRuns.fencingToken,
+        resourceId: testRuns.resourceId,
+      })
       .from(testRuns)
       .where(eq(testRuns.id, lease.runId))
       .for('update');
@@ -201,7 +209,12 @@ export async function recoverLeases() {
         ),
       );
     const expired = await tx
-      .select()
+      .select({
+        id: testRuns.id,
+        resourceId: testRuns.resourceId,
+        fencingToken: testRuns.fencingToken,
+        startedAt: testRuns.startedAt,
+      })
       .from(testRuns)
       .where(
         and(

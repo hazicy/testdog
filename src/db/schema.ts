@@ -7,6 +7,7 @@ import type {
 import type { TestTarget } from '@/automation/platform/target';
 import {
   integer,
+  bigserial,
   pgTable,
   varchar,
   uuid,
@@ -108,6 +109,18 @@ export const testRuns = pgTable(
     check('test_runs_mode_check', sql`${table.mode} in ('record','replay')`),
     check('test_runs_duration_check', sql`${table.durationMs} is null or ${table.durationMs} >= 0`),
   ],
+);
+export const runBrowserLogs = pgTable(
+  'run_browser_logs',
+  {
+    id: uuid().primaryKey(),
+    runId: uuid()
+      .notNull()
+      .references(() => testRuns.id, { onDelete: 'cascade' }),
+    sequence: bigserial({ mode: 'number' }).notNull(),
+    data: jsonb().$type<BrowserLog>().notNull(),
+  },
+  (table) => [index('run_browser_logs_run_sequence_idx').on(table.runId, table.sequence)],
 );
 export const runSteps = pgTable(
   'run_steps',

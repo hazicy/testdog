@@ -5,13 +5,18 @@ import type { AutomationSession, CaptureRequest } from '@/automation/platform/co
 import { artifactRoot } from './artifactStorage';
 import { insertArtifact } from './store';
 import type { RunArtifact, TestRun } from '../types';
+import type { PersistenceQueue } from './persistenceQueue';
 
 // Shared evidence persistence; no driver objects or browser pages cross this boundary.
 export class EvidenceSink {
   private failure?: unknown;
-  constructor(private run: TestRun) {}
+  constructor(
+    private run: TestRun,
+    private persistence?: PersistenceQueue,
+  ) {}
   assertComplete() {
     if (this.failure) throw this.failure;
+    this.persistence?.assertComplete();
   }
   async capture(
     session: AutomationSession,
@@ -50,28 +55,30 @@ export class EvidenceSink {
       await writeFile(path, artifact.bytes, { mode: 0o600 });
       const capturedAt = new Date().toISOString();
 
-      await insertArtifact(
-        {
-          id,
-          runId: this.run.id,
-          stepId,
-          kind: artifact.kind,
-          stage,
-          pageId: session.latestObservation?.surface.id ?? session.id,
-          pageUrl: session.latestObservation?.surface.url ?? '',
-          surface: session.latestObservation?.surface ?? {
-            platform: session.platform,
-            id: session.id,
-          },
-          capturedAt,
-          elapsedMs: Math.max(0, Date.parse(capturedAt) - Date.parse(this.run.startedAt)),
-          contentType: artifact.contentType,
-          producer: artifact.producer,
-          format: artifact.format,
-          size: artifact.bytes.length,
+      const record: RunArtifact = {
+        id,
+        runId: this.run.id,
+        stepId,
+        kind: artifact.kind,
+        stage,
+        pageId: session.latestObservation?.surface.id ?? session.id,
+        pageUrl: session.latestObservation?.surface.url ?? '',
+        surface: session.latestObservation?.surface ?? {
+          platform: session.platform,
+          id: session.id,
         },
-        path,
-      );
+        capturedAt,
+        elapsedMs: Math.max(0, Date.parse(capturedAt) - Date.parse(this.run.startedAt)),
+        contentType: artifact.contentType,
+        producer: artifact.producer,
+        format: artifact.format,
+        size: artifact.bytes.length,
+      };
+      const persist = async () => {
+        await insertArtifact(record, path);
+      };
+      if (this.persistence) await this.persistence.enqueue(persist);
+      else await persist();
     }
   }
 }

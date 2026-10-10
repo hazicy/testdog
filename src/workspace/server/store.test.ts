@@ -22,6 +22,7 @@ import {
   appendEvent as appendClaimedEvent,
   listTests,
   insertArtifact as insertClaimedArtifact,
+  appendBrowserLogs,
 } from './store';
 import {
   finishRun as finishClaimedRun,
@@ -89,6 +90,38 @@ function pendingStep(runId: string) {
 }
 
 describe('PostgreSQL workspace repository', () => {
+  it('stores logs separately, tolerates retries, and rejects writes by stale workers', async () => {
+    const run = await createRun({ case: 'Check', url: input.url });
+    const log: import('../types').BrowserLog = {
+      id: randomUUID(),
+      at: new Date().toISOString(),
+      elapsedMs: 1,
+      pageId: 'page-1',
+      pageUrl: input.url,
+      kind: 'console',
+      level: 'log',
+      message: 'hello',
+    };
+    const lease = testLeases.get(run.id)!;
+
+    await withLease(lease, () => appendBrowserLogs(run.id, [log]));
+    await withLease(lease, () => appendBrowserLogs(run.id, [log]));
+    expect((await getRun(run.id)).browserLogs).toEqual([log]);
+    const rows = await isolated.client!.query<{ browserLogs: unknown[] }>(
+      'SELECT "browserLogs" FROM test_runs WHERE id = $1',
+      [run.id],
+    );
+
+    expect(rows.rows[0].browserLogs).toEqual([]);
+    await expect(
+      withLease({ ...lease, fencingToken: lease.fencingToken + 1 }, () =>
+        appendBrowserLogs(run.id, [{ ...log, id: randomUUID() }]),
+      ),
+    ).rejects.toThrow('Execution lease lost');
+    expect((await getRun(run.id)).browserLogs).toEqual([log]);
+    // Empty batches need no lease or database access, even for an unknown run.
+    await appendBrowserLogs(randomUUID(), []);
+  });
   it('normalizes case writes and excludes protected fields at the repository boundary', async () => {
     const requestedId = randomUUID();
     const saved = await saveTest({

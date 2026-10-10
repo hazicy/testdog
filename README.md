@@ -132,6 +132,8 @@ API 和 worker 连接同一个数据库。本地附件模式需共享 CASEFORGE_
 
 worker 默认并发数为登记资源数，可用 CASEFORGE_WORKER_CONCURRENCY 降低。每条执行独占一个 slot/设备；排队默认上限 1 小时（CASEFORGE_QUEUE_TIMEOUT_MS），准备 2 分钟，执行 5 分钟，归档 30 秒。
 
+浏览器日志使用独立的 `run_browser_logs` 表批量追加。升级此版本前先停止接收新执行并排空旧 worker，再运行 `pnpm db:migrate`，部署新版 API/worker；迁移会保留历史日志顺序，并清空运行主表里的旧日志 JSON。旧 worker 不应与新版同时写日志。Web 操作前后仍同步采集截图和快照，附件入库交给最多 16 项的共享队列；队列满时执行等待，保存失败会在后续操作或归档时报错。实时截图在步骤执行或证据入库繁忙时跳过，归档停止周期性日志刷新并等待证据队列排空后才确认完成。
+
 隔离资源不因 TTL 自动释放。在同一 worker 主机与工作目录停止旧 worker 后运行 `pnpm recover:resource <resource-id>`。工具检查原主机和 PID、清理原命名 SDK 会话、验证快照和截图、关闭探测会话并确认无后端 claim；任一检查失败继续隔离。不会关闭其他用户的 SDK 会话。
 
 平台表单支持构建、初始化策略、启动链接和输入引用。普通输入使用 `{"name":{"value":"Ada"}}`，密码使用 `{"password":{"secretRef":"LOGIN_PASSWORD"}}`，步骤用 `${input.password}` 引用，worker 配置 CASEFORGE_SECRET_LOGIN_PASSWORD。密钥仅在密码控件中解析，不进入模型规划或录制代码。Web 密钥运行关闭视频/trace并遮罩密码截图，日志脱敏；原生依赖 secure 控件的系统遮罩。不要在目标或步骤里填入明文密钥。

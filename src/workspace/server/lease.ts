@@ -14,7 +14,16 @@ export async function runWrite<T>(
   operation: (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => Promise<T>,
 ): Promise<T> {
   return db.transaction(async (tx) => {
-    const [run] = await tx.select().from(testRuns).where(eq(testRuns.id, runId)).for('update');
+    const [run] = await tx
+      .select({
+        workerId: testRuns.workerId,
+        fencingToken: testRuns.fencingToken,
+        leaseUntil: testRuns.leaseUntil,
+        status: testRuns.status,
+      })
+      .from(testRuns)
+      .where(eq(testRuns.id, runId))
+      .for('update');
     if (!run) throw new LostLeaseError('Run no longer exists');
     if (!run.workerId) throw new LostLeaseError('Run has not been claimed by a worker');
     const lease = leaseScope.getStore();

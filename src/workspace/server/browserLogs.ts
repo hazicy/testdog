@@ -15,7 +15,7 @@ export class BrowserLogs {
   private pending: BrowserLog[] = [];
   private count = 0;
   private requests = new Map<Request, BrowserLog>();
-  private queue: Promise<void> = Promise.resolve();
+  private inFlight?: Promise<void>;
   private timer?: ReturnType<typeof setInterval>;
   constructor(
     private runId: string,
@@ -110,17 +110,24 @@ export class BrowserLogs {
   private onFailed = (request: Request) =>
     this.complete(request, request.failure()?.errorText || '请求失败');
   flush() {
-    const operation = this.queue.then(async () => {
-      const batch = this.pending.splice(0);
+    if (this.inFlight) return this.inFlight;
+    if (!this.pending.length) return Promise.resolve();
+    const batch = this.pending.splice(0);
+    const operation = (async () => {
       try {
         await appendBrowserLogs(this.runId, batch);
       } catch (error) {
         this.pending.unshift(...batch);
         throw error;
       }
-    });
+    })();
 
-    this.queue = operation.catch(() => {});
+    this.inFlight = operation;
+    void operation
+      .finally(() => {
+        this.inFlight = undefined;
+      })
+      .catch(() => {});
 
     return operation;
   }
@@ -133,6 +140,8 @@ export class BrowserLogs {
     context.off('requestfinished', this.onFinished);
     context.off('requestfailed', this.onFailed);
     for (const request of this.requests.keys()) this.complete(request, '执行结束时请求未完成');
+    // In-flight batches may fail and be requeued; drain once producers have stopped.
+    await this.inFlight?.catch(() => {});
     await this.flush();
   }
 }

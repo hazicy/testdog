@@ -8,6 +8,7 @@ import { insertArtifact, insertStep, finishStep } from './store';
 import { BrowserLogs } from './browserLogs';
 import { recordAction } from './locator';
 import { artifactRoot } from './artifactStorage';
+import { PersistenceQueue } from './persistenceQueue';
 
 export class RunRecorder {
   private page?: Page;
@@ -23,7 +24,10 @@ export class RunRecorder {
   private livePending = false;
   private stopping?: Promise<void>;
   readonly directory: string;
-  constructor(private run: TestRun) {
+  constructor(
+    private run: TestRun,
+    private persistence = new PersistenceQueue(),
+  ) {
     this.secrets = new SecretInputs(run.targetSnapshot?.inputs);
     this.logs = new BrowserLogs(
       run.id,
@@ -64,7 +68,7 @@ export class RunRecorder {
       await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
     this.timer = setInterval(() => {
       const page = this.activePage();
-      if (page && !this.livePending) {
+      if (page && !this.livePending && !this.persistence.busy && !this.activeSteps.size) {
         this.livePending = true;
         void this.capture(page, 'live')
           .catch((error) => {
@@ -78,6 +82,7 @@ export class RunRecorder {
   }
   onStep = async (event: StepSignal, page: Page) => {
     if (this.captureError) throw this.captureError;
+    this.persistence.assertComplete();
     if (event.phase === 'start') {
       this.activeSteps.set(page, event.id);
       const recorded = event.action
@@ -155,22 +160,23 @@ export class RunRecorder {
       const path = join(this.directory, `${id}.jpg`);
 
       await writeFile(path, bytes, { mode: 0o600 });
-      await insertArtifact(
-        {
-          id,
-          runId: this.run.id,
-          stepId,
-          kind: 'screenshot',
-          stage,
-          pageId: this.pageId(page),
-          pageUrl: page.url(),
-          capturedAt,
-          elapsedMs: Date.parse(capturedAt) - Date.parse(this.run.startedAt),
-          contentType: 'image/jpeg',
-          size: bytes.length,
-        },
-        path,
-      );
+      const artifact: RunArtifact = {
+        id,
+        runId: this.run.id,
+        stepId,
+        kind: 'screenshot',
+        stage,
+        pageId: this.pageId(page),
+        pageUrl: page.url(),
+        capturedAt,
+        elapsedMs: Date.parse(capturedAt) - Date.parse(this.run.startedAt),
+        contentType: 'image/jpeg',
+        size: bytes.length,
+      };
+
+      await this.persistence.enqueue(async () => {
+        await insertArtifact(artifact, path);
+      });
     });
 
     this.queue = operation.catch((error) => {
@@ -180,9 +186,7 @@ export class RunRecorder {
     return operation;
   }
   stop(context: BrowserContext, interrupted = false) {
-    return (this.stopping ??= this.archive(context, interrupted).finally(() =>
-      this.logs.stop(context),
-    ));
+    return (this.stopping ??= this.archive(context, interrupted));
   }
   private async archive(context: BrowserContext, interrupted: boolean) {
     if (this.timer) clearInterval(this.timer);
@@ -196,10 +200,16 @@ export class RunRecorder {
       }
     };
 
+    // Stop periodic log writes before draining evidence or exporting trace/video.
+    const logsStopped = this.logs.stop(context);
+
+    void logsStopped.catch(() => {});
     await this.queue;
     if (this.captureError) errors.push(this.captureError);
     const page = this.activePage();
     if (!interrupted && page) await attempt(() => this.capture(page, 'final'));
+    await attempt(() => this.persistence.drain());
+    await attempt(() => logsStopped);
     const trace = join(this.directory, 'trace.zip');
     if (!interrupted && !this.secrets.enabled) {
       await attempt(async () => {

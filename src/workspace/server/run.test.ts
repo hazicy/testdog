@@ -170,7 +170,8 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     expect(
       recorded.artifacts.filter((item) => item.kind === 'screenshot').length,
     ).toBeGreaterThanOrEqual(11);
-    expect(recorded.artifacts.some((item) => item.stage === 'live')).toBe(true);
+    // Live frames are skipped while step evidence is captured/persisted.
+    // Dedicated recorder tests verify idle live capture; action evidence is mandatory here.
     expect(recorded.artifacts.some((item) => item.kind === 'video')).toBe(true);
     expect(recorded.artifacts.some((item) => item.kind === 'trace')).toBe(true);
     const video = await getArtifact(

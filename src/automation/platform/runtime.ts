@@ -10,6 +10,7 @@ import { launchWebBrowser, resolveWebProfile } from './mobile';
 import { legacyWebTarget } from './target';
 import { DeviceRecorder } from '@/workspace/server/deviceRecorder';
 import { RunRecorder } from '@/workspace/server/recorder';
+import { PersistenceQueue } from '@/workspace/server/persistenceQueue';
 import type { TestRun } from '@/workspace/types';
 import type { AutomationSession, ActionPlanner, PlatformAction } from './contracts';
 
@@ -118,7 +119,9 @@ export async function openPlatformRuntime(input: {
       source.environmentSnapshot.browserVersion !== browser.version()
     )
       throw new Error('浏览器版本与录制不兼容，请重新录制');
-    recorder = new RunRecorder(run);
+    const persistence = new PersistenceQueue();
+
+    recorder = new RunRecorder(run, persistence);
     context = await browser.newContext({
       ...profile,
       ...(secrets.enabled
@@ -131,7 +134,7 @@ export async function openPlatformRuntime(input: {
     await recorder.start(context);
     recorder.onPage(page);
     const hooks = { signal, onPage: recorder.onPage, onStep: recorder.onStep };
-    const evidence = new EvidenceSink(run);
+    const evidence = new EvidenceSink(run, persistence);
     const session = new PlaywrightSession(
       run.id,
       page,
