@@ -76,7 +76,7 @@ export const PlanNodes = memo(function PlanNodes({
         {n.kind === 'branch' && (
           <div className="plan-branches">
             <div>
-              <p className="mb-3 font-mono text-xs text-[#6c805b]">YES / 条件成立</p>
+              <p className="mb-3 font-mono text-xs text-step-success">YES / 条件成立</p>
               {tree.then && render(tree.then)}
             </div>
             <div>

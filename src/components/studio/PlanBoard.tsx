@@ -132,7 +132,7 @@ export function PlanBoard({
     );
 
   return (
-    <div className="border border-page-line bg-[#fffefa]">
+    <div className="border border-page-line bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-page-line px-4 py-3">
         <div>
           <p className="text-sm font-medium">嵌套执行计划</p>
@@ -232,14 +232,14 @@ export function PlanBoard({
                     refY="4"
                     orient="auto"
                   >
-                    <path d="M0,0 L8,4 L0,8" fill="#9b977c" />
+                    <path d="M0,0 L8,4 L0,8" fill="var(--plan-edge)" />
                   </marker>
                 </defs>
                 {edges.map((e) => (
                   <path
                     key={e.key}
                     d={`M${e.x1},${e.y1} C${e.x1 + 50},${e.y1} ${e.x2 - 50},${e.y2} ${e.x2},${e.y2}`}
-                    stroke="#9b977c"
+                    stroke="var(--plan-edge)"
                     fill="none"
                     strokeWidth="1.5"
                     strokeDasharray="5 4"

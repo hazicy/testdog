@@ -1,11 +1,180 @@
 @import 'tailwindcss';
 
+/* Application theme: define colors here and consume tokens everywhere else. */
 :root {
   color-scheme: light;
-  --background: #faf9f6;
-  --foreground: #23241f;
-  --accent: #b84c2e;
-  --accent-foreground: #ffffff;
+
+  /* Page and brand */
+  --page: #faf9f6;
+  --ink: #23241f;
+  --brand: #b84c2e;
+  --brand-foreground: #ffffff;
+  --brand-hover: #9e3f25;
+  --brand-link: #cf4f2e;
+  --brand-active: #a64227;
+  --brand-soft: #faf0eb;
+  --brand-line: #d9b4a7;
+
+  /* Surfaces, controls and text */
+  --surface: #fffefa;
+  --surface-raised: #ffffff;
+  --surface-muted: #f5f4ee;
+  --surface-hover: #fdfdfb;
+  --surface-disabled: #f6f6f6;
+  --control-hover: #f5f5f5;
+  --control-line: #dfded4;
+  --control-ink: #333;
+  --control-muted: #777;
+  --control-placeholder: #77796f;
+  --page-line: #e2e1da;
+  --line-subtle: #eee;
+  --dialog-line: #ddd;
+  --page-muted: #78796f;
+  --text-secondary: #64665d;
+  --text-subtle: #73766b;
+  --text-neutral: #737373;
+  --text-disabled: #a3a3a3;
+  --text-faint: #aaa;
+  --table-heading: #62665b;
+  --status-none: #6f7268;
+  --badge-surface: #eeeee9;
+  --badge-ink: #64665e;
+
+  /* Status and feedback */
+  --success: #49815a;
+  --success-strong: #42664a;
+  --success-soft: #f4f8f2;
+  --success-line: #d7e1d5;
+  --danger: #c55348;
+  --warning: #cf7800;
+  --cancelled: #8e8779;
+  --activity-running: #f16b43;
+  --activity-idle: #8da58c;
+
+  /* Navigation and avatar */
+  --sidebar: #f5f5f2;
+  --sidebar-hover: #eeece3;
+  --sidebar-muted: #858585;
+  --avatar-surface: #f3e2d1;
+  --avatar-ink: #8b5129;
+
+  /* Code editor and plan board */
+  --code-surface: #f3f3ef;
+  --editor-gutter: #999482;
+  --editor-active-line: #f7f3e9;
+  --plan-grid: #d8d5c9;
+  --plan-line: #dcd8c9;
+  --plan-group: #eeece2;
+  --plan-branch: #f7eee7;
+  --plan-reference-line: #bbb49a;
+  --plan-reference-ink: #7b7565;
+  --plan-edge: #9b977c;
+  --step-hover: #f2f1e9;
+  --step-selected: #f3eee4;
+  --step-success: #6c805b;
+  --step-success-line: #cdd5bf;
+
+  /* Run preview */
+  --preview: #f0f1ec;
+  --preview-dark: #20221c;
+  --preview-icon: #959c86;
+  --preview-ink: #69715b;
+  --window-close: #e5ad98;
+  --window-minimize: #dfcf9a;
+  --window-expand: #b9c3a4;
+
+  /* Overlays and compatibility aliases */
+  --shadow: #0002;
+  --backdrop: #0005;
+  --plan-shadow: #302c1708;
+  --background: var(--page);
+  --foreground: var(--ink);
+  --accent: var(--brand);
+  --accent-foreground: var(--brand-foreground);
+  --error-ink: var(--color-red-700);
+  --error: var(--color-red-600);
+  --error-line: var(--color-red-200);
+  --error-soft: var(--color-red-50);
+}
+
+/* Expose the same runtime variables as Tailwind color utilities. */
+@theme inline {
+  --color-page: var(--page);
+  --color-ink: var(--ink);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-link: var(--brand-link);
+  --color-brand-active: var(--brand-active);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-line: var(--brand-line);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-disabled: var(--surface-disabled);
+  --color-control-hover: var(--control-hover);
+  --color-control-line: var(--control-line);
+  --color-control-ink: var(--control-ink);
+  --color-control-muted: var(--control-muted);
+  --color-control-placeholder: var(--control-placeholder);
+  --color-page-line: var(--page-line);
+  --color-line-subtle: var(--line-subtle);
+  --color-dialog-line: var(--dialog-line);
+  --color-page-muted: var(--page-muted);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-subtle: var(--text-subtle);
+  --color-text-neutral: var(--text-neutral);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-faint: var(--text-faint);
+  --color-table-heading: var(--table-heading);
+  --color-status-none: var(--status-none);
+  --color-badge-surface: var(--badge-surface);
+  --color-badge-ink: var(--badge-ink);
+  --color-success: var(--success);
+  --color-success-strong: var(--success-strong);
+  --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-line);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-cancelled: var(--cancelled);
+  --color-activity-running: var(--activity-running);
+  --color-activity-idle: var(--activity-idle);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-avatar-surface: var(--avatar-surface);
+  --color-avatar-ink: var(--avatar-ink);
+  --color-code-surface: var(--code-surface);
+  --color-editor-gutter: var(--editor-gutter);
+  --color-editor-active-line: var(--editor-active-line);
+  --color-plan-grid: var(--plan-grid);
+  --color-plan-line: var(--plan-line);
+  --color-plan-group: var(--plan-group);
+  --color-plan-branch: var(--plan-branch);
+  --color-plan-reference-line: var(--plan-reference-line);
+  --color-plan-reference-ink: var(--plan-reference-ink);
+  --color-plan-edge: var(--plan-edge);
+  --color-step-hover: var(--step-hover);
+  --color-step-selected: var(--step-selected);
+  --color-step-success: var(--step-success);
+  --color-step-success-line: var(--step-success-line);
+  --color-preview: var(--preview);
+  --color-preview-dark: var(--preview-dark);
+  --color-preview-icon: var(--preview-icon);
+  --color-preview-ink: var(--preview-ink);
+  --color-window-close: var(--window-close);
+  --color-window-minimize: var(--window-minimize);
+  --color-window-expand: var(--window-expand);
+  --color-shadow: var(--shadow);
+  --color-backdrop: var(--backdrop);
+  --color-plan-shadow: var(--plan-shadow);
+  --color-error-ink: var(--error-ink);
+  --color-error: var(--error);
+  --color-error-line: var(--error-line);
+  --color-error-soft: var(--error-soft);
+  --font-sans: var(--font-geist-sans), 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
 body {
@@ -24,25 +193,14 @@ body {
   outline-offset: 4px;
 }
 
-@theme inline {
-  --color-page: #faf9f6;
-  --color-ink: #23241f;
-  --color-page-muted: #78796f;
-  --color-page-line: #e2e1da;
-  --color-brand: #b84c2e;
-  --font-sans: var(--font-geist-sans), 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
-}
-
 .app-root {
   isolation: isolate;
 }
 
 @layer components {
   .workspace-shell {
-    background: #faf9f6;
-    color: #23241f;
-    --accent: #b84c2e;
+    background: var(--page);
+    color: var(--ink);
     font-size: 14px;
   }
   .ws-button {
@@ -53,8 +211,8 @@ body {
     gap: 8px;
     min-height: 38px;
     padding: 8px 14px;
-    border: 1px solid #dfded4;
-    background: #fffefa;
+    border: 1px solid var(--control-line);
+    background: var(--surface);
     font-size: 13px;
     font-weight: 500;
     transition:
@@ -64,15 +222,15 @@ body {
     white-space: nowrap;
   }
   .ws-button:hover {
-    background: #f5f5f5;
+    background: var(--control-hover);
   }
   .ws-button.primary {
-    background: #b84c2e;
-    border-color: #b84c2e;
-    color: #ffffff;
+    background: var(--brand);
+    border-color: var(--brand);
+    color: var(--brand-foreground);
   }
   .ws-button.primary:hover {
-    background: #9e3f25;
+    background: var(--brand-hover);
   }
   .ws-button:disabled,
   .ws-icon-button:disabled {
@@ -86,12 +244,12 @@ body {
     justify-content: center;
     width: 36px;
     height: 36px;
-    color: #777;
+    color: var(--control-muted);
     cursor: pointer;
   }
   .ws-icon-button:hover {
-    background: #eee;
-    color: #23241f;
+    background: var(--line-subtle);
+    color: var(--ink);
   }
   .ws-input {
     border-radius: 6px;
@@ -99,23 +257,23 @@ body {
     line-height: 1.5;
     display: block;
     width: 100%;
-    border: 1px solid #dfded4;
-    background: #fffefa;
+    border: 1px solid var(--control-line);
+    background: var(--surface);
     padding: 9px 11px;
     font-size: 13px;
     font-weight: 400;
-    color: #333;
+    color: var(--control-ink);
   }
   .ws-input::placeholder {
-    color: #77796f;
+    color: var(--control-placeholder);
   }
   .ws-input:focus {
-    outline: 2px solid #b84c2e;
+    outline: 2px solid var(--brand);
     outline-offset: 0;
-    border-color: #b84c2e;
+    border-color: var(--brand);
   }
   .ws-input:disabled {
-    background: #f6f6f6;
+    background: var(--surface-disabled);
   }
   .ws-input.pl-9 {
     padding-left: 36px;
@@ -133,7 +291,7 @@ body {
   }
   .ws-select-icon {
     margin-left: auto;
-    color: #78796f;
+    color: var(--page-muted);
   }
   .ws-select-positioner {
     z-index: 60;
@@ -144,11 +302,11 @@ body {
     max-width: var(--available-width);
     overflow-y: auto;
     padding: 4px;
-    border: 1px solid #dfded4;
+    border: 1px solid var(--control-line);
     border-radius: 6px;
-    background: #fffefa;
-    color: #23241f;
-    box-shadow: 0 8px 24px #0002;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 8px 24px var(--shadow);
     font-size: 13px;
   }
   .ws-select-item {
@@ -161,8 +319,8 @@ body {
     cursor: pointer;
   }
   .ws-select-item[data-highlighted] {
-    background: #faf0eb;
-    color: #9e3f25;
+    background: var(--brand-soft);
+    color: var(--brand-hover);
   }
   .ws-select-item[data-disabled] {
     opacity: 0.45;
@@ -172,7 +330,7 @@ body {
     font-weight: 500;
   }
   .ws-select-indicator {
-    color: #b84c2e;
+    color: var(--brand);
   }
   .ws-checkbox {
     display: inline-flex;
@@ -181,15 +339,15 @@ body {
     flex-shrink: 0;
     width: 16px;
     height: 16px;
-    border: 1px solid #dfded4;
+    border: 1px solid var(--control-line);
     border-radius: 3px;
-    background: #fffefa;
+    background: var(--surface);
     cursor: pointer;
   }
   .ws-checkbox[data-checked] {
-    background: #b84c2e;
-    border-color: #b84c2e;
-    color: white;
+    background: var(--brand);
+    border-color: var(--brand);
+    color: var(--brand-foreground);
   }
   .ws-checkbox[data-disabled] {
     opacity: 0.45;
@@ -218,22 +376,22 @@ body {
   }
   .ws-table th {
     padding: 12px 18px;
-    background: #f5f4ee;
+    background: var(--surface-muted);
     font-size: 11px;
-    color: #62665b;
+    color: var(--table-heading);
     font-weight: 500;
-    border-bottom: 1px solid #e2e1da;
+    border-bottom: 1px solid var(--page-line);
   }
   .ws-table td {
     padding: 16px 18px;
     font-size: 13px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--line-subtle);
   }
   .ws-table tbody tr:last-child td {
     border-bottom: 0;
   }
   .ws-table tbody tr:hover {
-    background: #fdfdfb;
+    background: var(--surface-hover);
   }
   .ws-status {
     border-radius: 6px;
@@ -250,24 +408,24 @@ body {
     background: currentColor;
   }
   .ws-status.passed {
-    color: #49815a;
+    color: var(--success);
   }
   .ws-status.failed {
-    color: #c55348;
+    color: var(--danger);
   }
   .ws-status.running {
-    color: #cf7800;
+    color: var(--warning);
   }
   .ws-status.cancelled {
-    color: #8e8779;
+    color: var(--cancelled);
   }
   .ws-button.selected {
-    border-color: #d9b4a7;
-    background: #faf0eb;
-    color: #9e3f25;
+    border-color: var(--brand-line);
+    background: var(--brand-soft);
+    color: var(--brand-hover);
   }
   .ws-status.none {
-    color: #6f7268;
+    color: var(--status-none);
   }
   .ws-dialog {
     border-radius: 12px;
@@ -276,11 +434,11 @@ body {
     max-width: 620px;
     max-height: calc(100dvh - 48px);
     padding: 0;
-    border: 1px solid #ddd;
-    background: #fffefa;
-    color: #23241f;
+    border: 1px solid var(--dialog-line);
+    background: var(--surface);
+    color: var(--ink);
     overflow-y: auto;
-    box-shadow: 0 20px 80px #0002;
+    box-shadow: 0 20px 80px var(--shadow);
   }
   .ws-dialog.max-w-md {
     max-width: 448px;
@@ -301,7 +459,7 @@ body {
     position: absolute;
     inset: 0;
     z-index: 50;
-    background: #0005;
+    background: var(--backdrop);
     backdrop-filter: blur(2px);
   }
   .ws-dialog-header {
@@ -310,15 +468,15 @@ body {
     align-items: flex-start;
     gap: 16px;
     padding: 22px 24px;
-    border-bottom: 1px solid #e2e1da;
+    border-bottom: 1px solid var(--page-line);
   }
   .ws-dialog-footer {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
     padding: 16px 24px;
-    border-top: 1px solid #e2e1da;
-    background: #f5f4ee;
+    border-top: 1px solid var(--page-line);
+    background: var(--surface-muted);
   }
 }
 
@@ -327,8 +485,8 @@ body {
   height: 600px;
   overflow: hidden;
   touch-action: none;
-  background-color: #f5f4ee;
-  background-image: radial-gradient(#d8d5c9 1px, transparent 1px);
+  background-color: var(--surface-muted);
+  background-image: radial-gradient(var(--plan-grid) 1px, transparent 1px);
   background-size: 20px 20px;
   cursor: grab;
 }
@@ -350,21 +508,21 @@ body {
   border-radius: 8px;
   min-width: 250px;
   max-width: 1100px;
-  border: 1px solid #dcd8c9;
-  background: #fffefa;
-  box-shadow: 0 4px 12px #302c1708;
+  border: 1px solid var(--plan-line);
+  background: var(--surface);
+  box-shadow: 0 4px 12px var(--plan-shadow);
 }
 .plan-node.task {
   width: 260px;
 }
 .plan-node.group {
-  background: #eeece2;
+  background: var(--plan-group);
 }
 .plan-node.branch {
-  background: #f7eee7;
+  background: var(--plan-branch);
 }
 .plan-node.active {
-  outline: 2px solid #b84c2e;
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 .plan-node-header {
@@ -390,11 +548,11 @@ body {
 .plan-reference {
   display: inline-block;
   margin: 3px;
-  border: 1px dashed #bbb49a;
+  border: 1px dashed var(--plan-reference-line);
   padding: 8px 12px;
-  background: #fffefa;
+  background: var(--surface);
   font-size: 11px;
-  color: #7b7565;
+  color: var(--plan-reference-ink);
 }
 .plan-edges {
   position: absolute;
@@ -414,12 +572,12 @@ body {
 @layer components {
   .ws-stats {
     overflow: hidden;
-    border: 1px solid #e2e1da;
+    border: 1px solid var(--page-line);
     border-radius: 8px;
-    background: #fffefa;
+    background: var(--surface);
   }
   .ws-stats > div + div {
-    border-left: 1px solid #e2e1da;
+    border-left: 1px solid var(--page-line);
   }
   .ws-list {
     overflow: hidden;
@@ -446,7 +604,7 @@ body {
     border-left: 0;
   }
   .ws-stats > div:nth-child(n + 3) {
-    border-top: 1px solid #e2e1da;
+    border-top: 1px solid var(--page-line);
   }
 }
 @media (prefers-reduced-motion: reduce) {

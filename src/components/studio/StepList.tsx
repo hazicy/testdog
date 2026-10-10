@@ -32,10 +32,10 @@ export const StepList = memo(function StepList({
             <li key={step.id}>
               <Button
                 onClick={() => onSelect(step)}
-                className={`flex w-full items-start gap-3 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-[#f2f1e9] ${selectedId === step.id ? 'bg-[#f3eee4]' : ''}`}
+                className={`flex w-full items-start gap-3 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-step-hover ${selectedId === step.id ? 'bg-step-selected' : ''}`}
               >
                 <span
-                  className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center border font-mono text-xs ${step.status === 'failed' ? 'border-red-200 text-red-600' : step.status === 'passed' ? 'border-[#cdd5bf] text-[#6c805b]' : 'border-brand text-brand'}`}
+                  className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center border font-mono text-xs ${step.status === 'failed' ? 'border-error-line text-error' : step.status === 'passed' ? 'border-step-success-line text-step-success' : 'border-brand text-brand'}`}
                 >
                   {step.status === 'passed'
                     ? '✓'

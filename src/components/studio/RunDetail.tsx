@@ -262,14 +262,14 @@ export function RunDetail({ id }: { id: string }) {
         </div>
       </div>
       {run?.evidenceComplete === false && (
-        <p role="alert" className="mt-5 border border-red-200 p-4 text-sm text-red-700">
+        <p role="alert" className="mt-5 border border-error-line p-4 text-sm text-error-ink">
           本次执行的证据归档不完整，请查看执行错误。
         </p>
       )}
       {error && (
         <div
           role="alert"
-          className="mt-5 flex justify-between gap-3 border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+          className="mt-5 flex justify-between gap-3 border border-error-line bg-error-soft p-4 text-sm text-error-ink"
         >
           <span>{error}</span>
           <Button onClick={() => void refresh()} className="underline">
@@ -311,13 +311,13 @@ export function RunDetail({ id }: { id: string }) {
         <p className="p-6 text-sm text-page-muted">录制结束后可以编辑操作和预期。</p>
       )}
       <div hidden={view !== 'execution'}>
-        <div className="mt-7 grid overflow-hidden rounded-lg border border-page-line bg-[#fffefa] xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="mt-7 grid overflow-hidden rounded-lg border border-page-line bg-surface xl:grid-cols-[minmax(0,1fr)_320px]">
           <section aria-label="浏览器画面" className="min-w-0 xl:border-r xl:border-page-line">
             <div className="flex h-12 items-center gap-3 border-b border-page-line px-4">
               <div className="flex gap-1.5" aria-hidden="true">
-                <span className="h-2 w-2 rounded-full bg-[#e5ad98]" />
-                <span className="h-2 w-2 rounded-full bg-[#dfcf9a]" />
-                <span className="h-2 w-2 rounded-full bg-[#b9c3a4]" />
+                <span className="h-2 w-2 rounded-full bg-window-close" />
+                <span className="h-2 w-2 rounded-full bg-window-minimize" />
+                <span className="h-2 w-2 rounded-full bg-window-expand" />
               </div>
               <span className="ml-2 min-w-0 flex-1 truncate font-mono text-xs text-page-muted">
                 {currentFrame?.pageUrl || run?.url || 'Browser session'}
@@ -338,7 +338,7 @@ export function RunDetail({ id }: { id: string }) {
                 {run && isActiveRun(run.status) && follow ? '● LIVE' : 'RECORDING'}
               </span>
             </div>
-            <div className="relative grid aspect-video place-items-center overflow-hidden bg-[#f0f1ec]">
+            <div className="relative grid aspect-video place-items-center overflow-hidden bg-preview">
               {mode === 'video' && video ? (
                 <video
                   ref={videoElement}
@@ -346,7 +346,7 @@ export function RunDetail({ id }: { id: string }) {
                   aria-label="执行录像"
                   src={asset(id, video)}
                   controls
-                  className="h-full w-full bg-[#20221c]"
+                  className="h-full w-full bg-preview-dark"
                 />
               ) : currentFrame ? (
                 <Image
@@ -359,8 +359,8 @@ export function RunDetail({ id }: { id: string }) {
                 />
               ) : (
                 <div className="p-8 text-center">
-                  <Icon name="globe" width="36" height="36" className="mx-auto text-[#959c86]" />
-                  <p className="mt-5 text-sm text-[#69715b]">
+                  <Icon name="globe" width="36" height="36" className="mx-auto text-preview-icon" />
+                  <p className="mt-5 text-sm text-preview-ink">
                     {run && isActiveRun(run.status)
                       ? run.status === 'queued'
                         ? '执行已排队，等待可用资源。'
@@ -480,7 +480,7 @@ export function RunDetail({ id }: { id: string }) {
             onSelect={selectStep}
           />
         </div>
-        <div className="mt-6 overflow-hidden rounded-lg border border-page-line bg-[#fffefa]">
+        <div className="mt-6 overflow-hidden rounded-lg border border-page-line bg-surface">
           <div className="flex flex-wrap items-center gap-x-5 border-b border-page-line px-5">
             {[
               { id: 'step' as const, label: '步骤详情' },
@@ -509,7 +509,7 @@ export function RunDetail({ id }: { id: string }) {
               {diagnostics.length > 0 && (
                 <details className="relative text-[10px] text-page-muted">
                   <summary className="cursor-pointer">观察与诊断 ({diagnostics.length})</summary>
-                  <div className="absolute right-0 z-10 max-h-60 min-w-48 overflow-auto border border-page-line bg-white p-3">
+                  <div className="absolute right-0 z-10 max-h-60 min-w-48 overflow-auto border border-page-line bg-surface-raised p-3">
                     {diagnostics.map((artifact) => (
                       <a
                         key={artifact.id}
@@ -577,12 +577,12 @@ export function RunDetail({ id }: { id: string }) {
                     </div>
                   )}
                   {selectedStep.evidence && (
-                    <p className="mt-4 text-xs leading-6 text-[#6c805b]">
+                    <p className="mt-4 text-xs leading-6 text-step-success">
                       验证证据：{selectedStep.evidence}
                     </p>
                   )}
                   {(selectedStep.error || run?.error) && (
-                    <pre className="mt-4 whitespace-pre-wrap break-words border border-red-200 bg-red-50 p-4 text-xs leading-6 text-red-700">
+                    <pre className="mt-4 whitespace-pre-wrap break-words border border-error-line bg-error-soft p-4 text-xs leading-6 text-error-ink">
                       {selectedStep.error || run?.error}
                     </pre>
                   )}

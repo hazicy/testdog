@@ -54,7 +54,7 @@ export function CodeEditor({
             if (update.docChanged) changed.current(update.state.doc.toString());
           }),
           EditorView.theme({
-            '&': { backgroundColor: '#fffefa', fontSize: '12px', minHeight: '400px' },
+            '&': { backgroundColor: 'var(--surface)', fontSize: '12px', minHeight: '400px' },
             '.cm-scroller': {
               fontFamily: 'var(--font-geist-mono), monospace',
               lineHeight: '1.9',
@@ -63,11 +63,11 @@ export function CodeEditor({
             },
             '.cm-content': { padding: '16px 0' },
             '.cm-gutters': {
-              backgroundColor: '#f5f4ee',
-              color: '#999482',
-              borderRight: '1px solid #e2e1da',
+              backgroundColor: 'var(--surface-muted)',
+              color: 'var(--editor-gutter)',
+              borderRight: '1px solid var(--page-line)',
             },
-            '.cm-activeLine': { backgroundColor: '#f7f3e9' },
+            '.cm-activeLine': { backgroundColor: 'var(--editor-active-line)' },
             '&.cm-focused': { outline: 'none' },
           }),
         ],

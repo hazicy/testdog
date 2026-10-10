@@ -206,11 +206,11 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             {isTests ? '测试用例' : '执行记录'}
-            <span className="ml-3 rounded-md bg-[#eeeee9] px-2 py-1 align-middle text-xs font-medium text-[#64665e]">
+            <span className="ml-3 rounded-md bg-badge-surface px-2 py-1 align-middle text-xs font-medium text-badge-ink">
               {loading ? '—' : isTests ? tests.length : runs.length}
             </span>
           </h1>
-          <p className="mt-2 text-sm text-[#737373]">
+          <p className="mt-2 text-sm text-text-neutral">
             {isTests
               ? '管理操作步骤与预期结果，运行浏览器测试。'
               : '查看每次测试的真实结果，定位失败并验证修复。'}
@@ -257,16 +257,16 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           },
         ].map((stat) => (
           <div key={stat.label} className="px-5 py-4">
-            <p className="text-xs text-[#78796f]">{stat.label}</p>
+            <p className="text-xs text-page-muted">{stat.label}</p>
             <p className="mt-2 text-2xl font-semibold tabular-nums">{loading ? '—' : stat.value}</p>
-            <p className="mt-1 text-xs text-[#73766b]">{stat.note}</p>
+            <p className="mt-1 text-xs text-text-subtle">{stat.note}</p>
           </div>
         ))}
       </div>
       {error && (
         <div
           role="alert"
-          className="mt-5 flex items-center justify-between gap-4 border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+          className="mt-5 flex items-center justify-between gap-4 border border-error-line bg-error-soft p-3 text-sm text-error-ink"
         >
           <span>{error}</span>
           <Button onClick={() => void refresh()} className="shrink-0 underline">
@@ -275,12 +275,12 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         </div>
       )}
       <section
-        className="ws-list mt-6 border border-[#e2e1da] bg-[#fffefa]"
+        className="ws-list mt-6 border border-page-line bg-surface"
         aria-label={isTests ? '测试用例列表' : '执行记录列表'}
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e1da] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-page-line p-4">
           <div className="relative w-full sm:w-80">
-            <Icon name="search" className="absolute top-2.5 left-3 text-[#73766b]" width="16" />
+            <Icon name="search" className="absolute top-2.5 left-3 text-text-subtle" width="16" />
             <Input
               aria-label={isTests ? '搜索测试' : '搜索结果'}
               value={query}
@@ -290,7 +290,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
             />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-[#73766b]">状态</span>
+            <span className="text-xs text-text-subtle">状态</span>
             <Select
               aria-label="状态筛选"
               value={filter}
@@ -311,12 +311,12 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           </div>
         </div>
         {loading ? (
-          <p role="status" className="p-16 text-center text-sm text-[#73766b]">
+          <p role="status" className="p-16 text-center text-sm text-text-subtle">
             正在加载工作区…
           </p>
         ) : (isTests ? visibleTests.length === 0 : visibleRuns.length === 0) ? (
           <div className="flex flex-col items-center px-5 py-14 text-center">
-            <span className="mb-5 grid h-12 w-12 rounded-lg place-items-center border border-[#e2e1da] bg-[#f5f4ee] text-[#a3a3a3]">
+            <span className="mb-5 grid h-12 w-12 rounded-lg place-items-center border border-page-line bg-surface-muted text-text-disabled">
               <Icon name={isTests ? 'tests' : 'results'} width="24" height="24" />
             </span>
             <h2 className="text-base font-medium">
@@ -326,7 +326,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                   ? '还没有测试用例'
                   : '测试结果会出现在这里'}
             </h2>
-            <p className="mt-2 max-w-90 text-sm leading-6 text-[#73766b]">
+            <p className="mt-2 max-w-90 text-sm leading-6 text-text-subtle">
               {query || filter !== 'all'
                 ? '试试其他关键词，或清除状态筛选。'
                 : isTests
@@ -355,7 +355,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           </div>
         ) : (
           <div>
-            <p className="border-b border-[#e2e1da] px-4 py-2 text-xs text-[#73766b] sm:hidden">
+            <p className="border-b border-page-line px-4 py-2 text-xs text-text-subtle sm:hidden">
               左右滑动查看时间与操作 →
             </p>
             <div
@@ -383,11 +383,11 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                             <td>
                               <Button
                                 onClick={() => openEditor(test)}
-                                className="text-left font-medium hover:text-[#cf4f2e]"
+                                className="text-left font-medium hover:text-brand-link"
                               >
                                 {test.name}
                               </Button>
-                              <p className="mt-1 max-w-96 truncate text-xs text-[#73766b]">
+                              <p className="mt-1 max-w-96 truncate text-xs text-text-subtle">
                                 {test.target && test.target.platform !== 'web'
                                   ? `${test.target.platform} · ${test.target.appId}`
                                   : test.url}
@@ -397,7 +397,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                                   {test.tags.map((tag, index) => (
                                     <span
                                       key={`${tag}-${index}`}
-                                      className="border border-[#e2e1da] px-1.5 py-0.5 text-xs text-[#78796f]"
+                                      className="border border-page-line px-1.5 py-0.5 text-xs text-page-muted"
                                     >
                                       {tag}
                                     </span>
@@ -408,17 +408,17 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                             <td>
                               <Status status={run?.status} />
                             </td>
-                            <td className="text-xs text-[#78796f]">{date(test.updatedAt)}</td>
+                            <td className="text-xs text-page-muted">{date(test.updatedAt)}</td>
                             <td>
                               {run ? (
                                 <Link
                                   href={`/runs/${run.id}`}
-                                  className="text-xs text-[#78796f] hover:underline"
+                                  className="text-xs text-page-muted hover:underline"
                                 >
                                   {date(run.startedAt)} ↗
                                 </Link>
                               ) : (
-                                <span className="text-[#aaa]">—</span>
+                                <span className="text-text-faint">—</span>
                               )}
                             </td>
                             <td>
@@ -474,19 +474,19 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                           <td>
                             <Link
                               href={`/runs/${run.id}`}
-                              className="font-medium hover:text-[#cf4f2e]"
+                              className="font-medium hover:text-brand-link"
                             >
                               {run.name}
                             </Link>
-                            <p className="mt-1 font-mono text-xs text-[#73766b]">
+                            <p className="mt-1 font-mono text-xs text-text-subtle">
                               #{run.id.slice(0, 8)} · {run.url}
                             </p>
                           </td>
                           <td>
                             <Status status={run.status} />
                           </td>
-                          <td className="text-xs text-[#78796f]">{date(run.startedAt)}</td>
-                          <td className="font-mono text-xs text-[#78796f]">{duration(run)}</td>
+                          <td className="text-xs text-page-muted">{date(run.startedAt)}</td>
+                          <td className="font-mono text-xs text-page-muted">{duration(run)}</td>
                           <td>
                             <div className="flex justify-end gap-2">
                               <Link href={`/runs/${run.id}`} className="ws-button">
@@ -510,11 +510,11 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
             </div>
           </div>
         )}
-        <div className="flex items-center justify-between border-t border-[#e2e1da] px-4 py-3 text-xs text-[#73766b]">
+        <div className="flex items-center justify-between border-t border-page-line px-4 py-3 text-xs text-text-subtle">
           <span>{isTests ? visibleTests.length : visibleRuns.length} 条记录</span>
           <span className="flex items-center gap-1.5">
             <span
-              className={`h-1.5 w-1.5 rounded-full ${running ? 'bg-[#f16b43]' : 'bg-[#8da58c]'}`}
+              className={`h-1.5 w-1.5 rounded-full ${running ? 'bg-activity-running' : 'bg-activity-idle'}`}
             />
             {running ? '执行中 · 每 2 秒更新' : '执行记录持久保存'}
           </span>
@@ -585,7 +585,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                 </pre>
               </details>
               {matrixError && (
-                <p role="alert" className="text-sm text-red-700">
+                <p role="alert" className="text-sm text-error-ink">
                   {matrixError}
                 </p>
               )}

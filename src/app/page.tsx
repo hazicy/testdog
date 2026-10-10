@@ -22,10 +22,10 @@ const faqs = [
 
 export default function Home() {
   return (
-    <div className="bg-page text-ink text-sm leading-relaxed [--accent:#b84c2e]">
+    <div className="bg-page text-ink text-sm leading-relaxed">
       <a
         href="#main-content"
-        className="sr-only fixed left-4 top-4 z-50 bg-white p-3 focus:not-sr-only"
+        className="sr-only fixed left-4 top-4 z-50 bg-surface-raised p-3 focus:not-sr-only"
       >
         跳转到主内容
       </a>
@@ -36,11 +36,11 @@ export default function Home() {
             aria-label="CaseForge 首页"
             className="text-xl font-semibold tracking-tight"
           >
-            caseforge<span className="text-[#b84c2e]">.</span>
+            caseforge<span className="text-brand">.</span>
           </Link>
           <nav
             aria-label="页面导航"
-            className="ml-auto hidden items-center gap-7 text-[#64665d] sm:flex"
+            className="ml-auto hidden items-center gap-7 text-text-secondary sm:flex"
           >
             <a href="#workflow" className="hover:text-ink">
               使用流程
@@ -58,7 +58,7 @@ export default function Home() {
         <section className="mx-auto max-w-6xl px-5 pb-14 pt-16 sm:px-8 sm:pt-24">
           <div className="grid items-start gap-8 lg:grid-cols-[1.4fr_1fr] lg:gap-16">
             <div>
-              <p className="mb-5 text-sm font-medium text-[#9e3f25]">
+              <p className="mb-5 text-sm font-medium text-brand-hover">
                 浏览器测试，从清晰的描述开始
               </p>
               <h1 className="text-[28px] font-semibold leading-[1.4] tracking-tight min-[440px]:text-4xl sm:text-[40px] lg:text-[44px] xl:text-5xl">
@@ -71,11 +71,11 @@ export default function Home() {
               </Link>
             </div>
             <div className="pt-1 lg:pt-11">
-              <p className="max-w-md text-base leading-8 text-[#64665d]">
+              <p className="max-w-md text-base leading-8 text-text-secondary">
                 写下操作步骤和预期结果，CaseForge
                 会生成执行计划，在真实浏览器中完成测试，并保留可追溯的执行记录。
               </p>
-              <p className="mt-5 text-sm text-[#73766b]">
+              <p className="mt-5 text-sm text-text-subtle">
                 自然语言用例 · Playwright 执行 · 截图与断言记录
               </p>
             </div>
@@ -90,7 +90,7 @@ export default function Home() {
             <h2 id="workflow-title" className="text-lg font-semibold">
               从测试描述到执行结果
             </h2>
-            <p className="text-sm text-[#73766b]">选择一个示例，查看操作与验证过程</p>
+            <p className="text-sm text-text-subtle">选择一个示例，查看操作与验证过程</p>
           </div>
           <MarketingDemo />
           <div className="mt-10 grid gap-7 border-b border-page-line pb-12 sm:grid-cols-3 sm:gap-10">
@@ -106,9 +106,9 @@ export default function Home() {
               ['检查结果与证据', '查看断言、截图与执行日志，定位失败步骤，再验证修复。'],
             ].map(([title, description], index) => (
               <div key={title}>
-                <p className="mb-3 text-xs font-medium text-[#9e3f25]">步骤 {index + 1}</p>
+                <p className="mb-3 text-xs font-medium text-brand-hover">步骤 {index + 1}</p>
                 <h3 className="text-base font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-7 text-[#64665d]">{description}</p>
+                <p className="mt-2 text-sm leading-7 text-text-secondary">{description}</p>
               </div>
             ))}
           </div>
@@ -126,18 +126,21 @@ export default function Home() {
               <details key={question} className="group border-b border-page-line">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-medium [&::-webkit-details-marker]:hidden">
                   {question}
-                  <span aria-hidden="true" className="text-lg text-[#73766b] group-open:rotate-45">
+                  <span
+                    aria-hidden="true"
+                    className="text-lg text-text-subtle group-open:rotate-45"
+                  >
                     +
                   </span>
                 </summary>
-                <p className="max-w-2xl pb-5 pr-6 leading-7 text-[#64665d]">{answer}</p>
+                <p className="max-w-2xl pb-5 pr-6 leading-7 text-text-secondary">{answer}</p>
               </details>
             ))}
           </div>
         </section>
       </main>
       <footer className="border-t border-page-line">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-7 text-xs text-[#73766b] sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-7 text-xs text-text-subtle sm:px-8">
           <span>© {new Date().getFullYear()} CaseForge</span>
           <Link href="/cases" className="hover:text-ink">
             进入测试工作台 →

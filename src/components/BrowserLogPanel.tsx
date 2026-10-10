@@ -65,11 +65,11 @@ export function BrowserLogPanel({
                 {(log.elapsedMs / 1000).toFixed(2)}s · {log.pageId}
               </span>
               {kind === 'console' ? (
-                <span className={log.level === 'error' ? 'text-red-700' : ''}>
+                <span className={log.level === 'error' ? 'text-error-ink' : ''}>
                   [{log.level}] {log.message}
                 </span>
               ) : (
-                <span className={log.failure || (log.status || 0) >= 400 ? 'text-red-700' : ''}>
+                <span className={log.failure || (log.status || 0) >= 400 ? 'text-error-ink' : ''}>
                   {log.method} {log.status ?? (log.failure ? 'FAILED' : '—')} {log.url} ·{' '}
                   {log.durationMs ?? 0}ms
                 </span>

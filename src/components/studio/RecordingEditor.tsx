@@ -114,7 +114,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
       </p>
     );
   return (
-    <section className="border border-page-line bg-[#fffefa]" aria-label="录制编辑器">
+    <section className="border border-page-line bg-surface" aria-label="录制编辑器">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-page-line p-5">
         <div>
           <h2 className="text-sm font-medium">
@@ -189,12 +189,12 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             label={platform === 'web' ? 'Playwright 录制脚本' : '原生设备录制 JSON'}
           />
           {(error || (!validating && validation?.error)) && (
-            <p role="alert" className="mt-3 whitespace-pre-wrap text-xs leading-6 text-red-700">
+            <p role="alert" className="mt-3 whitespace-pre-wrap text-xs leading-6 text-error-ink">
               {error || validation?.error}
             </p>
           )}
           {message && (
-            <p role="status" className="mt-3 text-xs text-[#6c805b]">
+            <p role="status" className="mt-3 text-xs text-step-success">
               {message}
             </p>
           )}

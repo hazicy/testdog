@@ -126,7 +126,7 @@ export function TestEditor({
             <h2 id="editor-title" className="text-lg font-semibold">
               {test && !duplicate ? '编辑测试' : '新建测试'}
             </h2>
-            <p className="mt-1 text-xs text-[#73766b]">描述操作与预期结果，由 AI 规划执行。</p>
+            <p className="mt-1 text-xs text-text-subtle">描述操作与预期结果，由 AI 规划执行。</p>
           </div>
           <Button
             type="button"
@@ -358,11 +358,11 @@ export function TestEditor({
               placeholder={'1. 打开网站首页\n2. 点击登录按钮\n3. 验证页面包含邮箱输入框和提交按钮'}
             />
           </label>
-          <p className="text-xs leading-5 text-[#73766b]">
+          <p className="text-xs leading-5 text-text-subtle">
             测试会实际操作目标网站。建议使用测试环境，并写明判断通过的条件。
           </p>
           <label className="ws-label">
-            标签 <span className="font-normal text-[#73766b]">（可选，逗号分隔）</span>
+            标签 <span className="font-normal text-text-subtle">（可选，逗号分隔）</span>
             <Input
               className="ws-input"
               value={tags}
@@ -372,7 +372,7 @@ export function TestEditor({
             />
           </label>
           {formError && (
-            <p role="alert" className="text-sm text-red-700">
+            <p role="alert" className="text-sm text-error-ink">
               {formError}
             </p>
           )}

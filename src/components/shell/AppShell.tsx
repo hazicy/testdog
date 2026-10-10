@@ -17,14 +17,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     >
       <a
         href="#main-content"
-        className="sr-only z-50 bg-[#faf9f6] p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-50 bg-page p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         跳转到主内容
       </a>
-      <aside className="sticky top-0 flex h-dvh flex-col border-r border-[#e2e1da] bg-[#f5f5f2]">
+      <aside className="sticky top-0 flex h-dvh flex-col border-r border-page-line bg-sidebar">
         <Link
           href="/"
-          className="flex h-14 shrink-0 items-center gap-3 border-b border-[#e2e1da] px-4"
+          className="flex h-14 shrink-0 items-center gap-3 border-b border-page-line px-4"
           aria-label="CaseForge 首页"
         >
           <span className="grid h-7 w-7 shrink-0 place-items-center bg-transparent text-brand text-2xl font-semibold -rotate-45">
@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 title={item.name}
                 aria-label={item.name}
                 aria-current={item.active ? 'page' : undefined}
-                className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm hover:bg-[#eeece3] ${item.active ? 'bg-white font-medium text-[#a64227] shadow-sm' : ''}`}
+                className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm hover:bg-sidebar-hover ${item.active ? 'bg-surface-raised font-medium text-brand-active shadow-sm' : ''}`}
               >
                 <WorkspaceIcon name={item.icon} />
                 {!collapsed && <span className="hidden md:block">{item.name}</span>}
@@ -58,22 +58,22 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
         </div>
-        <div className={`mt-auto border-t border-[#e2e1da] p-3`}>
-          <div className="flex items-center gap-3 border border-[#e2e1da] bg-[#faf9f6] p-2">
-            <span className="grid h-7 w-7 shrink-0 place-items-center bg-[#f3e2d1] text-xs font-medium text-[#8b5129]">
+        <div className={`mt-auto border-t border-page-line p-3`}>
+          <div className="flex items-center gap-3 border border-page-line bg-page p-2">
+            <span className="grid h-7 w-7 shrink-0 place-items-center bg-avatar-surface text-xs font-medium text-avatar-ink">
               L
             </span>
             {!collapsed && (
               <div className="hidden min-w-0 md:block">
                 <p className="text-xs font-medium">本地工作区</p>
-                <p className="mt-0.5 text-xs text-[#858585]">Local workspace</p>
+                <p className="mt-0.5 text-xs text-sidebar-muted">Local workspace</p>
               </div>
             )}
           </div>
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="flex h-14 items-center gap-3 border-b border-[#e2e1da] bg-[#faf9f6] px-5 md:px-7">
+        <header className="flex h-14 items-center gap-3 border-b border-page-line bg-page px-5 md:px-7">
           <Button
             className="ws-icon-button hidden md:flex"
             onClick={() => setCollapsed(!collapsed)}
@@ -82,10 +82,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <WorkspaceIcon name="menu" />
           </Button>
-          <Link href="/" className="text-sm text-[#78796f]">
+          <Link href="/" className="text-sm text-page-muted">
             工作区
           </Link>
-          <WorkspaceIcon name="chevron" className="text-[#73766b]" width="14" />
+          <WorkspaceIcon name="chevron" className="text-text-subtle" width="14" />
           <span className="truncate text-sm">浏览器测试</span>
         </header>
         <main id="main-content" tabIndex={-1} className="px-4 py-7 sm:px-6 md:px-8 md:py-9">

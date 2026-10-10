@@ -16,7 +16,7 @@ export function ErrorState({
 }) {
   return (
     <section
-      className="mx-auto max-w-2xl border border-page-line bg-[#fffefa] p-8"
+      className="mx-auto max-w-2xl border border-page-line bg-surface p-8"
       aria-label={title}
     >
       <h1 className="text-2xl font-semibold">{title}</h1>

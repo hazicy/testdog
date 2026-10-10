@@ -65,7 +65,7 @@ export function MarketingDemo() {
   return (
     <Tabs.Root
       defaultValue={0}
-      className="overflow-hidden rounded-lg border border-page-line bg-[#fffefa]"
+      className="overflow-hidden rounded-lg border border-page-line bg-surface"
     >
       <div className="flex flex-wrap items-center justify-between gap-x-4 border-b border-page-line px-5">
         <Tabs.List activateOnFocus className="flex gap-6" aria-label="用例示例">
@@ -73,13 +73,13 @@ export function MarketingDemo() {
             <Tabs.Tab
               key={item.name}
               value={index}
-              className="cursor-pointer border-b-2 border-transparent py-4 text-sm text-[#64665d] hover:text-ink aria-selected:border-[#b84c2e] aria-selected:text-ink"
+              className="cursor-pointer border-b-2 border-transparent py-4 text-sm text-text-secondary hover:text-ink aria-selected:border-brand aria-selected:text-ink"
             >
               {item.name}
             </Tabs.Tab>
           ))}
         </Tabs.List>
-        <span className="py-3 text-xs text-[#73766b]">交互示例</span>
+        <span className="py-3 text-xs text-text-subtle">交互示例</span>
       </div>
       {examples.map((example, index) => (
         <Tabs.Panel key={example.name} value={index} className="grid md:grid-cols-2">
@@ -88,13 +88,13 @@ export function MarketingDemo() {
             aria-label="测试描述"
           >
             <h3 className="mb-5 text-sm font-semibold">测试描述</h3>
-            <p className="mb-5 break-all rounded-md bg-[#f3f3ef] px-3 py-2 font-mono text-xs text-[#64665d]">
+            <p className="mb-5 break-all rounded-md bg-code-surface px-3 py-2 font-mono text-xs text-text-secondary">
               https://{example.url}
             </p>
             <ol className="space-y-4">
               {example.input.map((line, index) => (
                 <li key={line} className="flex gap-3 text-sm leading-6">
-                  <span className="w-5 shrink-0 tabular-nums text-[#73766b]">{index + 1}.</span>
+                  <span className="w-5 shrink-0 tabular-nums text-text-subtle">{index + 1}.</span>
                   <span>{line}</span>
                 </li>
               ))}
@@ -111,16 +111,16 @@ export function MarketingDemo() {
             <ol className="space-y-4">
               {example.steps.map((step) => (
                 <li key={step} className="flex gap-3 text-sm leading-6">
-                  <span aria-hidden="true" className="text-[#49815a]">
+                  <span aria-hidden="true" className="text-success">
                     ✓
                   </span>
                   <span>{step}</span>
                 </li>
               ))}
             </ol>
-            <div className="mt-6 rounded-md border border-[#d7e1d5] bg-[#f4f8f2] px-4 py-3">
-              <p className="text-sm font-medium text-[#42664a]">页面证据：{example.title}</p>
-              <p className="mt-1 text-xs leading-5 text-[#64665d]">
+            <div className="mt-6 rounded-md border border-success-line bg-success-soft px-4 py-3">
+              <p className="text-sm font-medium text-success-strong">页面证据：{example.title}</p>
+              <p className="mt-1 text-xs leading-5 text-text-secondary">
                 预期结果与页面状态一致 · 示例包含 4 个步骤、1 个断言
               </p>
             </div>

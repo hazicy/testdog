@@ -34,11 +34,11 @@ export function DeleteTestDialog({
         <h2 id="delete-title" className="text-lg font-semibold">
           删除测试？
         </h2>
-        <p className="mt-3 text-sm leading-6 text-[#78796f]">
+        <p className="mt-3 text-sm leading-6 text-page-muted">
           将删除「{test.name}」。历史执行结果会保留。
         </p>
         {formError && (
-          <p role="alert" className="mt-3 text-sm text-red-700">
+          <p role="alert" className="mt-3 text-sm text-error-ink">
             {formError}
           </p>
         )}
@@ -49,7 +49,7 @@ export function DeleteTestDialog({
         </Button>
         <Button
           disabled={saving}
-          className="ws-button border-red-200 text-red-700"
+          className="ws-button border-error-line text-error-ink"
           onClick={() => void remove()}
         >
           {saving ? '删除中…' : '删除测试'}
