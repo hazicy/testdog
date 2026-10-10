@@ -47,14 +47,11 @@ export function RunDetail({ id }: { id: string }) {
   const playback = useRunPlayback();
   const {
     follow,
-    frameIndex,
+    evidenceIndex,
     stepId,
-    playing,
-    speed,
-    mode,
     videoId,
     videoElement,
-    setFrameIndex,
+    elapsedMs,
     setPlaying,
     selectStep: selectPlaybackStep,
   } = playback;
@@ -63,7 +60,7 @@ export function RunDetail({ id }: { id: string }) {
   const [tab, setTab] = useState<InspectorTab>('step');
   const { run, error, setError, unavailable, now, previewUrl, clearPreview, refresh } = useRunData(
     id,
-    follow && mode === 'frames' && view === 'execution',
+    follow && view === 'execution',
   );
   const { frames, videos, trace, stepFrames, steps } = useMemo(() => indexRun(run), [run]);
   const diagnostics =
@@ -72,25 +69,18 @@ export function RunDetail({ id }: { id: string }) {
     ) || [];
   const currentIndex = follow
     ? Math.max(0, frames.length - 1)
-    : Math.min(frameIndex, frames.length - 1);
+    : (evidenceIndex ??
+      Math.max(
+        0,
+        frames.findLastIndex((frame) => frame.elapsedMs <= elapsedMs),
+      ));
   const currentFrame = frames[currentIndex];
   const selectedStep =
     steps.get(stepId || '') || (follow ? run?.steps.at(-1) : steps.get(currentFrame?.stepId || ''));
   const video = videos.find((item) => item.id === videoId) || videos[0];
 
-  useEffect(() => {
-    if (!playing || mode !== 'frames' || view !== 'execution') return;
-    const current = frames[currentIndex];
-    const next = frames[currentIndex + 1];
+  const durationMs = Math.max(run?.durationMs || 0, frames.at(-1)?.elapsedMs || 0);
 
-    if (!next || !current) return;
-    const timer = setTimeout(
-      () => setFrameIndex(currentIndex + 1),
-      Math.max(100, Math.min(3000, next.elapsedMs - current.elapsedMs)) / speed,
-    );
-
-    return () => clearTimeout(timer);
-  }, [playing, frames, currentIndex, speed, mode, view, setFrameIndex]);
   useEffect(() => {
     if (view !== 'execution') videoElement.current?.pause();
   }, [view, videoElement]);
@@ -100,9 +90,11 @@ export function RunDetail({ id }: { id: string }) {
       setTab('step');
       const positions = stepFrames.get(step.id);
 
-      selectPlaybackStep(step.id, positions ? (positions.after ?? positions.first) : undefined);
+      const index = positions ? (positions.after ?? positions.first) : undefined;
+
+      selectPlaybackStep(step.id, index === undefined ? 0 : frames[index].elapsedMs, index);
     },
-    [stepFrames, selectPlaybackStep],
+    [stepFrames, selectPlaybackStep, frames],
   );
 
   async function start(mode: 'record' | 'replay') {
@@ -223,13 +215,13 @@ export function RunDetail({ id }: { id: string }) {
             id={id}
             run={run}
             currentFrame={currentFrame}
-            currentIndex={currentIndex}
             frames={frames}
             videos={videos}
             video={video}
             previewUrl={previewUrl}
             clearPreview={clearPreview}
             playback={playback}
+            durationMs={durationMs}
           />
           <StepList
             steps={run?.steps || emptySteps}
@@ -250,7 +242,9 @@ export function RunDetail({ id }: { id: string }) {
             trace={trace}
             diagnostics={diagnostics}
             stepFrames={stepFrames}
-            onShowFrame={playback.showFrame}
+            onShowFrame={(index) => {
+              playback.showFrame(index, frames[index].elapsedMs);
+            }}
           />
         )}
       </div>

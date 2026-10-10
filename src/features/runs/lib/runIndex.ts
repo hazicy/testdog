@@ -8,10 +8,10 @@ export function indexRun(run?: Pick<TestRun, 'steps' | 'artifacts'>) {
   const stepFrames = new Map<string, FramePositions>();
   let trace: RunArtifact | undefined;
 
-  for (const artifact of run?.artifacts || []) {
+  for (const artifact of [...(run?.artifacts || [])].sort((a, b) => a.elapsedMs - b.elapsedMs)) {
     if (artifact.kind === 'video') videos.push(artifact);
     else if (artifact.kind === 'trace') trace ??= artifact;
-    else {
+    else if (artifact.kind === 'screenshot') {
       const index = frames.length;
 
       frames.push(artifact);

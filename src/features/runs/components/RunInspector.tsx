@@ -45,8 +45,6 @@ export function RunInspector({
           { id: 'step' as const, label: '步骤详情' },
           { id: 'case' as const, label: '用例快照' },
           { id: 'logs' as const, label: '执行日志' },
-          { id: 'console' as const, label: 'Console' },
-          { id: 'network' as const, label: 'Network' },
         ].map((item) => (
           <Button
             key={item.id}

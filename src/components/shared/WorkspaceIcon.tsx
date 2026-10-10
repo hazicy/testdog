@@ -1,6 +1,10 @@
 import type { SVGProps } from 'react';
 
 const paths = {
+  pointer: 'm5 3 14 9-7 1-3 7L5 3Zm7 10 5 7',
+  keyboard: 'M3 6h18v12H3V6Zm3 4h1m3 0h1m3 0h1m3 0h1M6 14h1m3 0h8',
+  scroll: 'M12 3v18m-4-4 4 4 4-4M8 7l4-4 4 4',
+  branch: 'M6 3v18m0-12h8a4 4 0 0 0 4-4V3M3 18l3 3 3-3m6-12 3-3 3 3',
   pause: 'M8 4v16M16 4v16',
   maximize: 'M9 3H3v6m12-6h6v6M3 15v6h6m6 0h6v-6',
   tests: 'M9 3h6m-5 0v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M8 14h8',

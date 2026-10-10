@@ -127,6 +127,13 @@ test('frame playback and step selection keep the matching evidence visible', asy
   const image = page.getByRole('img', { name: /^执行画面/ });
 
   await expect(image).toHaveAttribute('src', /frame-1-after$/);
+  const mark = page.getByRole('button', { name: '跳转动作：检查页面', exact: true });
+
+  await expect(mark).toHaveAttribute('title', '00:02 · 检查页面');
+  await mark.click();
+  await expect(image).toHaveAttribute('src', /frame-1-before$/);
+  await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
+
   await page
     .getByRole('region', { name: '执行步骤' })
     .getByRole('button', { name: /打开网站/ })
@@ -135,13 +142,20 @@ test('frame playback and step selection keep the matching evidence visible', asy
   await expect(page.getByRole('heading', { name: '打开网站', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '查看执行前', exact: true }).click();
   await expect(image).toHaveAttribute('src', /frame-0-before$/);
+  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:00 / 00:03');
+  await page.getByRole('slider', { name: '画面时间轴' }).fill('2500');
+  await expect(image).toHaveAttribute('src', /frame-1-before$/);
+  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:02 / 00:03');
+  await page.getByRole('button', { name: '查看执行前', exact: true }).click();
+
   await page.getByRole('button', { name: '播放回看', exact: true }).click();
   await expect(image).toHaveAttribute('src', /frame-1-after$/);
   await expect(page.getByRole('heading', { name: '检查页面', exact: true })).toBeVisible();
 });
 
-test('stops frame playback in video mode and pauses video when leaving execution', async ({
+test('uses one replay player and pauses video when leaving execution', async ({
   page,
+  browser,
 }) => {
   const frames = [0, 1, 2].map((index) => ({
     id: `paused-frame-${index}`,
@@ -169,14 +183,71 @@ test('stops frame playback in video mode and pauses video when leaving execution
       },
     }),
   );
-  await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) => route.fulfill({ body: '' }));
-  await page.clock.install();
+  const recordingContext = await browser.newContext({
+    recordVideo: { dir: '/private/tmp/caseforge-test-video', size: { width: 320, height: 200 } },
+  });
+  const recordingPage = await recordingContext.newPage();
+
+  await recordingPage.setContent('<p>Replay test</p>');
+  await recordingPage.waitForTimeout(1500);
+  const recordingVideo = recordingPage.video()!;
+
+  await recordingContext.close();
+  const recording = await readFile(await recordingVideo.path());
+
+  await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) => {
+    const range = route
+      .request()
+      .headers()
+      .range?.match(/bytes=(\d+)-(\d*)/);
+    const start = range ? Number(range[1]) : 0;
+    const end = range?.[2] ? Number(range[2]) : recording.length - 1;
+
+    return route.fulfill({
+      status: range ? 206 : 200,
+      contentType: 'video/webm',
+      headers: {
+        'Accept-Ranges': 'bytes',
+        ...(range ? { 'Content-Range': `bytes ${start}-${end}/${recording.length}` } : {}),
+      },
+      body: recording.subarray(start, end + 1),
+    });
+  });
   await page.goto(`/runs/${run.id}`);
   await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeEnabled();
-  await page.clock.pauseAt(new Date(Date.now() + 3600000));
+  const media = page.getByLabel('执行录像');
+
+  await expect
+    .poll(() => media.evaluate((element) => (element as HTMLVideoElement).readyState))
+    .toBeGreaterThan(1);
   await page.getByRole('button', { name: '播放回看', exact: true }).click();
-  await expect(page.getByRole('slider', { name: '画面时间轴' })).toHaveValue('0');
-  await page.getByRole('button', { name: '完整录像', exact: true }).click();
+  await expect(page.getByRole('button', { name: '暂停回看', exact: true })).toBeVisible();
+  const timeline = await page.getByTestId('replay-timeline').boundingBox();
+
+  expect(timeline).not.toBeNull();
+  await page.mouse.move(timeline!.x + timeline!.width * 0.2, timeline!.y + timeline!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(timeline!.x + timeline!.width * 0.65, timeline!.y + timeline!.height / 2, {
+    steps: 5,
+  });
+  await page.mouse.up();
+  await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
+  await expect
+    .poll(() => media.evaluate((element) => (element as HTMLVideoElement).paused))
+    .toBe(true);
+  const pausedTime = await media.evaluate((element) => (element as HTMLVideoElement).currentTime);
+
+  await page.waitForTimeout(300);
+  await expect
+    .poll(() => media.evaluate((element) => (element as HTMLVideoElement).currentTime))
+    .toBeCloseTo(pausedTime);
+  await page.getByRole('slider', { name: '画面时间轴' }).fill('1000');
+  await expect
+    .poll(() => media.evaluate((element) => (element as HTMLVideoElement).currentTime))
+    .toBeCloseTo(1);
+  await page.getByRole('slider', { name: '画面时间轴' }).fill('0');
+  await expect(page.getByRole('button', { name: '完整录像', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '画面回看', exact: true })).toHaveCount(0);
   const video = page.getByLabel('执行录像');
 
   await video.evaluate((element) => {
@@ -184,12 +255,10 @@ test('stops frame playback in video mode and pauses video when leaving execution
       element.dataset.pausedByView = 'true';
     };
   });
-  await page.clock.fastForward(5000);
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
   await expect(video).toHaveAttribute('data-paused-by-view', 'true');
-  await page.clock.fastForward(5000);
   await page.getByRole('button', { name: '执行回放', exact: true }).click();
-  await page.getByRole('button', { name: '画面回看', exact: true }).click();
+
   await expect(page.getByRole('slider', { name: '画面时间轴' })).toHaveValue('0');
   await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
 });

@@ -2,64 +2,72 @@
 
 import { useCallback, useRef, useState } from 'react';
 
+type Cursor =
+  { kind: 'live' } | { kind: 'timeline' } | { kind: 'evidence'; index?: number; stepId?: string };
+
 export function useRunPlayback() {
-  const [follow, setFollow] = useState(true);
-  const [frameIndex, setFrameIndex] = useState(0);
-  const [stepId, setStepId] = useState<string>();
+  const [cursor, setCursor] = useState<Cursor>({ kind: 'live' });
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [mode, setMode] = useState<'frames' | 'video'>('frames');
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [videoId, setVideoId] = useState('');
   const videoElement = useRef<HTMLVideoElement>(null);
 
-  const selectStep = useCallback((id: string, index?: number) => {
-    setStepId(id);
-    setMode('frames');
-    setFollow(false);
+  const selectStep = useCallback((stepId: string, elapsed: number, index?: number) => {
+    setCursor({ kind: 'evidence', stepId, index });
+    setElapsedMs(elapsed);
     setPlaying(false);
-    if (index !== undefined) setFrameIndex(index);
   }, []);
 
-  function showFrame(index: number) {
-    setFollow(false);
+  const showFrame = useCallback((index: number, elapsed: number) => {
+    setCursor({ kind: 'evidence', index });
+    setElapsedMs(elapsed);
     setPlaying(false);
-    setMode('frames');
-    setFrameIndex(index);
-  }
+  }, []);
 
-  function seek(index: number) {
-    setFollow(false);
+  const seek = useCallback((elapsed: number) => {
+    const element = videoElement.current;
+
+    if (element) {
+      element.pause();
+      element.currentTime = elapsed / 1000;
+    }
+
+    setCursor({ kind: 'timeline' });
+    setElapsedMs(elapsed);
     setPlaying(false);
-    setStepId(undefined);
-    setFrameIndex(index);
-  }
+  }, []);
 
-  function followLive() {
-    setFollow(true);
-    setStepId(undefined);
+  const followLive = useCallback(() => {
+    setCursor({ kind: 'live' });
     setPlaying(false);
-    setMode('frames');
-  }
+  }, []);
 
-  function togglePlayback(currentIndex: number, frameCount: number) {
-    setFollow(false);
-    setStepId(undefined);
-    setFrameIndex(currentIndex >= frameCount - 1 ? 0 : currentIndex);
-    setPlaying(!(playing && currentIndex < frameCount - 1));
-  }
-
-  function showVideo() {
-    setPlaying(false);
-    setMode('video');
+  function togglePlayback(position: number, duration: number) {
+    setCursor({ kind: 'timeline' });
+    setElapsedMs(position >= duration ? 0 : position);
+    setPlaying((value) => !value);
   }
 
   return {
-    follow,
-    frameIndex,
-    stepId,
+    toggleVideo: () => {
+      const element = videoElement.current;
+
+      if (!element) return;
+      if (!element.paused) element.pause();
+      else {
+        if (element.ended) element.currentTime = 0;
+        void element.play().catch(() => setPlaying(false));
+      }
+    },
+    elapsedMs,
+    setElapsedMs,
+    follow: cursor.kind === 'live',
+    evidenceIndex: cursor.kind === 'evidence' ? cursor.index : undefined,
+    inspectingEvidence: cursor.kind === 'evidence',
+    stepId: cursor.kind === 'evidence' ? cursor.stepId : undefined,
     playing,
     speed,
-    mode,
     videoId,
     videoElement,
     selectStep,
@@ -67,11 +75,13 @@ export function useRunPlayback() {
     seek,
     followLive,
     togglePlayback,
-    showVideo,
-    setFrameIndex,
     setPlaying,
-    setSpeed,
+    setSpeed: (rate: number) => {
+      setSpeed(rate);
+      const element = videoElement.current;
+
+      if (element) element.playbackRate = rate;
+    },
     setVideoId,
-    showFrames: () => setMode('frames'),
   };
 }
