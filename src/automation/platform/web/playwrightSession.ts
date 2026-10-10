@@ -15,10 +15,12 @@ import type {
   PlatformAssertion,
   CaptureRequest,
   ArtifactDescriptor,
+  ReplayStep,
 } from '../contracts';
 
 export class PlaywrightSession implements AutomationSession {
   readonly platform = 'web' as const;
+  readonly executionPolicy = { reobserveAfterAction: false };
   readonly capabilities = {
     actions: ['navigate', 'click', 'fill', 'press', 'wait'],
     artifacts: ['screenshot', 'snapshot', 'video', 'trace', 'console', 'network'],
@@ -55,6 +57,24 @@ export class PlaywrightSession implements AutomationSession {
     const page = this.pages.get(id);
     if (!page || page.isClosed()) throw new Error(`重放页面 ${id} 不存在`);
     this.session.activate(page);
+  }
+  async prepareReplayStep(step: ReplayStep, signal: AbortSignal) {
+    signal.throwIfAborted();
+    const action = step.event.action;
+    if (action && action.platform !== this.platform) throw new Error('Expected Web action');
+    const browserAction = action?.action;
+    // A popup wait belongs to the preceding action's page, even if the popup is already open.
+    if (!(browserAction?.type === 'wait' && browserAction.condition === 'newPage')) {
+      if (!step.surfaceId) throw new Error('重放步骤缺少页面 ID');
+      await this.selectSurface(step.surfaceId, signal);
+    }
+    if (
+      browserAction &&
+      browserAction.type !== 'navigate' &&
+      browserAction.type !== 'wait' &&
+      browserAction.target.kind === 'ariaRef'
+    )
+      throw new Error('该步骤没有稳定定位器，请重新录制');
   }
   get latestObservation() {
     return this.observation;

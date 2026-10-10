@@ -9,8 +9,8 @@ beforeAll(async () => {
   });
 }, 30000);
 
-async function violations(source: string) {
-  const [result] = await eslint.lintText(source, { filePath: 'src/components/BoundaryProbe.tsx' });
+async function violations(source: string, filePath = 'src/components/BoundaryProbe.tsx') {
+  const [result] = await eslint.lintText(source, { filePath });
 
   return result.messages.filter((message) => message.ruleId === 'no-restricted-imports');
 }
@@ -20,6 +20,10 @@ it.each([
   '../../db/index',
   '@/automation/llm/deepseek',
   '@/automation/llm/jev',
+  '@/automation/evaluator',
+  '@/automation/planRunner',
+  '@/workspace/server/runtime',
+  '@/automation/platform/web/replay',
   '@/automation/platform/web/webPlanner',
   '@/automation/platform/web/browserSession',
   '@/automation/platform/web/observer',
@@ -47,4 +51,23 @@ it.each([
   "import { testSchema } from '@/workspace/validation'; export { testSchema };",
 ])('permits shared browser utilities and erased type imports', async (source) => {
   expect(await violations(source)).toEqual([]);
+});
+
+it.each([
+  './llm/deepseek',
+  './platform/web/playwrightSession',
+  '@/automation/platform/native/agentDeviceSession',
+  '@/workspace/server/runtime',
+  '@/db',
+])('keeps platform, model and persistence implementations out of PlanRunner: %s', async (path) => {
+  expect(await violations(`import '${path}';`, 'src/automation/planRunner.ts')).toHaveLength(1);
+});
+
+it('permits PlanRunner to depend on shared contracts and erased evaluator types', async () => {
+  expect(
+    await violations(
+      "import { ObservationSchema } from './platform/contracts'; import type { Evaluator } from './evaluator'; export type Check = Evaluator; export { ObservationSchema };",
+      'src/automation/planRunner.ts',
+    ),
+  ).toEqual([]);
 });

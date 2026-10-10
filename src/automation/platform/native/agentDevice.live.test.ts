@@ -1,3 +1,6 @@
+import { normalizeReplaySteps } from '@/workspace/replay';
+import { SemanticEvaluator } from '@/automation/evaluator';
+import { generateWithOpenAI } from '@/automation/llm/deepseek';
 import { PlanRunner } from '../../planRunner';
 import type { ExecutionStep } from '@/workspace/types';
 import { execFile } from 'node:child_process';
@@ -67,6 +70,7 @@ async function replayThroughRunner(
   });
   await new PlanRunner({
     session,
+    evaluator: new SemanticEvaluator(generateWithOpenAI),
     signal,
     plan: { rootId: '', nodes: {} },
     planner: {
@@ -74,7 +78,7 @@ async function replayThroughRunner(
         throw new Error('Replay must never replan actions');
       },
     },
-  }).replay(steps);
+  }).replay(normalizeReplaySteps(steps));
 }
 
 it.skipIf(!live || process.platform !== 'darwin')(

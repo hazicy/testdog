@@ -76,11 +76,13 @@ src/
   automation/          用例编译与统一计划执行
     compiler/          用例计划和动作 schema
     llm/               模型适配器
-    platform/          统一会话协议、目标配置与运行时装配
+    evaluator.ts       注入模型的自然语言断言与分支判断
+    planRunner.ts      注入 planner、session、evaluator 的公共编排
+    platform/          统一会话协议、执行策略与目标配置
       web/             浏览器会话、观察、动作规划、执行与定位
       native/          Android/iOS 会话、规划、诊断与构建管理
   workspace/           共享类型、校验、录制脚本解析与计划树
-    server/            数据库仓库、步骤记录、画面附件与运行生命周期
+    server/            运行时装配、数据库仓库、步骤记录、附件与运行生命周期
   db/                  Drizzle 表定义与 PostgreSQL 连接
 drizzle/              数据库迁移
 docs/                 数据模型和 API 文档

@@ -1,23 +1,30 @@
+import { SemanticEvaluator, type Evaluator } from '@/automation/evaluator';
+import { generateWithOpenAI } from '@/automation/llm/deepseek';
 import { previewInterval } from '@/workspace/server/preview';
 import { EvidenceSink } from '@/workspace/server/evidenceSink';
-import { SecretInputs } from './inputs';
+import { SecretInputs } from '@/automation/platform/inputs';
 import type { Browser, BrowserContext, BrowserContextOptions } from 'playwright';
-import type { Plan } from '../compiler/schema';
-import { AgentDeviceSession } from './native/agentDeviceSession';
-import { NativeActionPlanner } from './native/nativePlanner';
-import { PlaywrightSession } from './web/playwrightSession';
-import { WebActionPlanner } from './web/webPlanner';
-import { launchWebBrowser, resolveWebProfile } from './web/mobile';
-import { legacyWebTarget } from './target';
+import type { Plan } from '@/automation/compiler/schema';
+import { AgentDeviceSession } from '@/automation/platform/native/agentDeviceSession';
+import { NativeActionPlanner } from '@/automation/platform/native/nativePlanner';
+import { PlaywrightSession } from '@/automation/platform/web/playwrightSession';
+import { WebActionPlanner } from '@/automation/platform/web/webPlanner';
+import { launchWebBrowser, resolveWebProfile } from '@/automation/platform/web/mobile';
+import { legacyWebTarget } from '@/automation/platform/target';
 import { DeviceRecorder } from '@/workspace/server/deviceRecorder';
 import { RunRecorder } from '@/workspace/server/recorder';
 import { PersistenceQueue } from '@/workspace/server/persistenceQueue';
 import type { TestRun } from '@/workspace/types';
-import type { AutomationSession, ActionPlanner, PlatformAction } from './contracts';
+import type {
+  AutomationSession,
+  ActionPlanner,
+  PlatformAction,
+} from '@/automation/platform/contracts';
 
 export interface PlatformRuntime {
   session: AutomationSession;
   planner: ActionPlanner;
+  evaluator: Evaluator;
   environment: Record<string, unknown>;
   initial?: PlatformAction;
   finalize(interrupted: boolean): Promise<void>;
@@ -51,6 +58,7 @@ export async function openPlatformRuntime(input: {
     let live: ReturnType<typeof setInterval> | undefined;
     const runtime: PlatformRuntime = {
       session,
+      evaluator: new SemanticEvaluator(generateWithOpenAI),
       planner: new NativeActionPlanner(target.platform, signal),
       environment: session.environment,
       healthy: false,
@@ -157,6 +165,7 @@ export async function openPlatformRuntime(input: {
 
     const runtime: PlatformRuntime = {
       session,
+      evaluator: new SemanticEvaluator(generateWithOpenAI),
       planner: new WebActionPlanner(signal),
       environment: {
         platform: 'web',

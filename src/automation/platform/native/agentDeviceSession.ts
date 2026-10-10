@@ -15,10 +15,12 @@ import {
   type Observation,
   type PlatformAction,
   type SessionEvent,
+  type ReplayStep,
 } from '../contracts';
 import type { NativeTarget } from '../target';
 
 export class AgentDeviceSession implements AutomationSession {
+  readonly executionPolicy = { reobserveAfterAction: true };
   readonly platform: NativeTarget['platform'];
   readonly capabilities: CapabilitySet;
   private generation = 0;
@@ -265,6 +267,12 @@ export class AgentDeviceSession implements AutomationSession {
     }
 
     return { action, replayable: false };
+  }
+  async prepareReplayStep(step: ReplayStep, signal: AbortSignal) {
+    signal.throwIfAborted();
+    if (step.event.action && step.event.action.platform !== this.platform)
+      throw new Error('Platform mismatch');
+    // Native runs stay attached to their leased device and app; there are no browser tabs to select.
   }
   async perform(supplied: PlatformAction, signal: AbortSignal) {
     if (supplied.platform !== this.platform) throw new Error('Platform mismatch');

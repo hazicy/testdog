@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { StepSchema, TargetSchema } from '../compiler/schema';
 import type { Assertion, Plan } from '../compiler/schema';
 import type { TestTarget } from './target';
+import type { Evaluator } from '../evaluator';
 
 export const NativeLocatorSchema = z.discriminatedUnion('kind', [
   z.strictObject({
@@ -134,14 +135,21 @@ export type SessionEvent = {
   error?: string;
 };
 
+export type ReplayStep = {
+  surfaceId?: string;
+  event: Omit<SessionEvent, 'id' | 'phase'>;
+};
+
 export interface AutomationSession {
   readonly id: string;
   readonly platform: TestTarget['platform'];
   readonly capabilities: CapabilitySet;
   readonly revision: number;
   readonly latestObservation?: Observation;
+  readonly executionPolicy: { reobserveAfterAction: boolean };
 
   selectSurface?(id: string, signal: AbortSignal): Promise<void>;
+  prepareReplayStep(step: ReplayStep, signal: AbortSignal): Promise<void>;
   observe(signal: AbortSignal): Promise<Observation>;
   perform(action: PlatformAction, signal: AbortSignal): Promise<void>;
   wait(action: PlatformAction, signal: AbortSignal): Promise<Observation>;
@@ -164,6 +172,7 @@ export type RunnerOptions = {
   plan: Plan;
   session: AutomationSession;
   planner: ActionPlanner;
+  evaluator: Evaluator;
   signal: AbortSignal;
   report?: (message: string) => Promise<void>;
 };

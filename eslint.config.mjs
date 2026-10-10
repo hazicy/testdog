@@ -32,6 +32,23 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ['src/automation/planRunner.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '(?:^|/)(?:llm|workspace|db|platform/(?:web|native))(?:/.*)?$',
+              allowTypeImports: true,
+              message: 'PlanRunner 通过注入接口编排执行，不直接依赖平台驱动、模型或工作台存储。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['src/components/**/*.{ts,tsx}', 'src/client/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
@@ -40,7 +57,7 @@ const eslintConfig = defineConfig([
           patterns: [
             {
               regex:
-                '(?:^|/)(?:db(?:/.*)?|workspace/server(?:/.*)?|automation/(?:llm(?:/.*)?|platform/web/(?:browserSession|executor|observer|pageReadiness|webPlanner|webActions|webLocator)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$',
+                '(?:^|/)(?:db(?:/.*)?|workspace/server(?:/.*)?|automation/(?:planRunner|evaluator|llm(?:/.*)?|platform/web/(?:browserSession|executor|observer|pageReadiness|webPlanner|webActions|webLocator|replay)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$',
               allowTypeImports: true,
               message: '浏览器组件通过 API 访问服务端功能；共享类型请使用 import type。',
             },

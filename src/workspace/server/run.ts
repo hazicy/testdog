@@ -3,9 +3,10 @@ import { hostname } from 'node:os';
 import { leaseScope, setRunPhase, runWrite } from './lease';
 import { claimRun, registerWorker, releaseLease, withLease } from './scheduler';
 import { owner, appendEvent, finishRun, getRun, heartbeat, savePlan } from './store';
+import { normalizeReplaySteps } from '../replay';
 import { TextCompiler } from '@/automation/compiler/textCompiler';
 import { PlanRunner } from '@/automation/planRunner';
-import { openPlatformRuntime, type PlatformRuntime } from '@/automation/platform/runtime';
+import { openPlatformRuntime, type PlatformRuntime } from '@/workspace/server/runtime';
 import type { TestRun } from '../types';
 import { testRuns } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -114,13 +115,14 @@ export async function executeRun(
       plan,
       session: runtime.session,
       planner: runtime.planner,
+      evaluator: runtime.evaluator,
       signal: controller.signal,
       report,
     });
     if (source) {
       const steps = run.recordingSteps || source.steps;
 
-      await runner.replay(steps);
+      await runner.replay(normalizeReplaySteps(steps));
     } else await runner.record(runtime.initial);
     await report('全部操作与断言执行完成');
   } catch (cause) {

@@ -1,4 +1,4 @@
-import type { PlatformRuntime } from '@/automation/platform/runtime';
+import type { PlatformRuntime } from '@/workspace/server/runtime';
 
 async function within<T>(operation: Promise<T>, timeoutMs: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
