@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { deepseekClient } from './deepseek';
+import { SemanticEvaluator } from '../evaluator';
 
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 
@@ -38,9 +39,79 @@ describe('deepseekClient.generate', () => {
     expect(create.mock.calls[0][0]).not.toHaveProperty('tools');
     expect(create.mock.calls[0][0]).not.toHaveProperty('tool_choice');
   });
-  it('supports plain text completion without JSON parsing', async () => {
-    create.mockResolvedValue({ output_text: 'DONE', output: [] });
-    expect((await deepseekClient.generate({ messages })).content.text).toBe('DONE');
+  it.each([
+    '```json\n{"passed":true,"evidence":"visible"}\n```',
+    '```\n{"passed":true,"evidence":"visible"}\n```',
+    ' \n```JSON\r\n{"passed":true,"evidence":"visible"}\r\n```\r\n ',
+    '```json\n\n{"passed":true,"evidence":"visible"}\n\n  ```',
+  ])('parses complete JSON code blocks while preserving the raw response: %j', async (text) => {
+    create.mockResolvedValue({ output_text: text, output: [] });
+    const result = await deepseekClient.generate({
+      messages,
+      responseFormat: { type: 'json_schema', name: 'assertion', schema: { type: 'object' } },
+    });
+
+    expect(result.structuredContent).toEqual({ passed: true, evidence: 'visible' });
+    expect(result.content.text).toBe(text);
+  });
+  it('removes schema metadata without changing backticks inside JSON values', async () => {
+    create.mockResolvedValue({
+      output_text:
+        '```json\n{"$schema":"metadata","passed":true,"evidence":"literal ```json"}\n```',
+      output: [],
+    });
+    const result = await deepseekClient.generate({
+      messages,
+      responseFormat: { type: 'json_schema', name: 'assertion', schema: { type: 'object' } },
+    });
+
+    expect(result.structuredContent).toEqual({ passed: true, evidence: 'literal ```json' });
+  });
+  it('evaluates step evidence returned as fenced JSON', async () => {
+    create.mockResolvedValue({
+      output_text: '```json\n{"passed":true,"evidence":"Welcome label is visible"}\n```',
+      output: [],
+    });
+
+    await expect(
+      new SemanticEvaluator(deepseekClient).evaluate({
+        subject: { assertion: 'Welcome label is visible' },
+        observation: {
+          schemaVersion: 1,
+          sessionId: 'session',
+          revision: 1,
+          capturedAt: '2026-10-10T00:00:00.000Z',
+          surface: { id: 'page-1', platform: 'web' },
+        },
+        name: 'assertion_result',
+        signal: new AbortController().signal,
+      }),
+    ).resolves.toEqual({ passed: true, evidence: 'Welcome label is visible' });
+  });
+  it.each(['DONE', '```json\n{"passed":true}\n```'])(
+    'supports plain text completion without JSON parsing: %j',
+    async (text) => {
+      create.mockResolvedValue({ output_text: text, output: [] });
+      const result = await deepseekClient.generate({ messages });
+
+      expect(result.content.text).toBe(text);
+      expect(result.structuredContent).toBeUndefined();
+    },
+  );
+  it.each([
+    '```json\n{"passed":true,}\n```',
+    '```json\n{"passed":true}',
+    'Here is the result:\n```json\n{"passed":true}\n```',
+    '```json\n{"passed":true}\n```\n```json\n{"passed":false}\n```',
+  ])('rejects malformed or ambiguous structured responses: %j', async (text) => {
+    create.mockResolvedValue({ output_text: text, output: [] });
+
+    await expect(
+      deepseekClient.generate({
+        messages,
+        responseFormat: { type: 'json_schema', name: 'assertion', schema: { type: 'object' } },
+      }),
+    ).rejects.toThrow(SyntaxError);
   });
   it('rejects invalid schema and malformed structured JSON', async () => {
     await expect(

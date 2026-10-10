@@ -14,7 +14,10 @@ function isJSONObject(value: JSONType): value is Record<string, JSONType> {
 }
 
 function parseStructuredContent(outputText: string): JSONType {
-  const content = JSON.parse(outputText) as JSONType;
+  const text = outputText.trim();
+  // Some providers wrap structured output in a complete Markdown code block.
+  const fenced = /^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*```$/i.exec(text);
+  const content = JSON.parse(fenced?.[1] ?? text) as JSONType;
 
   if (isJSONObject(content) && '$schema' in content) {
     const result = { ...content };
