@@ -45,7 +45,6 @@ export const authUsers = pgTable('auth_users', {
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
 });
-
 export const authSessions = pgTable(
   'auth_sessions',
   {
