@@ -5,7 +5,7 @@ import type { ExecutionHooks, ExecutionStep, StepSignal } from '@/workspace/type
 import { type JSONType, z } from 'zod';
 import { WebActionPlanner } from './webPlanner';
 import type { ActionPlanner } from '../contracts';
-import { generateWithOpenAI } from '../../llm/deepseek';
+import type { ModelClient } from '../../llm/contracts';
 import type { Assertion, Plan, PlanNode, Step } from '../../compiler/schema';
 import { Observer } from './observer';
 import { BrowserSession } from './browserSession';
@@ -22,10 +22,11 @@ export class Executor {
   private planNodeId?: string;
 
   constructor(
+    private model: ModelClient,
     private observer = new Observer(),
     private executionPlan: Plan,
     private startUrl?: string,
-    private planner: ActionPlanner = new WebActionPlanner(),
+    private planner: ActionPlanner = new WebActionPlanner(model),
     private report?: (message: string) => Promise<void>,
     private hooks: ExecutionHooks = {},
     private useTouch = false,
@@ -236,7 +237,7 @@ export class Executor {
     name: string,
   ) {
     const observation = await session.observe(this.observer);
-    const response = await generateWithOpenAI({
+    const response = await this.model.generate({
       signal: this.hooks.signal,
       systemPrompt: `Evaluate the condition or assertion using only the supplied current observation.
       This is a read-only check: never propose or perform browser actions or setup to make it pass.

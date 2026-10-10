@@ -4,7 +4,7 @@ import { WebActionPlanner } from './webPlanner';
 
 const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
 
-vi.mock('../../llm/deepseek', () => ({ generateWithOpenAI: generate }));
+const model = { generate };
 
 const input: Parameters<ActionPlanner['plan']>[0] = {
   goal: 'Open the account page',
@@ -34,7 +34,7 @@ it('returns platform actions through ActionPlanner and preserves browser history
     toolCalls: [{ name: 'click', arguments: JSON.stringify({ ref: 'e1' }) }],
   });
   const signal = new AbortController().signal;
-  const planner: ActionPlanner = new WebActionPlanner(signal);
+  const planner: ActionPlanner = new WebActionPlanner(model, signal);
 
   await expect(planner.plan(input)).resolves.toMatchObject({
     done: false,
@@ -52,7 +52,7 @@ it('returns platform actions through ActionPlanner and preserves browser history
 
 it('returns completion without actions through the shared interface', async () => {
   generate.mockResolvedValue({ content: { text: 'DONE' }, toolCalls: [] });
-  const planner: ActionPlanner = new WebActionPlanner();
+  const planner: ActionPlanner = new WebActionPlanner(model);
 
   await expect(planner.plan(input)).resolves.toEqual({ done: true, steps: [] });
 });
@@ -68,7 +68,7 @@ it('rejects a batched wait so subsequent actions require a fresh observation', a
       { name: 'click', arguments: JSON.stringify({ ref: 'e1' }) },
     ],
   });
-  const planner: ActionPlanner = new WebActionPlanner();
+  const planner: ActionPlanner = new WebActionPlanner(model);
 
   await expect(planner.plan(input)).rejects.toThrow('Wait must be followed by a fresh observation');
 });

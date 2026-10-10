@@ -1,6 +1,6 @@
 import { SecretInputs } from '../inputs';
 import { expect as playwrightExpect } from '@playwright/test';
-import { recordAction } from '@/workspace/server/locator';
+import { recordAction } from './recordingLocator';
 import type { Page } from 'playwright';
 import { BrowserSession } from './browserSession';
 import { Observer } from './observer';

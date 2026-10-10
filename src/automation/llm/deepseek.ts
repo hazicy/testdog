@@ -1,70 +1,13 @@
 import OpenAI from 'openai';
 
-import type {
-  FunctionTool,
-  ResponseInputContent,
-  ResponseInputItem,
-} from 'openai/resources/responses/responses';
+import type { ResponseInputContent, ResponseInputItem } from 'openai/resources/responses/responses';
 import type { JSONType } from 'zod/v4';
-
-type LLMContentBlock =
-  | {
-      type: 'text';
-      text: string;
-    }
-  | {
-      type: 'image';
-      data: string;
-      mimeType: string;
-    }
-  | {
-      type: 'tool_use';
-      id: string;
-      name: string;
-      input: Record<string, JSONType>;
-    }
-  | {
-      type: 'tool_result';
-      toolUseId: string;
-      content: Array<
-        | {
-            type: 'text';
-            text: string;
-          }
-        | {
-            type: 'image';
-            data: string;
-            mimeType: string;
-          }
-      >;
-      structuredContent?: Record<string, JSONType>;
-      isError?: boolean;
-    };
-
-type LLMGenerateParams = {
-  signal?: AbortSignal;
-  messages: Array<{
-    role: 'user' | 'assistant';
-    content: LLMContentBlock | LLMContentBlock[];
-  }>;
-
-  systemPrompt?: string;
-
-  temperature?: number;
-
-  tools?: FunctionTool[];
-
-  responseFormat?:
-    | {
-        type: 'text';
-      }
-    | {
-        type: 'json_schema';
-        name: string;
-        description?: string;
-        schema: JSONType;
-      };
-};
+import type {
+  LLMContentBlock,
+  LLMGenerateParams,
+  LLMGenerateResult,
+  ModelClient,
+} from './contracts';
 
 function isJSONObject(value: JSONType): value is Record<string, JSONType> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -109,7 +52,7 @@ function messageContent(content: LLMContentBlock | LLMContentBlock[]): ResponseI
   });
 }
 
-export async function generateWithOpenAI(params: LLMGenerateParams) {
+async function generate(params: LLMGenerateParams): Promise<LLMGenerateResult> {
   if (
     params.responseFormat?.type === 'json_schema' &&
     !isJSONObject(params.responseFormat.schema)
@@ -174,3 +117,5 @@ export async function generateWithOpenAI(params: LLMGenerateParams) {
         : undefined,
   };
 }
+
+export const deepseekClient: ModelClient = { generate };

@@ -75,7 +75,7 @@ src/
   client/              浏览器端 JSON 请求、串行刷新与轮询生命周期
   automation/          用例编译与统一计划执行
     compiler/          用例计划和动作 schema
-    llm/               模型适配器
+    llm/               统一 ModelClient 契约与模型适配器
     evaluator.ts       注入模型的自然语言断言与分支判断
     planRunner.ts      注入 planner、session、evaluator 的公共编排
     platform/          统一会话协议、执行策略与目标配置

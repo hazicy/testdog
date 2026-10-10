@@ -5,6 +5,7 @@ import { claimRun, registerWorker, releaseLease, withLease } from './scheduler';
 import { owner, appendEvent, finishRun, getRun, heartbeat, savePlan } from './store';
 import { normalizeReplaySteps } from '../replay';
 import { TextCompiler } from '@/automation/compiler/textCompiler';
+import { modelClient } from './model';
 import { PlanRunner } from '@/automation/planRunner';
 import { openPlatformRuntime, type PlatformRuntime } from '@/workspace/server/runtime';
 import type { TestRun } from '../types';
@@ -87,7 +88,7 @@ export async function executeRun(
               },
             },
           }
-        : await new TextCompiler().compile(
+        : await new TextCompiler(modelClient).compile(
             inputGoal(run.goal, run.targetSnapshot?.inputs),
             run.url || undefined,
             controller.signal,

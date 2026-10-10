@@ -1,3 +1,4 @@
+import { deepseekClient } from '../llm/deepseek';
 import { expect, test } from 'vitest';
 import { TextCompiler } from './textCompiler';
 import { PlanSchema } from './schema';
@@ -5,7 +6,7 @@ import { PlanSchema } from './schema';
 test.skipIf(process.env.RUN_LIVE_TESTS !== 'true')(
   'compiles a bounded real-model case with a valid plan and explicit expectations',
   async () => {
-    const plan = await new TextCompiler().compile(
+    const plan = await new TextCompiler(deepseekClient).compile(
       '打开首页，验证主标题显示 Example Domain。',
       'https://example.com',
       AbortSignal.timeout(45000),

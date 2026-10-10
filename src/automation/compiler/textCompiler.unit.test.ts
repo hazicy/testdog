@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { generateWithOpenAI } from '@/automation/llm/deepseek';
+import type { ModelClient } from '../llm/contracts';
 import { TextCompiler } from './textCompiler';
 
-vi.mock('@/automation/llm/deepseek', () => ({ generateWithOpenAI: vi.fn() }));
-const generate = vi.mocked(generateWithOpenAI);
+const generate = vi.fn<ModelClient['generate']>();
+const model = { generate };
 const task = {
   kind: 'task',
   id: 'login',
@@ -34,14 +34,14 @@ function respond(content: unknown) {
     content: { type: 'text', text: JSON.stringify(content) },
     outputFormat: 'json_schema',
     structuredContent: content,
-  } as Awaited<ReturnType<typeof generateWithOpenAI>>);
+  } as Awaited<ReturnType<ModelClient['generate']>>);
 }
 
 beforeEach(() => vi.clearAllMocks());
 describe('TextCompiler flat plan', () => {
   it('returns a flat map with logical nesting and preserves task details', async () => {
     respond(compiled());
-    const result = await new TextCompiler().compile('登录', 'https://example.com');
+    const result = await new TextCompiler(model).compile('登录', 'https://example.com');
 
     expect(result.rootId).toBe('root');
     expect(result.nodes.login).toEqual(task);
@@ -67,7 +67,7 @@ describe('TextCompiler flat plan', () => {
         node.kind === 'branch' ? { ...node, otherwise: 'login' } : node,
       ),
     });
-    expect((await new TextCompiler().compile('登录')).nodes.branch).toMatchObject({
+    expect((await new TextCompiler(model).compile('登录')).nodes.branch).toMatchObject({
       otherwise: 'login',
     });
   });
@@ -92,11 +92,11 @@ describe('TextCompiler flat plan', () => {
     ],
   ])('rejects %s', async (_name, content) => {
     respond(content());
-    await expect(new TextCompiler().compile('登录')).rejects.toThrow();
+    await expect(new TextCompiler(model).compile('登录')).rejects.toThrow();
   });
   it('allows tasks without assertions or requirements', async () => {
     respond({ rootId: 'login', nodes: [{ ...task, requirementIds: [], assertions: [] }] });
-    expect((await new TextCompiler().compile('登录')).nodes.login).toMatchObject({
+    expect((await new TextCompiler(model).compile('登录')).nodes.login).toMatchObject({
       assertions: [],
       requirementIds: [],
     });
@@ -117,8 +117,8 @@ it('regenerates a plan after validation feedback, without accepting an ancestor 
     toolCalls: [],
     outputFormat: 'json_schema',
     structuredContent: invalid,
-  } as Awaited<ReturnType<typeof generateWithOpenAI>>);
-  const result = await new TextCompiler().compile('登录');
+  } as Awaited<ReturnType<ModelClient['generate']>>);
+  const result = await new TextCompiler(model).compile('登录');
 
   expect(result.nodes.login.dependsOn).toEqual([]);
   expect(generate).toHaveBeenCalledTimes(2);

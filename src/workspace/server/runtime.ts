@@ -1,5 +1,5 @@
 import { SemanticEvaluator, type Evaluator } from '@/automation/evaluator';
-import { generateWithOpenAI } from '@/automation/llm/deepseek';
+import { modelClient } from './model';
 import { previewInterval } from '@/workspace/server/preview';
 import { EvidenceSink } from '@/workspace/server/evidenceSink';
 import { SecretInputs } from '@/automation/platform/inputs';
@@ -58,8 +58,8 @@ export async function openPlatformRuntime(input: {
     let live: ReturnType<typeof setInterval> | undefined;
     const runtime: PlatformRuntime = {
       session,
-      evaluator: new SemanticEvaluator(generateWithOpenAI),
-      planner: new NativeActionPlanner(target.platform, signal),
+      evaluator: new SemanticEvaluator(modelClient),
+      planner: new NativeActionPlanner(modelClient, target.platform, signal),
       environment: session.environment,
       healthy: false,
       async finalize() {
@@ -165,8 +165,8 @@ export async function openPlatformRuntime(input: {
 
     const runtime: PlatformRuntime = {
       session,
-      evaluator: new SemanticEvaluator(generateWithOpenAI),
-      planner: new WebActionPlanner(signal),
+      evaluator: new SemanticEvaluator(modelClient),
+      planner: new WebActionPlanner(modelClient, signal),
       environment: {
         platform: 'web',
         browser: target.browser,

@@ -1,7 +1,7 @@
 import type { Page } from 'playwright';
-import type { Target, Step } from '@/automation/compiler/schema';
-import type { RecordedAction } from '../types';
-import { locateWebElement } from '@/automation/platform/web/webLocator';
+import type { Target, Step } from '../../compiler/schema';
+import type { RecordedAction } from './types';
+import { locateWebElement } from './webLocator';
 
 export async function recordAction(
   page: Page,

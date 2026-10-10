@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { generateWithOpenAI } from './deepseek';
+import { deepseekClient } from './deepseek';
 
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 
@@ -11,7 +11,7 @@ vi.mock('openai', () => ({
 beforeEach(() => vi.resetAllMocks());
 const messages = [{ role: 'user' as const, content: { type: 'text' as const, text: 'goal' } }];
 
-describe('generateWithOpenAI', () => {
+describe('deepseekClient.generate', () => {
   it('returns function calls without parsing empty output text', async () => {
     create.mockResolvedValue({
       output_text: '',
@@ -20,7 +20,7 @@ describe('generateWithOpenAI', () => {
     const tools = [
       { type: 'function' as const, name: 'click', parameters: { type: 'object' }, strict: true },
     ];
-    const result = await generateWithOpenAI({ messages, tools });
+    const result = await deepseekClient.generate({ messages, tools });
 
     expect(result.toolCalls).toEqual([{ id: 'c1', name: 'click', arguments: '{"ref":"e1"}' }]);
     expect(result.structuredContent).toBeUndefined();
@@ -29,7 +29,7 @@ describe('generateWithOpenAI', () => {
   });
   it('keeps schema generations read-only and parses structured output', async () => {
     create.mockResolvedValue({ output_text: '{"passed":true,"evidence":"visible"}', output: [] });
-    const result = await generateWithOpenAI({
+    const result = await deepseekClient.generate({
       messages,
       responseFormat: { type: 'json_schema', name: 'assertion', schema: { type: 'object' } },
     });
@@ -40,11 +40,11 @@ describe('generateWithOpenAI', () => {
   });
   it('supports plain text completion without JSON parsing', async () => {
     create.mockResolvedValue({ output_text: 'DONE', output: [] });
-    expect((await generateWithOpenAI({ messages })).content.text).toBe('DONE');
+    expect((await deepseekClient.generate({ messages })).content.text).toBe('DONE');
   });
   it('rejects invalid schema and malformed structured JSON', async () => {
     await expect(
-      generateWithOpenAI({
+      deepseekClient.generate({
         messages,
         responseFormat: { type: 'json_schema', name: 'bad', schema: [] },
       }),
@@ -52,7 +52,7 @@ describe('generateWithOpenAI', () => {
     expect(create).not.toHaveBeenCalled();
     create.mockResolvedValue({ output_text: 'not JSON', output: [] });
     await expect(
-      generateWithOpenAI({
+      deepseekClient.generate({
         messages,
         responseFormat: { type: 'json_schema', name: 'bad', schema: {} },
       }),

@@ -30,6 +30,7 @@ it.each([
   '../../automation/platform/web/pageReadiness.ts',
   '@/automation/platform/web/webActions',
   '@/automation/platform/web/webLocator',
+  '@/automation/platform/web/recordingLocator',
   '@/automation/platform/web/executor',
   '@/automation/platform/native/nativePlanner',
   '../../automation/compiler/textCompiler.ts',
@@ -68,6 +69,49 @@ it('permits PlanRunner to depend on shared contracts and erased evaluator types'
     await violations(
       "import { ObservationSchema } from './platform/contracts'; import type { Evaluator } from './evaluator'; export type Check = Evaluator; export { ObservationSchema };",
       'src/automation/planRunner.ts',
+    ),
+  ).toEqual([]);
+});
+
+it.each([
+  'src/automation/compiler/textCompiler.ts',
+  'src/automation/evaluator.ts',
+  'src/automation/platform/web/webPlanner.ts',
+  'src/automation/platform/web/executor.ts',
+  'src/automation/platform/native/nativePlanner.ts',
+])(
+  'requires model injection and permits the provider independent contract in %s',
+  async (filePath) => {
+    for (const path of [
+      '@/automation/llm/deepseek',
+      '../../llm/jev.ts',
+      'openai/resources/responses/responses',
+      '@/workspace/server/model',
+    ])
+      expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
+    expect(
+      await violations(
+        "import type { ModelClient } from '@/automation/llm/contracts'; export type Client = ModelClient;",
+        filePath,
+      ),
+    ).toEqual([]);
+  },
+);
+
+it.each([
+  'src/automation/platform/web/playwrightSession.ts',
+  'src/automation/platform/web/recordingLocator.ts',
+])('keeps Web sessions and recording locators independent of persistence: %s', async (filePath) => {
+  for (const path of [
+    '@/workspace/server/recorder',
+    '../../../../workspace/server/store.ts',
+    '@/db',
+  ])
+    expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
+  expect(
+    await violations(
+      "import type { RecordedAction } from './types'; export type Action = RecordedAction;",
+      filePath,
     ),
   ).toEqual([]);
 });

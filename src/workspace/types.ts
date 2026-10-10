@@ -4,6 +4,7 @@ import type {
   Observation,
   CapabilitySet,
 } from '@/automation/platform/contracts';
+import type { RecordedAction } from '@/automation/platform/web/types';
 import type { TestTarget } from '@/automation/platform/target';
 import type { Assertion, Plan, Step, Target } from '@/automation/compiler/schema';
 
@@ -22,7 +23,6 @@ export type RunStatus =
 export const activeRunStatuses: RunStatus[] = ['queued', 'preparing', 'running', 'finalizing'];
 export const isActiveRun = (status: RunStatus) => activeRunStatuses.includes(status);
 export type RunEvent = { at: string; message: string };
-export type RecordedAction = Step & { sensitive?: boolean };
 export type PlaywrightAssertion = {
   target?: Target;
   type: 'toBeVisible' | 'toHaveText' | 'toContainText' | 'toHaveValue' | 'toHaveURL';

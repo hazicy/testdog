@@ -6,7 +6,7 @@ import type { BrowserContext, Page } from 'playwright';
 import type { ExecutionStep, RunArtifact, StepSignal, TestRun } from '../types';
 import { insertArtifact, insertStep, finishStep } from './store';
 import { BrowserLogs } from './browserLogs';
-import { recordAction } from './locator';
+import { recordAction } from '@/automation/platform/web/recordingLocator';
 import { artifactRoot } from './artifactStorage';
 import { PersistenceQueue } from './persistenceQueue';
 import { hasPreviewViewers, previewInterval, publishPreview } from './preview';

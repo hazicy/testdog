@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import type { generateWithOpenAI } from './llm/deepseek';
+import type { ModelClient } from './llm/contracts';
 import { SemanticEvaluator } from './evaluator';
 import type { Observation } from './platform/contracts';
 
@@ -12,7 +12,7 @@ const observation: Observation = {
 };
 
 it('evaluates current evidence through the injected model and forwards cancellation', async () => {
-  const generate = vi.fn<typeof generateWithOpenAI>().mockResolvedValue({
+  const generate = vi.fn<ModelClient['generate']>().mockResolvedValue({
     role: 'assistant',
     content: { type: 'text', text: '' },
     outputFormat: 'json_schema',
@@ -20,7 +20,7 @@ it('evaluates current evidence through the injected model and forwards cancellat
     structuredContent: { passed: false, evidence: 'No welcome label' },
   });
   const signal = new AbortController().signal;
-  const evaluator = new SemanticEvaluator(generate);
+  const evaluator = new SemanticEvaluator({ generate });
 
   await expect(
     evaluator.evaluate({
@@ -42,7 +42,7 @@ it('evaluates current evidence through the injected model and forwards cancellat
 });
 
 it('rejects model decisions with no supporting evidence', async () => {
-  const generate = vi.fn<typeof generateWithOpenAI>().mockResolvedValue({
+  const generate = vi.fn<ModelClient['generate']>().mockResolvedValue({
     role: 'assistant',
     content: { type: 'text', text: '' },
     outputFormat: 'json_schema',
@@ -51,7 +51,7 @@ it('rejects model decisions with no supporting evidence', async () => {
   });
 
   await expect(
-    new SemanticEvaluator(generate).evaluate({
+    new SemanticEvaluator({ generate }).evaluate({
       subject: { condition: 'Logged in' },
       observation,
       name: 'branch_result',

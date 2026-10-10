@@ -9,7 +9,7 @@ import * as webActions from './webActions';
 
 const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
 
-vi.mock('../../llm/deepseek', () => ({ generateWithOpenAI: generate }));
+const model = { generate };
 
 const task = (
   id: string,
@@ -66,7 +66,7 @@ function fixture(nodes: PlanNode[] = [group('root', [])], startUrl?: string) {
     pages: () => [page],
   }) as unknown as BrowserContext;
   const page = mockPage(context);
-  const executor = new Executor(observer, plan, startUrl);
+  const executor = new Executor(model, observer, plan, startUrl);
   const execute = vi.spyOn(webActions, 'executeWebAction').mockResolvedValue(undefined);
 
   return { executor, observe, observation, page, execute };

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ActionPlanner, PlatformAction } from '../contracts';
 import { StepSchema, WaitStepSchema, type Step } from '../../compiler/schema';
-import { generateWithOpenAI } from '../../llm/deepseek';
+import type { ModelClient } from '../../llm/contracts';
 
 const RefSchema = z.string().regex(/^(?:f\d+)?e\d+$/, 'Expected an ARIA ref token');
 const ActionArguments = {
@@ -30,7 +30,10 @@ const ActionTools = Object.entries(ActionArguments).map(([name, schema]) => ({
 }));
 
 export class WebActionPlanner implements ActionPlanner {
-  constructor(private signal?: AbortSignal) {}
+  constructor(
+    private model: ModelClient,
+    private signal?: AbortSignal,
+  ) {}
   async plan(input: Parameters<ActionPlanner['plan']>[0]) {
     const browserInput = {
       ...input,
@@ -40,7 +43,7 @@ export class WebActionPlanner implements ActionPlanner {
         step.platform === 'web' ? [step.action] : [],
       ),
     };
-    const response = await generateWithOpenAI({
+    const response = await this.model.generate({
       signal: this.signal,
       systemPrompt: `Plan the next one or more browser actions toward the goal, in execution order. Secret placeholders \${secret:NAME} must remain unchanged; fill them only into password fields.
       inputs contains the explicit values to use for this goal.

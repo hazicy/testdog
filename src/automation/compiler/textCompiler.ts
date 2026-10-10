@@ -1,4 +1,4 @@
-import { generateWithOpenAI } from '@/automation/llm/deepseek';
+import type { ModelClient } from '../llm/contracts';
 import { type JSONType, z } from 'zod';
 import { NodeSchema, PlanSchema, type Plan } from './schema';
 
@@ -74,11 +74,13 @@ const CompiledSchema = z
   .strict();
 
 export class TextCompiler {
+  constructor(private model: ModelClient) {}
+
   async compile(goal: string, startUrl?: string, signal?: AbortSignal): Promise<Plan> {
     let feedback = '';
     for (let attempt = 0; attempt < 2; attempt++) {
       signal?.throwIfAborted();
-      const response = await generateWithOpenAI({
+      const response = await this.model.generate({
         signal,
         systemPrompt: `将用户的自动化测试用例编译为逻辑嵌套、结构扁平的执行计划，只返回 JSON。
 rootId 指向根节点。nodes 是节点数组，每个节点有唯一 id；所有引用只使用 id，禁止内嵌节点。
