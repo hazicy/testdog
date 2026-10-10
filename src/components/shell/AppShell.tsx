@@ -1,5 +1,6 @@
 'use client';
 
+import { Brand } from '@/components/brand/Brand';
 import { Button } from '@/components/ui/Button';
 
 import Link from 'next/link';
@@ -41,14 +42,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link
           href="/"
           className="flex h-14 shrink-0 items-center gap-3 border-b border-page-line px-4"
-          aria-label="CaseForge 首页"
+          aria-label="testdog 首页"
         >
-          <span className="grid h-7 w-7 shrink-0 place-items-center bg-transparent text-brand text-2xl font-semibold -rotate-45">
-            ↳
+          <span className="md:hidden">
+            <Brand compact />
           </span>
-          {!collapsed && (
-            <span className="hidden text-xl font-bold tracking-[-1px] md:block">caseforge.</span>
-          )}
+          <span className="hidden md:inline-flex">
+            <Brand compact={collapsed} />
+          </span>
         </Link>
         <div className="px-3 pt-6">
           <div className="mb-6 flex items-center gap-3 px-2 text-sm">

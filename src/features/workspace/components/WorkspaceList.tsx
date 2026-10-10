@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { EmptyIllustration } from '@/components/brand/EmptyIllustration';
 import { type ComponentProps } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -8,9 +9,7 @@ import { Select } from '@/components/ui/Select';
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import plusIcon from '@iconify-icons/lucide/plus';
-import resultsIcon from '@iconify-icons/lucide/play';
 import searchIcon from '@iconify-icons/lucide/search';
-import testsIcon from '@iconify-icons/lucide/flask-conical';
 import { WorkspaceRows } from './WorkspaceRows';
 
 type Props = Omit<ComponentProps<typeof WorkspaceRows>, 'visibleTests' | 'visibleRuns'> & {
@@ -105,14 +104,9 @@ export function WorkspaceList({
         </p>
       ) : (isTests ? visibleTests.length === 0 : visibleRuns.length === 0) ? (
         <div className="flex flex-col items-center px-5 py-14 text-center">
-          <span className="mb-5 grid h-12 w-12 rounded-lg place-items-center border border-page-line bg-surface-muted text-text-disabled">
-            <Icon
-              icon={isTests ? testsIcon : resultsIcon}
-              width="24"
-              height="24"
-              aria-hidden="true"
-            />
-          </span>
+          <EmptyIllustration
+            variant={query || filter !== 'all' ? 'search' : isTests ? 'tests' : 'runs'}
+          />
           <h2 className="text-base font-medium">
             {query || filter !== 'all'
               ? '没有符合条件的记录'

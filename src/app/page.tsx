@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Brand } from '@/components/brand/Brand';
 import { MarketingDemo } from '@/features/marketing/components/MarketingDemo';
 
 const faqs = [
@@ -8,7 +9,7 @@ const faqs = [
   ],
   [
     '需要编写 Playwright 脚本吗？',
-    '编写用例时只需描述操作步骤与预期结果。CaseForge 会组织执行计划，并通过 Playwright 操作真实浏览器。',
+    '编写用例时只需描述操作步骤与预期结果。testdog 会组织执行计划，并通过 Playwright 操作真实浏览器。',
   ],
   [
     '如何判断测试是否通过？',
@@ -31,12 +32,8 @@ export default function Home() {
       </a>
       <header className="border-b border-page-line bg-page">
         <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8">
-          <Link
-            href="/"
-            aria-label="CaseForge 首页"
-            className="text-xl font-semibold tracking-tight"
-          >
-            caseforge<span className="text-brand">.</span>
+          <Link href="/" aria-label="testdog 首页" className="text-xl font-semibold tracking-tight">
+            <Brand />
           </Link>
           <nav
             aria-label="页面导航"
@@ -72,7 +69,7 @@ export default function Home() {
             </div>
             <div className="pt-1 lg:pt-11">
               <p className="max-w-md text-base leading-8 text-text-secondary">
-                写下操作步骤和预期结果，CaseForge
+                写下操作步骤和预期结果，testdog
                 会生成执行计划，在真实浏览器中完成测试，并保留可追溯的执行记录。
               </p>
               <p className="mt-5 text-sm text-text-subtle">
@@ -141,7 +138,7 @@ export default function Home() {
       </main>
       <footer className="border-t border-page-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-7 text-xs text-text-subtle sm:px-8">
-          <span>© {new Date().getFullYear()} CaseForge</span>
+          <span>© {new Date().getFullYear()} testdog</span>
           <Link href="/cases" className="hover:text-ink">
             进入测试工作台 →
           </Link>

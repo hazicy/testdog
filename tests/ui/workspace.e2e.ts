@@ -483,7 +483,7 @@ test('exports complete reports from both history and detail, and allows retry af
   await exportButton.click();
   const report = await listDownload;
 
-  expect(report.suggestedFilename()).toBe(`caseforge-${run.id}.json`);
+  expect(report.suggestedFilename()).toBe(`testdog-${run.id}.json`);
   expect(JSON.parse(await readFile((await report.path())!, 'utf8'))).toEqual(run);
   await page.goto(`/runs/${run.id}`);
   const detailDownload = page.waitForEvent('download');

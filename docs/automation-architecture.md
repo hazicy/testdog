@@ -1,6 +1,6 @@
 # 多平台自动化架构
 
-状态：首期实现与验收完成，验证证据和部署切换见 [实施记录](automation-implementation.md)。目标：Web 使用 Playwright mobile emulation；Android 和 iOS 使用 Callstack agent-device。本文中的接口是 CaseForge 内部契约，不是第三方 SDK 的直接签名。
+状态：首期实现与验收完成，验证证据和部署切换见 [实施记录](automation-implementation.md)。目标：Web 使用 Playwright mobile emulation；Android 和 iOS 使用 Callstack agent-device。本文中的接口是 testdog 内部契约，不是第三方 SDK 的直接签名。
 
 ## 架构决策
 
@@ -8,7 +8,7 @@
 
 Web 的 mobile 表示移动浏览器仿真：通过 Playwright devices 配置 viewport、userAgent、deviceScaleFactor、isMobile、hasTouch，并显式选择 Chromium 或 WebKit。它不提供真实 iOS/Android 系统验证。[Playwright 官方说明](https://playwright.dev/docs/emulation)。
 
-原生端采用 agent-device 的命名会话和结构化快照；优先使用其 typed Node.js client，包装在独立适配器内。设备资源由 CaseForge 调度，agent-device 的本地设备占用作为第二层保护。refs 仅属于最新观察，不能保存为永久定位器。[agent-device 官方说明](https://github.com/callstack/agent-device)。安装时锁定经过验证的版本，禁止运行时拉取 latest；具体能力通过该版本和实际设备探测确认。
+原生端采用 agent-device 的命名会话和结构化快照；优先使用其 typed Node.js client，包装在独立适配器内。设备资源由 testdog 调度，agent-device 的本地设备占用作为第二层保护。refs 仅属于最新观察，不能保存为永久定位器。[agent-device 官方说明](https://github.com/callstack/agent-device)。安装时锁定经过验证的版本，禁止运行时拉取 latest；具体能力通过该版本和实际设备探测确认。
 
 ```mermaid
 flowchart TB
@@ -35,16 +35,16 @@ flowchart TB
 
 ## 当前代码与迁移边界
 
-| 当前入口                                    | 现状                                          | 目标职责                                            |
-| ------------------------------------------- | --------------------------------------------- | --------------------------------------------------- |
-| `src/server/runs/run.ts`                    | API 后台任务启动 Chromium，固定 1280×800      | worker 执行生命周期、选择 adapter、取消、超时及归档 |
-| `src/automation/planRunner.ts`              | 遍历 DAG 并统一编排动作、断言与重放              | Web 与原生 session 提供平台动作和观察能力          |
-| `browserSession.ts`、`observer.ts`          | 管理 Page 和 ARIA 观察                        | PlaywrightSession 内部实现                          |
-| `planner.ts`、`compiler/schema.ts`          | 动作含 css/ariaRef，等待含 newPage            | 保留意图 DAG；动作使用平台判别联合及能力约束        |
-| `src/server/runs/recorder.ts`、`locator.ts` | Page hooks、DOM 稳定定位、截图及 trace        | 通用事件 sink + adapter 录制定位与附件提供者        |
-| `recordingScript.ts`                        | 解析受限 Playwright 脚本                      | 保留 Web 编辑器；新增设备动作编辑器，共用版本化 IR  |
-| `types.ts`、`src/db/schema.ts`              | url/pageId/browserLogs 为中心                 | target、surface、能力与平台快照                     |
-| `store.ts`、`api/runs/route.ts`             | 全局单运行锁，Next after 执行                 | 入队 + worker 原子领取，按设备/浏览器 slot 互斥     |
+| 当前入口                                    | 现状                                     | 目标职责                                            |
+| ------------------------------------------- | ---------------------------------------- | --------------------------------------------------- |
+| `src/server/runs/run.ts`                    | API 后台任务启动 Chromium，固定 1280×800 | worker 执行生命周期、选择 adapter、取消、超时及归档 |
+| `src/automation/planRunner.ts`              | 遍历 DAG 并统一编排动作、断言与重放      | Web 与原生 session 提供平台动作和观察能力           |
+| `browserSession.ts`、`observer.ts`          | 管理 Page 和 ARIA 观察                   | PlaywrightSession 内部实现                          |
+| `planner.ts`、`compiler/schema.ts`          | 动作含 css/ariaRef，等待含 newPage       | 保留意图 DAG；动作使用平台判别联合及能力约束        |
+| `src/server/runs/recorder.ts`、`locator.ts` | Page hooks、DOM 稳定定位、截图及 trace   | 通用事件 sink + adapter 录制定位与附件提供者        |
+| `recordingScript.ts`                        | 解析受限 Playwright 脚本                 | 保留 Web 编辑器；新增设备动作编辑器，共用版本化 IR  |
+| `types.ts`、`src/db/schema.ts`              | url/pageId/browserLogs 为中心            | target、surface、能力与平台快照                     |
+| `store.ts`、`api/runs/route.ts`             | 全局单运行锁，Next after 执行            | 入队 + worker 原子领取，按设备/浏览器 slot 互斥     |
 
 不能把原生设备塞进伪造 Page，或给现有 DOM Target 添加几个可选字段后继续共用所有浏览器代码。
 
@@ -153,17 +153,17 @@ Next.js API 仅校验、保存快照、入队并返回 202，独立长驻 Node w
 
 重放使用 frozen IR，重新定位并检查唯一性，不调用模型重新规划或修复动作。语义断言/分支可以调用只读 evaluator，且沿用现有「分支与原记录不一致即失败」规则。跨平台重放返回 409；OS/build/profile 不满足录制兼容性时在执行前拒绝，允许用户另建新录制验证版本变化。
 
-原生录制使用 CaseForge IR 作为唯一事实源，agent-device 自身脚本可作为导出附件，避免两套重放引擎各自决定分支。新录制是否可重放由全部动作绑定、能力和步骤结果共同决定。
+原生录制使用 testdog IR 作为唯一事实源，agent-device 自身脚本可作为导出附件，避免两套重放引擎各自决定分支。新录制是否可重放由全部动作绑定、能力和步骤结果共同决定。
 
 ## 实施顺序与验收
 
-| 阶段 | 交付                                              | 验收证据                                                                                                    |
-| ---- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 1    | 抽出 session/PlanRunner/事件 sink                 | 现有录制、popup、停止、分支、编辑重放及附件回归通过；共享模块无 Playwright Page 引用                        |
-| 2    | target schema、mobile Web、历史兼容迁移           | Chromium 与 WebKit 移动配置真实运行；触摸/viewport/UA 校验；旧桌面录制仍可重放                              |
-| 3    | PostgreSQL 队列、独立 worker、资源租约            | API 重启不丢任务；双 worker 不重复领取；过期 owner 无法写入；失联设备隔离；取消可终结                       |
-| 4    | AgentDevice adapter、设备选择、原生证据 UI        | Android emulator 与 iOS simulator 各完成启动→输入→点击→等待→断言→截图→稳定定位重放；过期 ref 拒绝、歧义失败 |
-| 5    | 故障与部署验证、真机按需接入                      | 超时/断连/模型失败/归档失败保留证据并释放或隔离资源；同设备互斥、不同设备并行；版本不兼容重放拒绝           |
+| 阶段 | 交付                                       | 验收证据                                                                                                    |
+| ---- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| 1    | 抽出 session/PlanRunner/事件 sink          | 现有录制、popup、停止、分支、编辑重放及附件回归通过；共享模块无 Playwright Page 引用                        |
+| 2    | target schema、mobile Web、历史兼容迁移    | Chromium 与 WebKit 移动配置真实运行；触摸/viewport/UA 校验；旧桌面录制仍可重放                              |
+| 3    | PostgreSQL 队列、独立 worker、资源租约     | API 重启不丢任务；双 worker 不重复领取；过期 owner 无法写入；失联设备隔离；取消可终结                       |
+| 4    | AgentDevice adapter、设备选择、原生证据 UI | Android emulator 与 iOS simulator 各完成启动→输入→点击→等待→断言→截图→稳定定位重放；过期 ref 拒绝、歧义失败 |
+| 5    | 故障与部署验证、真机按需接入               | 超时/断连/模型失败/归档失败保留证据并释放或隔离资源；同设备互斥、不同设备并行；版本不兼容重放拒绝           |
 
 共享合同测试验证动作 schema、能力拒绝、revision、事件顺序及关闭幂等；adapter 集成测试用真实浏览器和本地测试 app。调度测试必须包含旧 worker 存活的租约超时，证明不会并发控制同一设备。CI 的模拟 adapter 不能作为 Android/iOS 实际可用的验收证据。
 

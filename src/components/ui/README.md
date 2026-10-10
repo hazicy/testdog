@@ -1,6 +1,6 @@
 # 基础组件
 
-使用 [Base UI](https://base-ui.com/react/overview/quick-start) 提供无头交互，在 `src/app/globals.css` 中沿用 CaseForge 的颜色、边框、尺寸和焦点样式。
+使用 [Base UI](https://base-ui.com/react/overview/quick-start) 提供无头交互，在 `src/app/globals.css` 中沿用 testdog 的颜色、边框、尺寸和焦点样式。
 
 - `Button`、`Input`：保留 Base UI 属性，默认使用 `ws-button`、`ws-input`，可用 `className` 定制。
 - `Checkbox`：用 `checked` 和 `onCheckedChange` 控制状态，配合外层 `label` 提供名称。
