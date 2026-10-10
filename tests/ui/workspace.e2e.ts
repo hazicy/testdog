@@ -57,6 +57,127 @@ const summary: RunSummary = {
   cancelRequested: run.cancelRequested,
 };
 
+test('frame playback and step selection keep the matching evidence visible', async ({ page }) => {
+  const secondStep = { ...run.steps[0], id: 'second-step', sequence: 2, title: '检查页面' };
+  const artifacts = [run.steps[0], secondStep].flatMap((step, index) =>
+    (['before', 'after'] as const).map((stage, offset) => ({
+      id: `frame-${index}-${stage}`,
+      runId: run.id,
+      stepId: step.id,
+      kind: 'screenshot' as const,
+      stage,
+      pageId: 'page-1',
+      pageUrl: `${saved.url}/${index}/${stage}`,
+      capturedAt: saved.createdAt,
+      elapsedMs: (index * 2 + offset) * 1000,
+      contentType: 'image/svg+xml',
+      size: 100,
+    })),
+  );
+  await page.route(`**/api/runs/${run.id}`, (route) =>
+    route.fulfill({ json: { run: { ...run, steps: [...run.steps, secondStep], artifacts } } }),
+  );
+  await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800"/>',
+    }),
+  );
+  await page.goto(`/runs/${run.id}`);
+  const image = page.getByRole('img', { name: /^浏览器画面/ });
+  await expect(image).toHaveAttribute('src', /frame-1-after$/);
+  await page
+    .getByRole('region', { name: '执行步骤' })
+    .getByRole('button', { name: /打开网站/ })
+    .click();
+  await expect(image).toHaveAttribute('src', /frame-0-after$/);
+  await expect(page.getByRole('heading', { name: '打开网站', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '查看执行前', exact: true }).click();
+  await expect(image).toHaveAttribute('src', /frame-0-before$/);
+  await page.getByRole('button', { name: '播放回看', exact: true }).click();
+  await expect(image).toHaveAttribute('src', /frame-1-after$/);
+  await expect(page.getByRole('heading', { name: '检查页面', exact: true })).toBeVisible();
+});
+
+test('stops frame playback in video mode and pauses video when leaving execution', async ({
+  page,
+}) => {
+  const frames = [0, 1, 2].map((index) => ({
+    id: `paused-frame-${index}`,
+    runId: run.id,
+    kind: 'screenshot',
+    stage: 'live',
+    pageId: 'page-1',
+    pageUrl: saved.url,
+    capturedAt: saved.createdAt,
+    elapsedMs: index * 1000,
+    contentType: 'image/jpeg',
+    size: 1,
+  }));
+  await page.route(`**/api/runs/${run.id}`, (route) =>
+    route.fulfill({
+      json: {
+        run: {
+          ...run,
+          artifacts: [
+            ...frames,
+            { ...frames[0], id: 'video', kind: 'video', contentType: 'video/webm' },
+          ],
+        },
+      },
+    }),
+  );
+  await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) => route.fulfill({ body: '' }));
+  await page.clock.install();
+  await page.goto(`/runs/${run.id}`);
+  await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeEnabled();
+  await page.clock.pauseAt(new Date(Date.now() + 3600000));
+  await page.getByRole('button', { name: '播放回看', exact: true }).click();
+  await expect(page.getByRole('slider', { name: '画面时间轴' })).toHaveValue('0');
+  await page.getByRole('button', { name: '完整录像', exact: true }).click();
+  const video = page.getByLabel('执行录像');
+  await video.evaluate((element) => {
+    (element as HTMLVideoElement).pause = () => {
+      element.dataset.pausedByView = 'true';
+    };
+  });
+  await page.clock.fastForward(5000);
+  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await expect(video).toHaveAttribute('data-paused-by-view', 'true');
+  await page.clock.fastForward(5000);
+  await page.getByRole('button', { name: '执行回放', exact: true }).click();
+  await page.getByRole('button', { name: '画面回看', exact: true }).click();
+  await expect(page.getByRole('slider', { name: '画面时间轴' })).toHaveValue('0');
+  await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
+});
+
+test('conditional polling keeps unchanged details and receives the completed execution', async ({
+  page,
+}) => {
+  let completed = false;
+  const conditions: (string | undefined)[] = [];
+  await page.route(`**/api/runs/${run.id}`, (route) => {
+    const condition = route.request().headers()['if-none-match'];
+    conditions.push(condition);
+    if (condition === '"running"' && !completed)
+      return route.fulfill({ status: 304, headers: { ETag: '"running"' } });
+    return route.fulfill({
+      json: { run: { ...run, status: completed ? 'passed' : 'running' } },
+      headers: { ETag: completed ? '"done"' : '"running"' },
+    });
+  });
+  await page.clock.install();
+  await page.goto(`/runs/${run.id}`);
+  await expect(page.getByText('执行中', { exact: true })).toBeVisible();
+  await page.clock.pauseAt(new Date(Date.now() + 3600000));
+  await page.clock.fastForward(1500);
+  await expect.poll(() => conditions.includes('"running"')).toBe(true);
+  await expect(page.getByRole('heading', { name: saved.name, exact: true })).toBeVisible();
+  completed = true;
+  await page.clock.fastForward(1500);
+  await expect(page.getByRole('button', { name: '重放操作', exact: true })).toBeVisible();
+});
+
 test('missing execution stops polling and can recover through explicit retry', async ({ page }) => {
   let reads = 0;
   let missing = true;
@@ -90,6 +211,68 @@ test('invalid execution addresses render the custom 404 page', async ({ page }) 
   );
 });
 
+test('case search combines tags and latest status while history uses each execution status', async ({
+  page,
+}) => {
+  const untouched = {
+    ...saved,
+    id: '62534c46-a8eb-4991-993e-af6df14bece8',
+    name: '未运行用例',
+    tags: ['SMOKE'],
+  };
+  const older = {
+    ...summary,
+    id: '62534c46-a8eb-4991-993e-af6df14bece9',
+    status: 'failed' as const,
+  };
+  await page.route('**/api/tests', (route) =>
+    route.fulfill({ json: { tests: [saved, untouched] } }),
+  );
+  await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [summary, older] } }));
+  await page.goto('/cases');
+  const search = page.getByRole('textbox', { name: '搜索测试', exact: true });
+  const filter = page.getByLabel('状态筛选');
+  await search.fill('smoke');
+  await expect(page.getByRole('button', { name: '未运行用例', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: saved.name, exact: true })).toHaveCount(0);
+  await filter.selectOption('none');
+  await expect(page.getByRole('button', { name: '未运行用例', exact: true })).toBeVisible();
+  await search.fill('');
+  await filter.selectOption('failed');
+  await expect(page.getByText('没有符合条件的记录', { exact: true })).toBeVisible();
+  await filter.selectOption('passed');
+  await expect(page.getByRole('button', { name: saved.name, exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Results', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '搜索结果', exact: true })).toBeVisible();
+  await page.getByLabel('状态筛选').selectOption('failed');
+  const result = page.getByRole('table').getByRole('link', { name: saved.name, exact: true });
+  await expect(result).toHaveCount(1);
+  await expect(result).toHaveAttribute('href', `/runs/${older.id}`);
+});
+
+test('history loads and refreshes without depending on the case library', async ({ page }) => {
+  let caseReads = 0;
+  let runReads = 0;
+  await page.route('**/api/tests', (route) => {
+    caseReads++;
+    return route.fulfill({ status: 503, json: { message: '用例库暂时不可用' } });
+  });
+  await page.route('**/api/runs', (route) => {
+    runReads++;
+    return route.fulfill({ json: { runs: [summary] } });
+  });
+  await page.goto('/runs');
+  await expect(
+    page.getByRole('table').getByRole('link', { name: saved.name, exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: '刷新', exact: true }).click();
+  await expect.poll(() => runReads).toBeGreaterThan(1);
+  expect(caseReads).toBe(0);
+  await page.getByRole('link', { name: '前往测试', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: '用例库暂时不可用' })).toBeVisible();
+  expect(caseReads).toBe(1);
+});
+
 test('exports complete reports from both history and detail, and allows retry after failure', async ({
   page,
 }) => {
@@ -116,6 +299,27 @@ test('exports complete reports from both history and detail, and allows retry af
   const detailDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: '导出执行报告', exact: true }).click();
   expect(JSON.parse(await readFile((await (await detailDownload).path())!, 'utf8'))).toEqual(run);
+});
+
+test('dialogs support keyboard entry, Escape dismissal and focus restoration', async ({ page }) => {
+  await page.route('**/api/tests', (route) => route.fulfill({ json: { tests: [saved] } }));
+  await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [summary] } }));
+  await page.goto('/cases');
+  const create = page.getByRole('button', { name: '新建测试', exact: true });
+  await create.focus();
+  await create.press('Enter');
+  await expect(page.getByRole('dialog').getByLabel('测试名称')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(create).toBeFocused();
+  const remove = page.getByRole('button', { name: `删除 ${saved.name}`, exact: true });
+  await remove.focus();
+  await remove.press('Enter');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('button', { name: '取消', exact: true })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(remove).toBeFocused();
 });
 
 test('create, edit, duplicate and delete use independent dialogs and preserve history', async ({
@@ -177,10 +381,120 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await dialog.getByRole('button', { name: '删除测试', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('button', { name: '编辑 更新登录', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('main')).toBeFocused();
   await page.goto('/runs');
   await expect(
     page.getByRole('table').getByRole('link', { name: saved.name, exact: true }),
   ).toBeVisible();
+});
+
+test('nested plans keep node evidence and dependency navigation through zoom and pan', async ({
+  page,
+}) => {
+  const plan: TestRun['plan'] = {
+    rootId: 'root',
+    nodes: {
+      root: {
+        id: 'root',
+        kind: 'group',
+        goal: '登录流程',
+        children: ['open', 'check'],
+        dependsOn: [],
+      },
+      open: {
+        id: 'open',
+        kind: 'task',
+        goal: '打开网站',
+        dependsOn: [],
+        requirementIds: [],
+        assertions: [],
+      },
+      check: {
+        id: 'check',
+        kind: 'task',
+        goal: '检查标题',
+        dependsOn: ['open'],
+        requirementIds: ['R1'],
+        assertions: [{ description: '登录入口可见' }],
+      },
+    },
+  };
+  await page.route(`**/api/runs/${run.id}`, (route) =>
+    route.fulfill({
+      json: {
+        run: { ...run, plan, steps: [{ ...run.steps[0], planNodeId: 'open' }] },
+      },
+    }),
+  );
+  await page.goto(`/runs/${run.id}`);
+  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await page.getByRole('button', { name: '查看节点 check', exact: true }).click();
+  const detail = page.getByRole('complementary', { name: '计划节点详情' });
+  await expect(detail).toContainText('预期：登录入口可见');
+  await page.getByRole('button', { name: '放大画板', exact: true }).click();
+  const viewport = page.getByLabel('计划画板', { exact: true });
+  await viewport.focus();
+  await viewport.press('ArrowRight');
+  await expect(detail).toContainText('预期：登录入口可见');
+  await detail.getByRole('button', { name: 'open ↗', exact: true }).click();
+  await expect(detail.getByRole('button', { name: /打开网站/ })).toBeVisible();
+  await detail.getByRole('button', { name: /打开网站/ }).click();
+  await expect(page.getByRole('heading', { name: '打开网站', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '执行回放', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+});
+
+test('validates the current draft and locks editing while saving a version', async ({ page }) => {
+  let release!: () => void;
+  const response = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let submitted = '';
+  await page.route(`**/api/runs/${run.id}`, (route) => route.fulfill({ json: { run } }));
+  await page.route(`**/api/runs/${run.id}/recording`, async (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { versions: [] } });
+    submitted = route.request().postDataJSON().code;
+    await response;
+    await route.fulfill({
+      json: {
+        version: {
+          id: 'saved-version',
+          runId: run.id,
+          code: submitted,
+          createdAt: saved.createdAt,
+        },
+      },
+    });
+  });
+  await page.clock.install();
+  await page.goto(`/runs/${run.id}`);
+  await page.getByRole('button', { name: '编辑录制', exact: true }).click();
+  const editor = page.getByRole('textbox', { name: 'Playwright 录制脚本' });
+  const save = page.getByRole('button', { name: '保存版本', exact: true });
+  await expect(save).toBeEnabled();
+  await page.clock.pauseAt(new Date(Date.now() + 3600000));
+  await editor.fill('invalid script');
+  await expect(save).toBeDisabled();
+  await page.clock.fastForward(300);
+  const editorRegion = page.getByRole('region', { name: '录制编辑器' });
+  await expect(editorRegion.getByRole('alert')).toBeVisible();
+  const draft = 'await page1.goto("https://example.com/changed");';
+  await editor.fill(draft);
+  await expect(save).toBeDisabled();
+  await expect(editorRegion.getByRole('alert')).toHaveCount(0);
+  await page.clock.fastForward(300);
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect(page.getByLabel('录制版本')).toBeDisabled();
+  await expect(editor).toHaveAttribute('contenteditable', 'false');
+  await expect(save).toBeDisabled();
+  release();
+  await expect(editorRegion.getByRole('status')).toHaveText('新版本已保存。');
+  await expect(editor).toHaveAttribute('contenteditable', 'true');
+  await expect(editor).toHaveText(draft);
+  expect(submitted).toBe(draft);
 });
 
 test('loads recording versions only when opened and keeps the draft across view changes', async ({

@@ -7,7 +7,7 @@ import { Planner } from '@/automation/planner';
 import { appendEvent, getRun, savePlan } from './store';
 import { finishRun, heartbeat } from './runLifecycle';
 import { RunRecorder } from './recorder';
-import type { TestRun } from './types';
+import type { TestRun } from '../types';
 const state = globalThis as typeof globalThis & { caseforgeJobs?: Map<string, AbortController> };
 const jobs = (state.caseforgeJobs ??= new Map());
 export function cancelRun(id: string) {
@@ -32,9 +32,11 @@ export async function executeRun(run: TestRun) {
     pulseBusy = true;
     try {
       const active = await heartbeat(run.id);
-      if (!active || active.cancelRequested) {
+      if (!active) {
+        controller.abort(new Error('执行租约失效，当前执行器已停止'));
+      } else if (active.cancelRequested) {
         cancelled = true;
-        controller.abort(new Error('用户停止了测试或执行租约失效'));
+        controller.abort(new Error('用户停止了测试'));
       }
     } catch (error) {
       controller.abort(error);
@@ -82,6 +84,7 @@ export async function executeRun(run: TestRun) {
     browser = await launchBrowser();
     controller.signal.throwIfAborted();
     recorder = new RunRecorder(run);
+    await recorder.prepare();
     context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
       recordVideo: { dir: recorder.directory, size: { width: 1280, height: 800 } },

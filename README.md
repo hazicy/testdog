@@ -53,7 +53,8 @@ src/
   client/              浏览器端 JSON 请求、串行刷新与轮询生命周期
   automation/          编译、规划、页面观察、浏览器会话与执行
     compiler/          用例计划和动作 schema
-  workspace/           数据库仓库、步骤记录、画面附件与运行生命周期
+  workspace/           共享类型、校验、录制脚本解析与计划树
+    server/            数据库仓库、步骤记录、画面附件与运行生命周期
   db/                  Drizzle 表定义与 PostgreSQL 连接
 drizzle/              数据库迁移
 docs/                 数据模型和 API 文档
@@ -67,7 +68,7 @@ docs/                 数据模型和 API 文档
 pnpm check
 ```
 
-该命令依次检查格式、Lint、类型、默认测试，再构建生产版本并执行 UI 测试。`.github/workflows/quality.yml` 在 push 和 pull request 时执行相同检查，使用锁文件安装依赖和真实 Chromium。CI 不连接实际数据库或调用真实模型。浏览器组件的 Lint 规则禁止直接导入数据库、仓库和运行器模块。
+该命令依次检查格式、Lint、类型、默认测试，再构建生产版本并执行 UI 测试。`.github/workflows/quality.yml` 在 push 和 pull request 时执行相同检查，使用锁文件安装依赖和真实 Chromium。CI 不连接实际数据库或调用真实模型。浏览器组件的 Lint 规则禁止直接导入数据库、仓库、模型适配器和运行器等服务端模块，覆盖别名、相对路径与显式扩展名；纯类型导入和共享工具允许使用。`tests/architecture.test.ts` 用实际 ESLint 配置验证这些边界。
 
 也可以单独运行：
 
@@ -82,10 +83,12 @@ pnpm test:ui
 
 `pnpm test:ui` 构建并启动本地生产服务器，用 Chromium 验证工作台增删改、复制、失败重试、编辑器延迟加载和草稿保留。UI 测试模拟 API，不访问实际数据库或模型；需要本机 3100 端口可用。
 
-默认测试使用隔离的 PostgreSQL WASM 引擎和真实 Chromium，不连接 `.env` 的远程数据库，不调用真实模型。真实模型录制与重放验证使用本地示例网站和隔离数据库，可单独运行：
+默认测试使用隔离的 PostgreSQL WASM 引擎和真实 Chromium，不连接 `.env` 的远程数据库，不调用真实模型。最多并发四个工作进程，避免多个数据库引擎和浏览器抢占资源。真实模型测试只接受启动命令显式设置的开关，`.env` 中的同名设置不会启用这些测试。
+
+真实模型录制与重放验证使用本地示例网站和隔离数据库，可单独运行：
 
 ```bash
-RUN_WORKSPACE_LIVE_TESTS=true pnpm exec vitest run src/workspace/liveRun.integration.test.ts
+RUN_WORKSPACE_LIVE_TESTS=true pnpm exec vitest run src/workspace/server/liveRun.integration.test.ts
 ```
 
 只验证用例编译的原有集成测试：

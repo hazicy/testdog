@@ -13,9 +13,10 @@ vi.mock('@/db', async () => {
   mocks.client = result.client;
   return { db: result.db };
 });
-import { createRun, getRun, getArtifact, saveRecordingVersion } from './store';
+import { createRun, getRun, getArtifact } from './store';
+import { saveRecordingVersion } from './recordings';
 import { requestCancellation } from './runLifecycle';
-import { recordingScript } from './recordingScript';
+import { recordingScript } from '../recordingScript';
 import { executeRun, cancelRun } from './run';
 import { GET as serveArtifact } from '@/app/api/runs/[id]/artifacts/[artifactId]/route';
 let server: Server;
@@ -275,6 +276,21 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     const result = await getRun(run.id);
     expect(result.status).toBe('cancelled');
     expect(result.artifacts.some((item) => item.kind === 'video')).toBe(true);
+  });
+
+  it('stops before model or browser work when another worker owns the execution', async () => {
+    const run = await createRun({ case: 'Ownership changed', url });
+    await mocks.client!.query('UPDATE test_runs SET "workerId" = $1 WHERE id = $2', [
+      'replacement-worker',
+      run.id,
+    ]);
+    await executeRun(run);
+    const current = await getRun(run.id);
+    expect(current.status).toBe('running');
+    expect(current.cancelRequested).toBe(false);
+    expect(current.artifacts).toEqual([]);
+    expect(current.steps).toEqual([]);
+    expect(mocks.generate).not.toHaveBeenCalled();
   });
 
   it('stops an in-flight model request and persists a cancelled run', async () => {

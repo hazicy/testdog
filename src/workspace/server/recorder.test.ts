@@ -1,10 +1,10 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { BrowserContext, Page } from 'playwright';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TestRun } from './types';
+import type { TestRun } from '../types';
 const store = vi.hoisted(() => ({
   insertArtifact: vi.fn(),
   insertStep: vi.fn(),
@@ -63,11 +63,58 @@ async function fixture() {
   const recorder = new RunRecorder(run);
   const browserContext = context as unknown as BrowserContext;
   await recorder.start(browserContext);
-  recorder.onPage(page as unknown as Page);
   return { recorder, context, browserContext, page };
 }
 
 describe('recorder cleanup and partial archive recovery', () => {
+  it.skipIf(process.platform === 'win32')(
+    'restricts execution directories and archived attachments to the owner',
+    async () => {
+      const { recorder, browserContext } = await fixture();
+      await chmod(recorder.directory, 0o755);
+      await recorder.prepare();
+      expect((await stat(recorder.directory)).mode & 0o777).toBe(0o700);
+      await recorder.stop(browserContext);
+      const files = store.insertArtifact.mock.calls.map(([, path]) => path as string);
+      expect(files).toHaveLength(3);
+      for (const path of files) expect((await stat(path)).mode & 0o777).toBe(0o600);
+    },
+  );
+  it('captures existing pages and returns to the main page after a popup closes', async () => {
+    const { recorder, browserContext, page } = await fixture();
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.waitFor(() => expect(store.insertArtifact).toHaveBeenCalledTimes(1));
+    expect(page.screenshot).toHaveBeenCalledTimes(1);
+    const popup = {
+      ...page,
+      isClosed: vi.fn(() => false),
+      url: () => 'https://example.com/popup',
+      screenshot: vi.fn(async () => Buffer.from('popup')),
+    };
+    recorder.onPage(popup as unknown as Page);
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.waitFor(() => expect(store.insertArtifact).toHaveBeenCalledTimes(2));
+    expect(popup.screenshot).toHaveBeenCalledTimes(1);
+    popup.isClosed.mockReturnValue(true);
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.waitFor(() => expect(store.insertArtifact).toHaveBeenCalledTimes(3));
+    expect(page.screenshot).toHaveBeenCalledTimes(2);
+    await recorder.stop(browserContext);
+    expect(page.screenshot).toHaveBeenCalledTimes(3);
+    expect(popup.screenshot).toHaveBeenCalledTimes(1);
+    expect(
+      store.insertArtifact.mock.calls
+        .map(([artifact]) => artifact)
+        .filter((artifact) => artifact.kind === 'screenshot')
+        .map(({ pageId, stage }) => ({ pageId, stage })),
+    ).toEqual([
+      { pageId: 'page-1', stage: 'live' },
+      { pageId: 'page-2', stage: 'live' },
+      { pageId: 'page-1', stage: 'live' },
+      { pageId: 'page-1', stage: 'final' },
+    ]);
+  });
+
   it('archives trace and video and closes the context even when the final screenshot fails', async () => {
     const { recorder, context, browserContext, page } = await fixture();
     page.screenshot.mockRejectedValue(new Error('screenshot failed'));

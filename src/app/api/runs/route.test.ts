@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   client: undefined as import('@electric-sql/pglite').PGlite | undefined,
 }));
 vi.mock('@/db', async () => {
-  const result = await (await import('@/workspace/testDatabase')).createTestDatabase();
+  const result = await (await import('@/workspace/server/testDatabase')).createTestDatabase();
   mocks.client = result.client;
   return { db: result.db };
 });
@@ -13,8 +13,8 @@ vi.mock('next/server', async (original) => ({
   ...(await original<typeof import('next/server')>()),
   after: mocks.after,
 }));
-vi.mock('@/workspace/run', () => ({ executeRun: mocks.execute }));
-import { saveTest, getRun } from '@/workspace/store';
+vi.mock('@/workspace/server/run', () => ({ executeRun: mocks.execute }));
+import { saveTest, getRun } from '@/workspace/server/store';
 import { POST, GET } from './route';
 beforeEach(async () => {
   vi.clearAllMocks();

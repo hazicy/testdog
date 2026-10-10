@@ -3,16 +3,18 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ExecutionStep, RunArtifact, TestRun } from '@/workspace/types';
-import { HttpError, requestJson as request } from '@/client/api';
+import { createJsonReader, HttpError, requestJson as request } from '@/client/api';
 import { ErrorState } from '../shared/ErrorState';
 import { usePolling } from '@/client/usePolling';
 import { downloadRunReport } from '@/client/download';
 import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
+import { StepList } from './StepList';
+import { indexRun } from '@/workspace/runIndex';
 const statuses = { running: '执行中', passed: '已通过', failed: '失败', cancelled: '已停止' };
-const kinds = { action: '操作', navigate: '导航', wait: '等待', assertion: '断言', branch: '分支' };
+const emptySteps: ExecutionStep[] = [];
 const time = (ms: number) =>
   `${Math.floor(ms / 60000)
     .toString()
@@ -54,13 +56,15 @@ export function RunDetail({ id }: { id: string }) {
   const [speed, setSpeed] = useState(1);
   const [mode, setMode] = useState<'frames' | 'video'>('frames');
   const [videoId, setVideoId] = useState('');
+  const videoElement = useRef<HTMLVideoElement>(null);
   const [view, setView] = useState<'execution' | 'plan' | 'recording'>('execution');
   const [editorOpened, setEditorOpened] = useState(false);
   const [tab, setTab] = useState<'step' | 'case' | 'logs'>('step');
+  const read = useMemo(() => createJsonReader<{ run: TestRun }>(`/api/runs/${id}`), [id]);
   const load = useCallback(
     async (signal: AbortSignal) => {
       try {
-        const data = await request<{ run: TestRun }>(`/api/runs/${id}`, { signal });
+        const data = await read({ signal });
         if (signal.aborted) return;
         setRun(data.run);
         setNow(Date.now());
@@ -74,25 +78,19 @@ export function RunDetail({ id }: { id: string }) {
         );
       }
     },
-    [id],
+    [read],
   );
   const refresh = usePolling(load, unavailable || (run && run.status !== 'running') ? null : 1500);
-  const frames = useMemo(
-    () => run?.artifacts.filter((artifact) => artifact.kind === 'screenshot') || [],
-    [run],
-  );
-  const videos = run?.artifacts.filter((artifact) => artifact.kind === 'video') || [];
-  const trace = run?.artifacts.find((artifact) => artifact.kind === 'trace');
+  const { frames, videos, trace, stepFrames, steps } = useMemo(() => indexRun(run), [run]);
   const currentIndex = follow
     ? Math.max(0, frames.length - 1)
     : Math.min(frameIndex, frames.length - 1);
   const currentFrame = frames[currentIndex];
   const selectedStep =
-    run?.steps.find((step) => step.id === stepId) ||
-    (follow ? run?.steps.at(-1) : run?.steps.find((step) => step.id === currentFrame?.stepId));
+    steps.get(stepId || '') || (follow ? run?.steps.at(-1) : steps.get(currentFrame?.stepId || ''));
   const video = videos.find((item) => item.id === videoId) || videos[0];
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || mode !== 'frames' || view !== 'execution') return;
     const current = frames[currentIndex];
     const next = frames[currentIndex + 1];
     if (!next || !current) return;
@@ -101,18 +99,23 @@ export function RunDetail({ id }: { id: string }) {
       Math.max(100, Math.min(3000, next.elapsedMs - current.elapsedMs)) / speed,
     );
     return () => clearTimeout(timer);
-  }, [playing, frames, currentIndex, speed]);
-  function selectStep(step: ExecutionStep) {
-    setView('execution');
-    setStepId(step.id);
-    setTab('step');
-    setMode('frames');
-    setFollow(false);
-    setPlaying(false);
-    const index = frames.findIndex((frame) => frame.stepId === step.id && frame.stage === 'after');
-    const before = frames.findIndex((frame) => frame.stepId === step.id);
-    if (index >= 0 || before >= 0) setFrameIndex(index >= 0 ? index : before);
-  }
+  }, [playing, frames, currentIndex, speed, mode, view]);
+  useEffect(() => {
+    if (view !== 'execution') videoElement.current?.pause();
+  }, [view]);
+  const selectStep = useCallback(
+    (step: ExecutionStep) => {
+      setView('execution');
+      setStepId(step.id);
+      setTab('step');
+      setMode('frames');
+      setFollow(false);
+      setPlaying(false);
+      const positions = stepFrames.get(step.id);
+      if (positions) setFrameIndex(positions.after ?? positions.first);
+    },
+    [stepFrames],
+  );
   async function start(mode: 'record' | 'replay') {
     if (!run) return;
     setBusy(true);
@@ -319,6 +322,7 @@ export function RunDetail({ id }: { id: string }) {
             <div className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[#eaece2]">
               {mode === 'video' && video ? (
                 <video
+                  ref={videoElement}
                   key={video.id}
                   aria-label="执行录像"
                   src={asset(id, video)}
@@ -359,7 +363,10 @@ export function RunDetail({ id }: { id: string }) {
                 <button
                   disabled={!videos.length}
                   className={`ws-button ${mode === 'video' ? 'selected' : ''}`}
-                  onClick={() => setMode('video')}
+                  onClick={() => {
+                    setPlaying(false);
+                    setMode('video');
+                  }}
                 >
                   完整录像
                 </button>
@@ -447,57 +454,12 @@ export function RunDetail({ id }: { id: string }) {
               )}
             </div>
           </section>
-          <section aria-label="执行步骤" className="border-t border-page-line xl:border-t-0">
-            <div className="flex h-12 items-center justify-between border-b border-page-line px-5">
-              <h2 className="text-xs font-medium">执行步骤</h2>
-              <span className="font-mono text-[10px] text-page-muted">
-                {run?.steps.filter((step) => step.status === 'passed').length || 0} /{' '}
-                {run?.steps.length || 0}
-              </span>
-            </div>
-            <div className="max-h-[620px] overflow-y-auto">
-              <ol>
-                {run?.steps.map((step) => (
-                  <li key={step.id}>
-                    <button
-                      onClick={() => selectStep(step)}
-                      className={`flex w-full items-start gap-3 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-[#f2f1e9] ${selectedStep?.id === step.id ? 'bg-[#f3eee4]' : ''}`}
-                    >
-                      <span
-                        className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center border font-mono text-[10px] ${step.status === 'failed' ? 'border-red-200 text-red-600' : step.status === 'passed' ? 'border-[#cdd5bf] text-[#6c805b]' : 'border-brand text-brand'}`}
-                      >
-                        {step.status === 'passed'
-                          ? '✓'
-                          : step.status === 'failed'
-                            ? '×'
-                            : step.sequence.toString().padStart(2, '0')}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block break-words text-xs leading-5 text-ink">
-                          {step.title}
-                        </span>
-                        <span className="mt-1.5 block font-mono text-[9px] text-page-muted">
-                          {kinds[step.kind]} · {step.pageId} ·{' '}
-                          {step.durationMs == null
-                            ? step.status === 'running'
-                              ? '执行中'
-                              : '已中断'
-                            : `${(step.durationMs / 1000).toFixed(1)}s`}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-              {!run?.steps.length && (
-                <p className="p-6 text-xs leading-6 text-page-muted">
-                  {run?.status === 'running'
-                    ? '正在生成测试计划，步骤将在执行时逐一出现。'
-                    : '没有已执行的浏览器步骤。'}
-                </p>
-              )}
-            </div>
-          </section>
+          <StepList
+            steps={run?.steps || emptySteps}
+            selectedId={selectedStep?.id}
+            running={run?.status === 'running'}
+            onSelect={selectStep}
+          />
         </div>
         <div className="mt-6 border border-page-line bg-[#fffefa]">
           <div className="flex flex-wrap items-center gap-x-5 border-b border-page-line px-5">
@@ -578,9 +540,7 @@ export function RunDetail({ id }: { id: string }) {
                   )}
                   <div className="mt-4 flex gap-2">
                     {(['before', 'after'] as const).map((stage) => {
-                      const index = frames.findIndex(
-                        (frame) => frame.stepId === selectedStep.id && frame.stage === stage,
-                      );
+                      const index = stepFrames.get(selectedStep.id)?.[stage] ?? -1;
                       return (
                         <button
                           key={stage}

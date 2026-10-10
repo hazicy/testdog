@@ -1,12 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile, stat } from 'node:fs/promises';
+import { chmod, mkdir, writeFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { BrowserContext, Page } from 'playwright';
-import type { ExecutionStep, RunArtifact, StepSignal, TestRun } from './types';
+import type { ExecutionStep, RunArtifact, StepSignal, TestRun } from '../types';
 import { insertArtifact, insertStep, finishStep } from './store';
 import { recordAction } from './locator';
-export const artifactRoot = () =>
-  join(process.env.CASEFORGE_DATA_DIR || join(process.cwd(), '.automation'), 'artifacts');
+import { artifactRoot } from './artifactStorage';
 export class RunRecorder {
   private page?: Page;
   private pages = new Map<Page, string>();
@@ -29,15 +28,25 @@ export class RunRecorder {
     this.pageId(page);
     this.page = page;
   };
+  private activePage() {
+    if (this.page && !this.page.isClosed()) return this.page;
+    this.page = [...this.pages.keys()].reverse().find((page) => !page.isClosed());
+    return this.page;
+  }
+  async prepare() {
+    await mkdir(this.directory, { recursive: true, mode: 0o700 });
+    await chmod(this.directory, 0o700);
+  }
   async start(context: BrowserContext) {
-    await mkdir(this.directory, { recursive: true });
-    context.pages().forEach(this.pageId);
+    await this.prepare();
+    context.pages().forEach(this.onPage);
     await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
     context.on('page', this.onPage);
     this.timer = setInterval(() => {
-      if (this.page && !this.page.isClosed() && !this.livePending) {
+      const page = this.activePage();
+      if (page && !this.livePending) {
         this.livePending = true;
-        void this.capture(this.page, 'live')
+        void this.capture(page, 'live')
           .catch((error) => {
             this.captureError = error;
           })
@@ -146,8 +155,8 @@ export class RunRecorder {
     };
     await this.queue;
     if (this.captureError) errors.push(this.captureError);
-    if (!interrupted && this.page && !this.page.isClosed())
-      await attempt(() => this.capture(this.page!, 'final'));
+    const page = this.activePage();
+    if (!interrupted && page) await attempt(() => this.capture(page, 'final'));
     const trace = join(this.directory, 'trace.zip');
     if (!interrupted) {
       await attempt(async () => {
@@ -180,6 +189,7 @@ export class RunRecorder {
     pageUrl: string,
   ) {
     const capturedAt = new Date().toISOString();
+    await chmod(path, 0o600);
     await insertArtifact(
       {
         id: randomUUID(),

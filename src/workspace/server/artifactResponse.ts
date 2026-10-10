@@ -23,6 +23,21 @@ function byteRange(value: string, size: number) {
 
 /** Streams only the requested bytes; the stream owns and closes its file handle. */
 export async function artifactResponse(request: Request, artifact: ArtifactFile, root: string) {
+  try {
+    return await readArtifact(request, artifact, root);
+  } catch (error) {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error.code === 'ENOENT' || error.code === 'ENOTDIR')
+    )
+      return new Response('Artifact unavailable', { status: 404 });
+    throw error;
+  }
+}
+
+async function readArtifact(request: Request, artifact: ArtifactFile, root: string) {
   if (!contained(root, artifact.path))
     return new Response('Invalid artifact path', { status: 403 });
   const [resolvedRoot, resolvedPath] = await Promise.all([realpath(root), realpath(artifact.path)]);

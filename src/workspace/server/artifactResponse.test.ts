@@ -23,6 +23,23 @@ const request = (range?: string, method = 'GET') =>
   });
 
 describe('artifact delivery', () => {
+  it.each(['missing-file', 'missing-root', 'broken-link', 'not-directory'])(
+    'returns 404 for unavailable storage: %s',
+    async (scenario) => {
+      if (scenario === 'missing-file') path = join(root, 'missing.webm');
+      if (scenario === 'missing-root') await rm(root, { recursive: true });
+      if (scenario === 'broken-link') {
+        const link = join(root, 'broken.webm');
+        await symlink(join(root, 'missing.webm'), link);
+        path = link;
+      }
+      if (scenario === 'not-directory') path = join(path, 'child.webm');
+      const response = await artifactResponse(request(), artifact(), root);
+      expect(response.status).toBe(404);
+      expect(await response.text()).toBe('Artifact unavailable');
+    },
+  );
+
   it('streams the complete file with cache and media headers', async () => {
     const response = await artifactResponse(request(), artifact(), root);
     expect(response.status).toBe(200);

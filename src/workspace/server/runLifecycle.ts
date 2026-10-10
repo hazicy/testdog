@@ -3,7 +3,7 @@ import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { testRuns, runSteps } from '@/db/schema';
 import { WorkspaceError } from './errors';
-import type { RunStatus } from './types';
+import type { RunStatus } from '../types';
 
 const state = globalThis as typeof globalThis & { caseforgeWorkerId?: string };
 export const owner = (state.caseforgeWorkerId ??= randomUUID());
@@ -80,7 +80,7 @@ export async function finishRun(id: string, status: Exclude<RunStatus, 'running'
         error,
         replayable: sql`not ${testRuns.cancelRequested} and ${status === 'passed' && steps.length > 0 && steps.every((step) => step.replayable && step.status === 'passed')}`,
       })
-      .where(and(eq(testRuns.id, id), eq(testRuns.status, 'running')))
+      .where(and(eq(testRuns.id, id), eq(testRuns.status, 'running'), eq(testRuns.workerId, owner)))
       .returning({ id: testRuns.id });
     if (!finished.length) return;
     await tx

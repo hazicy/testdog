@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Plan } from '@/automation/compiler/schema';
 import type { ExecutionStep } from '@/workspace/types';
-import { planForest, type PlanTree } from '@/workspace/planTree';
+import { planForest } from '@/workspace/planTree';
+import { PlanNodes } from './PlanNodes';
 
 type Edge = { key: string; x1: number; y1: number; x2: number; y2: number };
 export function PlanBoard({
@@ -22,7 +23,18 @@ export function PlanBoard({
   const [edges, setEdges] = useState<Edge[]>([]);
   const [showEdges, setShowEdges] = useState(true);
   const forest = useMemo(() => (plan ? planForest(plan) : []), [plan]);
+  const stepsByNode = useMemo(() => {
+    const index = new Map<string, ExecutionStep[]>();
+    for (const step of steps) {
+      if (!step.planNodeId) continue;
+      const recorded = index.get(step.planNodeId);
+      if (recorded) recorded.push(step);
+      else index.set(step.planNodeId, [step]);
+    }
+    return index;
+  }, [steps]);
   const node = plan?.nodes[selected || ''];
+  const selectedSteps = selected ? stepsByNode.get(selected) || [] : [];
   function fit() {
     if (!viewport.current || !stage.current) return;
     const scale = Math.min(
@@ -93,79 +105,7 @@ export function PlanBoard({
         {steps.length ? '此记录没有保存编译计划。' : '计划生成后会在此展示。'}
       </p>
     );
-  function render(tree: PlanTree) {
-    const n = plan!.nodes[tree.id];
-    if (tree.reference)
-      return (
-        <button key={tree.id} className="plan-reference" onClick={() => setSelected(tree.id)}>
-          ↗ 引用 {tree.id}
-        </button>
-      );
-    const recorded = steps.filter((s) => s.planNodeId === n.id);
-    const state = recorded.some((s) => s.status === 'failed')
-      ? 'failed'
-      : recorded.some((s) => s.status === 'running')
-        ? 'running'
-        : recorded.length
-          ? 'passed'
-          : 'none';
-    return (
-      <div
-        key={tree.id}
-        data-plan-node={n.id}
-        className={`plan-node ${n.kind} ${selected === n.id ? 'active' : ''}`}
-      >
-        <button
-          className="plan-node-header"
-          onClick={() => setSelected(n.id)}
-          aria-label={`查看节点 ${n.id}`}
-        >
-          <span className="flex items-center justify-between gap-4">
-            <span className="font-mono text-[10px] tracking-wider text-page-muted">
-              {n.kind.toUpperCase()} / {n.id}
-            </span>
-            {recorded.length > 0 && (
-              <span className={`ws-status ${state}`}>
-                <span />
-                {recorded.length} 步
-              </span>
-            )}
-          </span>
-          <span className="mt-2 block text-left text-sm leading-6">
-            {n.kind === 'branch' ? n.condition : n.goal}
-          </span>
-          {n.dependsOn.length > 0 && (
-            <span className="mt-2 block text-left text-[10px] text-page-muted">
-              依赖：{n.dependsOn.join(' · ')}
-            </span>
-          )}
-          {n.kind === 'task' && (
-            <span className="mt-2 block text-left text-[10px] text-page-muted">
-              {n.assertions.length} 个预期
-              {n.requirementIds.length ? ` · ${n.requirementIds.join(', ')}` : ''}
-            </span>
-          )}
-        </button>
-        {n.kind === 'group' && <div className="plan-children">{tree.children.map(render)}</div>}
-        {n.kind === 'branch' && (
-          <div className="plan-branches">
-            <div>
-              <p className="mb-3 font-mono text-[10px] text-[#6c805b]">YES / 条件成立</p>
-              {tree.then && render(tree.then)}
-            </div>
-            <div>
-              <p className="mb-3 font-mono text-[10px] text-page-muted">NO / 条件不成立</p>
-              {tree.otherwise ? (
-                render(tree.otherwise)
-              ) : (
-                <p className="text-xs text-page-muted">跳过</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
+
   return (
     <div className="border border-page-line bg-[#fffefa]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-page-line px-4 py-3">
@@ -249,12 +189,13 @@ export function PlanBoard({
             className="plan-stage"
             style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
           >
-            {forest.map((tree, index) => (
-              <div key={tree.id}>
-                {index > 0 && <p className="mb-3 text-xs text-page-muted">依赖 / 独立节点</p>}
-                {render(tree)}
-              </div>
-            ))}
+            <PlanNodes
+              plan={plan}
+              forest={forest}
+              stepsByNode={stepsByNode}
+              selected={selected}
+              onSelect={setSelected}
+            />
             {showEdges && (
               <svg className="plan-edges" aria-label="节点依赖连线">
                 <defs>
@@ -315,21 +256,19 @@ export function PlanBoard({
                 </div>
               )}
               <p className="mt-6 mb-3 text-xs text-page-muted">该节点的录制步骤</p>
-              {steps
-                .filter((s) => s.planNodeId === node.id)
-                .map((s) => (
-                  <button
-                    key={s.id}
-                    className="mb-2 w-full border border-page-line p-3 text-left text-xs leading-5 hover:border-brand"
-                    onClick={() => onStep(s)}
-                  >
-                    <span className={`ws-status ${s.status}`}>
-                      <span />#{s.sequence}
-                    </span>
-                    <span className="mt-1 block">{s.title}</span>
-                  </button>
-                ))}
-              {!steps.some((s) => s.planNodeId === node.id) && (
+              {selectedSteps.map((s) => (
+                <button
+                  key={s.id}
+                  className="mb-2 w-full border border-page-line p-3 text-left text-xs leading-5 hover:border-brand"
+                  onClick={() => onStep(s)}
+                >
+                  <span className={`ws-status ${s.status}`}>
+                    <span />#{s.sequence}
+                  </span>
+                  <span className="mt-1 block">{s.title}</span>
+                </button>
+              ))}
+              {!selectedSteps.length && (
                 <p className="text-xs leading-6 text-page-muted">
                   尚无关联步骤。旧录制未保存节点关联；分组的步骤位于子节点。
                 </p>

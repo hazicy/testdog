@@ -14,14 +14,13 @@ import {
   getRun,
   deleteTest,
   insertStep,
-  saveRecordingVersion,
-  listRecordingVersions,
   listRuns,
   appendEvent,
   listTests,
+  insertArtifact,
 } from './store';
 import { finishRun, recoverExpiredRuns, requestCancellation } from './runLifecycle';
-import type { RunRequest } from './validation';
+import type { RunRequest } from '../validation';
 beforeEach(async () => {
   await isolated.client!.exec('TRUNCATE run_artifacts, run_steps, test_runs, test_cases CASCADE');
 });
@@ -121,6 +120,52 @@ describe('PostgreSQL workspace repository', () => {
     await deleteTest(test.id);
     expect((await listRuns())[0].testId).toBeUndefined();
   });
+  it('keeps timeline order stable when screenshots share an elapsed time', async () => {
+    const run = await createRun({ case: 'Timeline', url: input.url });
+    const ids = [
+      '00000000-0000-4000-8000-000000000003',
+      '00000000-0000-4000-8000-000000000002',
+      '00000000-0000-4000-8000-000000000001',
+    ];
+    for (const [index, id] of ids.entries())
+      await insertArtifact(
+        {
+          id,
+          runId: run.id,
+          kind: 'screenshot',
+          stage: 'live',
+          pageId: 'page-1',
+          pageUrl: input.url,
+          capturedAt: index === 0 ? '2026-10-01T00:00:01Z' : '2026-10-01T00:00:00Z',
+          elapsedMs: 1000,
+          contentType: 'image/jpeg',
+          size: 10,
+        },
+        `/private/timeline-${id}.jpg`,
+      );
+    const expected = [ids[2], ids[1], ids[0]];
+    expect((await getRun(run.id)).artifacts.map((artifact) => artifact.id)).toEqual(expected);
+    expect((await getRun(run.id)).artifacts.map((artifact) => artifact.id)).toEqual(expected);
+  });
+  it.each(['passed', 'failed', 'cancelled'] as const)(
+    'does not persist %s or interrupt steps after execution ownership changes',
+    async (status) => {
+      const run = await createRun({ case: 'Ownership', url: input.url });
+      const step = pendingStep(run.id);
+      await insertStep(step);
+      await isolated.client!.query('UPDATE test_runs SET "workerId" = $1 WHERE id = $2', [
+        'replacement-worker',
+        run.id,
+      ]);
+      await finishRun(run.id, status, 'Old worker result');
+      const current = await getRun(run.id);
+      expect(current.status).toBe('running');
+      expect(current.finishedAt).toBeUndefined();
+      expect(current.error).toBeUndefined();
+      expect(current.steps[0]).toMatchObject({ id: step.id, status: 'running' });
+      expect(current.steps[0].finishedAt).toBeUndefined();
+    },
+  );
   it.each(['finish', 'recover'] as const)(
     'rolls back %s when saving step state fails',
     async (operation) => {
@@ -250,38 +295,4 @@ describe('PostgreSQL workspace repository', () => {
     await finishRun(run.id, 'cancelled');
     await expect(createRun({ mode: 'replay', sourceRunId: run.id })).rejects.toThrow('不能重放');
   });
-});
-
-it('saves independent versions and claims an immutable replay snapshot from a repaired failed recording', async () => {
-  const original = await createRun({ case: 'Original goal', url: input.url });
-  await expect(
-    saveRecordingVersion(original.id, 'await page1.goto("https://example.com");'),
-  ).rejects.toThrow('结束');
-  await finishRun(original.id, 'failed', 'Original failure');
-  await expect(saveRecordingVersion(original.id, 'process.exit();')).rejects.toThrow('第 1 行');
-  const version = await saveRecordingVersion(
-    original.id,
-    'await page1.goto("https://example.com");\nawait expect(page1).toHaveURL("https://example.com/");',
-  );
-  const versions = await listRecordingVersions(original.id);
-  expect(versions).toHaveLength(1);
-  expect(versions[0]).toEqual(version);
-  expect(version).not.toHaveProperty('steps');
-  expect(versions[0]).not.toHaveProperty('steps');
-  const replay = await createRun({
-    mode: 'replay',
-    sourceRunId: original.id,
-    recordingVersionId: version.id,
-  });
-  expect(replay.recordingVersionId).toBe(version.id);
-  expect(replay.recordingSteps).toHaveLength(2);
-  await saveRecordingVersion(original.id, 'await page1.goto("https://other.example.com");');
-  expect((await getRun(replay.id)).recordingSteps?.[0].action?.value).toBe('https://example.com');
-  expect((await getRun(original.id)).error).toBe('Original failure');
-  await finishRun(replay.id, 'passed');
-  const unrelated = await createRun({ case: 'Other run', url: input.url });
-  await finishRun(unrelated.id, 'failed');
-  await expect(
-    createRun({ mode: 'replay', sourceRunId: unrelated.id, recordingVersionId: version.id }),
-  ).rejects.toThrow('不属于');
 });

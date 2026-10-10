@@ -6,6 +6,7 @@ import { parseRecordingScript, recordingScript } from '@/workspace/recordingScri
 import { CodeEditor } from './CodeEditor';
 import { requestJson as request } from '@/client/api';
 import { downloadText } from '@/client/download';
+import { recordingCodeSchema, recordingInputMessage } from '@/workspace/validation';
 export function RecordingEditor({ run }: { run: TestRun }) {
   const router = useRouter();
   const original = useMemo(
@@ -18,7 +19,9 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [validation, setValidation] = useState<{ count: number; error?: string }>({ count: 0 });
+  const [validation, setValidation] = useState<{ code: string; count: number; error?: string }>();
+  const validating = validation?.code !== code;
+  const canSave = !busy && !validating && !validation?.error && !!validation?.count;
   const base = versions.find((v) => v.id === selected)?.code || original;
   const dirty = code !== base;
   useEffect(() => {
@@ -39,14 +42,16 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        setValidation({ count: parseRecordingScript(code).length });
+        if (!recordingCodeSchema.safeParse(code).success) throw new Error(recordingInputMessage);
+        setValidation({ code, count: parseRecordingScript(code).length });
       } catch (e) {
-        setValidation({ count: 0, error: e instanceof Error ? e.message : '脚本无效' });
+        setValidation({ code, count: 0, error: e instanceof Error ? e.message : '脚本无效' });
       }
     }, 250);
     return () => clearTimeout(timer);
   }, [code]);
   async function save(execute = false) {
+    if (!canSave) return;
     setBusy(true);
     setError('');
     setMessage('');
@@ -103,18 +108,10 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           <button className="ws-button" onClick={download}>
             下载脚本
           </button>
-          <button
-            className="ws-button"
-            disabled={busy || !!validation.error || !validation.count}
-            onClick={() => void save()}
-          >
+          <button className="ws-button" disabled={!canSave} onClick={() => void save()}>
             保存版本
           </button>
-          <button
-            className="ws-button primary"
-            disabled={busy || !!validation.error || !validation.count}
-            onClick={() => void save(true)}
-          >
+          <button className="ws-button primary" disabled={!canSave} onClick={() => void save(true)}>
             {busy ? '处理中…' : '保存并重放'}
           </button>
         </div>
@@ -128,6 +125,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
                 aria-label="录制版本"
                 className="ml-2 max-w-full border border-page-line bg-page p-2 text-ink"
                 value={selected}
+                disabled={busy}
                 onChange={(e) => {
                   setSelected(e.target.value);
                   setCode(versions.find((v) => v.id === e.target.value)?.code || original);
@@ -146,18 +144,22 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             </label>
             <span className="text-[10px] text-page-muted">
               {dirty ? '有未保存修改' : '已载入'}
-              {validation.count ? ` · ${validation.count} 个步骤` : ''}
+              {validating
+                ? ' · 正在校验…'
+                : validation?.count
+                  ? ` · ${validation.count} 个步骤`
+                  : ''}
             </span>
             {dirty && (
-              <button className="text-xs text-brand" onClick={() => setCode(base)}>
+              <button className="text-xs text-brand" disabled={busy} onClick={() => setCode(base)}>
                 还原当前版本
               </button>
             )}
           </div>
-          <CodeEditor value={code} onChange={setCode} />
-          {(error || validation.error) && (
+          <CodeEditor value={code} onChange={setCode} readOnly={busy} />
+          {(error || (!validating && validation?.error)) && (
             <p role="alert" className="mt-3 whitespace-pre-wrap text-xs leading-6 text-red-700">
-              {error || validation.error}
+              {error || validation?.error}
             </p>
           )}
           {message && (

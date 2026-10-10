@@ -14,7 +14,12 @@ export function createRefreshTask(load: (signal: AbortSignal) => Promise<void>) 
         do {
           queued = false;
           if (controller.signal.aborted) return;
-          await load(controller.signal);
+          try {
+            await load(controller.signal);
+          } catch (error) {
+            // A mutation may have queued a newer read while this request was failing.
+            if (!queued || controller.signal.aborted) throw error;
+          }
         } while (queued && !controller.signal.aborted);
       })
       .finally(() => {

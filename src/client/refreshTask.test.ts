@@ -3,10 +3,12 @@ import { createRefreshTask } from './refreshTask';
 
 function deferred() {
   let resolve!: () => void;
-  const promise = new Promise<void>((done) => {
+  let reject!: (error: Error) => void;
+  const promise = new Promise<void>((done, fail) => {
     resolve = done;
+    reject = fail;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 describe('refresh coordination', () => {
@@ -71,5 +73,50 @@ describe('refresh coordination', () => {
     await expect(task.refresh()).rejects.toThrow('offline');
     await task.refresh();
     expect(load).toHaveBeenCalledTimes(2);
+  });
+  it('runs a queued mutation refresh even when the earlier read fails', async () => {
+    const response = deferred();
+    const load = vi
+      .fn()
+      .mockImplementationOnce(() => response.promise)
+      .mockResolvedValue(undefined);
+    const task = createRefreshTask(load);
+    const pending = task.refresh();
+    await Promise.resolve();
+    const updated = task.refresh(true);
+    response.reject(new Error('Old read failed'));
+    await expect(updated).resolves.toBeUndefined();
+    await pending;
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports the queued read failure and remains retryable', async () => {
+    const response = deferred();
+    const load = vi
+      .fn()
+      .mockImplementationOnce(() => response.promise)
+      .mockRejectedValueOnce(new Error('Latest read failed'))
+      .mockResolvedValue(undefined);
+    const task = createRefreshTask(load);
+    const pending = task.refresh();
+    await Promise.resolve();
+    void task.refresh(true);
+    response.reject(new Error('Old read failed'));
+    await expect(pending).rejects.toThrow('Latest read failed');
+    await task.refresh();
+    expect(load).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not retry a failing request after disposal', async () => {
+    const response = deferred();
+    const load = vi.fn(() => response.promise);
+    const task = createRefreshTask(load);
+    const pending = task.refresh();
+    await Promise.resolve();
+    void task.refresh(true);
+    task.dispose();
+    response.reject(new Error('Aborted read'));
+    await expect(pending).rejects.toThrow('Aborted read');
+    expect(load).toHaveBeenCalledTimes(1);
   });
 });

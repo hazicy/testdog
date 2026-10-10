@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getRun } from '@/workspace/store';
-import { requestCancellation } from '@/workspace/runLifecycle';
-import { cancelRun } from '@/workspace/run';
-import { apiError, validId } from '@/workspace/http';
+import { getRun } from '@/workspace/server/store';
+import { requestCancellation } from '@/workspace/server/runLifecycle';
+import { cancelRun } from '@/workspace/server/run';
+import { apiError, validId } from '@/workspace/server/http';
+import { jsonResponse } from '@/workspace/server/jsonResponse';
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
-export async function GET(_request: Request, context: Context) {
+export async function GET(request: Request, context: Context) {
   const { id } = await context.params;
   try {
     validId(id);
-    return NextResponse.json({ run: await getRun(id) });
+    return jsonResponse(request, { run: await getRun(id) });
   } catch (error) {
     return apiError(error);
   }

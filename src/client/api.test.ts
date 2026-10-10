@@ -1,8 +1,31 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { requestJson } from './api';
+import { createJsonReader, requestJson } from './api';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 describe('JSON transport', () => {
+  it('reuses unchanged reads, retains cache across errors and replaces it with new data', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ value: 1 }, { headers: { ETag: '"first"' } }))
+      .mockResolvedValueOnce(new Response(null, { status: 304 }))
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(Response.json({ value: 2 }, { headers: { ETag: '"second"' } }));
+    vi.stubGlobal('fetch', fetch);
+    const read = createJsonReader<{ value: number }>('/api/run');
+    const first = await read();
+    expect(await read()).toBe(first);
+    expect(fetch.mock.calls[1][1].headers.get('if-none-match')).toBe('"first"');
+    await expect(read()).rejects.toThrow('offline');
+    expect(await read()).toEqual({ value: 2 });
+    expect(fetch.mock.calls[3][1].headers.get('if-none-match')).toBe('"first"');
+    const independent = createJsonReader('/api/other');
+    fetch.mockResolvedValueOnce(Response.json({ value: 3 }));
+    await independent();
+    expect(fetch.mock.calls[4][1].headers.has('if-none-match')).toBe(false);
+  });
   it('passes request options, including abort signals, to fetch', async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json({ run: { id: 'run' } }));
     vi.stubGlobal('fetch', fetch);
@@ -12,7 +35,8 @@ describe('JSON transport', () => {
     });
     expect(fetch).toHaveBeenCalledWith('/api/runs', {
       cache: 'no-store',
-      signal: controller.signal,
+      headers: expect.any(Headers),
+      signal: expect.any(AbortSignal),
     });
   });
 
@@ -48,5 +72,83 @@ describe('JSON transport', () => {
     const error = new DOMException('Cancelled', 'AbortError');
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(error));
     await expect(requestJson('/api/runs')).rejects.toBe(error);
+  });
+
+  it.each(['GET', 'POST'])(
+    'times out stalled %s requests and releases the timer',
+    async (method) => {
+      vi.useFakeTimers();
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          (_url, { signal }) =>
+            new Promise((_resolve, reject) => {
+              signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+            }),
+        ),
+      );
+      const pending = requestJson('/api/runs', { method });
+      const failure = expect(pending).rejects.toMatchObject({
+        status: 408,
+        message:
+          method === 'GET'
+            ? '请求超时，请稍后重试。'
+            : '请求超时，操作可能已完成，请刷新确认后再试。',
+      });
+      await vi.advanceTimersByTimeAsync(15000);
+      await failure;
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
+  it('applies the deadline to a stalled response body', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url, { signal }) => ({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          }),
+      })),
+    );
+    const pending = requestJson('/api/runs');
+    const failure = expect(pending).rejects.toMatchObject({ status: 408 });
+    await vi.advanceTimersByTimeAsync(15000);
+    await failure;
+  });
+
+  it('forwards caller cancellation and cleans up its listener and timer', async () => {
+    vi.useFakeTimers();
+    const caller = new AbortController();
+    const remove = vi.spyOn(caller.signal, 'removeEventListener');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url, { signal }) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          }),
+      ),
+    );
+    const pending = requestJson('/api/runs', { signal: caller.signal });
+    const reason = new DOMException('Unmounted', 'AbortError');
+    const failure = expect(pending).rejects.toBe(reason);
+    caller.abort(reason);
+    await failure;
+    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('does not fetch when the caller is already cancelled', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const reason = new DOMException('Unmounted', 'AbortError');
+    await expect(requestJson('/api/runs', { signal: AbortSignal.abort(reason) })).rejects.toBe(
+      reason,
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

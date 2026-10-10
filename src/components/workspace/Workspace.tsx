@@ -55,26 +55,38 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const [editing, setEditing] = useState<{ test?: TestCase; duplicate?: boolean }>();
   const [deleting, setDeleting] = useState<TestCase | null>(null);
   const selectedId = params.get('run');
-  const running = runs.some((run) => run.status === 'running');
+  const { counts, latestRuns } = useMemo(() => {
+    const counts = { running: 0, passed: 0, failed: 0, cancelled: 0 };
+    const latestRuns = new Map<string, RunSummary>();
+    for (const run of runs) {
+      counts[run.status]++;
+      if (run.testId && !latestRuns.has(run.testId)) latestRuns.set(run.testId, run);
+    }
+    return { counts, latestRuns };
+  }, [runs]);
+  const running = counts.running > 0;
   const isTests = view === 'tests';
 
-  const load = useCallback(async (signal: AbortSignal) => {
-    try {
-      const [testData, runData] = await Promise.all([
-        api<{ tests: TestCase[] }>('/api/tests', { signal }),
-        api<{ runs: RunSummary[] }>('/api/runs', { signal }),
-      ]);
-      if (signal.aborted) return;
-      setTests(testData.tests);
-      setRuns(runData.runs);
-      setError('');
-    } catch (cause) {
-      if (signal.aborted) return;
-      setError(cause instanceof Error ? cause.message : '无法加载工作区');
-    } finally {
-      if (!signal.aborted) setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (signal: AbortSignal) => {
+      try {
+        const [testData, runData] = await Promise.all([
+          isTests ? api<{ tests: TestCase[] }>('/api/tests', { signal }) : undefined,
+          api<{ runs: RunSummary[] }>('/api/runs', { signal }),
+        ]);
+        if (signal.aborted) return;
+        if (testData) setTests(testData.tests);
+        setRuns(runData.runs);
+        setError('');
+      } catch (cause) {
+        if (signal.aborted) return;
+        setError(cause instanceof Error ? cause.message : '无法加载工作区');
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    },
+    [isTests],
+  );
   const refresh = usePolling(load, running ? 2000 : 15000);
   useEffect(() => {
     if (selectedId) router.replace(`/runs/${selectedId}`);
@@ -106,26 +118,31 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       setExporting(false);
     }
   }
-  const latestRuns = useMemo(() => {
-    const latest = new Map<string, RunSummary>();
-    for (const run of runs) if (run.testId && !latest.has(run.testId)) latest.set(run.testId, run);
-    return latest;
-  }, [runs]);
   const latest = (id: string) => latestRuns.get(id);
-  const visibleTests = tests.filter(
-    (test) =>
-      `${test.name} ${test.url} ${test.tags.join(' ')}`
-        .toLowerCase()
-        .includes(query.toLowerCase()) &&
-      (filter === 'all' || (latest(test.id)?.status || 'none') === filter),
+  const keyword = query.toLowerCase();
+  const visibleTests = useMemo(
+    () =>
+      isTests
+        ? tests.filter(
+            (test) =>
+              `${test.name} ${test.url} ${test.tags.join(' ')}`.toLowerCase().includes(keyword) &&
+              (filter === 'all' || (latestRuns.get(test.id)?.status || 'none') === filter),
+          )
+        : [],
+    [isTests, tests, keyword, filter, latestRuns],
   );
-  const visibleRuns = runs.filter(
-    (run) =>
-      `${run.name} ${run.url}`.toLowerCase().includes(query.toLowerCase()) &&
-      (filter === 'all' || run.status === filter),
+  const visibleRuns = useMemo(
+    () =>
+      isTests
+        ? []
+        : runs.filter(
+            (run) =>
+              `${run.name} ${run.url}`.toLowerCase().includes(keyword) &&
+              (filter === 'all' || run.status === filter),
+          ),
+    [isTests, runs, keyword, filter],
   );
-  const passed = runs.filter((run) => run.status === 'passed').length;
-  const finished = runs.filter((run) => run.status === 'passed' || run.status === 'failed').length;
+  const finished = counts.passed + counts.failed;
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -172,17 +189,17 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           },
           {
             label: '通过率',
-            value: finished ? `${Math.round((passed / finished) * 100)}%` : '—',
+            value: finished ? `${Math.round((counts.passed / finished) * 100)}%` : '—',
             note: '已完成的执行',
           },
           {
             label: '失败记录',
-            value: runs.filter((run) => run.status === 'failed').length,
+            value: counts.failed,
             note: '需要关注的执行',
           },
           {
             label: '执行中',
-            value: runs.filter((run) => run.status === 'running').length,
+            value: counts.running,
             note: running ? '结果自动更新' : '等待下一次测试',
           },
         ].map((stat) => (
@@ -441,8 +458,8 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           test={deleting}
           onClose={() => setDeleting(null)}
           onDeleted={async () => {
-            setDeleting(null);
             await refresh();
+            setDeleting(null);
           }}
         />
       )}

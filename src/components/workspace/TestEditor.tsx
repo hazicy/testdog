@@ -49,7 +49,12 @@ export function TestEditor({
     }
   }
   return (
-    <Dialog titleId="editor-title" busy={saving} onDismiss={onClose}>
+    <Dialog
+      titleId="editor-title"
+      busy={saving}
+      onDismiss={onClose}
+      initialFocus='[name="testName"]'
+    >
       <form onSubmit={(event) => void save(event)}>
         <div className="ws-dialog-header">
           <div>
@@ -72,6 +77,7 @@ export function TestEditor({
           <label className="ws-label">
             测试名称
             <input
+              name="testName"
               className="ws-input"
               required
               maxLength={120}

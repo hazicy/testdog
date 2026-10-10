@@ -1,7 +1,7 @@
-import { artifactResponse } from '@/workspace/artifactResponse';
-import { getArtifact } from '@/workspace/store';
-import { artifactRoot } from '@/workspace/recorder';
-import { apiError, validId } from '@/workspace/http';
+import { artifactResponse } from '@/workspace/server/artifactResponse';
+import { getArtifact } from '@/workspace/server/store';
+import { artifactRoot } from '@/workspace/server/artifactStorage';
+import { apiError, validId } from '@/workspace/server/http';
 export const runtime = 'nodejs';
 export async function GET(
   request: Request,
@@ -14,8 +14,6 @@ export async function GET(
     const artifact = await getArtifact(id, artifactId);
     return await artifactResponse(request, artifact, artifactRoot());
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT')
-      return new Response('Artifact unavailable', { status: 404 });
     return apiError(error);
   }
 }

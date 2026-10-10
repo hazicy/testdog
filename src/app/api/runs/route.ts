@@ -1,7 +1,7 @@
 import { after, NextResponse } from 'next/server';
-import { createRun, listRuns } from '@/workspace/store';
-import { executeRun } from '@/workspace/run';
-import { apiError } from '@/workspace/http';
+import { createRun, listRuns } from '@/workspace/server/store';
+import { executeRun } from '@/workspace/server/run';
+import { apiError } from '@/workspace/server/http';
 import { runRequestSchema } from '@/workspace/validation';
 export const runtime = 'nodejs';
 export const maxDuration = 300;

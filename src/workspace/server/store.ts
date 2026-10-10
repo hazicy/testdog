@@ -1,11 +1,10 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { testCases, testRuns, runSteps, runArtifacts, recordingVersions } from '@/db/schema';
-import { parseRecordingScript, ScriptError } from './recordingScript';
-import type { TestCase, TestRun, RunSummary, ExecutionStep, RunArtifact } from './types';
+import type { TestCase, TestRun, RunSummary, ExecutionStep, RunArtifact } from '../types';
 import { WorkspaceError } from './errors';
 import { owner, recoverExpiredRuns } from './runLifecycle';
-import { runRequestSchema, testSchema, type RunRequest } from './validation';
+import { runRequestSchema, testSchema, type RunRequest } from '../validation';
 
 const optional = <T>(value: T | null) => value ?? undefined;
 function runRecord(row: typeof testRuns.$inferSelect): TestRun {
@@ -120,7 +119,7 @@ export async function getRun(id: string): Promise<TestRun> {
       .select()
       .from(runArtifacts)
       .where(eq(runArtifacts.runId, id))
-      .orderBy(asc(runArtifacts.elapsedMs)),
+      .orderBy(asc(runArtifacts.elapsedMs), asc(runArtifacts.capturedAt), asc(runArtifacts.id)),
   ]);
   return {
     ...run,
@@ -226,42 +225,4 @@ export async function getArtifact(runId: string, id: string) {
     .where(and(eq(runArtifacts.runId, runId), eq(runArtifacts.id, id)));
   if (!artifact) throw new WorkspaceError('画面附件不存在。', 404);
   return artifact;
-}
-
-const recordingVersionFields = {
-  id: recordingVersions.id,
-  runId: recordingVersions.runId,
-  code: recordingVersions.code,
-  createdAt: recordingVersions.createdAt,
-};
-export async function listRecordingVersions(runId: string) {
-  await getRunSnapshot(runId);
-  return db
-    .select(recordingVersionFields)
-    .from(recordingVersions)
-    .where(eq(recordingVersions.runId, runId))
-    .orderBy(desc(recordingVersions.createdAt), desc(recordingVersions.id));
-}
-export async function saveRecordingVersion(runId: string, code: string) {
-  const run = await getRunSnapshot(runId);
-  if (run.status === 'running') throw new WorkspaceError('请等待录制结束后编辑。', 409);
-  let steps: ExecutionStep[];
-  try {
-    steps = parseRecordingScript(code);
-  } catch (error) {
-    throw new WorkspaceError(
-      error instanceof ScriptError
-        ? error.message
-        : '等待参数须为有效条件，超时范围为 1000–5000 毫秒。',
-    );
-  }
-  for (const step of steps) {
-    if (step.planNodeId && !run.plan?.nodes[step.planNodeId])
-      throw new WorkspaceError(`计划节点 ${step.planNodeId} 不存在。`);
-  }
-  const [version] = await db
-    .insert(recordingVersions)
-    .values({ runId, code, steps })
-    .returning(recordingVersionFields);
-  return version;
 }

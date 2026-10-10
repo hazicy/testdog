@@ -1,6 +1,6 @@
 import type { Page } from 'playwright';
 import type { Target, Step } from '@/automation/compiler/schema';
-import type { RecordedAction } from './types';
+import type { RecordedAction } from '../types';
 import { Executor } from '@/automation/executor';
 const locator = new Executor(undefined, { rootId: '', nodes: {} });
 export async function recordAction(

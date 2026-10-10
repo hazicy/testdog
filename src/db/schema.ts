@@ -70,9 +70,11 @@ export const testRuns = pgTable(
     error: text(),
   },
   (table) => [
-    index('test_runs_started_idx').on(table.startedAt),
+    index('test_runs_started_idx').on(table.startedAt, table.id),
     index('test_runs_case_idx').on(table.testId),
-    index('test_runs_status_idx').on(table.status),
+    index('test_runs_active_lease_idx')
+      .on(table.heartbeatAt)
+      .where(sql`${table.status} = 'running'`),
     check(
       'test_runs_status_check',
       sql`${table.status} in ('running','passed','failed','cancelled')`,
@@ -136,7 +138,12 @@ export const runArtifacts = pgTable(
     size: integer().notNull(),
   },
   (table) => [
-    index('run_artifacts_timeline_idx').on(table.runId, table.elapsedMs),
+    index('run_artifacts_timeline_idx').on(
+      table.runId,
+      table.elapsedMs,
+      table.capturedAt,
+      table.id,
+    ),
     check('run_artifacts_kind_check', sql`${table.kind} in ('screenshot','video','trace')`),
     check('run_artifacts_stage_check', sql`${table.stage} in ('before','after','live','final')`),
     check('run_artifacts_size_check', sql`${table.size} >= 0 and ${table.elapsedMs} >= 0`),
@@ -154,5 +161,5 @@ export const recordingVersions = pgTable(
     steps: jsonb().$type<ExecutionStep[]>().notNull(),
     createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
-  (table) => [index('recording_versions_run_idx').on(table.runId, table.createdAt)],
+  (table) => [index('recording_versions_run_idx').on(table.runId, table.createdAt, table.id)],
 );

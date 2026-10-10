@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useRef } from 'react';
-import { EditorState } from '@codemirror/state';
+import { useEffect, useMemo, useRef } from 'react';
+import { Compartment, EditorState } from '@codemirror/state';
 import {
   EditorView,
   keymap,
@@ -14,13 +14,16 @@ import { defaultHighlightStyle, syntaxHighlighting, bracketMatching } from '@cod
 export function CodeEditor({
   value,
   onChange,
+  readOnly = false,
 }: {
   value: string;
   onChange: (code: string) => void;
+  readOnly?: boolean;
 }) {
   const parent = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView>(null);
   const changed = useRef(onChange);
+  const editing = useMemo(() => new Compartment(), []);
   useEffect(() => {
     changed.current = onChange;
   }, [onChange]);
@@ -31,6 +34,7 @@ export function CodeEditor({
       state: EditorState.create({
         doc: value,
         extensions: [
+          editing.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
           lineNumbers(),
           highlightActiveLine(),
           drawSelection(),
@@ -75,6 +79,14 @@ export function CodeEditor({
     // The initial document is set once; subsequent external changes are dispatched below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  useEffect(() => {
+    editor.current?.dispatch({
+      effects: editing.reconfigure([
+        EditorState.readOnly.of(readOnly),
+        EditorView.editable.of(!readOnly),
+      ]),
+    });
+  }, [editing, readOnly]);
   useEffect(() => {
     const view = editor.current;
     if (view && value !== view.state.doc.toString())

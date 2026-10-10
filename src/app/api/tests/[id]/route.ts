@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { saveTest, deleteTest } from '@/workspace/store';
+import { saveTest, deleteTest } from '@/workspace/server/store';
 import { testSchema } from '@/workspace/validation';
-import { apiError, validId } from '@/workspace/http';
+import { apiError, validId } from '@/workspace/server/http';
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
 export async function PATCH(request: Request, context: Context) {
