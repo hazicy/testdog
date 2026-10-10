@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z, type JSONType } from 'zod';
-import { generateWithOpenAI } from './deepseek';
+import { generateWithOpenAI } from './llm/deepseek';
 import type { PlanNode } from './compiler/schema';
 import {
   PlatformActionSchema,

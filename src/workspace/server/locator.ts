@@ -1,16 +1,14 @@
 import type { Page } from 'playwright';
 import type { Target, Step } from '@/automation/compiler/schema';
 import type { RecordedAction } from '../types';
-import { Executor } from '@/automation/executor';
-
-const locator = new Executor(undefined, { rootId: '', nodes: {} });
+import { locateWebElement } from '@/automation/platform/web/webLocator';
 
 export async function recordAction(
   page: Page,
   action: Step,
 ): Promise<{ action: RecordedAction; replayable: boolean }> {
   if (action.type === 'wait' || action.type === 'navigate') return { action, replayable: true };
-  const original = locator.locate(page, action.target);
+  const original = locateWebElement(page, action.target);
   const handle = await original.elementHandle({ timeout: 3000 });
   if (!handle) return { action, replayable: false };
   try {
@@ -57,7 +55,7 @@ export async function recordAction(
     for (const candidate of candidates) {
       const target = { ...candidate, name: candidate.name || '' } as Target;
       try {
-        const found = locator.locate(page, target);
+        const found = locateWebElement(page, target);
         if (
           (await found.count()) === 1 &&
           (await found.evaluate((element, reference) => element === reference, handle))

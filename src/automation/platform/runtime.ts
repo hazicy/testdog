@@ -3,10 +3,10 @@ import { EvidenceSink } from '@/workspace/server/evidenceSink';
 import { SecretInputs } from './inputs';
 import type { Browser, BrowserContext, BrowserContextOptions } from 'playwright';
 import type { Plan } from '../compiler/schema';
-import { Planner } from '../planner';
 import { AgentDeviceSession } from './native/agentDeviceSession';
 import { NativeActionPlanner } from './native/nativePlanner';
-import { PlaywrightSession, WebActionPlanner } from './web/playwrightSession';
+import { PlaywrightSession } from './web/playwrightSession';
+import { WebActionPlanner } from './web/webPlanner';
 import { launchWebBrowser, resolveWebProfile } from './web/mobile';
 import { legacyWebTarget } from './target';
 import { DeviceRecorder } from '@/workspace/server/deviceRecorder';
@@ -157,7 +157,7 @@ export async function openPlatformRuntime(input: {
 
     const runtime: PlatformRuntime = {
       session,
-      planner: new WebActionPlanner(new Planner(signal)),
+      planner: new WebActionPlanner(signal),
       environment: {
         platform: 'web',
         browser: target.browser,

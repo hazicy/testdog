@@ -1,4 +1,4 @@
-import { generateWithOpenAI } from '@/automation/deepseek';
+import { generateWithOpenAI } from '@/automation/llm/deepseek';
 import { type JSONType, z } from 'zod';
 import { NodeSchema, PlanSchema, type Plan } from './schema';
 

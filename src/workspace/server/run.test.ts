@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   client: undefined as import('@electric-sql/pglite').PGlite | undefined,
 }));
 
-vi.mock('@/automation/deepseek', () => ({ generateWithOpenAI: mocks.generate }));
+vi.mock('@/automation/llm/deepseek', () => ({ generateWithOpenAI: mocks.generate }));
 vi.mock('@/db', async () => {
   const result = await (await import('./testDatabase')).createTestDatabase();
 

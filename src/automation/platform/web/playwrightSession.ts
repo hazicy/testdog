@@ -2,13 +2,12 @@ import { SecretInputs } from '../inputs';
 import { expect as playwrightExpect } from '@playwright/test';
 import { recordAction } from '@/workspace/server/locator';
 import type { Page } from 'playwright';
-import { BrowserSession } from '../../browserSession';
-import { Observer } from '../../observer';
-import { Executor } from '../../executor';
-import { Planner } from '../../planner';
+import { BrowserSession } from './browserSession';
+import { Observer } from './observer';
+import { executeWebAction } from './webActions';
+import { locateWebElement } from './webLocator';
 import type { ExecutionHooks } from '@/workspace/types';
 import type {
-  ActionPlanner,
   AutomationSession,
   Observation,
   PlatformAction,
@@ -28,7 +27,6 @@ export class PlaywrightSession implements AutomationSession {
   };
   private session: BrowserSession;
   private observer = new Observer();
-  private executor: Executor;
   private disposed = false;
   private observation?: Observation;
   private pages = new Map<string, Page>();
@@ -39,22 +37,13 @@ export class PlaywrightSession implements AutomationSession {
     readonly id: string,
     page: Page,
     private hooks: ExecutionHooks = {},
-    useTouch = false,
+    private useTouch = false,
     private secrets = new SecretInputs(),
     private captureEvidence?: (session: AutomationSession, event: SessionEvent) => Promise<void>,
   ) {
     this.session = new BrowserSession(page);
     page.context().pages().forEach(this.registerPage);
     page.context().on('page', this.registerPage);
-    this.executor = new Executor(
-      undefined,
-      { rootId: '', nodes: {} },
-      undefined,
-      undefined,
-      undefined,
-      {},
-      useTouch,
-    );
   }
   async selectSurface(id: string, signal: AbortSignal) {
     const deadline = Date.now() + 15000;
@@ -101,7 +90,7 @@ export class PlaywrightSession implements AutomationSession {
     if (action.type === 'fill') {
       const input = this.secrets.resolve(action.value);
       if (input.sensitive) {
-        const locator = this.executor.locate(this.session.page, action.target);
+        const locator = locateWebElement(this.session.page, action.target);
         if (
           !(await locator.evaluate(
             (element) => element instanceof HTMLInputElement && element.type === 'password',
@@ -113,7 +102,7 @@ export class PlaywrightSession implements AutomationSession {
       }
     }
     if (action.type === 'wait') await this.session.wait(action);
-    else await this.session.perform((page) => this.executor.execute(page, action));
+    else await this.session.perform((page) => executeWebAction(page, action, this.useTouch));
     signal.throwIfAborted();
   }
   async wait(action: PlatformAction, signal: AbortSignal) {
@@ -132,7 +121,7 @@ export class PlaywrightSession implements AutomationSession {
         await (assertion.negate ? check.not : check).toHaveURL(assertion.value!, { timeout: 5000 });
       } else {
         if (!assertion.target) throw new Error('Assertion target required');
-        const base = playwrightExpect(this.executor.locate(this.session.page, assertion.target));
+        const base = playwrightExpect(locateWebElement(this.session.page, assertion.target));
         const check = assertion.negate ? base.not : base;
         if (assertion.type === 'visible') await check.toBeVisible({ timeout: 5000 });
         else if (assertion.type === 'text')
@@ -222,23 +211,5 @@ export class PlaywrightSession implements AutomationSession {
       this.session.page.context().off('page', this.registerPage);
       this.session.dispose();
     }
-  }
-}
-export class WebActionPlanner implements ActionPlanner {
-  constructor(private planner: Planner) {}
-  async plan(input: Parameters<ActionPlanner['plan']>[0]) {
-    const result = await this.planner.plan({
-      ...input,
-      inputs: {},
-      preconditions: [],
-      completedSteps: input.completedSteps.flatMap((step) =>
-        step.platform === 'web' ? [step.action] : [],
-      ),
-    });
-
-    return {
-      done: result.done,
-      steps: result.steps.map((action): PlatformAction => ({ platform: 'web', action })),
-    };
   }
 }

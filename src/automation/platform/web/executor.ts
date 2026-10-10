@@ -1,13 +1,16 @@
 import { expect as playwrightExpect } from '@playwright/test';
-import type { Locator, Page } from 'playwright';
+import type { Page } from 'playwright';
 import { randomUUID } from 'node:crypto';
 import type { ExecutionHooks, ExecutionStep, StepSignal } from '@/workspace/types';
 import { type JSONType, z } from 'zod';
-import { Planner } from './planner';
-import { generateWithOpenAI } from './deepseek';
-import type { Assertion, Plan, PlanNode, Step, Target } from './compiler/schema';
+import { WebActionPlanner } from './webPlanner';
+import type { ActionPlanner } from '../contracts';
+import { generateWithOpenAI } from '../../llm/deepseek';
+import type { Assertion, Plan, PlanNode, Step } from '../../compiler/schema';
 import { Observer } from './observer';
 import { BrowserSession } from './browserSession';
+import { executeWebAction } from './webActions';
+import { locateWebElement } from './webLocator';
 
 const AssertionDecisionSchema = z.object({
   passed: z.boolean(),
@@ -22,7 +25,7 @@ export class Executor {
     private observer = new Observer(),
     private executionPlan: Plan,
     private startUrl?: string,
-    private planner = new Planner(),
+    private planner: ActionPlanner = new WebActionPlanner(),
     private report?: (message: string) => Promise<void>,
     private hooks: ExecutionHooks = {},
     private useTouch = false,
@@ -113,6 +116,7 @@ export class Executor {
   }
 
   private async runAction(node: Extract<PlanNode, { kind: 'task' }>, session: BrowserSession) {
+    const sessionId = randomUUID();
     const completedSteps: Step[] = [];
     let remainingWaitMs = 15000;
     let actions = 0;
@@ -123,10 +127,20 @@ export class Executor {
       const version = session.version;
       const decision = await this.planner.plan({
         goal: node.goal,
-        inputs: {},
-        preconditions: [],
-        observation: ariaTree,
-        completedSteps,
+        observation: {
+          ...ariaTree,
+          schemaVersion: 1,
+          sessionId,
+          revision: version,
+          capturedAt: new Date().toISOString(),
+          surface: { id: 'active-page', platform: 'web', url: session.page.url() },
+        },
+        capabilities: {
+          actions: ['navigate', 'click', 'fill', 'press', 'wait'],
+          artifacts: [],
+          assertions: ['semantic', 'visible', 'text', 'containsText', 'value', 'url'],
+        },
+        completedSteps: completedSteps.map((action) => ({ platform: 'web', action })),
         remainingWaitMs,
       });
 
@@ -142,12 +156,17 @@ export class Executor {
         throw new Error(`Planner returned no action before completing intent: ${node.goal}`);
       }
 
+      const steps = decision.steps.map((step) => {
+        if (step.platform !== 'web') throw new Error('Web executor requires Web actions');
+
+        return step.action;
+      });
       if (
-        actions + decision.steps.filter((step) => step.type !== 'wait').length >
+        actions + steps.filter((step) => step.type !== 'wait').length >
         Executor.maxStepsPerAtomicIntent
       )
         break;
-      for (const step of decision.steps) {
+      for (const step of steps) {
         if (step.type === 'wait') {
           if (remainingWaitMs <= 0) {
             throw new Error(
@@ -178,7 +197,7 @@ export class Executor {
               title: `${{ navigate: '导航', click: '点击', fill: '填写', press: '按键' }[step.type]}${step.type === 'navigate' ? `：${step.value}` : ''}`,
               action: step,
             },
-            () => session.perform((current) => this.execute(current, step)),
+            () => session.perform((current) => executeWebAction(current, step, this.useTouch)),
           );
 
           actions++;
@@ -330,7 +349,7 @@ export class Executor {
                   timeout: 5000,
                 });
               } else {
-                const check = playwrightExpect(this.locate(session.page, assertion.target!));
+                const check = playwrightExpect(locateWebElement(session.page, assertion.target!));
                 const expectation = assertion.negate ? check.not : check;
                 if (assertion.type === 'toBeVisible')
                   await expectation.toBeVisible({ timeout: 5000 });
@@ -377,7 +396,10 @@ export class Executor {
             { kind: recorded.kind, title: recorded.title, action },
             async () => {
               if (action.type === 'wait') await session.wait(action);
-              else await session.perform((current) => this.execute(current, action));
+              else
+                await session.perform((current) =>
+                  executeWebAction(current, action, this.useTouch),
+                );
             },
           );
         } else throw new Error(`缺少重放步骤内容：${recorded.title}`);
@@ -386,62 +408,5 @@ export class Executor {
       session.dispose();
       page.context().off('page', register);
     }
-  }
-
-  async execute(page: Page, step: Exclude<Step, { type: 'wait' }>): Promise<void> {
-    // 执行操作
-    if (step.type === 'navigate') {
-      await page.goto(step.value, { waitUntil: 'domcontentloaded' });
-    } else if (step.type === 'click') {
-      const target = this.locate(page, step.target);
-      if (this.useTouch) await target.tap();
-      else await target.click();
-    } else if (step.type === 'fill') {
-      const target = this.locate(page, step.target);
-
-      await target.fill(step.value);
-    } else if (step.type === 'press') {
-      const target = this.locate(page, step.target);
-      // Playwright 的 press 值支持大写
-      const key = step.value.charAt(0).toUpperCase() + step.value.slice(1);
-
-      await target.press(key);
-    }
-  }
-
-  locate(page: Page, target: Target): Locator {
-    const root = page.locator(':root');
-    let result: Locator;
-
-    switch (target.kind) {
-      case 'role':
-        result = root.getByRole(
-          target.value as Parameters<Page['getByRole']>[0],
-          target.name ? { name: target.name, exact: true } : {},
-        );
-        break;
-      case 'label':
-        result = root.getByLabel(target.value, { exact: true });
-        break;
-      case 'placeholder':
-        result = root.getByPlaceholder(target.value, { exact: true });
-        break;
-      case 'text':
-        result = root.getByText(target.value, { exact: true });
-        break;
-      case 'testId':
-        result = root.getByTestId(target.value);
-        break;
-      case 'css':
-        if (!target.value || /xpath=|^\/|nth-child|nth-of-type/.test(target.value))
-          throw new Error('不接受绝对路径或 DOM 序号定位');
-        result = root.locator(target.value);
-        break;
-      case 'ariaRef':
-        result = page.locator(`aria-ref=${target.value}`);
-        break;
-    }
-
-    return target.index === undefined ? result : result.nth(target.index);
   }
 }

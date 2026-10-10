@@ -18,7 +18,16 @@ async function violations(source: string) {
 it.each([
   '@/db',
   '../../db/index',
-  '@/automation/deepseek',
+  '@/automation/llm/deepseek',
+  '@/automation/llm/jev',
+  '@/automation/platform/web/webPlanner',
+  '@/automation/platform/web/browserSession',
+  '@/automation/platform/web/observer',
+  '../../automation/platform/web/pageReadiness.ts',
+  '@/automation/platform/web/webActions',
+  '@/automation/platform/web/webLocator',
+  '@/automation/platform/web/executor',
+  '@/automation/platform/native/nativePlanner',
   '../../automation/compiler/textCompiler.ts',
   '@/workspace/server/recordings',
   '../../workspace/server/store',
@@ -32,7 +41,7 @@ it.each([
 
 it.each([
   "import type { TestRun } from '@/workspace/types'; export type Run = TestRun;",
-  "import type { Executor } from '../../automation/executor'; export type Runner = Executor;",
+  "import type { Executor } from '../../automation/platform/web/executor'; export type Runner = Executor;",
   "import { recordingScript } from '@/workspace/recordingScript'; export { recordingScript };",
   "import { planForest } from '@/workspace/planTree'; export { planForest };",
   "import { testSchema } from '@/workspace/validation'; export { testSchema };",

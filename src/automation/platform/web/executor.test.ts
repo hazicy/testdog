@@ -2,13 +2,14 @@ import { EventEmitter } from 'node:events';
 import type { BrowserContext, Page } from 'playwright';
 import { BrowserSession } from './browserSession';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Plan, PlanNode } from './compiler/schema';
+import type { Plan, PlanNode } from '../../compiler/schema';
 import { Observer } from './observer';
 import { Executor } from './executor';
+import * as webActions from './webActions';
 
 const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
 
-vi.mock('./deepseek', () => ({ generateWithOpenAI: generate }));
+vi.mock('../../llm/deepseek', () => ({ generateWithOpenAI: generate }));
 
 const task = (
   id: string,
@@ -66,7 +67,7 @@ function fixture(nodes: PlanNode[] = [group('root', [])], startUrl?: string) {
   }) as unknown as BrowserContext;
   const page = mockPage(context);
   const executor = new Executor(observer, plan, startUrl);
-  const execute = vi.spyOn(executor, 'execute').mockResolvedValue(undefined);
+  const execute = vi.spyOn(webActions, 'executeWebAction').mockResolvedValue(undefined);
 
   return { executor, observe, observation, page, execute };
 }
@@ -128,7 +129,7 @@ describe('Executor Plan recording', () => {
 
       generate.mockResolvedValueOnce(action(name as string, args)).mockResolvedValueOnce(done);
       await executor.record(page);
-      expect(execute).toHaveBeenCalledExactlyOnceWith(page, expect.objectContaining(step));
+      expect(execute).toHaveBeenCalledExactlyOnceWith(page, expect.objectContaining(step), false);
       expect(observe).toHaveBeenCalledTimes(2);
       expect(observe.mock.invocationCallOrder[1]).toBeGreaterThan(
         execute.mock.invocationCallOrder[0],
@@ -462,7 +463,7 @@ describe('Executor Plan recording', () => {
       .mockResolvedValueOnce(done);
     await executor.record(page);
     expect(page.goto).not.toHaveBeenCalled();
-    expect(execute).toHaveBeenCalledExactlyOnceWith(page, step);
+    expect(execute).toHaveBeenCalledExactlyOnceWith(page, step, false);
     for (const index of [0, 1])
       expect(payload(index)).toMatchObject({ goal, inputs: {}, preconditions: [] });
     expect(payload(0).completedSteps).toEqual([]);
@@ -484,7 +485,7 @@ describe('Executor Plan recording', () => {
 
     const normalized = { ...step, target: { ...step.target, name: '' } };
 
-    expect(execute).toHaveBeenCalledExactlyOnceWith(page, normalized);
+    expect(execute).toHaveBeenCalledExactlyOnceWith(page, normalized, false);
     expect(payload(1).completedSteps).toEqual([normalized]);
   });
 

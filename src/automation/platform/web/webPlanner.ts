@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { StepSchema, WaitStepSchema, type Step } from './compiler/schema';
-import { generateWithOpenAI } from './deepseek';
+import type { ActionPlanner, PlatformAction } from '../contracts';
+import { StepSchema, WaitStepSchema, type Step } from '../../compiler/schema';
+import { generateWithOpenAI } from '../../llm/deepseek';
 
 const RefSchema = z.string().regex(/^(?:f\d+)?e\d+$/, 'Expected an ARIA ref token');
 const ActionArguments = {
@@ -28,16 +29,17 @@ const ActionTools = Object.entries(ActionArguments).map(([name, schema]) => ({
   strict: true,
 }));
 
-export class Planner {
+export class WebActionPlanner implements ActionPlanner {
   constructor(private signal?: AbortSignal) {}
-  async plan(input: {
-    goal: string;
-    inputs: Record<string, string>;
-    preconditions: string[];
-    observation: Record<string, unknown>;
-    completedSteps: Step[];
-    remainingWaitMs: number;
-  }) {
+  async plan(input: Parameters<ActionPlanner['plan']>[0]) {
+    const browserInput = {
+      ...input,
+      inputs: {},
+      preconditions: [],
+      completedSteps: input.completedSteps.flatMap((step) =>
+        step.platform === 'web' ? [step.action] : [],
+      ),
+    };
     const response = await generateWithOpenAI({
       signal: this.signal,
       systemPrompt: `Plan the next one or more browser actions toward the goal, in execution order. Secret placeholders \${secret:NAME} must remain unchanged; fill them only into password fields.
@@ -67,7 +69,7 @@ export class Planner {
       messages: [
         {
           role: 'user',
-          content: { type: 'text', text: JSON.stringify(input) },
+          content: { type: 'text', text: JSON.stringify(browserInput) },
         },
       ],
       temperature: 0,
@@ -77,7 +79,7 @@ export class Planner {
     const calls = response.toolCalls;
     const isDone = /(?:^|\n)\s*DONE\s*$/.test(response.content.text.trim());
     if (calls.length === 0 && isDone) {
-      return { done: true, steps: [] as Step[] };
+      return { done: true, steps: [] as PlatformAction[] };
     }
     if (calls.length === 0 || isDone) {
       console.error('Planner returned an invalid response', {
@@ -108,6 +110,9 @@ export class Planner {
       });
     });
 
-    return { done: false, steps };
+    return {
+      done: false,
+      steps: steps.map((action): PlatformAction => ({ platform: 'web', action })),
+    };
   }
 }

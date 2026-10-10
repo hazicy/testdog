@@ -1,5 +1,5 @@
 import { z, type JSONType } from 'zod';
-import { generateWithOpenAI } from '../../deepseek';
+import { generateWithOpenAI } from '../../llm/deepseek';
 import { NativeActionSchema, type ActionPlanner, type PlatformAction } from '../contracts';
 
 export class NativeActionPlanner implements ActionPlanner {

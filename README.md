@@ -73,10 +73,11 @@ src/
     studio/            执行详情、画板、录制与代码编辑器
     shared/            图标与原生模态框
   client/              浏览器端 JSON 请求、串行刷新与轮询生命周期
-  automation/          编译、规划、页面观察、浏览器会话与执行
+  automation/          用例编译与统一计划执行
     compiler/          用例计划和动作 schema
+    llm/               模型适配器
     platform/          统一会话协议、目标配置与运行时装配
-      web/             Playwright 会话与移动浏览器配置
+      web/             浏览器会话、观察、动作规划、执行与定位
       native/          Android/iOS 会话、规划、诊断与构建管理
   workspace/           共享类型、校验、录制脚本解析与计划树
     server/            数据库仓库、步骤记录、画面附件与运行生命周期

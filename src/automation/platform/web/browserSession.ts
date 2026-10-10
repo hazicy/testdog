@@ -1,5 +1,5 @@
 import type { Frame, Page } from 'playwright';
-import type { WaitStep } from './compiler/schema';
+import type { WaitStep } from '../../compiler/schema';
 import type { Observer } from './observer';
 
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));

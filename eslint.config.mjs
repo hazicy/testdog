@@ -40,7 +40,7 @@ const eslintConfig = defineConfig([
           patterns: [
             {
               regex:
-                '(?:^|/)(?:db(?:/.*)?|workspace/server(?:/.*)?|automation/(?:browser|browserSession|deepseek|executor|observer|pageReadiness|planner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$',
+                '(?:^|/)(?:db(?:/.*)?|workspace/server(?:/.*)?|automation/(?:llm(?:/.*)?|platform/web/(?:browserSession|executor|observer|pageReadiness|webPlanner|webActions|webLocator)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$',
               allowTypeImports: true,
               message: '浏览器组件通过 API 访问服务端功能；共享类型请使用 import type。',
             },

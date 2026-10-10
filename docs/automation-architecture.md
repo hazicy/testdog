@@ -38,7 +38,7 @@ flowchart TB
 | 当前入口                                         | 现状                                          | 目标职责                                            |
 | ------------------------------------------------ | --------------------------------------------- | --------------------------------------------------- |
 | `src/workspace/server/run.ts`                    | API 后台任务启动 Chromium，固定 1280×800      | worker 执行生命周期、选择 adapter、取消、超时及归档 |
-| `src/automation/executor.ts`                     | 遍历 DAG，同时执行 DOM 动作及 Playwright 断言 | 共享 PlanRunner；浏览器动作与原生断言留在 adapter   |
+| `src/automation/platform/web/executor.ts`        | 遍历 DAG，同时执行 DOM 动作及 Playwright 断言 | 共享 PlanRunner；浏览器动作与原生断言留在 adapter   |
 | `browserSession.ts`、`observer.ts`               | 管理 Page 和 ARIA 观察                        | PlaywrightSession 内部实现                          |
 | `planner.ts`、`compiler/schema.ts`               | 动作含 css/ariaRef，等待含 newPage            | 保留意图 DAG；动作使用平台判别联合及能力约束        |
 | `src/workspace/server/recorder.ts`、`locator.ts` | Page hooks、DOM 稳定定位、截图及 trace        | 通用事件 sink + adapter 录制定位与附件提供者        |
@@ -168,3 +168,7 @@ Next.js API 仅校验、保存快照、入队并返回 202，独立长驻 Node w
 共享合同测试验证动作 schema、能力拒绝、revision、事件顺序及关闭幂等；adapter 集成测试用真实浏览器和本地测试 app。调度测试必须包含旧 worker 存活的租约超时，证明不会并发控制同一设备。CI 的模拟 adapter 不能作为 Android/iOS 实际可用的验收证据。
 
 实施进度以 [实施记录](automation-implementation.md) 为准。验收需要核对当前代码、迁移与真实浏览器/设备结果，不能用合同模拟测试替代设备验证。
+
+### Web 实现目录
+
+Web 专用实现集中在 `src/automation/platform/web/`。`webActions.ts` 执行浏览器动作，`webLocator.ts` 解析元素定位器，供 `PlaywrightSession`、录制定位和旧 `Executor` 共用。工作台运行通过统一 `PlanRunner` 编排；旧 `Executor` 保留既有录制与重放接口，但会话和录制定位不再需要构造空计划的执行器。
