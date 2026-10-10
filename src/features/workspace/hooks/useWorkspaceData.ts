@@ -19,11 +19,13 @@ export function useWorkspaceData(isTests: boolean) {
   const connected = useRealtime('/api/events', () => {
     void realtimeRefresh.current();
   });
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(query.trim());
       setCursors([]);
     }, 250);
+
     return () => clearTimeout(timer);
   }, [query]);
   const isVisible = useCallback(
@@ -70,6 +72,7 @@ export function useWorkspaceData(isTests: boolean) {
     await Promise.all([list.mutate(), stats.mutate()]);
     setError('');
   }, [list.mutate, stats.mutate]);
+
   useEffect(() => {
     realtimeRefresh.current = refresh;
   }, [refresh]);
@@ -77,6 +80,7 @@ export function useWorkspaceData(isTests: boolean) {
     connection.current = connected;
   }, [connected]);
   const loadError = list.error || stats.error;
+
   return {
     tests: list.data?.tests ?? [],
     runs: list.data?.runs ?? [],

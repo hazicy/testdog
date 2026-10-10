@@ -48,7 +48,7 @@ erDiagram
 
 ### 用例
 
-- `GET /api/tests` → `{ tests: TestCase[] }`，按更新时间倒序。
+- `GET /api/tests` → `{ tests: TestCase[], latestRuns: RunSummary[], nextCursor: string | null }`，按更新时间与 ID 倒序。
 - `POST /api/tests` → HTTP 201 `{ test: TestCase }`。
 - `PATCH /api/tests/:id` → `{ test: TestCase }`，整体更新可编辑字段。
 - `DELETE /api/tests/:id` → `{ success: true }`，保留历史执行。
@@ -70,18 +70,18 @@ erDiagram
 
 ### 执行
 
-- `GET /api/runs` → `{ runs: RunSummary[] }`，按开始时间倒序；时间相同时按 ID 倒序。数据库只读取摘要字段，不加载目标描述、计划、日志、录制快照、步骤或附件。完整记录通过详情接口读取。
-- `GET /api/runs/:id` → `{ run: TestRun }`，包含全部步骤、日志和附件元数据。界面默认通过 SSE 接收增量；实时连接不可用时每 5 秒查询。
+- `GET /api/runs` → `{ runs: RunSummary[], nextCursor: string | null }`，按开始时间倒序；时间相同时按 ID 倒序。数据库只读取摘要字段，不加载目标描述、计划、日志、录制快照、步骤或附件。完整记录通过详情接口读取。
+- `GET /api/runs/:id` → `{ run: TestRun }`，包含步骤、计划与附件元数据，不读取浏览器日志。界面默认通过 SSE 接收增量；实时连接不可用时每 5 秒查询。
 
 实时接口：
 
 - `GET /api/events`：工作区 SSE，`changed` 通知后读取列表；仅摘要与用例变化触发，截图、步骤和日志不触发列表读取。
-- `GET /api/runs/:id/events?preview=1`：详情 SSE。`snapshot` 提供完整一致性快照，`updates` 按运行版本发送步骤、运行字段、证据或日志增量，`preview` 提供画面版本和采集时间，`ready` 表示连接可用，`done` 表示已同步终态。重连重新获取快照；连接期间按版本补齐漏失事件，事件缺口重置快照。
+- `GET /api/runs/:id/events?preview=1`：详情 SSE。`snapshot` 提供完整一致性快照，`updates` 按运行版本发送步骤、运行字段、证据增量或 `logs` 日志失效通知（保留版本号，不推送日志正文），`preview` 提供画面版本和采集时间，`ready` 表示连接可用，`done` 表示已同步终态。重连重新获取快照；连接期间按版本补齐漏失事件，事件缺口重置快照。
 - `GET /api/runs/:id/preview?v=<version>`：读取当前最新预览二进制，`v` 用于刷新图片地址，不承诺历史版本；404 表示运行或预览不存在。响应禁止缓存，遵循工作区鉴权。
 
 数据库触发器将业务变更与 `realtime_outbox` 一起提交；发布器经 Redis Pub/Sub 唤醒 API，各 API 共享一个 Redis 订阅连接并分发到浏览器。详情带 `realtimeRevision`，重复事件按版本忽略。Redis 不参与任务领取或执行租约。观看者租约独立登记，页面隐藏、关闭跟随或切换视图后停止续约。
 
-详情响应带有按完整 JSON 内容计算的 `ETag`。发送匹配的 `If-None-Match` 时返回无响应体的 304；执行详情轮询按页面独立保留上一份数据，304 时复用对象。数据库仍会读取最新记录并检查租约，状态、步骤、画面或日志变化都会产生新 ETag。报告导出始终读取完整 JSON。
+详情响应带有按完整 JSON 内容计算的 `ETag`。发送匹配的 `If-None-Match` 时返回无响应体的 304；执行详情轮询按页面独立保留上一份数据，304 时复用对象。数据库读取最新记录；查询和 SSE 均不执行租约恢复。状态、步骤、画面或日志版本变化都会产生新 ETag。报告导出始终读取完整 JSON。
 
 - `POST /api/runs` → HTTP 202 `{ success: true, run: TestRun }`。
 - `DELETE /api/runs/:id` → `{ success: true }`，申请停止，运行器终止模型请求和浏览器，最终状态为 `cancelled`。这个接口不会删除历史记录。
@@ -200,3 +200,27 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 执行详情增加 targetSnapshot、environmentSnapshot、capabilities、resourceId、batchId 和 evidenceComplete。原生步骤使用 platformAction，旧 Web action/pageId/pageUrl 可继续读取。原生截图 MIME 为 image/png，附件下载保留正确扩展名。
 
 当前实现与尚未完成的项目见 [实施记录](automation-implementation.md)。
+
+### 游标分页与统计
+
+列表接受 `limit`（默认 50，范围 1–100）、`cursor`、`q`（最多 200 字符）和 `status`。下一页原样提交 `nextCursor`，不使用 OFFSET。游标保存时间戳完整精度及 ID；状态和搜索变化后从第一页读取。搜索不区分大小写，`%`、`_` 按字面量匹配。用例状态由该用例最近一次执行决定，支持 `none`（未执行）；`latestRuns` 只返回本页用例的最近执行，不依赖历史列表分页。
+
+`GET /api/workspace/stats` 独立返回 `{ testCount, runCount, counts }`，统计全部记录，不受搜索、筛选和页码影响。页面不再从当前页估算通过率和总数。用例更新可能使它移动到前一页；刷新或修改筛选从当前条件读取最新数据。
+
+### 日志按需读取
+
+`GET /api/runs/:id/logs?kind=console` 返回 `{ logs, nextCursor }`。支持 `kind=console|network`、`q`、`errors=true`、`stepId`、`untilMs`、`limit`（默认 50，上限 100）和 `cursor`。按持久化序号前进，兼容旧版 JSON 日志；页面打开对应面板才读取，筛选在服务端完成，展开单条记录后才生成 JSON。
+
+`GET /api/runs/:id?include=logs` 返回带完整浏览器日志的报告；导出使用此接口。步骤和附件元数据仍用于时间线与播放器。
+
+### 执行提交幂等
+
+`POST /api/runs` 和 `POST /api/run-batches` 支持 `Idempotency-Key: <UUID>`。数据库主键约束与创建事务共同保证同一提交只创建一次；重试相同请求返回首次成功响应，参数或接口不同则返回 409。创建失败会回滚请求预留，允许重试。页面遇到网络错误或服务端错误时保留请求 ID，成功后下次提交生成新 ID。未提供 ID 的旧调用方保留每次新建的行为。幂等记录持久保留，不自动过期。
+
+### 租约维护与模型预算
+
+租约恢复由每个 worker 独立的 15 秒维护任务处理，消费循环与页面读取不执行恢复。PostgreSQL 事务级 advisory lock 防止维护任务同时处理过期记录。可以另启 `pnpm maintenance`，使所有执行 worker 离线时仍能回收超时队列与租约。部署后运行新迁移，重启 API、worker，并建议常驻 maintenance 服务。
+
+模型 SDK 在进程内复用，关闭 SDK 隐式重试；每条测试的编译、动作规划和断言共用预算。默认单次调用（包括重试）60 秒、最多 60 次请求（重试计入）、累计模型耗时 300 秒、已知 token 总量 200000、单次输出最多 8192 tokens、临时错误最多重试 1 次。可用 `.env.example` 中的 `CASEFORGE_AI_*` 调整。
+
+`model_calls` 保存调用开始时间、耗时、模型、终态、失败与重试次数，以及提供方返回的输入/输出 tokens，不保存提示词或原始错误。`GET /api/runs/:id/model-usage` 返回汇总和逐次调用，界面在“执行日志”面板打开时加载。缺少用量的失败/重试显示为未知，不记作零成本。token 阈值以已返回的用量为准，超出后禁止下一次调用；它不能预先约束输入 token 或提供方未返回用量的请求，费用预算需要价格表与可靠用量另行实现。

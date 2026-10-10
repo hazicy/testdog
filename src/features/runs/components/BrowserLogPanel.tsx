@@ -28,11 +28,13 @@ export function BrowserLogPanel({
   const [errors, setErrors] = useState(false);
   const [search, setSearch] = useState('');
   const [cursors, setCursors] = useState<string[]>([]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(query);
       setCursors([]);
     }, 250);
+
     return () => clearTimeout(timer);
   }, [query]);
   const params = new URLSearchParams({ kind, q: search, errors: String(errors) });
@@ -45,6 +47,7 @@ export function BrowserLogPanel({
     { refreshInterval: active ? 5000 : 0 },
   );
   const mutate = data.mutate;
+
   useEffect(() => {
     if (runId) void mutate();
   }, [revision, runId, mutate]);
@@ -130,6 +133,7 @@ export function BrowserLogPanel({
 
 export function LogRow({ log }: { log: BrowserLog }) {
   const [open, setOpen] = useState(false);
+
   return (
     <details
       className="border-b border-page-line py-3"

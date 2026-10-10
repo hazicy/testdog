@@ -97,6 +97,7 @@ export async function recoverExpiredRuns() {
 
 export async function listRuns(): Promise<RunSummary[]> {
   const { listRunPage } = await import('@/server/workspace/queries');
+
   return (await listRunPage({ limit: 50, q: '', status: 'all', cursor: undefined })).runs;
 }
 
@@ -107,6 +108,7 @@ export async function getRun(
   return db.transaction(
     async (tx) => {
       const { browserLogs: _logs, ...detailColumns } = getTableColumns(testRuns);
+
       void _logs;
       const [selected] = await tx
         .select(options.includeLogs === false ? detailColumns : getTableColumns(testRuns))

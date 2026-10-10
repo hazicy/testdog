@@ -3,11 +3,13 @@ import { db } from '@/db';
 import { modelCalls } from '@/db/schema';
 import type { ModelCallMetric } from '@/automation/llm/budget';
 import { runWrite } from '@/server/scheduling/lease';
+
 export function recordModelCall(runId: string, metric: ModelCallMetric) {
   return runWrite(runId, async (tx) => {
     await tx.insert(modelCalls).values({ runId, ...metric });
   });
 }
+
 export async function readModelUsage(runId: string) {
   const [usage] = await db
     .select({
@@ -21,5 +23,6 @@ export async function readModelUsage(runId: string) {
     })
     .from(modelCalls)
     .where(eq(modelCalls.runId, runId));
+
   return usage;
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -24,7 +25,9 @@ import { POST, GET } from './route';
 
 beforeEach(async () => {
   vi.clearAllMocks();
-  await mocks.client!.exec('TRUNCATE run_artifacts, run_steps, test_runs, test_cases CASCADE');
+  await mocks.client!.exec(
+    'TRUNCATE submission_requests, run_artifacts, run_steps, test_runs, test_cases CASCADE',
+  );
 });
 afterAll(() => mocks.client!.close());
 const request = (body: unknown) =>
@@ -65,4 +68,46 @@ describe('execution API with PostgreSQL persistence', () => {
     expect((await POST(request({ case: 'Check', unexpected: true }))).status).toBe(400);
     expect(mocks.after).not.toHaveBeenCalled();
   });
+});
+
+it('deduplicates concurrent submissions and rejects conflicting reuse of the request ID', async () => {
+  const key = randomUUID();
+  const submit = (body: unknown) =>
+    POST(
+      new Request('http://localhost/api/runs', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': key },
+        body: JSON.stringify(body),
+      }),
+    );
+  const body = { case: 'Idempotent', url: 'https://example.com' };
+  const responses = await Promise.all([submit(body), submit(body)]);
+
+  expect(responses.map((response) => response.status)).toEqual([202, 202]);
+  const results = await Promise.all(responses.map((response) => response.json()));
+
+  expect(results[0].run.id).toBe(results[1].run.id);
+  expect((await (await GET(new Request('http://localhost/api/runs'))).json()).runs).toHaveLength(1);
+  expect((await submit({ ...body, case: 'Different' })).status).toBe(409);
+});
+it('rolls back failed reservations so the same request can be retried', async () => {
+  const key = randomUUID();
+  const submit = (testId: string) =>
+    POST(
+      new Request('http://localhost/api/runs', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': key },
+        body: JSON.stringify({ testId }),
+      }),
+    );
+
+  expect((await submit(randomUUID())).status).toBe(404);
+  const test = await saveTest({
+    name: 'Retry',
+    goal: 'Retry',
+    url: 'https://example.com',
+    tags: [],
+  });
+
+  expect((await submit(test.id)).status).toBe(202);
 });

@@ -1,6 +1,8 @@
 'use client';
 import { ModelUsagePanel } from './ModelUsagePanel';
+
 ('use client');
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import type { ExecutionStep, RunArtifact, TestRun } from '@/features/runs/types';
 import type { indexRun } from '@/features/runs/lib/runIndex';
@@ -35,6 +37,8 @@ export function RunInspector({
   stepFrames,
   onShowFrame,
 }: Props) {
+  const [snapshotOpen, setSnapshotOpen] = useState(false);
+
   return (
     <div className="mt-6 overflow-hidden rounded-lg border border-page-line bg-surface">
       <div className="flex flex-wrap items-center gap-x-5 border-b border-page-line px-5">
@@ -195,20 +199,25 @@ export function RunInspector({
               执行时保存的版本，后续修改用例不会影响此记录。
             </p>
             <p className="whitespace-pre-wrap text-sm leading-8 text-ink">{run?.goal}</p>
-            <details className="mt-5 text-xs text-page-muted">
+            <details
+              className="mt-5 text-xs text-page-muted"
+              onToggle={(event) => setSnapshotOpen(event.currentTarget.open)}
+            >
               <summary className="cursor-pointer">平台目标与实际执行环境</summary>
-              <pre className="mt-3 whitespace-pre-wrap break-all">
-                {JSON.stringify(
-                  {
-                    target: run?.targetSnapshot,
-                    environment: run?.environmentSnapshot,
-                    capabilities: run?.capabilities,
-                    batchId: run?.batchId,
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
+              {snapshotOpen && (
+                <pre className="mt-3 whitespace-pre-wrap break-all">
+                  {JSON.stringify(
+                    {
+                      target: run?.targetSnapshot,
+                      environment: run?.environmentSnapshot,
+                      capabilities: run?.capabilities,
+                      batchId: run?.batchId,
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              )}
             </details>
           </>
         ) : (

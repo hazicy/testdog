@@ -7,7 +7,13 @@ import { testSchema } from '@/features/test-cases/schemas';
 import { WorkspaceError } from '@/server/shared/errors';
 
 export const listTests = async () =>
-  (await db.select().from(testCases).orderBy(desc(testCases.updatedAt), desc(testCases.id)).limit(50)).map((test) => ({
+  (
+    await db
+      .select()
+      .from(testCases)
+      .orderBy(desc(testCases.updatedAt), desc(testCases.id))
+      .limit(50)
+  ).map((test) => ({
     ...test,
     target: test.target ?? legacyWebTarget(test.url),
   }));

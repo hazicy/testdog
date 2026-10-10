@@ -106,8 +106,11 @@ export const testRuns = pgTable(
     index('test_runs_case_idx').on(table.testId, table.startedAt, table.id),
     index('test_runs_status_started_idx').on(table.status, table.startedAt, table.id),
     index('test_runs_active_lease_idx')
-      .on(table.heartbeatAt)
-      .where(sql`${table.status} = 'running'`),
+      .on(table.leaseUntil)
+      .where(sql`${table.status} in ('preparing','running','finalizing')`),
+    index('test_runs_queued_at_idx')
+      .on(table.queuedAt)
+      .where(sql`${table.status} = 'queued'`),
     check(
       'test_runs_status_check',
       sql`${table.status} in ('queued','preparing','running','finalizing','passed','failed','cancelled')`,

@@ -74,6 +74,7 @@ export async function executeRun(
     const model = budgetedModel(modelClient, modelBudgetFromEnv(), (metric) =>
       recordModelCall(run.id, metric),
     );
+
     await pulse();
     controller.signal.throwIfAborted();
     const source = run.sourceRunId ? await getRun(run.sourceRunId) : undefined;

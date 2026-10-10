@@ -15,6 +15,7 @@ const querySchema = z.object({
   untilMs: z.coerce.number().min(0).optional(),
   errors: z.enum(['true', 'false']).default('false'),
 });
+
 export async function listBrowserLogs(id: string, request: Request) {
   const parsed = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!parsed.success) throw new WorkspaceError('日志筛选参数无效。');
@@ -67,6 +68,7 @@ export async function listBrowserLogs(id: string, request: Request) {
     ...rows.map((row) => ({ ...row, position: row.sequence + run.legacy.length })),
   ];
   const page = combined.slice(0, query.limit);
+
   return {
     logs: page.map((row) => row.data),
     nextCursor: combined.length > query.limit ? String(page.at(-1)!.position) : null,

@@ -20,6 +20,7 @@ export type ModelBudget = {
   maxRetries: number;
   maxOutputTokens: number;
 };
+
 export function modelBudgetFromEnv(): ModelBudget {
   const defaults: ModelBudget = {
     timeoutMs: 60000,
@@ -44,8 +45,10 @@ export function modelBudgetFromEnv(): ModelBudget {
       throw new Error(`CASEFORGE_AI_${names[key]} 配置无效`);
   }
   if (defaults.maxRetries > 3) throw new Error('AI 重试最多 3 次');
+
   return defaults;
 }
+
 export function budgetedModel(
   client: ModelClient,
   budget: ModelBudget,
@@ -56,6 +59,7 @@ export function budgetedModel(
   let duration = 0;
   // Serialize calls so concurrent planners cannot overspend the shared run budget.
   let previous: Promise<unknown> = Promise.resolve();
+
   return {
     generate(params) {
       const execute = async () => {
@@ -77,17 +81,21 @@ export function budgetedModel(
           Math.min(budget.timeoutMs, budget.maxDurationMs - duration),
         );
         let retryCount = 0;
+        let callsForRequest = 0;
         let failedAttempts = 0;
         let result: LLMGenerateResult | undefined;
         let failure: unknown;
         try {
           for (;;) {
             signal.throwIfAborted();
+            if (callsForRequest > 0) retryCount++;
+            callsForRequest++;
             calls++;
             try {
               // Race also protects callers when a custom adapter ignores AbortSignal.
               result = await new Promise<LLMGenerateResult>((resolve, reject) => {
                 const abort = () => reject(signal.reason);
+
                 signal.addEventListener('abort', abort, { once: true });
                 void client
                   .generate({
@@ -122,10 +130,10 @@ export function budgetedModel(
                 calls >= budget.maxCalls
               )
                 throw error;
-              retryCount++;
-              await delay(250 * 2 ** (retryCount - 1), undefined, { signal });
+              await delay(250 * 2 ** retryCount, undefined, { signal });
             }
           }
+
           return result;
         } catch (error) {
           failure = error;
@@ -133,6 +141,7 @@ export function budgetedModel(
         } finally {
           clearTimeout(timer);
           const durationMs = Date.now() - start;
+
           duration += durationMs;
           await record({
             startedAt,
@@ -154,7 +163,9 @@ export function budgetedModel(
         }
       };
       const next = previous.then(execute, execute);
+
       previous = next.catch(() => {});
+
       return next;
     },
   };

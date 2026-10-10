@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { WorkspaceError } from './errors';
 
 const cursorSchema = z.object({ date: z.iso.datetime({ offset: true }), id: z.uuid() });
+
 export function readPage(request: Request) {
   const params = new URL(request.url).searchParams;
   const limit = Number(params.get('limit') ?? 50);
@@ -19,9 +20,13 @@ export function readPage(request: Request) {
       throw new WorkspaceError('分页游标无效。');
     }
   }
+
   return { limit, q, status, cursor };
 }
+
 export type PageQuery = ReturnType<typeof readPage>;
 export const pageCursor = (date: string, id: string) =>
-  Buffer.from(JSON.stringify({ date: new Date(date).toISOString(), id })).toString('base64url');
+  Buffer.from(
+    JSON.stringify({ date: date.replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00'), id }),
+  ).toString('base64url');
 export const searchPattern = (q: string) => `%${q.replace(/[\\%_]/g, '\\$&')}%`;

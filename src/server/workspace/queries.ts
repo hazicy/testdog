@@ -39,10 +39,12 @@ const summary = (row: typeof testRuns.$inferSelect | Record<string, unknown>) =>
   Object.fromEntries(
     Object.entries(row).map(([key, value]) => [key, value ?? undefined]),
   ) as RunSummary;
+
 function validateStatus(status: string, tests = false) {
   if (status !== 'all' && !(tests && status === 'none') && !Object.hasOwn(emptyCounts(), status))
     throw new WorkspaceError('状态筛选参数无效。');
 }
+
 export async function listRunPage({ limit, q, status, cursor }: PageQuery) {
   validateStatus(status);
   const rows = await db
@@ -63,11 +65,13 @@ export async function listRunPage({ limit, q, status, cursor }: PageQuery) {
     .limit(limit + 1);
   const page = rows.slice(0, limit);
   const last = page.at(-1);
+
   return {
     runs: page.map(summary),
     nextCursor: rows.length > limit && last ? pageCursor(last.startedAt, last.id) : null,
   };
 }
+
 export async function listTestPage({ limit, q, status, cursor }: PageQuery) {
   validateStatus(status, true);
   // The latest execution is independent of the execution-list page.
@@ -106,12 +110,14 @@ export async function listTestPage({ limit, q, status, cursor }: PageQuery) {
         .orderBy(testRuns.testId, desc(testRuns.startedAt), desc(testRuns.id))
     : [];
   const last = page.at(-1);
+
   return {
     tests: page.map((test) => ({ ...test, target: test.target ?? legacyWebTarget(test.url) })),
     latestRuns: latest.map(summary),
     nextCursor: rows.length > limit && last ? pageCursor(last.updatedAt, last.id) : null,
   };
 }
+
 export async function workspaceStats(): Promise<WorkspaceStats> {
   return db.transaction(
     async (tx) => {
@@ -124,6 +130,7 @@ export async function workspaceStats(): Promise<WorkspaceStats> {
       ]);
       const counts = emptyCounts();
       for (const row of runs) counts[row.status] = row.count;
+
       return {
         testCount: tests[0].count,
         runCount: runs.reduce((sum, row) => sum + row.count, 0),

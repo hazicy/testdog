@@ -4,8 +4,39 @@ import type { TestCase } from '../../src/features/test-cases/types';
 import type { TestRun, RunSummary } from '../../src/features/runs/types';
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/workspace/stats', route => route.fulfill({ json: { testCount: 1, runCount: 1, counts: { queued: 0, preparing: 0, running: 0, finalizing: 0, passed: 1, failed: 0, cancelled: 0 } } }));
-  await page.route('**/model-usage', route => route.fulfill({ json: { usage: { calls: 0, failures: 0, retries: 0, durationMs: 0, inputTokens: 0, outputTokens: 0, unknownUsage: 0 }, calls: [] } }));
+  await page.route('**/api/workspace/stats', (route) =>
+    route.fulfill({
+      json: {
+        testCount: 1,
+        runCount: 1,
+        counts: {
+          queued: 0,
+          preparing: 0,
+          running: 0,
+          finalizing: 0,
+          passed: 1,
+          failed: 0,
+          cancelled: 0,
+        },
+      },
+    }),
+  );
+  await page.route('**/model-usage', (route) =>
+    route.fulfill({
+      json: {
+        usage: {
+          calls: 0,
+          failures: 0,
+          retries: 0,
+          durationMs: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          unknownUsage: 0,
+        },
+        calls: [],
+      },
+    }),
+  );
   await page.route('**/api/builds', (route) => route.fulfill({ json: { builds: [] } }));
   await page.route('**/api/resources', (route) => route.fulfill({ json: { resources: [] } }));
 });
@@ -266,15 +297,29 @@ test('case search combines tags and latest status while history uses each execut
     status: 'failed' as const,
   };
 
-  await page.route( /\/api\/tests(?:\?.*)?$/, (route) =>
-    {
-      const params = new URL(route.request().url()).searchParams;
-      const q = (params.get('q') ?? '').toLowerCase();
-      const status = params.get('status') ?? 'all';
-      return route.fulfill({ json: { tests: [saved, untouched].filter(item => `${item.name} ${item.url} ${item.tags.join(' ')}`.toLowerCase().includes(q) && (status === 'all' || (item.id === saved.id ? 'passed' : 'none') === status)), latestRuns: [summary] } });
-    },
-  );
-  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => { const status = new URL(route.request().url()).searchParams.get('status'); return route.fulfill({ json: { runs: [summary, older].filter(item => !status || item.status === status) } }); });
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    const q = (params.get('q') ?? '').toLowerCase();
+    const status = params.get('status') ?? 'all';
+
+    return route.fulfill({
+      json: {
+        tests: [saved, untouched].filter(
+          (item) =>
+            `${item.name} ${item.url} ${item.tags.join(' ')}`.toLowerCase().includes(q) &&
+            (status === 'all' || (item.id === saved.id ? 'passed' : 'none') === status),
+        ),
+        latestRuns: [summary],
+      },
+    });
+  });
+  await page.route(/\/api\/runs(?:\?.*)?$/, (route) => {
+    const status = new URL(route.request().url()).searchParams.get('status');
+
+    return route.fulfill({
+      json: { runs: [summary, older].filter((item) => !status || item.status === status) },
+    });
+  });
   await page.goto('/cases');
   const search = page.getByRole('textbox', { name: '搜索测试', exact: true });
   const filter = page.getByLabel('状态筛选');
@@ -306,12 +351,12 @@ test('history loads and refreshes without depending on the case library', async 
   let caseReads = 0;
   let runReads = 0;
 
-  await page.route( /\/api\/tests(?:\?.*)?$/, (route) => {
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) => {
     caseReads++;
 
     return route.fulfill({ status: 503, json: { message: '用例库暂时不可用' } });
   });
-  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => {
+  await page.route(/\/api\/runs(?:\?.*)?$/, (route) => {
     runReads++;
 
     return route.fulfill({ json: { runs: [summary] } });
@@ -333,8 +378,12 @@ test('exports complete reports from both history and detail, and allows retry af
 }) => {
   let rejectExport = true;
 
-  await page.route( /\/api\/tests(?:\?.*)?$/, (route) => route.fulfill({ json: { tests: [saved] } }));
-  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => route.fulfill({ json: { runs: [summary] } }));
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
+    route.fulfill({ json: { tests: [saved] } }),
+  );
+  await page.route(/\/api\/runs(?:\?.*)?$/, (route) =>
+    route.fulfill({ json: { runs: [summary] } }),
+  );
   await page.route(`**/api/runs/${run.id}{,?*}`, (route) => {
     if (rejectExport) {
       rejectExport = false;
@@ -364,8 +413,12 @@ test('exports complete reports from both history and detail, and allows retry af
 });
 
 test('dialogs support keyboard entry, Escape dismissal and focus restoration', async ({ page }) => {
-  await page.route( /\/api\/tests(?:\?.*)?$/, (route) => route.fulfill({ json: { tests: [saved] } }));
-  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => route.fulfill({ json: { runs: [summary] } }));
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
+    route.fulfill({ json: { tests: [saved] } }),
+  );
+  await page.route(/\/api\/runs(?:\?.*)?$/, (route) =>
+    route.fulfill({ json: { runs: [summary] } }),
+  );
   await page.goto('/cases');
   const create = page.getByRole('button', { name: '新建测试', exact: true });
 
@@ -422,7 +475,9 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
 
     return route.fulfill({ json: { test: tests[0] } });
   });
-  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => route.fulfill({ json: { runs: [summary] } }));
+  await page.route(/\/api\/runs(?:\?.*)?$/, (route) =>
+    route.fulfill({ json: { runs: [summary] } }),
+  );
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).click();
   const dialog = page.getByRole('dialog');

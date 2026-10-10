@@ -14,9 +14,12 @@ export function startLeaseMaintenance(intervalMs = 15000) {
         pending = undefined;
       });
   };
+
   tick();
   const timer = setInterval(tick, intervalMs);
+
   timer.unref();
+
   return async () => {
     stopped = true;
     clearInterval(timer);

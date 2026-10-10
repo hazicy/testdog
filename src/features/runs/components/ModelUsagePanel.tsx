@@ -3,12 +3,14 @@ import useSWR from 'swr';
 import { fetchJson } from '@/client/api';
 import type { readModelUsage } from '@/server/runs/modelUsage';
 import type { ModelCallMetric } from '@/automation/llm/budget';
+
 export function ModelUsagePanel({ id, active }: { id: string; active: boolean }) {
   const data = useSWR<{
     usage: Awaited<ReturnType<typeof readModelUsage>>;
     calls: (ModelCallMetric & { id: string })[];
   }>(`/api/runs/${id}/model-usage`, fetchJson, { refreshInterval: active ? 5000 : 0 });
   const usage = data.data?.usage;
+
   return (
     <section aria-label="AI 调用用量" className="mb-5 border-b border-page-line pb-5 text-xs">
       <p className="font-medium">AI 调用用量</p>

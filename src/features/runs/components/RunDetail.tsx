@@ -1,5 +1,6 @@
 'use client';
 import { useRunSubmission } from '@/client/useRunSubmission';
+
 ('use client');
 import { Button } from '@/components/ui/Button';
 
@@ -237,19 +238,21 @@ export function RunDetail({ id }: { id: string }) {
             onSelect={selectStep}
           />
         </div>
-        {view === 'execution' && <RunInspector
-          id={id}
-          run={run}
-          tab={tab}
-          setTab={setTab}
-          selectedStep={selectedStep}
-          currentFrame={currentFrame}
-          video={video}
-          trace={trace}
-          diagnostics={diagnostics}
-          stepFrames={stepFrames}
-          onShowFrame={playback.showFrame}
-        />}
+        {view === 'execution' && (
+          <RunInspector
+            id={id}
+            run={run}
+            tab={tab}
+            setTab={setTab}
+            selectedStep={selectedStep}
+            currentFrame={currentFrame}
+            video={video}
+            trace={trace}
+            diagnostics={diagnostics}
+            stepFrames={stepFrames}
+            onShowFrame={playback.showFrame}
+          />
+        )}
       </div>
     </div>
   );
