@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Plan } from '@/automation/compiler/schema';
 import type { ExecutionStep } from '@/workspace/types';
 import { planForest, type PlanTree } from '@/workspace/planTree';
@@ -23,15 +23,39 @@ export function PlanBoard({
   const [showEdges, setShowEdges] = useState(true);
   const forest = useMemo(() => (plan ? planForest(plan) : []), [plan]);
   const node = plan?.nodes[selected || ''];
-  function fit() {
-    if (!viewport.current || !stage.current) return;
+  const fit = useCallback(() => {
+    if (
+      !viewport.current ||
+      !stage.current ||
+      !viewport.current.clientWidth ||
+      !stage.current.offsetWidth
+    )
+      return;
     const scale = Math.min(
       1,
       (viewport.current.clientWidth - 48) / stage.current.offsetWidth,
       (viewport.current.clientHeight - 48) / stage.current.offsetHeight,
     );
     setView({ x: 24, y: 24, scale: Math.max(0.15, scale) });
-  }
+  }, []);
+  useEffect(() => {
+    const surface = viewport.current;
+    const content = stage.current;
+    if (!surface || !content) return;
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(surface);
+    observer.observe(content);
+    update();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [fit, plan?.rootId]);
   useEffect(() => {
     const surface = viewport.current;
     if (!surface) return;
@@ -121,7 +145,7 @@ export function PlanBoard({
           aria-label={`查看节点 ${n.id}`}
         >
           <span className="flex items-center justify-between gap-4">
-            <span className="font-mono text-[10px] tracking-wider text-page-muted">
+            <span className="font-mono text-xs tracking-wider text-page-muted">
               {n.kind.toUpperCase()} / {n.id}
             </span>
             {recorded.length > 0 && (
@@ -135,12 +159,12 @@ export function PlanBoard({
             {n.kind === 'branch' ? n.condition : n.goal}
           </span>
           {n.dependsOn.length > 0 && (
-            <span className="mt-2 block text-left text-[10px] text-page-muted">
+            <span className="mt-2 block text-left text-xs text-page-muted">
               依赖：{n.dependsOn.join(' · ')}
             </span>
           )}
           {n.kind === 'task' && (
-            <span className="mt-2 block text-left text-[10px] text-page-muted">
+            <span className="mt-2 block text-left text-xs text-page-muted">
               {n.assertions.length} 个预期
               {n.requirementIds.length ? ` · ${n.requirementIds.join(', ')}` : ''}
             </span>
@@ -150,11 +174,11 @@ export function PlanBoard({
         {n.kind === 'branch' && (
           <div className="plan-branches">
             <div>
-              <p className="mb-3 font-mono text-[10px] text-[#6c805b]">YES / 条件成立</p>
+              <p className="mb-3 font-mono text-xs text-[#6c805b]">YES / 条件成立</p>
               {tree.then && render(tree.then)}
             </div>
             <div>
-              <p className="mb-3 font-mono text-[10px] text-page-muted">NO / 条件不成立</p>
+              <p className="mb-3 font-mono text-xs text-page-muted">NO / 条件不成立</p>
               {tree.otherwise ? (
                 render(tree.otherwise)
               ) : (
@@ -171,7 +195,7 @@ export function PlanBoard({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-page-line px-4 py-3">
         <div>
           <p className="text-sm font-medium">嵌套执行计划</p>
-          <p className="mt-1 text-[10px] text-page-muted">
+          <p className="mt-1 text-xs text-page-muted">
             拖动背景平移 · Ctrl / ⌘ + 滚轮缩放 · 点击节点查看预期与执行步骤
           </p>
         </div>
@@ -292,7 +316,7 @@ export function PlanBoard({
         >
           {node ? (
             <>
-              <p className="font-mono text-[10px] text-page-muted">
+              <p className="font-mono text-xs text-page-muted">
                 {node.kind.toUpperCase()} / {node.id}
               </p>
               <h3 className="mt-3 text-sm leading-6">

@@ -151,7 +151,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
                 ))}
               </select>
             </label>
-            <span className="text-[10px] text-page-muted">
+            <span className="text-xs text-page-muted">
               {dirty ? '有未保存修改' : '已载入'}
               {validation.count ? ` · ${validation.count} 个步骤` : ''}
             </span>
@@ -178,7 +178,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           <p className="mt-3 text-page-muted">
             page1 为初始页面，新标签页依次为 page2、page3。每行一个 await 调用。
           </p>
-          <pre className="mt-4 whitespace-pre-wrap break-all text-[10px]">
+          <pre className="mt-4 whitespace-pre-wrap break-all text-xs">
             {
               'await page1.getByRole("button", { name: "提交", exact: true }).click();\n\nawait page1.getByLabel("邮箱", { exact: true }).fill("ada@example.com");\n\nawait expect(page1.getByText("成功", { exact: true })).toBeVisible();\n\nawait expectPage(page1, "已登录，显示用户名 Ada");\n\nawait waitFor(page1, "newPage", "", 5000);'
             }

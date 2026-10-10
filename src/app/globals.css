@@ -3,9 +3,9 @@
 
 :root {
   color-scheme: light;
-  --background: #f8fafb;
-  --foreground: #202b38;
-  --accent: #147d70;
+  --background: #faf9f6;
+  --foreground: #23241f;
+  --accent: #b84c2e;
   --accent-foreground: #ffffff;
 }
 
@@ -14,7 +14,7 @@ body {
   min-height: 100dvh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -25,130 +25,33 @@ body {
 }
 
 @theme inline {
-  --animate-cursor-blink: cursor-blink 1.4s steps(1) infinite;
-  --animate-preview-enter: preview-enter 0.3s ease-out;
-  --animate-forge-float: forge-float 7s ease-in-out infinite;
-  --animate-forge-scan: forge-scan 5s ease-in-out infinite;
-  --animate-title-shine: title-shine 6s ease-in-out infinite;
-  --animate-log-step: preview-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   --color-page: #faf9f6;
   --color-ink: #23241f;
   --color-page-muted: #78796f;
   --color-page-line: #e2e1da;
-  --color-brand: #f16b43;
-  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --color-brand: #b84c2e;
+  --font-sans: var(--font-geist-sans), 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
-}
-
-/* Layered geometry is kept in CSS; layout and responsive styles use utilities. */
-@layer components {
-  .art-grid {
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(#dfdfd5 1px, transparent 1px),
-      linear-gradient(90deg, #dfdfd5 1px, transparent 1px);
-    background-size: 41px 41px;
-    opacity: 0.55;
-    mask-image: radial-gradient(ellipse, #000 35%, transparent 78%);
-  }
-
-  .forge-bar {
-    position: absolute;
-    background:
-      repeating-linear-gradient(0deg, transparent 0 3px, #ffffff30 3px 4px),
-      linear-gradient(115deg, #adb1a0, #d6d9c6 32%, #eef0dd 60%, #bfc3af);
-    border: 1px solid #a8ad98;
-    box-shadow:
-      9px 9px 0 #929881,
-      10px 10px 0 #7e856b;
-  }
-
-  .forge-cut {
-    position: absolute;
-    width: 57px;
-    height: 57px;
-    right: 18px;
-    bottom: 35px;
-    background:
-      repeating-linear-gradient(0deg, transparent 0 3px, #ffffff35 3px 4px),
-      linear-gradient(135deg, #fa9469, #ec6940);
-    transform: skewY(-23deg);
-    border: 1px solid #e77950;
-    box-shadow: 8px 8px 0 #c4542e;
-  }
-}
-
-@keyframes cursor-blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-@keyframes preview-enter {
-  from {
-    opacity: 0.4;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes forge-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-  50% {
-    transform: translate3d(0, -16px, 0) rotate(2deg);
-  }
-}
-
-@keyframes forge-scan {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0;
-  }
-  15%,
-  75% {
-    opacity: 0.5;
-  }
-  90% {
-    transform: translateY(410px);
-    opacity: 0;
-  }
-}
-
-@keyframes title-shine {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
 }
 
 @layer components {
   .workspace-shell {
     background: #faf9f6;
     color: #23241f;
-    --accent: #f16b43;
+    --accent: #b84c2e;
     font-size: 14px;
   }
   .ws-button {
+    border-radius: 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 34px;
-    padding: 9px 15px;
+    min-height: 38px;
+    padding: 8px 14px;
     border: 1px solid #dfded4;
     background: #fffefa;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     transition:
       background 0.2s ease,
@@ -160,12 +63,12 @@ body {
     background: #f5f5f5;
   }
   .ws-button.primary {
-    background: #f16b43;
-    border-color: #f16b43;
-    color: #181818;
+    background: #b84c2e;
+    border-color: #b84c2e;
+    color: #ffffff;
   }
   .ws-button.primary:hover {
-    background: #df5c37;
+    background: #9e3f25;
   }
   .ws-button:disabled,
   .ws-icon-button:disabled {
@@ -173,11 +76,12 @@ body {
     opacity: 0.45;
   }
   .ws-icon-button {
+    border-radius: 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     color: #777;
     cursor: pointer;
   }
@@ -186,22 +90,25 @@ body {
     color: #23241f;
   }
   .ws-input {
+    border-radius: 6px;
+    min-height: 38px;
+    line-height: 1.5;
     display: block;
     width: 100%;
     border: 1px solid #dfded4;
     background: #fffefa;
     padding: 9px 11px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 400;
     color: #333;
   }
   .ws-input::placeholder {
-    color: #aaa;
+    color: #77796f;
   }
   .ws-input:focus {
-    outline: 1px solid #f16b43;
+    outline: 2px solid #b84c2e;
     outline-offset: 0;
-    border-color: #f16b43;
+    border-color: #b84c2e;
   }
   .ws-input:disabled {
     background: #f6f6f6;
@@ -214,7 +121,7 @@ body {
   }
   .ws-label {
     display: block;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     transition:
       background 0.2s ease,
@@ -233,12 +140,12 @@ body {
     padding: 12px 18px;
     background: #f5f4ee;
     font-size: 11px;
-    color: #888;
+    color: #62665b;
     font-weight: 500;
     border-bottom: 1px solid #e2e1da;
   }
   .ws-table td {
-    padding: 18px;
+    padding: 16px 18px;
     font-size: 13px;
     border-bottom: 1px solid #eee;
   }
@@ -249,10 +156,11 @@ body {
     background: #fdfdfb;
   }
   .ws-status {
+    border-radius: 6px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 12px;
     white-space: nowrap;
   }
   .ws-status > span {
@@ -274,13 +182,15 @@ body {
     color: #8e8779;
   }
   .ws-button.selected {
-    border-color: #d1c7b5;
-    background: #f0ece1;
+    border-color: #d9b4a7;
+    background: #faf0eb;
+    color: #9e3f25;
   }
   .ws-status.none {
-    color: #999;
+    color: #6f7268;
   }
   .ws-dialog {
+    border-radius: 12px;
     position: fixed;
     inset: 0;
     margin: auto;
@@ -347,6 +257,7 @@ body {
 }
 .plan-node {
   position: relative;
+  border-radius: 8px;
   min-width: 250px;
   max-width: 1100px;
   border: 1px solid #dcd8c9;
@@ -363,7 +274,7 @@ body {
   background: #f7eee7;
 }
 .plan-node.active {
-  outline: 2px solid #f16b43;
+  outline: 2px solid #b84c2e;
   outline-offset: 2px;
 }
 .plan-node-header {
@@ -407,5 +318,53 @@ body {
 @media (max-width: 640px) {
   .plan-viewport {
     height: 440px;
+  }
+}
+
+@layer components {
+  .ws-stats {
+    overflow: hidden;
+    border: 1px solid #e2e1da;
+    border-radius: 8px;
+    background: #fffefa;
+  }
+  .ws-stats > div + div {
+    border-left: 1px solid #e2e1da;
+  }
+  .ws-list {
+    overflow: hidden;
+    border-radius: 8px;
+  }
+  .ws-table th:first-child {
+    width: 40%;
+  }
+  .ws-table td:first-child {
+    max-width: 420px;
+  }
+  .ws-table td:first-child button {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .ws-table td:first-child > p {
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+@media (max-width: 1023px) {
+  .ws-stats > div:nth-child(3) {
+    border-left: 0;
+  }
+  .ws-stats > div:nth-child(n + 3) {
+    border-top: 1px solid #e2e1da;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
