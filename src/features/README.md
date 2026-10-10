@@ -9,8 +9,10 @@
 
 `src/app` 负责路由入口；`src/components` 保留跨功能复用的基础 UI、应用外壳和共享组件。功能可以通过明确的组件路径组合其他功能，但共享组件不依赖业务功能。
 
-`types.ts`、`schemas.ts` 和 `lib/` 中的领域代码不依赖 UI、数据库或服务端运行时，可以由前后端共用；组件和 hooks 通过 API 调用后端。通用请求、SSE 和轮询机制在 `src/client`；API 与 worker 共用的后端业务在 `src/server`，包括调用平台实现的重放适配。ESLint 禁止功能目录直接导入数据库、服务端运行时或模型实现。
+`types.ts`、`schemas.ts` 和 `lib/` 中的领域代码不依赖 UI、数据库或服务端运行时，可以由前后端共用；组件和 hooks 通过 API 调用后端。通用请求、SSE 和 SWR 重试策略在 `src/client`；API 与 worker 共用的后端业务在 `src/server`，包括调用平台实现的重放适配。ESLint 禁止功能目录直接导入数据库、服务端运行时或模型实现。
 
 `features/workspace` 只负责列表与统计的界面组合，领域类型分别属于 `test-cases` 和 `runs`。数据库迁移测试在 `src/db`，真实执行测试的 fixture 在 `src/server/runs/fixtures`。
 
 运行详情的播放状态仍由页面实例持有，通过 `useRunPlayback` 集中更新；数据订阅由 `useRunData` 管理。计划画板和录制编辑器保持动态加载，录制编辑器在首次打开后保留挂载，以保留未保存的草稿。
+
+工作区列表和执行详情通过 SWR 管理 API 数据、缓存、请求去重与刷新，底层继续使用 `requestJson`。列表 SSE 通知触发缓存重新获取；详情 SSE 快照与增量直接更新同一份缓存，按执行版本防止旧 HTTP 响应覆盖新数据。SSE 连接正常时暂停自动读取，断线后恢复可见页面的轮询；已结束或不存在的执行详情仅在挂载和手动刷新时读取。执行详情的 HTTP 读取保留 ETag 缓存。

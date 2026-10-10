@@ -218,6 +218,26 @@ test('missing execution stops polling and can recover through explicit retry', a
   await expect(page.getByRole('heading', { name: saved.name, exact: true })).toBeVisible();
 });
 
+test('retries transient detail errors without requiring a page reload', async ({ page }) => {
+  let reads = 0;
+
+  await page.clock.install();
+  await page.route(`**/api/runs/${run.id}`, (route) => {
+    reads++;
+
+    return reads === 1
+      ? route.fulfill({ status: 503, json: { message: '执行服务暂时不可用' } })
+      : route.fulfill({ json: { run } });
+  });
+  await page.goto(`/runs/${run.id}`);
+  await expect(page.getByText('执行服务暂时不可用')).toBeVisible();
+  await page.clock.fastForward(5000);
+  await expect(page.getByRole('heading', { name: saved.name, exact: true })).toBeVisible();
+  expect(reads).toBe(2);
+  await page.clock.fastForward(10000);
+  expect(reads).toBe(2);
+});
+
 test('invalid execution addresses render the custom 404 page', async ({ page }) => {
   const response = await page.goto('/runs/invalid-id');
 
@@ -657,7 +677,9 @@ test('plan subflows retain both branch paths, shared references and external dep
   expect(errors).toEqual([]);
 });
 
-test('applies SSE step updates and stops polling while connected', async ({ page }) => {
+test('preserves SSE updates across stale reads and resumes polling after disconnect', async ({
+  page,
+}) => {
   const activeRun = {
     ...run,
     status: 'running' as const,
@@ -667,9 +689,16 @@ test('applies SSE step updates and stops polling while connected', async ({ page
     realtimeRevision: 1,
   };
   let reads = 0;
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
 
-  await page.route(`**/api/runs/${run.id}`, (route) => {
+  await page.clock.install();
+  await page.route(`**/api/runs/${run.id}`, async (route) => {
+    if (route.request().method() === 'DELETE') return route.fulfill({ json: {} });
     reads++;
+    if (reads === 2) await pending;
 
     return route.fulfill({ json: { run: activeRun } });
   });
@@ -699,6 +728,11 @@ test('applies SSE step updates and stops polling while connected', async ({ page
     () =>
       (window as unknown as { __caseforgeStreams: EventTarget[] }).__caseforgeStreams.length > 0,
   );
+  // A healthy stream disables periodic reads even as the elapsed-time clock ticks.
+  await page.clock.fastForward(5500);
+  expect(reads).toBe(1);
+  await page.getByRole('button', { name: '停止执行', exact: true }).click();
+  await expect.poll(() => reads).toBe(2);
   await page.evaluate((step) => {
     const streams = (window as unknown as { __caseforgeStreams: EventTarget[] }).__caseforgeStreams;
 
@@ -713,7 +747,22 @@ test('applies SSE step updates and stops polling while connected', async ({ page
   await expect(
     page.getByRole('region', { name: '执行步骤' }).getByRole('button', { name: /推送新增步骤/ }),
   ).toBeVisible();
-  // Cross the fallback interval to verify a healthy stream disabled periodic reads.
-  await page.waitForTimeout(5500);
-  expect(reads).toBe(1);
+  release();
+  await expect(page.getByRole('button', { name: '停止执行', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /推送新增步骤/ })).toBeVisible();
+  // A subsequent HTTP request is also older than the version already in the cache.
+  await page.getByRole('button', { name: '停止执行', exact: true }).click();
+  await expect.poll(() => reads).toBe(3);
+  await expect(page.getByRole('button', { name: '停止执行', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /推送新增步骤/ })).toBeVisible();
+  await page.evaluate(() => {
+    const streams = (
+      window as unknown as { __caseforgeStreams: (EventTarget & { onerror: () => void })[] }
+    ).__caseforgeStreams;
+
+    streams.at(-1)!.onerror();
+  });
+  await page.clock.runFor(5500);
+  await expect.poll(() => reads).toBe(4);
+  await expect(page.getByRole('button', { name: /推送新增步骤/ })).toBeVisible();
 });

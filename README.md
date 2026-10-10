@@ -75,7 +75,7 @@ src/
     ui/                基础交互组件
     shell/             工作区导航与布局
     shared/            图标、错误状态与弹窗兼容导出
-  client/              浏览器端 JSON 请求、串行刷新、SSE 与轮询生命周期
+  client/              浏览器端 JSON 请求、SWR 重试策略、SSE 与文件下载
   automation/          用例编译与统一计划执行
     compiler/          用例计划和动作 schema
     llm/               统一 ModelClient 契约与模型适配器

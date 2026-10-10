@@ -1,16 +1,36 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useSWR from 'swr';
 import type { TestCase } from '@/features/test-cases/types';
-import type { RunSummary } from '@/features/runs/types';
+import { isActiveRun, type RunSummary } from '@/features/runs/types';
 import { requestJson as api } from '@/client/api';
 import { useRealtime } from '@/client/useRealtime';
-import { usePolling } from '@/client/usePolling';
+import { retryVisibleRequest } from '@/client/swr';
 
 export function useWorkspaceData(isTests: boolean) {
-  const [tests, setTests] = useState<TestCase[]>([]);
-  const [runs, setRuns] = useState<RunSummary[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const connection = useRef(false);
+  const realtimeRefresh = useRef<() => Promise<void>>(async () => {});
+  const connected = useRealtime('/api/events', () => {
+    void realtimeRefresh.current();
+  });
+  const runInterval = useCallback(
+    (data?: { runs: RunSummary[] }) =>
+      connected ? 0 : data?.runs.some((run) => isActiveRun(run.status)) ? 10000 : 30000,
+    [connected],
+  );
+  const isVisible = useCallback(
+    () => document.visibilityState === 'visible' && !connection.current,
+    [],
+  );
+  const runData = useSWR<{ runs: RunSummary[] }>('/api/runs', api, {
+    refreshInterval: runInterval,
+    isVisible,
+    errorRetryInterval: 10000,
+    onErrorRetry: retryVisibleRequest,
+    onSuccess: () => setError(''),
+  });
+  const runs = useMemo(() => runData.data?.runs ?? [], [runData.data]);
   const { counts, latestRuns } = useMemo(() => {
     const counts = {
       queued: 0,
@@ -30,36 +50,41 @@ export function useWorkspaceData(isTests: boolean) {
     return { counts, latestRuns };
   }, [runs]);
   const running = counts.running + counts.queued + counts.preparing + counts.finalizing > 0;
-
-  const load = useCallback(
-    async (signal: AbortSignal) => {
-      try {
-        const [testData, runData] = await Promise.all([
-          isTests ? api<{ tests: TestCase[] }>('/api/tests', { signal }) : undefined,
-          api<{ runs: RunSummary[] }>('/api/runs', { signal }),
-        ]);
-        if (signal.aborted) return;
-        if (testData) setTests(testData.tests);
-        setRuns(runData.runs);
-        setError('');
-      } catch (cause) {
-        if (signal.aborted) return;
-        setError(cause instanceof Error ? cause.message : '无法加载工作区');
-      } finally {
-        if (!signal.aborted) setLoading(false);
-      }
-    },
-    [isTests],
-  );
-  const realtimeRefresh = useRef<() => Promise<void>>(async () => {});
-  const connected = useRealtime('/api/events', () => {
-    void realtimeRefresh.current();
+  const testData = useSWR<{ tests: TestCase[] }>(isTests ? '/api/tests' : null, api, {
+    refreshInterval: connected ? 0 : running ? 10000 : 30000,
+    isVisible,
+    errorRetryInterval: running ? 10000 : 30000,
+    onErrorRetry: retryVisibleRequest,
+    onSuccess: () => setError(''),
   });
-  const refresh = usePolling(load, connected ? null : running ? 10000 : 30000);
+  const tests = testData.data?.tests ?? [];
+  const loading = runData.isLoading || (isTests && testData.isLoading);
+  const loadError = runData.error || (isTests && testData.error);
+  const mutateRuns = runData.mutate;
+  const mutateTests = testData.mutate;
+  const refresh = useCallback(async () => {
+    await Promise.all([mutateRuns(), ...(isTests ? [mutateTests()] : [])]);
+    setError('');
+  }, [mutateRuns, mutateTests, isTests]);
 
   useEffect(() => {
     realtimeRefresh.current = refresh;
   }, [refresh]);
+  useEffect(() => {
+    connection.current = connected;
+  }, [connected]);
 
-  return { tests, runs, loading, error, setError, counts, latestRuns, running, connected, refresh };
+  return {
+    tests,
+    runs,
+    loading,
+    error:
+      error || (loadError instanceof Error ? loadError.message : loadError ? '无法加载工作区' : ''),
+    setError,
+    counts,
+    latestRuns,
+    running,
+    connected,
+    refresh,
+  };
 }

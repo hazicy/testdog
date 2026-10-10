@@ -1,63 +1,85 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
 import { isActiveRun, type TestRun } from '@/features/runs/types';
 import { createJsonReader, HttpError } from '@/client/api';
 import { useRealtime } from '@/client/useRealtime';
-import { usePolling } from '@/client/usePolling';
+import { retryVisibleRequest } from '@/client/swr';
 import { applyRunUpdates, type Preview, type RunUpdate } from '@/features/runs/lib/realtime';
 
 export function useRunData(id: string, previewEnabled: boolean) {
-  const [run, setRun] = useState<TestRun>();
   const [preview, setPreview] = useState<Preview>();
   const [error, setError] = useState('');
-  const [unavailable, setUnavailable] = useState(false);
   const [now, setNow] = useState(0);
-  const read = useMemo(() => createJsonReader<{ run: TestRun }>(`/api/runs/${id}`), [id]);
-  const load = useCallback(
-    async (signal: AbortSignal) => {
-      try {
-        const data = await read({ signal });
-        if (signal.aborted) return;
-        setRun((current) =>
-          current?.id === data.run.id &&
-          (current.realtimeRevision ?? 0) > (data.run.realtimeRevision ?? 0)
-            ? current
-            : data.run,
-        );
-        setNow(Date.now());
-        setError('');
-        setUnavailable(false);
-      } catch (cause) {
-        if (signal.aborted) return;
-        setError(cause instanceof Error ? cause.message : '无法读取执行记录');
-        setUnavailable(
-          cause instanceof HttpError && (cause.status === 400 || cause.status === 404),
-        );
-      }
-    },
-    [read],
-  );
+  const { cache } = useSWRConfig();
+  const url = `/api/runs/${id}`;
+  const connection = useRef({ url, connected: false });
+  const read = useMemo(() => createJsonReader<{ run: TestRun }>(url), [url]);
+  const fetcher = useCallback(async () => {
+    const { run: incoming } = await read();
+    // HTTP reads and SSE share a cache; a delayed response must not roll it back.
+    const current = cache.get(url)?.data as TestRun | undefined;
+
+    setNow(Date.now());
+
+    return newestRun(current, incoming);
+  }, [read, cache, url]);
+  const canAutoRefresh = useCallback(() => {
+    const state = cache.get(url);
+    const current = state?.data as TestRun | undefined;
+
+    return (
+      document.visibilityState === 'visible' &&
+      !(connection.current.url === url && connection.current.connected) &&
+      !isUnavailable(state?.error) &&
+      (!current || isActiveRun(current.status))
+    );
+  }, [cache, url]);
+  const {
+    data: run,
+    error: loadError,
+    mutate,
+  } = useSWR<TestRun>(url, fetcher, {
+    refreshInterval: 5000,
+    // Gate polling, focus, reconnect and error retries with the same live state.
+    isVisible: canAutoRefresh,
+    onSuccess: () => setError(''),
+    errorRetryInterval: 5000,
+    onErrorRetry: retryVisibleRequest,
+  });
+  const unavailable = isUnavailable(loadError);
+  const refresh = useCallback(async () => {
+    await mutate();
+    setNow(Date.now());
+    setError('');
+  }, [mutate]);
   const wantsPreview = !!run && isActiveRun(run.status) && previewEnabled;
   const connected = useRealtime(
     !unavailable && run?.id === id && isActiveRun(run.status)
-      ? `/api/runs/${id}/events?preview=${wantsPreview ? 1 : 0}`
+      ? `${url}/events?preview=${wantsPreview ? 1 : 0}`
       : null,
     (event, data) => {
       if (event === 'snapshot') {
-        setRun((data as { run: TestRun }).run);
+        void mutate((current) => newestRun(current, (data as { run: TestRun }).run), {
+          revalidate: false,
+        });
         setError('');
       } else if (event === 'updates') {
-        setRun((current) => (current ? applyRunUpdates(current, data as RunUpdate[]) : current));
+        void mutate(
+          (current) => (current ? applyRunUpdates(current, data as RunUpdate[]) : current),
+          {
+            revalidate: false,
+          },
+        );
       } else if (event === 'preview') setPreview(data as Preview);
     },
-  );
-  const refresh = usePolling(
-    load,
-    unavailable || connected || (run && !isActiveRun(run.status)) ? null : 5000,
   );
 
   const active = !!run && isActiveRun(run.status);
 
+  useEffect(() => {
+    connection.current = { url, connected };
+  }, [url, connected]);
   useEffect(() => {
     if (!active) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -75,7 +97,9 @@ export function useRunData(id: string, previewEnabled: boolean) {
 
   return {
     run,
-    error,
+    error:
+      error ||
+      (loadError instanceof Error ? loadError.message : loadError ? '无法读取执行记录' : ''),
     setError,
     unavailable,
     now,
@@ -83,4 +107,15 @@ export function useRunData(id: string, previewEnabled: boolean) {
     clearPreview: () => setPreview(undefined),
     refresh,
   };
+}
+
+function isUnavailable(error: unknown) {
+  return error instanceof HttpError && (error.status === 400 || error.status === 404);
+}
+
+function newestRun(current: TestRun | undefined, incoming: TestRun): TestRun {
+  return current?.id === incoming.id &&
+    (current.realtimeRevision ?? 0) > (incoming.realtimeRevision ?? 0)
+    ? current
+    : incoming;
 }
