@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import type { TestCase } from '@/features/test-cases/types';
 import { isActiveRun, type RunSummary } from '@/features/runs/types';
-import { requestJson as api } from '@/client/api';
+import { fetchJson } from '@/client/api';
 import { useRealtime } from '@/client/useRealtime';
 import { retryVisibleRequest } from '@/client/swr';
 
@@ -23,7 +23,7 @@ export function useWorkspaceData(isTests: boolean) {
     () => document.visibilityState === 'visible' && !connection.current,
     [],
   );
-  const runData = useSWR<{ runs: RunSummary[] }>('/api/runs', api, {
+  const runData = useSWR<{ runs: RunSummary[] }>('/api/runs', fetchJson, {
     refreshInterval: runInterval,
     isVisible,
     errorRetryInterval: 10000,
@@ -50,7 +50,7 @@ export function useWorkspaceData(isTests: boolean) {
     return { counts, latestRuns };
   }, [runs]);
   const running = counts.running + counts.queued + counts.preparing + counts.finalizing > 0;
-  const testData = useSWR<{ tests: TestCase[] }>(isTests ? '/api/tests' : null, api, {
+  const testData = useSWR<{ tests: TestCase[] }>(isTests ? '/api/tests' : null, fetchJson, {
     refreshInterval: connected ? 0 : running ? 10000 : 30000,
     isVisible,
     errorRetryInterval: running ? 10000 : 30000,

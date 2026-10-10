@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import type { TestRun, RunSummary } from '@/features/runs/types';
 import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
-import { requestJson as api } from '@/client/api';
+import { api } from '@/client/api';
 import { downloadRunReport } from '@/client/download';
 import { TestEditor } from '@/features/test-cases/components/TestEditor';
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
@@ -15,12 +15,6 @@ import { RunMatrixDialog } from '@/features/test-cases/components/RunMatrixDialo
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { WorkspaceStats } from './WorkspaceStats';
 import { WorkspaceList } from './WorkspaceList';
-
-const json = (body: unknown, method = 'POST'): RequestInit => ({
-  method,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-});
 
 export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const isTests = view === 'tests';
@@ -48,7 +42,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
     setStarting(true);
     setError('');
     try {
-      const { run } = await api<{ run: TestRun }>('/api/runs', json({ testId }));
+      const { run } = await api.post('/api/runs', { json: { testId } }).json<{ run: TestRun }>();
 
       router.push(`/runs/${run.id}`);
       await refresh();
@@ -70,10 +64,9 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
     setStarting(true);
     setMatrixError('');
     try {
-      await api(
-        '/api/run-batches',
-        json({ testId: matrixTest.id, variants: JSON.parse(matrixCode) }),
-      );
+      await api.post('/api/run-batches', {
+        json: { testId: matrixTest.id, variants: JSON.parse(matrixCode) },
+      });
       setMatrixTest(null);
       router.push('/runs');
       await refresh();

@@ -1,4 +1,4 @@
-import { requestJson } from './api';
+import { api } from './api';
 import type { TestRun } from '@/features/runs/types';
 
 export function downloadText(content: string, filename: string, type: string) {
@@ -15,7 +15,7 @@ export function downloadText(content: string, filename: string, type: string) {
 }
 
 export async function downloadRunReport(id: string) {
-  const { run } = await requestJson<{ run: TestRun }>(`/api/runs/${id}`);
+  const { run } = await api.get(`/api/runs/${id}`).json<{ run: TestRun }>();
 
   downloadText(JSON.stringify(run, null, 2), `caseforge-${id}.json`, 'application/json');
 }

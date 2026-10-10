@@ -5,7 +5,7 @@ import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useEffect, useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
-import { requestJson as api } from '@/client/api';
+import { api } from '@/client/api';
 import { Dialog } from '@/components/shared/Dialog';
 import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
 
@@ -56,10 +56,14 @@ export function TestEditor({
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
-    void api<{ builds: typeof builds }>('/api/builds')
+    void api
+      .get('/api/builds')
+      .json<{ builds: typeof builds }>()
       .then((data) => setBuilds(data.builds))
       .catch(() => {});
-    void api<{ resources: typeof deviceResources }>('/api/resources')
+    void api
+      .get('/api/resources')
+      .json<{ resources: typeof deviceResources }>()
       .then((data) => setDeviceResources(data.resources))
       .catch(() => {});
   }, []);
@@ -71,44 +75,43 @@ export function TestEditor({
     try {
       const editing = test && !duplicate;
 
-      await api(editing ? `/api/tests/${test.id}` : '/api/tests', {
-        method: editing ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          ...(platform === 'web'
-            ? {
+      const payload = {
+        name,
+        ...(platform === 'web'
+          ? {
+              url: url.trim(),
+              target: {
+                schemaVersion: 1,
+                platform,
                 url: url.trim(),
-                target: {
-                  schemaVersion: 1,
-                  platform,
-                  url: url.trim(),
-                  browser: webProfile === 'iPhone 13' ? 'webkit' : 'chromium',
-                  deviceProfile: webProfile,
-                  inputs: JSON.parse(inputRefs),
-                },
-              }
-            : {
-                target: {
-                  schemaVersion: 1,
-                  platform,
-                  appId,
-                  deviceProfileId,
-                  inputs: JSON.parse(inputRefs),
-                  resetPolicy,
-                  evidence: { video: nativeVideo, trace: nativeTrace, logs: nativeLogs },
-                  ...(buildArtifactId ? { buildArtifactId } : {}),
-                  ...(launchUrl.trim() ? { launchUrl: launchUrl.trim() } : {}),
-                },
-              }),
+                browser: webProfile === 'iPhone 13' ? 'webkit' : 'chromium',
+                deviceProfile: webProfile,
+                inputs: JSON.parse(inputRefs),
+              },
+            }
+          : {
+              target: {
+                schemaVersion: 1,
+                platform,
+                appId,
+                deviceProfileId,
+                inputs: JSON.parse(inputRefs),
+                resetPolicy,
+                evidence: { video: nativeVideo, trace: nativeTrace, logs: nativeLogs },
+                ...(buildArtifactId ? { buildArtifactId } : {}),
+                ...(launchUrl.trim() ? { launchUrl: launchUrl.trim() } : {}),
+              },
+            }),
 
-          goal,
-          tags: tags
-            .split(/[,，]/)
-            .map((tag) => tag.trim())
-            .filter(Boolean),
-        }),
-      });
+        goal,
+        tags: tags
+          .split(/[,，]/)
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      };
+
+      if (editing) await api.patch(`/api/tests/${test.id}`, { json: payload });
+      else await api.post('/api/tests', { json: payload });
       await onSaved();
     } catch (cause) {
       setFormError(cause instanceof Error ? cause.message : '保存失败');

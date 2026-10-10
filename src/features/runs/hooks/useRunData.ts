@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { isActiveRun, type TestRun } from '@/features/runs/types';
-import { createJsonReader, HttpError } from '@/client/api';
+import { isHTTPError } from 'ky';
+import { createJsonReader } from '@/client/etag';
 import { useRealtime } from '@/client/useRealtime';
 import { retryVisibleRequest } from '@/client/swr';
 import { applyRunUpdates, type Preview, type RunUpdate } from '@/features/runs/lib/realtime';
@@ -110,7 +111,7 @@ export function useRunData(id: string, previewEnabled: boolean) {
 }
 
 function isUnavailable(error: unknown) {
-  return error instanceof HttpError && (error.status === 400 || error.status === 404);
+  return isHTTPError(error) && (error.response.status === 400 || error.response.status === 404);
 }
 
 function newestRun(current: TestRun | undefined, incoming: TestRun): TestRun {

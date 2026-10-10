@@ -11,7 +11,7 @@ import {
   parseDeviceRecordingScript,
 } from '@/features/runs/lib/deviceRecording';
 import { CodeEditor } from './CodeEditor';
-import { requestJson as request } from '@/client/api';
+import { api } from '@/client/api';
 import { downloadText } from '@/client/download';
 import { recordingCodeSchema, recordingInputMessage } from '@/features/runs/schemas';
 
@@ -40,9 +40,11 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   useEffect(() => {
     const controller = new AbortController();
 
-    void request<{ versions: RecordingVersion[] }>(`/api/runs/${run.id}/recording`, {
-      signal: controller.signal,
-    })
+    void api
+      .get(`/api/runs/${run.id}/recording`, {
+        signal: controller.signal,
+      })
+      .json<{ versions: RecordingVersion[] }>()
       .then((data) => {
         if (!controller.signal.aborted) setVersions(data.versions);
       })
@@ -81,11 +83,11 @@ export function RecordingEditor({ run }: { run: TestRun }) {
     try {
       let version = versions.find((v) => v.id === selected);
       if (!version || dirty) {
-        const data = await request<{ version: RecordingVersion }>(`/api/runs/${run.id}/recording`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code }),
-        });
+        const data = await api
+          .post(`/api/runs/${run.id}/recording`, {
+            json: { code },
+          })
+          .json<{ version: RecordingVersion }>();
 
         version = data.version;
         setVersions((current) => [data.version, ...current]);
@@ -93,15 +95,15 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         setMessage('新版本已保存。');
       }
       if (execute) {
-        const data = await request<{ run: TestRun }>('/api/runs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mode: 'replay',
-            sourceRunId: run.id,
-            recordingVersionId: version.id,
-          }),
-        });
+        const data = await api
+          .post('/api/runs', {
+            json: {
+              mode: 'replay',
+              sourceRunId: run.id,
+              recordingVersionId: version.id,
+            },
+          })
+          .json<{ run: TestRun }>();
 
         router.push(`/runs/${data.run.id}`);
       }

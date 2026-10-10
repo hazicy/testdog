@@ -1,64 +1,60 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createJsonReader, requestJson } from './api';
+import { api } from './api';
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 describe('JSON transport', () => {
-  it('reuses unchanged reads, retains cache across errors and replaces it with new data', async () => {
-    const fetch = vi
-      .fn()
-      .mockResolvedValueOnce(Response.json({ value: 1 }, { headers: { ETag: '"first"' } }))
-      .mockResolvedValueOnce(new Response(null, { status: 304 }))
-      .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValueOnce(Response.json({ value: 2 }, { headers: { ETag: '"second"' } }));
-
-    vi.stubGlobal('fetch', fetch);
-    const read = createJsonReader<{ value: number }>('/api/run');
-    const first = await read();
-
-    expect(await read()).toBe(first);
-    expect(fetch.mock.calls[1][1].headers.get('if-none-match')).toBe('"first"');
-    await expect(read()).rejects.toThrow('offline');
-    expect(await read()).toEqual({ value: 2 });
-    expect(fetch.mock.calls[3][1].headers.get('if-none-match')).toBe('"first"');
-    const independent = createJsonReader('/api/other');
-
-    fetch.mockResolvedValueOnce(Response.json({ value: 3 }));
-    await independent();
-    expect(fetch.mock.calls[4][1].headers.has('if-none-match')).toBe(false);
-  });
   it('passes request options, including abort signals, to fetch', async () => {
-    const fetch = vi.fn().mockResolvedValue(Response.json({ run: { id: 'run' } }));
+    let submitted: unknown;
+    const fetch = vi.fn(async (request: Request) => {
+      submitted = await request.json();
+
+      return Response.json({ run: { id: 'run' } });
+    });
 
     vi.stubGlobal('fetch', fetch);
     const controller = new AbortController();
 
-    expect(await requestJson('/api/runs', { signal: controller.signal })).toEqual({
+    expect(
+      await api('http://localhost/api/runs', {
+        method: 'POST',
+        headers: { 'X-Request-Id': 'test-request' },
+        json: { testId: 'test' },
+        signal: controller.signal,
+      }).json(),
+    ).toEqual({
       run: { id: 'run' },
     });
-    expect(fetch).toHaveBeenCalledWith('/api/runs', {
+    expect(fetch.mock.calls[0][0]).toMatchObject({
+      url: 'http://localhost/api/runs',
+      method: 'POST',
       cache: 'no-store',
-      headers: expect.any(Headers),
       signal: expect.any(AbortSignal),
     });
+    expect(fetch.mock.calls[0][0].headers.get('x-request-id')).toBe('test-request');
+    expect(submitted).toEqual({ testId: 'test' });
   });
 
   it('preserves actionable server error messages', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(Response.json({ message: '已有测试正在执行' }, { status: 409 })),
+      vi.fn(async () => Response.json({ message: '已有测试正在执行' }, { status: 409 })),
     );
-    await expect(requestJson('/api/runs')).rejects.toThrow('已有测试正在执行');
-    await expect(requestJson('/api/runs')).rejects.toMatchObject({ status: 409 });
+    await expect(api('http://localhost/api/runs').json()).rejects.toThrow('已有测试正在执行');
+    await expect(api('http://localhost/api/runs').json()).rejects.toMatchObject({
+      response: { status: 409 },
+    });
   });
 
   it.each([null, { message: 503 }, { error: 'offline' }])(
     'handles error bodies without a message',
     async (body) => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(body, { status: 503 })));
-      await expect(requestJson('/api/runs')).rejects.toThrow('请求失败，请稍后重试。');
+      await expect(api('http://localhost/api/runs').json()).rejects.toThrow(
+        '请求失败，请稍后重试。',
+      );
     },
   );
 
@@ -67,17 +63,21 @@ describe('JSON transport', () => {
       'fetch',
       vi.fn().mockResolvedValue(new Response('<h1>Bad Gateway</h1>', { status: 502 })),
     );
-    await expect(requestJson('/api/runs')).rejects.toThrow('服务响应异常，请稍后重试。');
+    await expect(api('http://localhost/api/runs').json()).rejects.toThrow(
+      '服务响应异常，请稍后重试。',
+    );
     // Use a new body because Response.json() consumes the original stream.
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Bad Gateway', { status: 502 })));
-    await expect(requestJson('/api/runs')).rejects.toMatchObject({ status: 502 });
+    await expect(api('http://localhost/api/runs').json()).rejects.toMatchObject({
+      response: { status: 502 },
+    });
   });
 
   it('propagates fetch cancellation', async () => {
     const error = new DOMException('Cancelled', 'AbortError');
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(error));
-    await expect(requestJson('/api/runs')).rejects.toBe(error);
+    await expect(api('http://localhost/api/runs').json()).rejects.toBe(error);
   });
 
   it.each(['GET', 'POST'])(
@@ -87,15 +87,15 @@ describe('JSON transport', () => {
       vi.stubGlobal(
         'fetch',
         vi.fn(
-          (_url, { signal }) =>
+          ({ signal }: Request) =>
             new Promise((_resolve, reject) => {
               signal.addEventListener('abort', () => reject(signal.reason), { once: true });
             }),
         ),
       );
-      const pending = requestJson('/api/runs', { method });
+      const pending = api('http://localhost/api/runs', { method }).json();
       const failure = expect(pending).rejects.toMatchObject({
-        status: 408,
+        name: 'TimeoutError',
         message:
           method === 'GET'
             ? '请求超时，请稍后重试。'
@@ -112,44 +112,69 @@ describe('JSON transport', () => {
     vi.useFakeTimers();
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (_url, { signal }) => ({
-        ok: true,
-        status: 200,
-        json: () =>
-          new Promise((_resolve, reject) => {
-            signal.addEventListener('abort', () => reject(signal.reason), { once: true });
-          }),
-      })),
+      vi.fn(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+
+        return new Response(new ReadableStream());
+      }),
     );
-    const pending = requestJson('/api/runs');
-    const failure = expect(pending).rejects.toMatchObject({ status: 408 });
+    const pending = api('http://localhost/api/runs').json();
+    const failure = expect(pending).rejects.toMatchObject({ name: 'TimeoutError' });
 
     await vi.advanceTimersByTimeAsync(15000);
     await failure;
+    expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('forwards caller cancellation and cleans up its listener and timer', async () => {
+  it('forwards caller cancellation and releases the timeout', async () => {
     vi.useFakeTimers();
     const caller = new AbortController();
-    const remove = vi.spyOn(caller.signal, 'removeEventListener');
+    let started!: () => void;
+    const fetching = new Promise<void>((resolve) => {
+      started = resolve;
+    });
 
     vi.stubGlobal(
       'fetch',
       vi.fn(
-        (_url, { signal }) =>
+        ({ signal }: Request) =>
           new Promise((_resolve, reject) => {
             signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+            started();
           }),
       ),
     );
-    const pending = requestJson('/api/runs', { signal: caller.signal });
+    const pending = api('http://localhost/api/runs', { signal: caller.signal }).json();
     const reason = new DOMException('Unmounted', 'AbortError');
     const failure = expect(pending).rejects.toBe(reason);
 
+    await fetching;
     caller.abort(reason);
     await failure;
-    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each(['GET', 'POST', 'DELETE', 'PATCH'])(
+    'does not automatically retry failed %s requests',
+    async (method) => {
+      const fetch = vi.fn(async () =>
+        Response.json({ message: '服务暂时不可用' }, { status: 503 }),
+      );
+
+      vi.stubGlobal('fetch', fetch);
+      await expect(api('http://localhost/api/runs', { method }).json()).rejects.toMatchObject({
+        response: { status: 503 },
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('does not automatically retry network failures', async () => {
+    const fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+
+    vi.stubGlobal('fetch', fetch);
+    await expect(api('http://localhost/api/runs').json()).rejects.toThrow();
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it('does not fetch when the caller is already cancelled', async () => {
@@ -158,9 +183,9 @@ describe('JSON transport', () => {
     vi.stubGlobal('fetch', fetch);
     const reason = new DOMException('Unmounted', 'AbortError');
 
-    await expect(requestJson('/api/runs', { signal: AbortSignal.abort(reason) })).rejects.toBe(
-      reason,
-    );
+    await expect(
+      api('http://localhost/api/runs', { signal: AbortSignal.abort(reason) }).json(),
+    ).rejects.toBe(reason);
     expect(fetch).not.toHaveBeenCalled();
   });
 });

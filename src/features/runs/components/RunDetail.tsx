@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ExecutionStep, TestRun } from '@/features/runs/types';
-import { requestJson as request } from '@/client/api';
+import { api } from '@/client/api';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { downloadRunReport } from '@/client/download';
 import { StepList } from './StepList';
@@ -105,13 +105,11 @@ export function RunDetail({ id }: { id: string }) {
     if (!run) return;
     setBusy(true);
     try {
-      const data = await request<{ run: TestRun }>('/api/runs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          mode === 'replay' ? { mode, sourceRunId: id } : { testId: run.testId },
-        ),
-      });
+      const data = await api
+        .post('/api/runs', {
+          json: mode === 'replay' ? { mode, sourceRunId: id } : { testId: run.testId },
+        })
+        .json<{ run: TestRun }>();
 
       router.push(`/runs/${data.run.id}`);
     } catch (cause) {
@@ -124,7 +122,7 @@ export function RunDetail({ id }: { id: string }) {
   async function cancel() {
     setBusy(true);
     try {
-      await request(`/api/runs/${id}`, { method: 'DELETE' });
+      await api.delete(`/api/runs/${id}`);
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '停止失败');

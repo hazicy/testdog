@@ -1,79 +1,45 @@
-/** Shared JSON transport for the workspace's client components. */
-export async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  return readJson<T>(url, init);
-}
+import ky, { isHTTPError, isNetworkError, isTimeoutError } from 'ky';
 
-export function createJsonReader<T>(url: string) {
-  const cache: { etag?: string; value?: T } = {};
-
-  return (init?: Omit<RequestInit, 'method' | 'body'>) =>
-    readJson(url, { ...init, method: 'GET' }, cache);
-}
-
-async function readJson<T>(
-  url: string,
-  init?: RequestInit,
-  cache?: { etag?: string; value?: T },
-): Promise<T> {
-  const controller = new AbortController();
-  const cancel = () => controller.abort(init?.signal?.reason);
-  const timeout = new HttpError(
-    init?.method && !['GET', 'HEAD'].includes(init.method.toUpperCase())
-      ? '请求超时，操作可能已完成，请刷新确认后再试。'
-      : '请求超时，请稍后重试。',
-    408,
-  );
-  const timer = setTimeout(() => controller.abort(timeout), 15000);
-
-  init?.signal?.addEventListener('abort', cancel, { once: true });
-  if (init?.signal?.aborted) cancel();
-  try {
-    controller.signal.throwIfAborted();
-    const headers = new Headers(init?.headers);
-    if (cache?.etag && cache.value !== undefined) headers.set('If-None-Match', cache.etag);
-    const response = await fetch(url, {
-      cache: 'no-store',
-      ...init,
-      headers,
-      signal: controller.signal,
-    });
-    if (response.status === 304 && cache?.value !== undefined) return cache.value;
-    let data: unknown;
+export const api = ky.create({
+  cache: 'no-store',
+  timeout: 15000,
+  totalTimeout: 15000,
+  // SWR retries reads; mutations must only run once per user action.
+  retry: 0,
+  parseJson: (text) => {
     try {
-      data = await response.json();
-    } catch (error) {
-      if (controller.signal.aborted) throw error;
-      throw new HttpError('服务响应异常，请稍后重试。', response.status);
+      return JSON.parse(text);
+    } catch (cause) {
+      throw new Error('服务响应异常，请稍后重试。', { cause });
     }
-    controller.signal.throwIfAborted();
-    if (!response.ok) {
-      const message =
-        data && typeof data === 'object' && 'message' in data ? data.message : undefined;
-      throw new HttpError(
-        typeof message === 'string' ? message : '请求失败，请稍后重试。',
-        response.status,
-      );
-    }
-    if (cache) {
-      cache.value = data as T;
-      cache.etag = response.headers.get('etag') || undefined;
-    }
+  },
+  hooks: {
+    beforeRequest: [({ request }) => request.signal.throwIfAborted()],
+    beforeError: [
+      ({ error, request }) => {
+        if (isHTTPError(error)) {
+          const data = error.data;
+          const message =
+            data && typeof data === 'object' && 'message' in data ? data.message : undefined;
 
-    return data as T;
-  } catch (error) {
-    if (controller.signal.reason === timeout) throw timeout;
-    throw error;
-  } finally {
-    clearTimeout(timer);
-    init?.signal?.removeEventListener('abort', cancel);
-  }
-}
+          error.message =
+            typeof message === 'string'
+              ? message
+              : typeof data === 'string' || data === undefined
+                ? '服务响应异常，请稍后重试。'
+                : '请求失败，请稍后重试。';
+        } else if (isTimeoutError(error)) {
+          error.message = ['GET', 'HEAD'].includes(request.method)
+            ? '请求超时，请稍后重试。'
+            : '请求超时，操作可能已完成，请刷新确认后再试。';
+        } else if (isNetworkError(error)) {
+          error.message = '无法连接服务，请检查网络后重试。';
+        }
 
-export class HttpError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-  ) {
-    super(message);
-  }
-}
+        return error;
+      },
+    ],
+  },
+});
+
+export const fetchJson = <T>(url: string) => api.get(url).json<T>();

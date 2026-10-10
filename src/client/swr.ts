@@ -1,5 +1,5 @@
 import type { SWRConfiguration } from 'swr';
-import { HttpError } from './api';
+import { isHTTPError } from 'ky';
 
 /** Retry only while this resource still permits automatic network reads. */
 export const retryVisibleRequest: NonNullable<SWRConfiguration['onErrorRetry']> = (
@@ -9,7 +9,8 @@ export const retryVisibleRequest: NonNullable<SWRConfiguration['onErrorRetry']> 
   revalidate,
   options,
 ) => {
-  if (error instanceof HttpError && (error.status === 400 || error.status === 404)) return;
+  if (isHTTPError(error) && (error.response.status === 400 || error.response.status === 404))
+    return;
   if (!config.isVisible() || !config.isOnline()) return;
   setTimeout(() => {
     if (config.isVisible() && config.isOnline()) revalidate(options);

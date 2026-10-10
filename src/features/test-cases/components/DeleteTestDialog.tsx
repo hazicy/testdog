@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
-import { requestJson as api } from '@/client/api';
+import { api } from '@/client/api';
 import { Dialog } from '@/components/shared/Dialog';
 
 export function DeleteTestDialog({
@@ -21,7 +21,7 @@ export function DeleteTestDialog({
     setSaving(true);
     setFormError('');
     try {
-      await api(`/api/tests/${test.id}`, { method: 'DELETE' });
+      await api.delete(`/api/tests/${test.id}`);
       await onDeleted();
     } catch (cause) {
       setFormError(cause instanceof Error ? cause.message : '删除失败');
