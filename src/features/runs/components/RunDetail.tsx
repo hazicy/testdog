@@ -1,7 +1,5 @@
 'use client';
 import { useRunSubmission } from '@/client/useRunSubmission';
-
-('use client');
 import { Button } from '@/components/ui/Button';
 
 import { isActiveRun } from '@/features/runs/types';

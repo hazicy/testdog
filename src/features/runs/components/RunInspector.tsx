@@ -1,7 +1,5 @@
 'use client';
 import { ModelUsagePanel } from './ModelUsagePanel';
-
-('use client');
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import type { ExecutionStep, RunArtifact, TestRun } from '@/features/runs/types';
