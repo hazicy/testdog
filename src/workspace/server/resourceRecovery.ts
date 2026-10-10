@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir, hostname } from 'node:os';
 import { join } from 'node:path';
 import { createAgentDeviceClient } from 'agent-device';
-import { launchWebBrowser } from '@/automation/platform/mobile';
+import { launchWebBrowser } from '@/automation/platform/web/mobile';
 import { recoverResource } from './scheduler';
 import { getRun } from './store';
 

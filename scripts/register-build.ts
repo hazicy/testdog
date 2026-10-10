@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { registerBuild } from '../src/automation/platform/builds';
+import { registerBuild } from '../src/automation/platform/native/builds';
 import { pool } from '../src/db';
 
 const [platform, path] = process.argv.slice(2);

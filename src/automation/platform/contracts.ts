@@ -117,6 +117,7 @@ export type ArtifactDescriptor = {
   producer: string;
   format: string;
 };
+
 export type SessionEvent = {
   id: string;
   phase: 'start' | 'finish' | 'error';
@@ -132,12 +133,14 @@ export type SessionEvent = {
   evidence?: string;
   error?: string;
 };
+
 export interface AutomationSession {
   readonly id: string;
   readonly platform: TestTarget['platform'];
   readonly capabilities: CapabilitySet;
   readonly revision: number;
   readonly latestObservation?: Observation;
+
   selectSurface?(id: string, signal: AbortSignal): Promise<void>;
   observe(signal: AbortSignal): Promise<Observation>;
   perform(action: PlatformAction, signal: AbortSignal): Promise<void>;

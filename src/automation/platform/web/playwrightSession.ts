@@ -1,11 +1,11 @@
-import { SecretInputs } from './inputs';
+import { SecretInputs } from '../inputs';
 import { expect as playwrightExpect } from '@playwright/test';
 import { recordAction } from '@/workspace/server/locator';
 import type { Page } from 'playwright';
-import { BrowserSession } from '../browserSession';
-import { Observer } from '../observer';
-import { Executor } from '../executor';
-import { Planner } from '../planner';
+import { BrowserSession } from '../../browserSession';
+import { Observer } from '../../observer';
+import { Executor } from '../../executor';
+import { Planner } from '../../planner';
 import type { ExecutionHooks } from '@/workspace/types';
 import type {
   ActionPlanner,
@@ -16,7 +16,7 @@ import type {
   PlatformAssertion,
   CaptureRequest,
   ArtifactDescriptor,
-} from './contracts';
+} from '../contracts';
 
 export class PlaywrightSession implements AutomationSession {
   readonly platform = 'web' as const;

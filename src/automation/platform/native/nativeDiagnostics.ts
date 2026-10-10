@@ -2,7 +2,7 @@ import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative } from 'node:path';
 import type { AgentDeviceClient } from 'agent-device';
-import type { ArtifactDescriptor, CaptureRequest } from './contracts';
+import type { ArtifactDescriptor, CaptureRequest } from '../contracts';
 
 export type NativeEvidence = { video?: boolean; trace?: boolean; logs?: boolean };
 export class NativeDiagnostics {

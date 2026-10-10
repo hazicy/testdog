@@ -75,6 +75,9 @@ src/
   client/              浏览器端 JSON 请求、串行刷新与轮询生命周期
   automation/          编译、规划、页面观察、浏览器会话与执行
     compiler/          用例计划和动作 schema
+    platform/          统一会话协议、目标配置与运行时装配
+      web/             Playwright 会话与移动浏览器配置
+      native/          Android/iOS 会话、规划、诊断与构建管理
   workspace/           共享类型、校验、录制脚本解析与计划树
     server/            数据库仓库、步骤记录、画面附件与运行生命周期
   db/                  Drizzle 表定义与 PostgreSQL 连接
@@ -161,7 +164,7 @@ worker 默认并发数为登记资源数，可用 CASEFORGE_WORKER_CONCURRENCY �
 真实设备适配器验证使用自建测试应用：
 
 ```bash
-RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/android-sdk pnpm exec vitest run src/automation/platform/agentDevice.live.test.ts
+RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/android-sdk pnpm exec vitest run src/automation/platform/native/agentDevice.live.test.ts
 ```
 
 该测试为 iOS 创建并删除独立 simulator；Android 需要指定已启动的专用 emulator。Android fixture 编译使用 SDK 36 与 build-tools 36.0.0，Java 路径可用 CASEFORGE_JAVA_HOME 设置。

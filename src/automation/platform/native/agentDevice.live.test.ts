@@ -1,4 +1,4 @@
-import { PlanRunner } from '../planRunner';
+import { PlanRunner } from '../../planRunner';
 import type { ExecutionStep } from '@/workspace/types';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -23,7 +23,7 @@ import { registerBuild } from './builds';
 
 afterAll(() => isolated.client?.close());
 import { AgentDeviceSession } from './agentDeviceSession';
-import type { NativeAction, PlatformAction } from './contracts';
+import type { NativeAction, PlatformAction } from '../contracts';
 
 const exec = promisify(execFile);
 const live = process.env.RUN_DEVICE_LIVE_TESTS === 'true';
@@ -89,7 +89,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
     const app = join(directory, 'CaseForgeFixture.app');
     try {
       await mkdir(app);
-      await cp('src/automation/platform/fixtures/ios/Info.plist', join(app, 'Info.plist'));
+      await cp('src/automation/platform/native/fixtures/ios/Info.plist', join(app, 'Info.plist'));
       const sdk = (
         await exec('xcrun', ['--sdk', 'iphonesimulator', '--show-sdk-path'])
       ).stdout.trim();
@@ -105,7 +105,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
           '-target',
           `${process.arch === 'arm64' ? 'arm64' : 'x86_64'}-apple-ios17.0-simulator`,
           '-parse-as-library',
-          'src/automation/platform/fixtures/ios/Main.swift',
+          'src/automation/platform/native/fixtures/ios/Main.swift',
           '-o',
           join(app, 'CaseForgeFixture'),
         ],
@@ -225,7 +225,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       await exec(join(tools, 'aapt2'), [
         'compile',
         '--dir',
-        'src/automation/platform/fixtures/android/res',
+        'src/automation/platform/native/fixtures/android/res',
         '-o',
         resources,
       ]);
@@ -236,7 +236,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         '-I',
         androidJar,
         '--manifest',
-        'src/automation/platform/fixtures/android/AndroidManifest.xml',
+        'src/automation/platform/native/fixtures/android/AndroidManifest.xml',
         resources,
       ]);
       await exec(join(java, 'bin', 'javac'), [
@@ -248,7 +248,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         androidJar,
         '-d',
         classes,
-        'src/automation/platform/fixtures/android/MainActivity.java',
+        'src/automation/platform/native/fixtures/android/MainActivity.java',
       ]);
       await exec(
         join(tools, 'd8'),

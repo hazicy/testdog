@@ -1,9 +1,9 @@
 import { NativeDiagnostics } from './nativeDiagnostics';
-import { SecretInputs } from './inputs';
+import { SecretInputs } from '../inputs';
 import { readFile, rm, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { PlatformAssertion, CaptureRequest, ArtifactDescriptor } from './contracts';
+import type { PlatformAssertion, CaptureRequest, ArtifactDescriptor } from '../contracts';
 import { clearAndroidData, getBuild, installedBuildHash } from './builds';
 import { createAgentDeviceClient, type AgentDeviceClient, type SnapshotNode } from 'agent-device';
 import {
@@ -15,8 +15,8 @@ import {
   type Observation,
   type PlatformAction,
   type SessionEvent,
-} from './contracts';
-import type { NativeTarget } from './target';
+} from '../contracts';
+import type { NativeTarget } from '../target';
 
 export class AgentDeviceSession implements AutomationSession {
   readonly platform: NativeTarget['platform'];
