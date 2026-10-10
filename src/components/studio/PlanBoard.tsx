@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Plan } from '@/automation/compiler/schema';
 import type { ExecutionStep } from '@/workspace/types';
 import { planForest } from '@/workspace/planTree';
@@ -35,15 +35,39 @@ export function PlanBoard({
   }, [steps]);
   const node = plan?.nodes[selected || ''];
   const selectedSteps = selected ? stepsByNode.get(selected) || [] : [];
-  function fit() {
-    if (!viewport.current || !stage.current) return;
+  const fit = useCallback(() => {
+    if (
+      !viewport.current ||
+      !stage.current ||
+      !viewport.current.clientWidth ||
+      !stage.current.offsetWidth
+    )
+      return;
     const scale = Math.min(
       1,
       (viewport.current.clientWidth - 48) / stage.current.offsetWidth,
       (viewport.current.clientHeight - 48) / stage.current.offsetHeight,
     );
     setView({ x: 24, y: 24, scale: Math.max(0.15, scale) });
-  }
+  }, []);
+  useEffect(() => {
+    const surface = viewport.current;
+    const content = stage.current;
+    if (!surface || !content) return;
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(surface);
+    observer.observe(content);
+    update();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [fit, plan?.rootId]);
   useEffect(() => {
     const surface = viewport.current;
     if (!surface) return;
@@ -111,7 +135,7 @@ export function PlanBoard({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-page-line px-4 py-3">
         <div>
           <p className="text-sm font-medium">嵌套执行计划</p>
-          <p className="mt-1 text-[10px] text-page-muted">
+          <p className="mt-1 text-xs text-page-muted">
             拖动背景平移 · Ctrl / ⌘ + 滚轮缩放 · 点击节点查看预期与执行步骤
           </p>
         </div>
@@ -233,7 +257,7 @@ export function PlanBoard({
         >
           {node ? (
             <>
-              <p className="font-mono text-[10px] text-page-muted">
+              <p className="font-mono text-xs text-page-muted">
                 {node.kind.toUpperCase()} / {node.id}
               </p>
               <h3 className="mt-3 text-sm leading-6">

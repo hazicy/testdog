@@ -175,10 +175,8 @@ export function RunDetail({ id }: { id: string }) {
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="mb-3 font-mono text-[10px] tracking-[1.5px] text-page-muted">
-            EXECUTION STUDIO / {id.slice(0, 8).toUpperCase()}
-          </p>
-          <h1 className="text-[30px] font-[550] tracking-[-1px] text-balance">
+          <p className="mb-3 font-mono text-xs text-page-muted">执行记录 / {id.slice(0, 8)}</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-balance">
             {run?.name || '加载执行记录…'}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-page-muted">
@@ -188,7 +186,7 @@ export function RunDetail({ id }: { id: string }) {
                   <span />
                   {statuses[run.status]}
                 </span>
-                <span className="font-mono">{run.mode === 'replay' ? 'REPLAY' : 'RECORD'}</span>
+                <span className="font-mono">{run.mode === 'replay' ? '重放' : '录制'}</span>
                 <span>{run.steps.length} 个步骤</span>
                 <span>{time(run.durationMs ?? Math.max(0, now - Date.parse(run.startedAt)))}</span>
                 {run.sourceRunId && (
@@ -292,7 +290,7 @@ export function RunDetail({ id }: { id: string }) {
         <p className="p-6 text-sm text-page-muted">录制结束后可以编辑操作和预期。</p>
       )}
       <div hidden={view !== 'execution'}>
-        <div className="mt-7 grid border border-page-line bg-[#fffefa] xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="mt-7 grid overflow-hidden rounded-lg border border-page-line bg-[#fffefa] xl:grid-cols-[minmax(0,1fr)_320px]">
           <section aria-label="浏览器画面" className="min-w-0 xl:border-r xl:border-page-line">
             <div className="flex h-12 items-center gap-3 border-b border-page-line px-4">
               <div className="flex gap-1.5" aria-hidden="true">
@@ -300,7 +298,7 @@ export function RunDetail({ id }: { id: string }) {
                 <span className="h-2 w-2 rounded-full bg-[#dfcf9a]" />
                 <span className="h-2 w-2 rounded-full bg-[#b9c3a4]" />
               </div>
-              <span className="ml-2 min-w-0 flex-1 truncate font-mono text-[10px] text-page-muted">
+              <span className="ml-2 min-w-0 flex-1 truncate font-mono text-xs text-page-muted">
                 {currentFrame?.pageUrl || run?.url || 'Browser session'}
               </span>
               {currentFrame && (
@@ -316,10 +314,10 @@ export function RunDetail({ id }: { id: string }) {
                 </a>
               )}
               <span className="font-mono text-[9px] tracking-wider text-page-muted">
-                {run?.status === 'running' && follow ? '● LIVE' : 'RECORDING'}
+                {run?.status === 'running' && follow ? '实时画面' : '录制画面'}
               </span>
             </div>
-            <div className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[#eaece2]">
+            <div className="relative grid aspect-video place-items-center overflow-hidden bg-[#f0f1ec]">
               {mode === 'video' && video ? (
                 <video
                   ref={videoElement}
@@ -345,9 +343,6 @@ export function RunDetail({ id }: { id: string }) {
                     {run?.status === 'running'
                       ? '浏览器正在准备，画面即将出现。'
                       : '本次执行尚未生成画面。'}
-                  </p>
-                  <p className="mt-2 font-mono text-[10px] tracking-widest text-[#959c86]">
-                    OBSERVE. EXECUTE. VERIFY.
                   </p>
                 </div>
               )}
@@ -419,7 +414,7 @@ export function RunDetail({ id }: { id: string }) {
                       width="17"
                     />
                   </button>
-                  <span className="font-mono text-[10px] text-page-muted">
+                  <span className="font-mono text-xs text-page-muted">
                     {time(currentFrame?.elapsedMs || 0)}
                   </span>
                   <input
@@ -437,14 +432,14 @@ export function RunDetail({ id }: { id: string }) {
                     }}
                     className="min-w-0 flex-1 accent-brand"
                   />
-                  <span className="font-mono text-[10px] text-page-muted">
+                  <span className="font-mono text-xs text-page-muted">
                     {time(frames.at(-1)?.elapsedMs || 0)}
                   </span>
                   <select
                     aria-label="回看速度"
                     value={speed}
                     onChange={(event) => setSpeed(Number(event.target.value))}
-                    className="border border-page-line bg-transparent p-1 font-mono text-[10px]"
+                    className="border border-page-line bg-transparent p-1 font-mono text-xs"
                   >
                     <option value={0.5}>0.5×</option>
                     <option value={1}>1×</option>
@@ -461,7 +456,7 @@ export function RunDetail({ id }: { id: string }) {
             onSelect={selectStep}
           />
         </div>
-        <div className="mt-6 border border-page-line bg-[#fffefa]">
+        <div className="mt-6 overflow-hidden rounded-lg border border-page-line bg-[#fffefa]">
           <div className="flex flex-wrap items-center gap-x-5 border-b border-page-line px-5">
             {[
               { id: 'step' as const, label: '步骤详情' },
@@ -479,14 +474,14 @@ export function RunDetail({ id }: { id: string }) {
             <div className="ml-auto flex w-full gap-3 pb-3 sm:w-auto sm:pb-0">
               {video && (
                 <a
-                  className="text-[10px] text-page-muted hover:text-brand"
+                  className="text-xs text-page-muted hover:text-brand"
                   href={`${asset(id, video)}?download`}
                 >
                   下载录像 ↗
                 </a>
               )}
               {trace && (
-                <a className="text-[10px] text-page-muted hover:text-brand" href={asset(id, trace)}>
+                <a className="text-xs text-page-muted hover:text-brand" href={asset(id, trace)}>
                   下载 Trace ↗
                 </a>
               )}
@@ -503,7 +498,7 @@ export function RunDetail({ id }: { id: string }) {
                       {statuses[selectedStep.status]}
                     </span>
                   </div>
-                  <p className="mt-3 break-all font-mono text-[10px] text-page-muted">
+                  <p className="mt-3 break-all font-mono text-xs text-page-muted">
                     {selectedStep.pageId} / {selectedStep.pageUrl}
                   </p>
                   {selectedStep.playwrightAssertion && (

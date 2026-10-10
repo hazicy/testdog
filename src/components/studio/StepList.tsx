@@ -21,7 +21,7 @@ export const StepList = memo(function StepList({
     <section aria-label="执行步骤" className="border-t border-page-line xl:border-t-0">
       <div className="flex h-12 items-center justify-between border-b border-page-line px-5">
         <h2 className="text-xs font-medium">执行步骤</h2>
-        <span className="font-mono text-[10px] text-page-muted">
+        <span className="font-mono text-xs text-page-muted">
           {steps.filter((step) => step.status === 'passed').length || 0} / {steps.length || 0}
         </span>
       </div>
@@ -34,7 +34,7 @@ export const StepList = memo(function StepList({
                 className={`flex w-full items-start gap-3 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-[#f2f1e9] ${selectedId === step.id ? 'bg-[#f3eee4]' : ''}`}
               >
                 <span
-                  className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center border font-mono text-[10px] ${step.status === 'failed' ? 'border-red-200 text-red-600' : step.status === 'passed' ? 'border-[#cdd5bf] text-[#6c805b]' : 'border-brand text-brand'}`}
+                  className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center border font-mono text-xs ${step.status === 'failed' ? 'border-red-200 text-red-600' : step.status === 'passed' ? 'border-[#cdd5bf] text-[#6c805b]' : 'border-brand text-brand'}`}
                 >
                   {step.status === 'passed'
                     ? '✓'
@@ -44,7 +44,7 @@ export const StepList = memo(function StepList({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block break-words text-xs leading-5 text-ink">{step.title}</span>
-                  <span className="mt-1.5 block font-mono text-[9px] text-page-muted">
+                  <span className="mt-1.5 block font-mono text-xs text-page-muted">
                     {kinds[step.kind]} · {step.pageId} ·{' '}
                     {step.durationMs == null
                       ? step.status === 'running'

@@ -46,7 +46,7 @@ export const PlanNodes = memo(function PlanNodes({
           aria-label={`查看节点 ${n.id}`}
         >
           <span className="flex items-center justify-between gap-4">
-            <span className="font-mono text-[10px] tracking-wider text-page-muted">
+            <span className="font-mono text-xs tracking-wider text-page-muted">
               {n.kind.toUpperCase()} / {n.id}
             </span>
             {recorded.length > 0 && (
@@ -60,12 +60,12 @@ export const PlanNodes = memo(function PlanNodes({
             {n.kind === 'branch' ? n.condition : n.goal}
           </span>
           {n.dependsOn.length > 0 && (
-            <span className="mt-2 block text-left text-[10px] text-page-muted">
+            <span className="mt-2 block text-left text-xs text-page-muted">
               依赖：{n.dependsOn.join(' · ')}
             </span>
           )}
           {n.kind === 'task' && (
-            <span className="mt-2 block text-left text-[10px] text-page-muted">
+            <span className="mt-2 block text-left text-xs text-page-muted">
               {n.assertions.length} 个预期
               {n.requirementIds.length ? ` · ${n.requirementIds.join(', ')}` : ''}
             </span>
@@ -75,11 +75,11 @@ export const PlanNodes = memo(function PlanNodes({
         {n.kind === 'branch' && (
           <div className="plan-branches">
             <div>
-              <p className="mb-3 font-mono text-[10px] text-[#6c805b]">YES / 条件成立</p>
+              <p className="mb-3 font-mono text-xs text-[#6c805b]">YES / 条件成立</p>
               {tree.then && render(tree.then)}
             </div>
             <div>
-              <p className="mb-3 font-mono text-[10px] text-page-muted">NO / 条件不成立</p>
+              <p className="mb-3 font-mono text-xs text-page-muted">NO / 条件不成立</p>
               {tree.otherwise ? (
                 render(tree.otherwise)
               ) : (

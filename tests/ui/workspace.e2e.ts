@@ -242,7 +242,7 @@ test('case search combines tags and latest status while history uses each execut
   await expect(page.getByText('没有符合条件的记录', { exact: true })).toBeVisible();
   await filter.selectOption('passed');
   await expect(page.getByRole('button', { name: saved.name, exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Results', exact: true }).click();
+  await page.getByRole('link', { name: '执行记录', exact: true }).click();
   await expect(page.getByRole('textbox', { name: '搜索结果', exact: true })).toBeVisible();
   await page.getByLabel('状态筛选').selectOption('failed');
   const result = page.getByRole('table').getByRole('link', { name: saved.name, exact: true });
