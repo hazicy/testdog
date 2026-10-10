@@ -13,8 +13,7 @@ import plusIcon from '@iconify-icons/lucide/plus';
 import testsIcon from '@iconify-icons/lucide/flask-conical';
 import { downloadRunReport } from '@/client/download';
 import { writeCaseDraft } from '@/features/test-cases/lib/caseDraft';
-import { editablePlan } from '@/features/test-cases/lib/authoring';
-import { TestEditor } from '@/features/test-cases/components/TestEditor';
+import { editablePlan, emptyPlan, caseName } from '@/features/test-cases/lib/authoring';
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
 import { RunMatrixDialog } from '@/features/test-cases/components/RunMatrixDialog';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
@@ -43,7 +42,6 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const params = useSearchParams();
   const [starting, setStarting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [editing, setEditing] = useState<{ test?: TestCase; duplicate?: boolean }>();
   const [deleting, setDeleting] = useState<TestCase | null>(null);
   const [matrixTest, setMatrixTest] = useState<TestCase | null>(null);
   const [matrixError, setMatrixError] = useState('');
@@ -54,20 +52,18 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   }, [selectedId, router]);
 
   function openEditor(test?: TestCase, duplicate = false) {
-    if (test?.plan) {
-      const id = crypto.randomUUID();
-      const name = `${test.name}${duplicate ? '（副本）' : ''}`;
+    const id = crypto.randomUUID();
+    const name = test ? `${test.name}${duplicate ? '（副本）' : ''}` : caseName('');
 
-      writeCaseDraft(id, {
-        test,
-        duplicate,
-        name,
-        url: test.url,
-        goal: test.goal,
-        plan: editablePlan(test.plan, name),
-      });
-      router.push(`/cases/editor/${id}`);
-    } else setEditing({ test, duplicate });
+    writeCaseDraft(id, {
+      test,
+      duplicate,
+      name,
+      url: test?.url ?? '',
+      goal: test?.goal ?? '',
+      plan: test?.plan ? editablePlan(test.plan, name) : emptyPlan(name),
+    });
+    router.push(`/cases/editor/${id}`);
   }
 
   async function start(testId: string) {
@@ -131,7 +127,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           </h1>
           <p className="mt-2 text-sm text-text-neutral">
             {isTests
-              ? '管理操作步骤与预期结果，运行浏览器测试。'
+              ? '把操作与预期编排成测试，让每次验证都有据可循。'
               : '查看每次测试的真实结果，定位失败并验证修复。'}
           </p>
         </div>
@@ -142,7 +138,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
             </Button>
           )}
           {isTests ? (
-            <Button className="ws-button primary" onClick={() => openEditor()}>
+            <Button className="ws-button primary case-create-trigger" onClick={() => openEditor()}>
               <Icon icon={plusIcon} width="18" aria-hidden="true" /> 新建测试
             </Button>
           ) : (
@@ -203,16 +199,6 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           error={matrixError}
           onClose={() => setMatrixTest(null)}
           onSubmit={startMatrix}
-        />
-      )}
-      {editing && (
-        <TestEditor
-          {...editing}
-          onClose={() => setEditing(undefined)}
-          onSaved={async () => {
-            setEditing(undefined);
-            await refresh();
-          }}
         />
       )}
       {deleting && (

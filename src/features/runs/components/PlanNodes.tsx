@@ -7,6 +7,13 @@ import type { ExecutionStep } from '@/features/runs/types';
 import { StepBadge } from '@/features/test-cases/components/StepType';
 
 export const nodeDragType = 'application/x-caseforge-node';
+export type NodeReview = {
+  kind: 'added' | 'modified' | 'removed';
+  before?: PlanNode;
+  count: number;
+  onAccept: () => void;
+  onReject: () => void;
+};
 export type PlanFlowNode = Node<
   {
     node: PlanNode;
@@ -21,6 +28,7 @@ export type PlanFlowNode = Node<
     onRemove: () => void;
     onDrop: (id: string) => void;
     onStep: (step: ExecutionStep) => void;
+    review?: NodeReview;
   },
   'plan'
 >;
@@ -59,6 +67,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
     <div
       data-plan-node={node.id}
       data-step-type={type}
+      data-review={data.review?.kind}
       className={`plan-node ${type} ${data.reference ? 'reference' : ''} ${editing ? 'active' : ''}`}
       onDragOver={(event) => {
         if (data.editable && event.dataTransfer.types.includes(nodeDragType)) {
@@ -79,6 +88,34 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       <Handle id="sequence-out" type="source" position={Position.Bottom} isConnectable={false} />
       <Handle id="node-in" type="target" position={Position.Left} isConnectable={false} />
       <Handle id="node-out" type="source" position={Position.Right} isConnectable={false} />
+      {data.review && (
+        <div className="plan-review-actions nodrag nopan">
+          <span>
+            {data.review.kind === 'added'
+              ? '新增'
+              : data.review.kind === 'removed'
+                ? '删除'
+                : '修改'}
+            {data.review.count > 1 ? ` · ${data.review.count} 项关联变更` : ''}
+          </span>
+          <button
+            type="button"
+            aria-label={`接受变更 ${node.id}`}
+            title="接受"
+            onClick={data.review.onAccept}
+          >
+            ✓
+          </button>
+          <button
+            type="button"
+            aria-label={`拒绝变更 ${node.id}`}
+            title="拒绝"
+            onClick={data.review.onReject}
+          >
+            ×
+          </button>
+        </div>
+      )}
       {data.editable && data.mutable && (
         <div className="plan-node-actions nodrag nopan">
           <button
@@ -115,6 +152,13 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       <div className="plan-node-row nodrag nopan">
         <StepBadge type={type} />
         <div className="plan-node-content">
+          {data.review?.kind === 'modified' && data.review.before && (
+            <span className="plan-review-before">
+              {data.review.before.kind === 'branch'
+                ? data.review.before.condition
+                : data.review.before.goal}
+            </span>
+          )}
           {data.pathLabel && <span className="plan-path-label">{data.pathLabel}</span>}
           {editing ? (
             <textarea

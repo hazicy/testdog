@@ -62,7 +62,9 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
     try {
       await page.goto(`${process.env.CASEFORGE_UI_URL}/cases`);
       await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-      const dialog = page.getByRole('dialog');
+      const dialog = page.locator('.case-canvas-page');
+
+      await dialog.getByRole('button', { name: '展开面板', exact: true }).click();
 
       await dialog.getByLabel('测试名称', { exact: true }).fill('Native fixture');
       await dialog.getByLabel('平台', { exact: true }).click();

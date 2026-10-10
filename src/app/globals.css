@@ -596,32 +596,17 @@ body {
   border-style: dashed;
 }
 
-/* Text-first creation opens a dedicated canvas with optional settings. */
-.case-text-dialog {
-  width: min(760px, calc(100vw - 32px));
-  max-width: 760px;
-}
-.case-text-body {
-  padding: 24px;
-}
-.case-text-input {
-  min-height: 300px;
-  resize: vertical;
-  line-height: 1.8;
-  font-size: 14px;
+/* Test creation and canvas authoring. */
+.case-create-trigger {
+  border-radius: 10px;
+  padding: 10px 16px;
+  box-shadow: 0 2px 5px #2536530a;
 }
 .case-editor-form {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
-}
-.case-editor-form > .ws-dialog-header,
-.case-editor-form > .ws-dialog-footer {
-  flex-shrink: 0;
-}
-.case-editor-form > .ws-dialog-footer {
-  justify-content: space-between;
 }
 .case-canvas-content {
   flex: 1;
@@ -654,19 +639,241 @@ body {
   min-height: 0;
 }
 .plan-board-body {
+  position: relative;
   display: grid;
   min-height: 0;
   flex: 1;
   grid-template-columns: minmax(0, 1fr);
 }
+.plan-board-body.has-floating-panel {
+  background: var(--surface);
+}
+.case-floating-panel {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  bottom: 24px;
+  width: 392px;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  max-height: calc(100% - 48px);
+  height: fit-content;
+  z-index: 10;
+  border: 1px solid var(--page-line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  box-shadow:
+    0 8px 32px #2536530d,
+    0 2px 6px #25365306;
+  overflow: hidden;
+}
+.case-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+}
+.case-panel-primary-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.case-panel-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--page-line);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+.case-panel-action.primary {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.case-panel-action:hover {
+  filter: brightness(0.97);
+}
+.case-panel-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.case-panel-action:focus-visible {
+  outline: 2px solid var(--brand-line);
+  outline-offset: 2px;
+}
+.case-panel-generate {
+  width: 28px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--brand);
+}
+.case-panel-generate[aria-expanded='true'],
+.case-panel-generate[data-pending='true'] {
+  background: var(--brand-soft);
+  border-color: var(--brand-line);
+}
+.case-panel-platform {
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: var(--surface-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.case-panel-count {
+  color: var(--page-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.case-panel-heading {
+  padding: 0 20px 16px;
+}
+.case-panel-heading h2 {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.case-panel-heading p {
+  margin-top: 5px;
+  color: var(--page-muted);
+  font-size: 12px;
+}
+.case-panel-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+}
+.case-floating-panel .case-editor-error {
+  flex-shrink: 0;
+}
+.case-floating-panel.is-collapsed {
+  bottom: auto;
+}
+.case-prompt-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.case-prompt-heading > button {
+  margin-left: auto;
+}
+.case-prompt-input {
+  display: block;
+  width: 100%;
+  min-height: 78px;
+  max-height: 180px;
+  padding: 10px 18px;
+  border: 0;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  color: var(--control-ink);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.case-prompt-input::placeholder {
+  color: var(--control-placeholder);
+}
+.case-prompt-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 8px 12px 12px 18px;
+}
+.case-prompt-footer > span {
+  color: var(--page-muted);
+  font-size: 11px;
+}
+.case-prompt-footer .ws-button {
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+.has-composer .plan-canvas-hint {
+  display: none;
+}
+@media (max-width: 900px) {
+  .case-floating-panel {
+    width: 336px;
+    right: 12px;
+    top: 12px;
+    max-height: calc(100% - 24px);
+  }
+}
+@media (max-width: 600px) {
+  .case-prompt-footer > span {
+    max-width: 150px;
+  }
+  .case-floating-panel {
+    width: min(336px, calc(100% - 24px));
+  }
+}
 .plan-board-body.has-inspector {
   grid-template-columns: minmax(0, 1fr) 300px;
 }
 .plan-board .plan-viewport {
-  background: #fff;
-  --xy-background-color: #fff;
+  background: var(--surface);
+  --xy-background-color: var(--surface);
   --xy-handle-background-color: transparent;
   --xy-handle-border-color: transparent;
+}
+.plan-canvas-tools {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  pointer-events: none;
+}
+.plan-canvas-hint {
+  margin-right: auto;
+  border: 1px solid var(--page-line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: var(--surface);
+  color: var(--page-muted);
+  font-size: 12px;
+}
+.plan-viewport-controls {
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--page-line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  box-shadow: 0 3px 12px #25365308;
+  pointer-events: auto;
+}
+.plan-viewport-controls button {
+  min-width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.plan-viewport-controls button:hover {
+  background: var(--surface-muted);
+}
+.plan-viewport-controls button:focus-visible {
+  outline: 2px solid var(--brand-line);
 }
 .plan-board-full .plan-viewport {
   height: 100%;
@@ -683,9 +890,9 @@ body {
 .plan-board .plan-node {
   pointer-events: auto;
   border: 1px solid #b6d2ff;
-  border-radius: 0;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: none;
+  box-shadow: 0 2px 6px #25365308;
 }
 .plan-board .plan-node.assert {
   border-color: #a1e7c8;
@@ -724,6 +931,65 @@ body {
   text-align: left;
   cursor: pointer;
   color: #191b1e;
+}
+.plan-review-actions {
+  position: absolute;
+  right: 0;
+  top: -32px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px 3px 10px;
+  border: 1px solid var(--page-line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: 0 2px 6px #25365308;
+  font-size: 11px;
+}
+.plan-review-actions > span {
+  margin-right: 4px;
+  color: var(--page-muted);
+}
+.plan-review-actions > button {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 15px;
+}
+.plan-review-actions > button:first-of-type {
+  color: #16845c;
+  background: #edf9f1;
+}
+.plan-review-actions > button:last-of-type {
+  color: #c45858;
+  background: #fff1f0;
+}
+.plan-review-actions > button:focus-visible {
+  outline: 2px solid var(--brand-line);
+}
+.plan-board .plan-node[data-review='added'] {
+  background: #f1faf4;
+  border-color: #9cd4af;
+}
+.plan-board .plan-node[data-review='modified'] {
+  background: #fffaf0;
+  border-color: #e5cf9d;
+}
+.plan-board .plan-node[data-review='removed'] {
+  background: #fff3f2;
+  border-color: #e6b2ad;
+}
+.plan-node[data-review='removed'] .plan-content-button,
+.plan-review-before {
+  text-decoration: line-through;
+  color: #a47672;
+}
+.plan-review-before {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-bottom: 4px;
 }
 .plan-node.group .plan-node-row {
   justify-content: center;
@@ -847,11 +1113,17 @@ body {
   justify-content: flex-start;
 }
 @media (max-width: 760px) {
+  .plan-canvas-tools {
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+  }
+  .plan-canvas-hint {
+    max-width: 180px;
+    font-size: 11px;
+  }
   .case-canvas-content {
     padding: 0 8px;
-  }
-  .case-text-body {
-    padding: 16px;
   }
   .plan-board-body.has-inspector {
     grid-template-columns: minmax(0, 1fr);
@@ -876,11 +1148,107 @@ body {
   overflow: hidden;
 }
 .case-canvas-page {
+  position: relative;
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--surface);
+}
+.case-prompt-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: #fffefab3;
+  backdrop-filter: blur(1px);
+  animation: case-prompt-fade 180ms ease-out;
+}
+.case-prompt-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 31;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  outline: none;
+  animation: case-prompt-fade 180ms ease-out;
+}
+.case-prompt-overlay > form {
+  height: 100%;
+}
+.case-prompt-overlay .case-prompt-heading {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  padding: 0;
+  z-index: 1;
+}
+.case-prompt-overlay .case-prompt-input {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  padding: 48px 56px 110px;
+  resize: none;
+  font-size: clamp(15px, 1.3vw, 18px);
+  line-height: 1.8;
+  letter-spacing: -0.02em;
+}
+.case-prompt-overlay .case-prompt-footer {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  padding: 0;
+}
+.case-prompt-error {
+  position: absolute;
+  bottom: 80px;
+  left: 56px;
+  right: 56px;
+  color: var(--error-ink);
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .case-prompt-overlay .case-prompt-input {
+    padding: 52px 24px 110px;
+  }
+  .case-prompt-error {
+    left: 24px;
+    right: 24px;
+  }
+}
+.case-canvas-preview {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--brand-line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  box-shadow: 0 6px 24px #25365312;
+  white-space: nowrap;
+}
+.case-canvas-preview > span {
+  color: var(--page-muted);
+  font-size: 12px;
+}
+@keyframes case-prompt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .case-prompt-backdrop,
+  .case-prompt-overlay {
+    animation: none;
+  }
 }
 .case-canvas-page .case-editor-form {
   flex: 1;

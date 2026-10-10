@@ -38,7 +38,6 @@ export default function CaseCanvasPage() {
       duplicate={draft.duplicate}
       initialDraft={draft}
       draftId={draftId}
-      onClose={() => router.push('/cases')}
       onSaved={async () => {
         clearCaseDraft(draftId);
         router.push('/cases');

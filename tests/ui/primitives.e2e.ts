@@ -1,4 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
+
+async function openSettings(editor: Locator) {
+  await expect(editor.getByRole('complementary', { name: '测试面板' })).toBeVisible();
+  const expand = editor.getByRole('button', { name: '展开面板', exact: true });
+
+  if (await expand.count()) await expand.click();
+  await expect(editor.getByLabel('测试名称', { exact: true })).toBeVisible();
+}
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/workspace/stats', (route) =>
@@ -51,10 +59,9 @@ test.beforeEach(async ({ page }) => {
 test('select keyboard navigation and Escape stay within the editor dialog', async ({ page }) => {
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('[role=dialog], .case-canvas-page');
+  const dialog = page.locator('.case-canvas-page');
 
-  await dialog.getByRole('button', { name: '直接创建画板' }).click();
-  await dialog.getByRole('button', { name: 'Settings', exact: true }).click();
+  await openSettings(dialog);
   const platform = dialog.getByRole('combobox', { name: '平台', exact: true });
 
   await platform.focus();
@@ -72,7 +79,7 @@ test('select keyboard navigation and Escape stay within the editor dialog', asyn
   await expect(platform).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: '返回用例列表' }).click();
+  await page.getByRole('link', { name: '测试用例', exact: true }).first().click();
   await expect(dialog).toHaveCount(0);
 });
 
@@ -93,22 +100,21 @@ test('native setup validates required selection and submits custom checkbox valu
   });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('[role=dialog], .case-canvas-page');
+  const dialog = page.locator('.case-canvas-page');
 
-  await dialog.getByRole('button', { name: '直接创建画板' }).click();
-  await dialog.getByRole('button', { name: 'Settings', exact: true }).click();
+  await openSettings(dialog);
 
   await dialog.getByLabel('测试名称', { exact: true }).fill('Native setup');
   await dialog.getByLabel('平台', { exact: true }).click();
   await page.getByRole('option', { name: 'iOS · 原生应用', exact: true }).click();
   await dialog.getByLabel('应用标识', { exact: true }).fill('com.example.fixture');
-  await dialog.getByRole('button', { name: '关闭设置' }).click();
+  await dialog.getByRole('button', { name: '收起面板' }).click();
   await dialog.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
   await page.getByRole('menuitem').filter({ hasText: /^Act/ }).click();
   await dialog.locator('[data-step-type=act] .plan-content-button').click();
   await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('Verify welcome');
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
-  await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('设备配置');
   expect(submitted).toBeUndefined();
   await dialog.getByLabel('设备配置', { exact: true }).click();
@@ -119,7 +125,7 @@ test('native setup validates required selection and submits custom checkbox valu
   await video.press('Space');
   await expect(video).toBeChecked();
 
-  await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toHaveAttribute('aria-busy', 'true');
   await expect(video).toBeDisabled();
   await expect(dialog.getByLabel('平台', { exact: true })).toBeDisabled();
@@ -154,4 +160,188 @@ test('example tabs navigate with arrow keys and expose the matching panel', asyn
   await expect(page.getByRole('tabpanel', { name: '页面导航', exact: true })).toContainText(
     'app.example.com/settings',
   );
+});
+
+test('compact panel defaults closed and Run saves before submission without duplicating on retry', async ({
+  page,
+}) => {
+  const testId = '62534c46-a8eb-4991-993e-af6df14bece0';
+  const runId = '62534c46-a8eb-4991-993e-af6df14bece1';
+  const writes: string[] = [];
+  let attempts = 0;
+
+  await page.route('**/api/tests/compile', (route) =>
+    route.fulfill({
+      json: {
+        plan: {
+          rootId: 'task',
+          nodes: {
+            task: {
+              id: 'task',
+              kind: 'task',
+              goal: '验证首页',
+              dependsOn: [],
+              requirementIds: [],
+              assertions: [],
+            },
+          },
+        },
+      },
+    }),
+  );
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { tests: [] } });
+    writes.push('POST');
+
+    return route.fulfill({ json: { test: { ...route.request().postDataJSON(), id: testId } } });
+  });
+  await page.route(`**/api/tests/${testId}`, (route) => {
+    writes.push('PATCH');
+
+    return route.fulfill({ json: { test: { ...route.request().postDataJSON(), id: testId } } });
+  });
+  await page.route(/\/api\/runs(?:\?.*)?$/, (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { runs: [] } });
+    expect(route.request().postDataJSON()).toEqual({ testId });
+    expect(route.request().headers()['idempotency-key']).toBeTruthy();
+    attempts++;
+
+    return route.fulfill(
+      attempts === 1
+        ? { status: 503, json: { message: '运行暂时失败' } }
+        : { json: { run: { id: runId } } },
+    );
+  });
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  const panel = page.getByRole('complementary', { name: '测试面板' });
+
+  await expect(panel).toHaveClass(/is-collapsed/);
+  await expect(panel.getByRole('button', { name: '展开面板' })).toBeVisible();
+  await expect(panel.getByRole('button', { name: '返回用例列表' })).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'Run', exact: true })).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+  const canvas = page.locator('.plan-viewport');
+  const viewport = page.locator('.react-flow__viewport');
+
+  await expect(canvas.locator('.react-flow__node').first()).toBeVisible();
+  const initialTransform = await viewport.getAttribute('style');
+
+  await page.getByRole('button', { name: '放大画板' }).click();
+  await expect(viewport).not.toHaveAttribute('style', initialTransform!);
+  const transform = await viewport.getAttribute('style');
+  const bounds = await canvas.boundingBox();
+
+  await panel.getByRole('button', { name: '展开面板' }).click();
+  await expect(panel.getByLabel('测试名称', { exact: true })).toBeVisible();
+  await expect(viewport).toHaveAttribute('style', transform!);
+  expect(await canvas.boundingBox()).toEqual(bounds);
+  await panel.getByRole('button', { name: '收起面板' }).click();
+  await expect(panel).toHaveClass(/is-collapsed/);
+  await expect(viewport).toHaveAttribute('style', transform!);
+  expect(await canvas.boundingBox()).toEqual(bounds);
+  await panel.getByRole('button', { name: '描述生成', exact: true }).click();
+  await expect(page.getByLabel('测试步骤与预期结果')).toHaveAttribute(
+    'placeholder',
+    '登录后，验证账号名称',
+  );
+  await expect(viewport).toHaveAttribute('style', transform!);
+  expect(await canvas.boundingBox()).toEqual(bounds);
+  const overlay = page.getByRole('dialog', { name: '描述测试' });
+
+  await expect(overlay).toBeVisible();
+  expect(await overlay.boundingBox()).toEqual(
+    await page.locator('.case-canvas-page').boundingBox(),
+  );
+  expect(await page.getByLabel('测试步骤与预期结果').boundingBox()).toEqual(
+    await overlay.boundingBox(),
+  );
+  await expect(page.getByLabel('测试步骤与预期结果')).toBeFocused();
+  await page
+    .locator('.case-canvas-page')
+    .screenshot({ path: 'artifacts/ui/case-prompt-overlay.png' });
+  await page.getByLabel('测试步骤与预期结果').fill('打开 https://example.com，验证首页');
+  await page.getByRole('button', { name: '生成', exact: true }).click();
+  await page.getByRole('button', { name: '全部接受' }).click();
+  await panel.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(panel.getByRole('alert')).toHaveText('运行暂时失败');
+  await panel.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/runs/${runId}$`));
+  expect(writes).toEqual(['POST', 'PATCH']);
+});
+
+test('reviews generated edits, additions and deletions individually before saving the mixed board', async ({
+  page,
+}) => {
+  let generation = 0;
+  let stored:
+    { plan: { nodes: Record<string, { goal?: string; children?: string[] }> } } | undefined;
+  const task = (id: string, goal: string) => ({
+    id,
+    kind: 'task',
+    actionType: 'act',
+    goal,
+    dependsOn: [],
+    requirementIds: [],
+    assertions: [],
+  });
+
+  await page.route('**/api/tests/compile', (route) => {
+    generation++;
+    const tasks =
+      generation === 1
+        ? [task('a', '打开首页'), task('b', '点击登录')]
+        : [task('a', '打开账号页'), task('c', '上传文件'), task('d', '截取页面')];
+
+    return route.fulfill({
+      json: {
+        plan: {
+          rootId: 'root',
+          nodes: Object.fromEntries(
+            [
+              {
+                id: 'root',
+                kind: 'group',
+                goal: '登录测试',
+                children: tasks.map((node) => node.id),
+                dependsOn: [],
+              },
+              ...tasks,
+            ].map((node) => [node.id, node]),
+          ),
+        },
+      },
+    });
+  });
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { tests: [] } });
+    stored = route.request().postDataJSON();
+
+    return route.fulfill({ json: { test: stored } });
+  });
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  await page.getByRole('button', { name: '描述生成', exact: true }).click();
+  await page.getByLabel('测试步骤与预期结果').fill('打开 https://example.com，验证登录');
+  await page.getByRole('button', { name: '生成', exact: true }).click();
+  await page.getByRole('button', { name: '全部接受', exact: true }).click();
+  await page.getByRole('button', { name: '描述调整', exact: true }).click();
+  await page.getByLabel('测试步骤与预期结果').fill('调整操作');
+  await page.getByRole('button', { name: '预览', exact: true }).click();
+  await expect(page.locator('[data-plan-node=a]')).toHaveAttribute('data-review', 'modified');
+  await expect(page.locator('[data-plan-node=b]')).toHaveAttribute('data-review', 'removed');
+  await expect(page.locator('[data-plan-node=c]')).toHaveAttribute('data-review', 'added');
+  await page.locator('.case-canvas-page').screenshot({ path: 'artifacts/ui/case-plan-review.png' });
+  await page.getByRole('button', { name: '接受变更 a', exact: true }).click();
+  await page.getByRole('button', { name: '拒绝变更 c', exact: true }).click();
+  await page.getByRole('button', { name: '拒绝变更 b', exact: true }).click();
+  await expect(page.locator('[data-plan-node=b]')).toContainText('点击登录');
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: '接受变更 d', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.locator('.case-canvas-page')).toHaveCount(0);
+  expect(stored?.plan.nodes.root.children).toEqual(['a', 'b', 'd']);
+  expect(stored?.plan.nodes.a.goal).toBe('打开账号页');
+  expect(stored?.plan.nodes.c).toBeUndefined();
 });

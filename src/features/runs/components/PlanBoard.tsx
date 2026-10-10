@@ -1,7 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ReactFlow, ReactFlowProvider, Background, useReactFlow, type Edge } from '@xyflow/react';
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Background,
+  useReactFlow,
+  useStore,
+  type Edge,
+} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { Plan } from '@/automation/compiler/schema';
 import type { ExecutionStep } from '@/features/runs/types';
@@ -18,7 +25,7 @@ import {
   removeNode,
   updateNodeContent,
 } from '@/features/test-cases/lib/planEditing';
-import { PlanNodes, type PlanFlowNode } from './PlanNodes';
+import { PlanNodes, type PlanFlowNode, type NodeReview } from './PlanNodes';
 
 const nodeTypes = { plan: PlanNodes, insert: InsertStepMenu };
 
@@ -32,6 +39,10 @@ type BoardProps = {
   settings?: ReactNode;
   settingsOpen?: boolean;
   onSettingsClose?: () => void;
+  floatingPanel?: ReactNode;
+  viewportOverlay?: ReactNode;
+  overlayExpanded?: boolean;
+  review?: Record<string, NodeReview>;
 };
 
 export function PlanBoard(props: BoardProps) {
@@ -53,10 +64,29 @@ function PlanBoardContent({
   settings,
   settingsOpen,
   onSettingsClose,
+  floatingPanel,
+  viewportOverlay,
+  overlayExpanded,
+  review,
 }: BoardProps & { plan: Plan }) {
   const [layout, setLayout] = useState<PlanLayout>();
   const [error, setError] = useState('');
   const flow = useReactFlow<BoardNode>();
+  const viewportWidth = useStore((state) => state.width);
+  const viewportHeight = useStore((state) => state.height);
+  const hasViewportOverlay = !!viewportOverlay || !!floatingPanel;
+  const viewPadding = useMemo(
+    () =>
+      hasViewportOverlay
+        ? {
+            top: `${Math.min(viewportHeight * 0.15, 110)}px` as const,
+            bottom: `${Math.min(viewportHeight * 0.45, overlayExpanded ? 280 : 140)}px` as const,
+            left: '32px' as const,
+            right: '32px' as const,
+          }
+        : 0.1,
+    [hasViewportOverlay, viewportHeight, overlayExpanded],
+  );
   const planKey = JSON.stringify(plan);
 
   useEffect(() => {
@@ -109,6 +139,7 @@ function PlanBoardContent({
         style: { width: item.width, height: item.height },
         data: {
           node,
+          review: review?.[node.id],
           assertionIndex: item.assertionIndex,
           reference: item.reference,
           pathLabel: item.pathLabel,
@@ -127,6 +158,38 @@ function PlanBoardContent({
         },
       };
     });
+
+  for (const [id, change] of Object.entries(review ?? {})) {
+    if (
+      change.kind !== 'removed' ||
+      !change.before ||
+      nodes.some((node) => 'node' in node.data && node.data.node.id === id)
+    )
+      continue;
+    const bottom = Math.max(0, ...nodes.map((node) => node.position.y + (node.height ?? 80)));
+
+    nodes.push({
+      id: `review-removed-${id}`,
+      type: 'plan',
+      position: { x: 0, y: bottom + 56 },
+      width: 760,
+      height: 90,
+      style: { width: 760, height: 90 },
+      data: {
+        node: change.before,
+        review: change,
+        reference: false,
+        steps: [],
+        editable: false,
+        mutable: false,
+        onContent: () => {},
+        onDuplicate: () => {},
+        onRemove: () => {},
+        onDrop: () => {},
+        onStep,
+      },
+    });
+  }
 
   if (onChange)
     for (const item of layout?.insertions ?? []) {
@@ -150,11 +213,11 @@ function PlanBoardContent({
   useEffect(() => {
     if (!structureKey) return;
     const frame = requestAnimationFrame(() => {
-      void flow.fitView({ padding: 0.1, maxZoom: 1 });
+      void flow.fitView({ padding: viewPadding, maxZoom: 1 });
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [structureKey, flow, settingsOpen]);
+  }, [structureKey, flow, viewportWidth, viewPadding]);
 
   const edges = useMemo<Edge[]>(
     () =>
@@ -188,9 +251,11 @@ function PlanBoardContent({
           {error}
         </p>
       )}
-      <div className={`plan-board-body ${settingsOpen ? 'has-inspector' : ''}`}>
+      <div
+        className={`plan-board-body ${settingsOpen ? 'has-inspector' : ''} ${floatingPanel ? 'has-floating-panel' : ''}`}
+      >
         <div
-          className="plan-viewport"
+          className={`plan-viewport ${viewportOverlay ? 'has-composer' : ''}`}
           aria-label="计划画板"
           tabIndex={0}
           onKeyDown={(event) => {
@@ -232,20 +297,48 @@ function PlanBoardContent({
               minZoom={0.08}
               maxZoom={1.5}
               fitView
-              fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
+              fitViewOptions={{ padding: viewPadding, maxZoom: 1 }}
             >
               <Background color="#edf0f3" gap={24} size={1} />
             </ReactFlow>
           ) : (
             <p role="status" className="p-6 text-sm text-page-muted">
-              正在整理计划布局…
+              正在展开画板…
             </p>
           )}
+          {viewportOverlay}
+          {layout && (
+            <div className="plan-canvas-tools">
+              {onChange && (
+                <p className="plan-canvas-hint">
+                  {Object.values(plan.nodes).some((node) => node.kind === 'task')
+                    ? '点击步骤编辑 · 点击 ＋ 添加'
+                    : '点击画板上的 ＋，添加第一步'}
+                </p>
+              )}
+              <div className="plan-viewport-controls" role="group" aria-label="画板视图">
+                <button type="button" aria-label="缩小画板" onClick={() => void flow.zoomOut()}>
+                  −
+                </button>
+                <button
+                  type="button"
+                  aria-label="全览画板"
+                  onClick={() => void flow.fitView({ padding: viewPadding, maxZoom: 1 })}
+                >
+                  全览
+                </button>
+                <button type="button" aria-label="放大画板" onClick={() => void flow.zoomIn()}>
+                  ＋
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+        {floatingPanel}
         {settingsOpen && (
           <aside className="plan-inspector" aria-label="画板设置">
             <div className="flex items-center justify-between gap-2 mb-5">
-              <h3 className="text-sm font-semibold">Settings</h3>
+              <h3 className="text-sm font-semibold">测试设置</h3>
               <button
                 type="button"
                 className="ws-icon-button"

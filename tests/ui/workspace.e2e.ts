@@ -1,7 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import type { TestCase } from '../../src/features/test-cases/types';
 import type { TestRun, RunSummary } from '../../src/features/runs/types';
+
+async function openSettings(editor: Locator) {
+  await expect(editor.getByRole('complementary', { name: '测试面板' })).toBeVisible();
+  const expand = editor.getByRole('button', { name: '展开面板', exact: true });
+
+  if (await expand.count()) await expand.click();
+  await expect(editor.getByLabel('测试名称', { exact: true })).toBeVisible();
+}
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/workspace/stats', (route) =>
@@ -504,10 +512,9 @@ test('dialogs support keyboard entry, Escape dismissal and focus restoration', a
 
   await create.focus();
   await create.press('Enter');
-  await expect(page.getByRole('dialog').getByLabel('测试步骤与预期结果')).toBeFocused();
-  await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(create).toBeFocused();
+  await expect(page.locator('.case-canvas-page')).toBeVisible();
+  await page.getByRole('link', { name: '测试用例', exact: true }).first().click();
   const remove = page.getByRole('button', { name: `删除 ${saved.name}`, exact: true });
 
   await remove.focus();
@@ -586,29 +593,33 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   );
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).click();
-  const dialog = page.locator('[role=dialog], .case-canvas-page');
+  const dialog = page.locator('.case-canvas-page, [role=dialog]:not(#case-prompt-section)');
 
+  await dialog.getByRole('button', { name: '描述生成', exact: true }).click();
   await dialog.getByLabel('测试步骤与预期结果').fill('验证首页');
-  await dialog.getByRole('button', { name: 'AI 创建画板' }).click();
-  await dialog.getByRole('button', { name: 'Settings', exact: true }).click();
+  await dialog.getByRole('button', { name: '生成', exact: true }).click();
+  await dialog.getByRole('button', { name: '全部接受' }).click();
+  await openSettings(dialog);
   await dialog.getByLabel('测试名称').fill('新用例');
   await dialog.getByLabel('网站地址').fill('https://example.com');
-  await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog.getByRole('alert')).toHaveText('保存暂时失败');
   await expect(dialog.getByLabel('测试名称')).toHaveValue('新用例');
-  await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '编辑 验证登录', exact: true }).click();
-  await dialog.getByRole('button', { name: 'AI 创建画板' }).click();
-  await dialog.getByRole('button', { name: 'Settings', exact: true }).click();
+  await dialog.getByRole('button', { name: '描述生成', exact: true }).click();
+  await dialog.getByRole('button', { name: '生成', exact: true }).click();
+  await dialog.getByRole('button', { name: '全部接受' }).click();
+  await openSettings(dialog);
   await dialog.getByLabel('测试名称').fill('更新登录');
-  await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '复制 更新登录', exact: true }).click();
-  await dialog.getByRole('button', { name: 'Settings', exact: true }).click();
+  await openSettings(dialog);
   await expect(dialog.getByLabel('测试名称')).toHaveValue('更新登录（副本）');
   await expect(dialog.getByRole('alert')).toHaveCount(0);
-  await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   expect(writes.map((item) => item.method)).toEqual(['POST', 'PATCH', 'POST']);
   expect(writes[2].body.tags).toEqual(['登录']);
@@ -1139,20 +1150,30 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('[role=dialog], .case-canvas-page');
+  const dialog = page.locator('.case-canvas-page, [role=dialog]:not(#case-prompt-section)');
 
-  await expect(dialog.getByLabel('测试步骤与预期结果')).toBeFocused();
-  await expect(dialog.getByLabel('平台', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(dialog.getByLabel('测试步骤与预期结果')).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: '描述生成', exact: true })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: '返回文本' })).toHaveCount(0);
   await dialog.screenshot({ path: 'artifacts/ui/case-text-entry.png' });
-  await dialog.getByRole('button', { name: '直接创建画板' }).click();
-  await dialog.getByRole('button', { name: 'Settings', exact: true }).click();
+  await openSettings(dialog);
   await dialog.getByLabel('测试名称', { exact: true }).fill('GitHub repository smoke test');
   await dialog.getByLabel('网站地址', { exact: true }).fill('https://github.com/tester-army/e2e');
-  await dialog.getByRole('button', { name: '关闭设置' }).click();
+  await dialog.getByRole('button', { name: '收起面板' }).click();
   await expect(dialog.getByLabel('网站地址', { exact: true })).toBeHidden();
   const canvas = await dialog.locator('.plan-viewport').boundingBox();
 
   expect(canvas!.height).toBeGreaterThan(600);
+  expect(canvas!.width).toBeGreaterThan(700);
+  await expect(dialog.locator('.case-editor-header')).toHaveCount(0);
+  const panel = dialog.getByRole('complementary', { name: '测试面板' });
+
+  await expect(panel.getByRole('button', { name: 'Save' })).toBeVisible();
+  const panelBounds = await panel.boundingBox();
+
+  expect(panelBounds!.height).toBeLessThan(100);
+  await expect(panel.getByRole('button', { name: '展开面板' })).toBeVisible();
   expect(canvas!.width).toBeGreaterThan(1000);
   await expect(dialog.getByRole('button', { name: '添加操作', exact: true })).toHaveCount(0);
   const content = [
@@ -1227,15 +1248,15 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await expect(dialog.locator('[data-step-type=act]').first()).toContainText('检查前置环境');
   await page.reload();
   await expect(dialog.locator('[data-step-type=screenshot]')).toContainText('截取当前页面');
-  await dialog.getByRole('button', { name: 'Settings', exact: true }).click();
+  await openSettings(dialog);
   await expect(dialog.getByLabel('网站地址', { exact: true })).toHaveValue(
     'https://github.com/tester-army/e2e',
   );
   await page.screenshot({ path: 'artifacts/ui/case-canvas-settings.png' });
-  await dialog.getByRole('button', { name: '关闭设置' }).click();
+  await dialog.getByRole('button', { name: '收起面板' }).click();
   await dialog.locator('.plan-board').screenshot({ path: 'artifacts/ui/case-tree-editor.png' });
 
-  await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden();
   const root = stored!.plan!.nodes.root;
 
@@ -1299,27 +1320,60 @@ test('converts text to independent action and assertion cards and preserves fail
   );
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('[role=dialog], .case-canvas-page');
+  const dialog = page.locator('.case-canvas-page, [role=dialog]:not(#case-prompt-section)');
 
+  await dialog.getByRole('button', { name: '描述生成', exact: true }).click();
   await dialog.getByLabel('测试步骤与预期结果').fill('打开 https://example.com 点击登录并检查表单');
-  await dialog.getByRole('button', { name: 'AI 创建画板' }).click();
+  await expect(page.getByRole('dialog', { name: '描述测试' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog.getByLabel('测试步骤与预期结果')).toHaveCount(0);
+  await dialog.getByRole('button', { name: '描述生成', exact: true }).click();
+  await expect(dialog.getByLabel('测试步骤与预期结果')).toHaveValue(
+    '打开 https://example.com 点击登录并检查表单',
+  );
+  await page.keyboard.press('Escape');
+  await expect(dialog.getByRole('button', { name: '描述生成', exact: true })).toBeFocused();
+  await dialog.getByRole('button', { name: '描述生成', exact: true }).click();
+  await dialog.getByLabel('测试步骤与预期结果').click({ position: { x: 20, y: 20 } });
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await dialog.getByRole('button', { name: '描述生成', exact: true }).click();
+  await expect(dialog.getByLabel('测试步骤与预期结果')).toHaveValue(
+    '打开 https://example.com 点击登录并检查表单',
+  );
+  await dialog.getByRole('button', { name: '生成', exact: true }).click();
   await expect(dialog.getByRole('alert')).toBeVisible();
   await expect(dialog.getByLabel('测试步骤与预期结果')).toHaveValue(
     '打开 https://example.com 点击登录并检查表单',
   );
   fail = false;
-  await dialog.getByRole('button', { name: 'AI 创建画板' }).click();
+  await dialog.getByRole('button', { name: '生成', exact: true }).click();
   await expect(dialog.locator('[data-step-type="act"]')).toContainText('点击登录');
   await expect(dialog.locator('[data-step-type="assert"]')).toContainText('显示邮箱表单');
+  await expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await dialog.getByRole('button', { name: '全部接受' }).click();
   await dialog.getByRole('button', { name: '编辑节点 a:act', exact: true }).click();
   await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('点击邮箱登录');
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
   await expect(dialog.locator('[data-plan-node="a:act"]')).toContainText('点击邮箱登录');
-  await dialog.getByRole('button', { name: '返回文本' }).click();
-  await dialog.getByRole('button', { name: '直接创建画板' }).click();
   await dialog.getByRole('button', { name: '编辑节点 a:act', exact: true }).click();
   await expect(dialog.getByRole('textbox', { name: /^节点内容/ })).toHaveValue('点击邮箱登录');
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Escape');
+  await dialog.getByRole('button', { name: '描述调整', exact: true }).click();
+  await dialog.getByLabel('测试步骤与预期结果').fill('补充登录验证');
+  const request = page.waitForRequest('**/api/tests/compile');
+
+  await dialog.getByRole('button', { name: '预览', exact: true }).click();
+  expect((await request).postDataJSON().currentPlan.nodes['a:act'].goal).toBe('点击邮箱登录');
+  await dialog.getByRole('button', { name: '全部拒绝' }).click();
+  await expect(dialog.locator('[data-plan-node="a:act"]')).toContainText('点击邮箱登录');
+  await dialog.getByRole('button', { name: '描述调整', exact: true }).click();
+  await dialog.getByRole('button', { name: '预览', exact: true }).click();
+  await dialog.getByRole('button', { name: '全部接受' }).click();
+  await expect(dialog.locator('[data-plan-node="a:act"]')).toContainText('点击登录');
+  await dialog.getByRole('button', { name: '撤销生成' }).click();
+  await expect(dialog.locator('[data-plan-node="a:act"]')).toContainText('点击邮箱登录');
   await dialog.getByRole('button', { name: '在 a 的第 2 个位置添加节点', exact: true }).click();
   await expect(page.getByRole('menu')).toBeVisible();
   await page.keyboard.press('Escape');

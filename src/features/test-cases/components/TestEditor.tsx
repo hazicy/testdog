@@ -1,44 +1,55 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import { useEffect, useState, useRef } from 'react';
+import { Dialog as BaseDialog } from '@base-ui/react/dialog';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import { api } from '@/client/api';
-import { Dialog } from '@/components/shared/Dialog';
 import { Icon } from '@iconify/react/offline';
 import { PlanBoard } from '@/features/runs/components/PlanBoard';
+import type { NodeReview } from '@/features/runs/components/PlanNodes';
+import {
+  reviewPlan,
+  resolveReview,
+  type PlanReview,
+  type ReviewDecisions,
+} from '../lib/planReview';
 import type { Plan } from '@/automation/compiler/schema';
 import { testSchema } from '@/features/test-cases/schemas';
-import { caseName, goalUrl } from '../lib/authoring';
-import { editablePlan, emptyPlan, planText } from '../lib/authoring';
-import { useRouter } from 'next/navigation';
-import { writeCaseDraft, type CaseDraft } from '../lib/caseDraft';
+import { caseName, goalUrl, editablePlan, emptyPlan, planText } from '../lib/authoring';
+import { clearCaseDraft, writeCaseDraft, type CaseDraft } from '../lib/caseDraft';
 import { CaseSettings } from './CaseSettings';
 import { initialCaseSettings, caseTarget, type CaseSettingsValue } from '../lib/caseSettings';
-import closeIcon from '@iconify-icons/lucide/x';
-import backIcon from '@iconify-icons/lucide/arrow-left';
+import playIcon from '@iconify-icons/lucide/play';
+import saveIcon from '@iconify-icons/lucide/save';
+import { useRouter } from 'next/navigation';
+import { useRunSubmission } from '@/client/useRunSubmission';
+import undoIcon from '@iconify-icons/lucide/undo-2';
+import collapseIcon from '@iconify-icons/lucide/chevron-up';
+import expandIcon from '@iconify-icons/lucide/chevron-down';
+import sparklesIcon from '@iconify-icons/lucide/sparkles';
+import arrowUpIcon from '@iconify-icons/lucide/arrow-up';
 
 export function TestEditor({
   test,
   duplicate = false,
-  onClose,
   onSaved,
   initialDraft,
   draftId,
 }: {
   test?: TestCase;
   duplicate?: boolean;
-  onClose: () => void;
   onSaved: () => Promise<void>;
   initialDraft?: CaseDraft;
   draftId?: string;
 }) {
   const router = useRouter();
-  const isPage = !!draftId;
+  const submitRun = useRunSubmission();
+  const [savedCase, setSavedCase] = useState<TestCase | undefined>(duplicate ? undefined : test);
   const [name, setName] = useState(
     initialDraft?.name ?? (test ? `${test.name}${duplicate ? '（副本）' : ''}` : caseName('')),
   );
-  const nameChanged = useRef(false);
+  const nameChanged = useRef(!!test || (!!initialDraft && initialDraft.name !== caseName('')));
   const [configuration, setConfiguration] = useState<CaseSettingsValue>(() => ({
     ...initialCaseSettings(test),
     ...initialDraft?.settings,
@@ -53,7 +64,7 @@ export function TestEditor({
   const [goal, setGoal] = useState(initialDraft?.goal ?? test?.goal ?? '');
   const [plan, setPlan] = useState<Plan | undefined>(() => {
     if (initialDraft) return initialDraft.plan;
-    if (!test?.plan) return undefined;
+    if (!test?.plan) return emptyPlan(name);
     const draft = editablePlan(test.plan, name);
     const root = draft.nodes[draft.rootId];
 
@@ -61,34 +72,57 @@ export function TestEditor({
 
     return draft;
   });
-  const [mode, setMode] = useState<'text' | 'board'>(initialDraft || test?.plan ? 'board' : 'text');
+  const hasSteps = Object.values(plan?.nodes ?? {}).some((node) => node.kind === 'task');
+  const [composerOpen, setComposerOpen] = useState(false);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
+  const canvasRef = useRef<HTMLElement>(null);
+  const generateRef = useRef<HTMLButtonElement>(null);
+  const [promptHint, setPromptHint] = useState('');
+
+  useEffect(() => {
+    if (!composerOpen || goal) return;
+    const hint = hasSteps ? '补充登录后的验证' : '登录后，验证账号名称';
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let index = 0;
+    const timer = window.setInterval(
+      () => {
+        index = reduced ? hint.length : index + 1;
+        setPromptHint(hint.slice(0, index));
+        if (index >= hint.length) window.clearInterval(timer);
+      },
+      reduced ? 1 : 65,
+    );
+
+    return () => window.clearInterval(timer);
+  }, [composerOpen, goal, hasSteps]);
+
+  const [candidate, setCandidate] = useState<{
+    url: string;
+    review: PlanReview;
+    decisions: ReviewDecisions;
+  }>();
+  const [previous, setPrevious] = useState<{ plan: Plan; name: string; url: string }>();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [compiling, setCompiling] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  function enterCanvas(next: Plan, title: string, startUrl: string) {
-    if (isPage) {
-      setPlan(next);
-      setMode('board');
-
-      return;
-    }
-
-    const id = crypto.randomUUID();
-
-    writeCaseDraft(id, { test, duplicate, name: title, url: startUrl, goal, plan: next });
-    onClose();
-    router.push(`/cases/editor/${id}`);
-  }
-
   useEffect(() => {
     if (draftId && plan)
-      writeCaseDraft(draftId, { test, duplicate, name, url, goal, plan, settings: configuration });
-  }, [draftId, plan, name, url, goal, configuration, test, duplicate]);
+      writeCaseDraft(draftId, {
+        test: savedCase ?? test,
+        duplicate: savedCase ? false : duplicate,
+        name,
+        url,
+        goal,
+        plan,
+        settings: configuration,
+      });
+  }, [draftId, plan, name, url, goal, configuration, test, duplicate, savedCase]);
 
   function changeName(value: string) {
     nameChanged.current = true;
+    setPrevious(undefined);
     setName(value);
     if (plan) {
       const root = plan.nodes[plan.rootId];
@@ -102,31 +136,40 @@ export function TestEditor({
   }
 
   async function compile() {
-    if (saving || compiling || !goal.trim()) return;
+    if (saving || compiling || candidate || !goal.trim()) return;
     setCompiling(true);
     setFormError('');
     try {
       const startUrl = platform === 'web' ? url.trim() || goalUrl(goal) : undefined;
       const { plan: source } = await api
         .post('/api/tests/compile', {
-          json: { goal, ...(startUrl ? { url: startUrl } : {}) },
+          json: {
+            goal,
+            ...(startUrl ? { url: startUrl } : {}),
+            ...(hasSteps ? { currentPlan: plan } : {}),
+          },
           timeout: 100000,
           totalTimeout: 100000,
         })
         .json<{ plan: Plan }>();
       const root = source.nodes[source.rootId];
       const title =
-        !test && !nameChanged.current ? caseName(root.kind === 'branch' ? goal : root.goal) : name;
+        !hasSteps && !nameChanged.current
+          ? caseName(root.kind === 'branch' ? goal : root.goal)
+          : name;
 
-      setName(title);
       const next = editablePlan(source, title);
       const nextRoot = next.nodes[next.rootId];
 
       if (nextRoot.kind === 'group') next.nodes[nextRoot.id] = { ...nextRoot, goal: title };
-      setPlan(next);
-      if (startUrl && !url.trim()) changeSettings({ url: startUrl });
-      setSettingsOpen(false);
-      enterCanvas(next, title, startUrl || url);
+      const review = reviewPlan(plan!, next);
+
+      setCandidate({
+        url: startUrl || url,
+        review,
+        decisions: {},
+      });
+      setComposerOpen(false);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : '转换失败，请重试');
     } finally {
@@ -134,21 +177,78 @@ export function TestEditor({
     }
   }
 
-  function openCanvas() {
-    if (saving || compiling) return;
-    const title = !test && !nameChanged.current ? caseName(goal) : name;
-    const next = plan ?? emptyPlan(title);
-    const startUrl = url.trim() || goalUrl(goal) || '';
+  function decideChanges(decisions: ReviewDecisions) {
+    if (!candidate || !plan) return;
+    try {
+      resolveReview(candidate.review, decisions, true);
+      const complete = candidate.review.changes.every((change) =>
+        Object.hasOwn(decisions, change.id),
+      );
 
-    setName(title);
-    changeSettings({ url: startUrl });
-    setFormError('');
-    setSettingsOpen(false);
-    enterCanvas(next, title, startUrl);
+      if (!complete) {
+        setCandidate({ ...candidate, decisions });
+        setFormError('');
+
+        return;
+      }
+
+      const next = resolveReview(candidate.review, decisions);
+      const accepted = Object.values(decisions).some(Boolean);
+
+      if (accepted || !candidate.review.changes.length) {
+        setPrevious({ plan, name, url });
+        setPlan(next);
+        const root = next.nodes[next.rootId];
+
+        if (root.kind === 'group') setName(root.goal);
+        changeSettings({ url: candidate.url });
+      }
+
+      setCandidate(undefined);
+      setComposerOpen(false);
+      if (accepted) setGoal('');
+      setFormError('');
+    } catch {
+      setFormError('该变更与其他步骤有关，请先处理关联变更。');
+    }
   }
 
-  async function save() {
-    if (saving || compiling || !plan) return;
+  function decideAll(accept: boolean) {
+    if (!candidate) return;
+    const decisions = { ...candidate.decisions };
+
+    for (const change of candidate.review.changes) decisions[change.id] ??= accept;
+    decideChanges(decisions);
+  }
+
+  const reviewPreview = useMemo(
+    () => (candidate ? resolveReview(candidate.review, candidate.decisions, true) : plan),
+    [candidate, plan],
+  );
+  const pendingChanges =
+    candidate?.review.changes.filter((change) => !Object.hasOwn(candidate.decisions, change.id)) ??
+    [];
+  const nodeReviews: Record<string, NodeReview> = {};
+
+  for (const change of pendingChanges)
+    nodeReviews[change.id] = {
+      kind: change.kind,
+      before: change.before,
+      count: change.nodeIds.length,
+      onAccept: () => decideChanges({ ...candidate!.decisions, [change.id]: true }),
+      onReject: () => decideChanges({ ...candidate!.decisions, [change.id]: false }),
+    };
+
+  function undoGeneration() {
+    if (!previous) return;
+    setPlan(previous.plan);
+    setName(previous.name);
+    changeSettings({ url: previous.url });
+    setPrevious(undefined);
+  }
+
+  async function save(runAfterSave = false) {
+    if (saving || compiling || candidate || !plan) return;
     setFormError('');
     if (!Object.values(plan.nodes).some((node) => node.kind === 'task')) {
       setFormError('请点击画板上的 ＋ 添加至少一个步骤。');
@@ -161,8 +261,9 @@ export function TestEditor({
     try {
       inputs = JSON.parse(inputRefs);
     } catch {
-      setFormError('请在 Settings 中填写有效的输入引用 JSON。');
+      setFormError('请在测试设置中填写有效的输入引用 JSON。');
       setSettingsOpen(true);
+      setComposerOpen(false);
 
       return;
     }
@@ -191,17 +292,31 @@ export function TestEditor({
               ? '设备配置'
               : '测试目标、输入引用和标签';
 
-      setFormError(`请在 Settings 中检查${missing}。`);
+      setFormError(`请在测试设置中检查${missing}。`);
       setSettingsOpen(true);
+      setComposerOpen(false);
 
       return;
     }
 
     setSaving(true);
     try {
-      if (test && !duplicate) await api.patch(`/api/tests/${test.id}`, { json: parsed.data });
-      else await api.post('/api/tests', { json: parsed.data });
-      await onSaved();
+      const request = savedCase
+        ? api.patch(`/api/tests/${savedCase.id}`, { json: parsed.data })
+        : api.post('/api/tests', { json: parsed.data });
+
+      if (runAfterSave) {
+        const { test: saved } = await request.json<{ test: TestCase }>();
+
+        setSavedCase(saved);
+        const { run } = await submitRun<{ run: { id: string } }>('/api/runs', { testId: saved.id });
+
+        if (draftId) clearCaseDraft(draftId);
+        router.push(`/runs/${run.id}`);
+      } else {
+        await request;
+        await onSaved();
+      }
     } catch (error) {
       setFormError(error instanceof Error ? error.message : '保存失败');
     } finally {
@@ -211,173 +326,222 @@ export function TestEditor({
 
   const content = (
     <form
-      className="case-editor-form"
+      className="case-editor-form case-editor-board"
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void (mode === 'text' ? compile() : save());
+        void save();
       }}
     >
-      <div className="ws-dialog-header">
-        <div>
-          <h2 id="editor-title" className="text-lg font-semibold">
-            {mode === 'board' ? name : test && !duplicate ? '编辑测试' : '新建测试'}
-          </h2>
-          <p className="mt-1 text-xs text-text-subtle">
-            {mode === 'text'
-              ? '描述操作和预期结果，由 AI 整理成可编辑的步骤画板。'
-              : `${platform.toUpperCase()} · ${platform === 'web' ? webProfile : deviceProfileId || '未设置设备'} · ${Object.values(plan?.nodes ?? {}).filter((node) => node.kind === 'task').length} 个步骤`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {mode === 'board' && (
-            <Button
-              type="button"
-              aria-label="Settings"
-              aria-pressed={settingsOpen}
-              className="ws-button"
-              disabled={saving || compiling}
-              onClick={() => setSettingsOpen(!settingsOpen)}
-            >
-              Settings
-            </Button>
-          )}
-          <Button
-            type="button"
-            className="ws-icon-button"
-            disabled={saving || compiling}
-            aria-label={isPage ? '返回用例列表' : '关闭编辑器'}
-            onClick={onClose}
-          >
-            <Icon icon={isPage ? backIcon : closeIcon} width="18" aria-hidden="true" />
-          </Button>
-        </div>
-      </div>
-      {mode === 'text' ? (
-        <div className="case-text-body">
-          <label className="ws-label">
-            测试步骤与预期结果
-            <textarea
-              name="caseText"
-              aria-label="测试步骤与预期结果"
-              className="ws-input case-text-input"
-              maxLength={20000}
-              value={goal}
-              disabled={saving || compiling}
-              onChange={(event) => setGoal(event.target.value)}
-              placeholder={`打开 https://example.com
-点击登录，使用测试账号登录
-验证页面显示账号名称`}
-            />
-          </label>
-          <p className="mt-3 text-xs text-page-muted">
-            也可以直接打开空画板，点击连线上的 ＋ 自己添加步骤。
-          </p>
-        </div>
-      ) : (
-        plan && (
-          <div className="case-canvas-content">
-            <PlanBoard
-              fullHeight
-              plan={plan}
-              steps={[]}
-              onStep={() => {}}
-              onChange={
-                saving || compiling
-                  ? undefined
-                  : (next) => {
-                      setPlan(next);
-                      const root = next.nodes[next.rootId];
+      <div className="case-canvas-content">
+        <PlanBoard
+          fullHeight
+          plan={reviewPreview}
+          review={candidate ? nodeReviews : undefined}
+          steps={[]}
+          onStep={() => {}}
+          onChange={
+            saving || compiling || candidate
+              ? undefined
+              : (next) => {
+                  setPrevious(undefined);
+                  setComposerOpen(false);
+                  setPlan(next);
+                  const root = next.nodes[next.rootId];
 
-                      if (root.kind === 'group') setName(root.goal);
-                    }
-              }
-              settings={
-                <CaseSettings
-                  name={name}
-                  onNameChange={changeName}
-                  value={configuration}
-                  onChange={changeSettings}
-                  busy={saving || compiling}
-                />
-              }
-              settingsOpen={settingsOpen}
-              onSettingsClose={() => setSettingsOpen(false)}
-            />
-          </div>
-        )
-      )}
-      {formError && (
-        <p role="alert" className="case-editor-error">
-          {formError}
-        </p>
-      )}
-      <div className="ws-dialog-footer">
-        {mode === 'text' ? (
-          <Button
-            key="direct"
-            type="button"
-            className="ws-button"
-            disabled={saving || compiling}
-            onClick={openCanvas}
-          >
-            直接创建画板
-          </Button>
-        ) : (
-          <Button
-            key="text"
-            type="button"
-            className="ws-button"
-            disabled={saving || compiling}
-            onClick={() => {
-              if (plan) setGoal(planText(plan));
-              setMode('text');
-              setFormError('');
-            }}
-          >
-            返回文本
-          </Button>
-        )}
-        {mode === 'text' ? (
-          <Button
-            key="compile"
-            type="submit"
-            className="ws-button primary"
-            disabled={saving || compiling || !goal.trim()}
-          >
-            {compiling ? 'AI 解析中…' : 'AI 创建画板'}
-          </Button>
-        ) : (
-          <Button
-            key="save"
-            type="submit"
-            className="ws-button primary"
-            disabled={saving || compiling}
-          >
-            {saving ? '保存中…' : '保存测试'}
-          </Button>
-        )}
+                  if (root.kind === 'group') setName(root.goal);
+                }
+          }
+          floatingPanel={
+            <aside
+              className={`case-floating-panel ${settingsOpen ? '' : 'is-collapsed'}`}
+              aria-label="测试面板"
+            >
+              <div className="case-panel-actions">
+                <span className="case-panel-platform">
+                  {platform === 'web' ? 'Web' : platform === 'ios' ? 'iOS' : 'Android'}
+                </span>
+                <span className="case-panel-count">
+                  {
+                    Object.values(reviewPreview?.nodes ?? {}).filter((node) => node.kind === 'task')
+                      .length
+                  }{' '}
+                  个步骤
+                </span>
+                <div className="case-panel-primary-actions">
+                  <Button
+                    type="button"
+                    className="case-panel-action primary"
+                    aria-label="Run"
+                    disabled={saving || compiling || !!candidate}
+                    onClick={() => void save(true)}
+                  >
+                    <Icon icon={playIcon} width="13" aria-hidden="true" /> Run
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="case-panel-action"
+                    aria-label="Save"
+                    disabled={saving || compiling || !!candidate}
+                  >
+                    <Icon icon={saveIcon} width="13" aria-hidden="true" /> Save
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  ref={generateRef}
+                  className="case-panel-action case-panel-generate"
+                  aria-label={hasSteps ? '描述调整' : '描述生成'}
+                  title={hasSteps ? '描述调整' : '描述生成'}
+                  aria-expanded={composerOpen}
+                  aria-controls="case-prompt-section"
+                  data-pending={!!candidate || compiling}
+                  disabled={saving || !!candidate}
+                  onClick={() => setComposerOpen(true)}
+                >
+                  <Icon icon={sparklesIcon} width="14" aria-hidden="true" />
+                </Button>
+                {previous && !candidate && (
+                  <Button
+                    type="button"
+                    className="case-panel-action"
+                    aria-label="撤销生成"
+                    title="撤销生成"
+                    disabled={saving || compiling}
+                    onClick={undoGeneration}
+                  >
+                    <Icon icon={undoIcon} width="14" aria-hidden="true" />
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  className="ws-icon-button"
+                  aria-label={settingsOpen ? '收起面板' : '展开面板'}
+                  aria-expanded={settingsOpen}
+                  aria-controls="case-panel-settings"
+                  onClick={() => setSettingsOpen(!settingsOpen)}
+                >
+                  <Icon
+                    icon={settingsOpen ? collapseIcon : expandIcon}
+                    width="16"
+                    aria-hidden="true"
+                  />
+                </Button>
+              </div>
+              {settingsOpen && (
+                <div className="case-panel-heading">
+                  <h2 id="editor-title">{name || '未命名测试'}</h2>
+                  <p>{platform === 'web' ? webProfile : deviceProfileId || '未设置设备'}</p>
+                </div>
+              )}
+              {formError && !composerOpen && (
+                <p role="alert" className="case-editor-error">
+                  {formError}
+                </p>
+              )}
+              {settingsOpen && (
+                <div id="case-panel-settings" className="case-panel-body">
+                  <CaseSettings
+                    name={name}
+                    onNameChange={changeName}
+                    value={configuration}
+                    onChange={changeSettings}
+                    busy={saving || compiling || !!candidate}
+                  />
+                </div>
+              )}
+            </aside>
+          }
+        />
       </div>
     </form>
   );
 
-  if (isPage)
-    return (
-      <section className="case-canvas-page" aria-label="测试画板" aria-busy={saving || compiling}>
-        {content}
-      </section>
-    );
-  if (test?.plan) return null;
-
   return (
-    <Dialog
-      titleId="editor-title"
-      className="case-text-dialog"
-      busy={saving || compiling}
-      onDismiss={onClose}
-      initialFocus='[name="caseText"]'
+    <section
+      ref={canvasRef}
+      className="case-canvas-page"
+      aria-label="测试画板"
+      aria-busy={saving || compiling}
     >
       {content}
-    </Dialog>
+      {candidate && (
+        <div className="case-canvas-preview" role="status">
+          <span>{pendingChanges.length} 项变更待审阅</span>
+          <Button type="button" className="case-panel-action" onClick={() => decideAll(false)}>
+            全部拒绝
+          </Button>
+          <Button
+            type="button"
+            className="case-panel-action primary"
+            onClick={() => decideAll(true)}
+          >
+            全部接受
+          </Button>
+        </div>
+      )}
+      <BaseDialog.Root open={composerOpen} onOpenChange={(open) => setComposerOpen(open)}>
+        <BaseDialog.Portal container={canvasRef}>
+          <BaseDialog.Backdrop className="case-prompt-backdrop" />
+          <BaseDialog.Popup
+            id="case-prompt-section"
+            className="case-prompt-overlay"
+            initialFocus={promptRef}
+            finalFocus={generateRef}
+            aria-busy={compiling}
+          >
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void compile();
+              }}
+            >
+              <div className="case-prompt-heading">
+                <BaseDialog.Title className="sr-only">
+                  {hasSteps ? '调整步骤' : '描述测试'}
+                </BaseDialog.Title>
+                <BaseDialog.Close className="ws-icon-button" aria-label="关闭描述输入">
+                  ×
+                </BaseDialog.Close>
+              </div>
+              <textarea
+                ref={promptRef}
+                id="case-prompt"
+                name="caseText"
+                aria-label="测试步骤与预期结果"
+                className="case-prompt-input"
+                maxLength={20000}
+                value={goal}
+                disabled={saving || compiling}
+                placeholder={promptHint}
+                onChange={(event) => setGoal(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                    event.preventDefault();
+                    void compile();
+                  }
+                }}
+              />
+              {formError && (
+                <p role="alert" className="case-prompt-error">
+                  {formError}
+                </p>
+              )}
+              <div className="case-prompt-footer">
+                <Button
+                  type="submit"
+                  className="ws-button primary"
+                  title="⌘ / Ctrl + Enter"
+                  disabled={saving || compiling || !goal.trim()}
+                >
+                  {compiling ? '生成中…' : hasSteps ? '预览' : '生成'}
+                  <Icon icon={arrowUpIcon} width="14" aria-hidden="true" />
+                </Button>
+              </div>
+            </form>
+          </BaseDialog.Popup>
+        </BaseDialog.Portal>
+      </BaseDialog.Root>
+    </section>
   );
 }

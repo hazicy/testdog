@@ -118,7 +118,7 @@ export function WorkspaceList({
             {query || filter !== 'all'
               ? '试试其他关键词，或清除状态筛选。'
               : isTests
-                ? '添加网站地址、操作步骤和预期结果。无需编写脚本，就能开始一次浏览器测试。'
+                ? '在画板上编排步骤，或用描述生成测试。'
                 : '运行一个测试用例，查看执行状态、耗时与详细日志。'}
           </p>
           {query || filter !== 'all' ? (
@@ -132,7 +132,10 @@ export function WorkspaceList({
               清除筛选
             </Button>
           ) : isTests ? (
-            <Button className="ws-button primary mt-6" onClick={() => openEditor()}>
+            <Button
+              className="ws-button primary case-create-trigger mt-6"
+              onClick={() => openEditor()}
+            >
               <Icon icon={plusIcon} width="18" aria-hidden="true" /> 新建测试
             </Button>
           ) : (
