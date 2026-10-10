@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { TestTargetSchema } from '@/automation/platform/target';
 import { createRun } from '@/server/runs/repository';
-import { apiError } from '@/server/shared/http';
+import { withApiError } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
 const schema = z.strictObject({
@@ -20,32 +20,29 @@ const schema = z.strictObject({
     .max(10),
 });
 
-export async function POST(request: Request) {
+export const POST = withApiError(async (request: Request) => {
   const result = schema.safeParse(await request.json().catch(() => null));
   if (!result.success)
     return NextResponse.json({ message: '请提供用例及平台目标矩阵' }, { status: 400 });
-  try {
-    const body = await submitOnce(request, result.data, async (tx) => {
-      const batchId = randomUUID();
-      const resultRuns = [];
-      for (const variant of result.data.variants)
-        resultRuns.push(
-          await createRun(
-            {
-              testId: result.data.testId,
-              target: variant.target,
-              goalOverride: variant.goal,
-              batchId,
-            },
-            tx,
-          ),
-        );
 
-      return { batchId, runs: resultRuns };
-    });
+  const body = await submitOnce(request, result.data, async (tx) => {
+    const batchId = randomUUID();
+    const runs = [];
+    for (const variant of result.data.variants)
+      runs.push(
+        await createRun(
+          {
+            testId: result.data.testId,
+            target: variant.target,
+            goalOverride: variant.goal,
+            batchId,
+          },
+          tx,
+        ),
+      );
 
-    return NextResponse.json(body, { status: 202 });
-  } catch (error) {
-    return apiError(error);
-  }
-}
+    return { batchId, runs };
+  });
+
+  return NextResponse.json(body, { status: 202 });
+});
