@@ -62,6 +62,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             {[
               { href: '/cases', name: '测试用例', icon: testsIcon, active: !results },
               { href: '/runs', name: '执行记录', icon: resultsIcon, active: results },
+              { href: '/issues', name: '问题追踪', icon: resultsIcon, active: results },
+              { href: '/integrations', name: '集成', icon: resultsIcon, active: results },
+              { href: '/test-account', name: '测试账号', icon: resultsIcon, active: results },
+              { href: '/settings', name: '设置', icon: resultsIcon, active: results },
             ].map((item) => (
               <Link
                 key={item.href}
