@@ -1,3 +1,4 @@
+import { startLeaseMaintenance } from '../src/server/scheduling/maintenance';
 import 'dotenv/config';
 import { startOutboxPublisher, stopOutboxPublisher } from '../src/server/realtime/realtime';
 import { closeRedis } from '../src/server/shared/redis';
@@ -5,12 +6,7 @@ import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { executeRun } from '../src/server/runs/run';
-import {
-  claimRun,
-  recoverLeases,
-  registerWorker,
-  withLease,
-} from '../src/server/scheduling/scheduler';
+import { claimRun, registerWorker, withLease } from '../src/server/scheduling/scheduler';
 import { pool } from '../src/db';
 import { cancelRun } from '../src/server/runs/run';
 
@@ -40,6 +36,7 @@ for (const resource of configs) {
     throw new Error('Local iOS worker requires macOS');
 }
 startOutboxPublisher();
+const stopMaintenance = startLeaseMaintenance();
 let stopping = false;
 const activeIds = new Set<string>();
 for (const signal of ['SIGINT', 'SIGTERM'])
@@ -59,7 +56,6 @@ if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > confi
 
 async function consume() {
   while (!stopping) {
-    await recoverLeases();
     const claimed = await claimRun(workerId, hostId);
     if (claimed) {
       activeIds.add(claimed.run.id);
@@ -80,6 +76,7 @@ async function consume() {
 try {
   await Promise.all(Array.from({ length: concurrency }, () => consume()));
 } finally {
+  await stopMaintenance();
   stopOutboxPublisher();
   await closeRedis();
   await pool.end();

@@ -82,6 +82,7 @@ export type BrowserLog = {
 };
 export type TestRun = {
   realtimeRevision?: number;
+  browserLogRevision?: number;
   workerId?: string;
   resourceId?: string;
   batchId?: string;

@@ -1,14 +1,17 @@
+import { submitOnce } from '@/server/shared/idempotency';
+import { listRunPage } from '@/server/workspace/queries';
+import { readPage } from '@/server/shared/pagination';
 import { NextResponse } from 'next/server';
-import { createRun, listRuns } from '@/server/runs/repository';
+import { createRun } from '@/server/runs/repository';
 import { apiError } from '@/server/shared/http';
 import { runRequestSchema } from '@/features/runs/schemas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    return NextResponse.json({ runs: await listRuns() });
+    return NextResponse.json(await listRunPage(readPage(request)));
   } catch (error) {
     return apiError(error);
   }
@@ -22,9 +25,12 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   try {
-    const run = await createRun(parsed.data);
+    const body = await submitOnce(request, parsed.data, async (tx) => ({
+      success: true,
+      run: await createRun(parsed.data, tx),
+    }));
 
-    return NextResponse.json({ success: true, run }, { status: 202 });
+    return NextResponse.json(body, { status: 202 });
   } catch (error) {
     return apiError(error);
   }

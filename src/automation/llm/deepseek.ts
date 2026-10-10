@@ -55,6 +55,8 @@ function messageContent(content: LLMContentBlock | LLMContentBlock[]): ResponseI
   });
 }
 
+let sdk: OpenAI | undefined;
+
 async function generate(params: LLMGenerateParams): Promise<LLMGenerateResult> {
   if (
     params.responseFormat?.type === 'json_schema' &&
@@ -68,14 +70,17 @@ async function generate(params: LLMGenerateParams): Promise<LLMGenerateResult> {
     content: messageContent(message.content),
   }));
 
-  const openai = new OpenAI({
+  const openai = (sdk ??= new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
     baseURL: 'https://api.deepseek.com/beta',
-  });
+    maxRetries: 0,
+    timeout: 60000,
+  }));
 
   const response = await openai.responses.create(
     {
       model: 'deepseek-flash',
+      ...(params.maxOutputTokens ? { max_output_tokens: params.maxOutputTokens } : {}),
       instructions: params.systemPrompt,
       input,
       temperature: params.temperature,
@@ -101,6 +106,10 @@ async function generate(params: LLMGenerateParams): Promise<LLMGenerateResult> {
   );
 
   return {
+    model: response.model ?? 'deepseek-flash',
+    usage: response.usage
+      ? { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens }
+      : undefined,
     role: 'assistant' as const,
 
     content: {

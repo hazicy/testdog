@@ -11,7 +11,11 @@ export async function GET(request: Request, context: Context) {
   try {
     validId(id);
 
-    return jsonResponse(request, { run: await getRun(id) });
+    return jsonResponse(request, {
+      run: await getRun(id, {
+        includeLogs: new URL(request.url).searchParams.get('include') === 'logs',
+      }),
+    });
   } catch (error) {
     return apiError(error);
   }

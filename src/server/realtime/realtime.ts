@@ -1,12 +1,7 @@
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { realtimeOutbox, runArtifacts, runSteps, testRuns } from '@/db/schema';
-import {
-  artifactRecord,
-  recoverExpiredRuns,
-  runRecord,
-  stepRecord,
-} from '@/server/runs/repository';
+import { artifactRecord, runRecord, stepRecord } from '@/server/runs/repository';
 import { readyRedis, redisClient, redisKey } from '@/server/shared/redis';
 import type { RunUpdate } from '@/features/runs/lib/realtime';
 
@@ -18,8 +13,6 @@ const state = globalThis as typeof globalThis & {
     publisher?: ReturnType<typeof setInterval>;
     busy: boolean;
     cleanedAt: number;
-    recoveredAt?: number;
-    recovery?: Promise<void>;
   };
 };
 const shared: NonNullable<typeof state.caseforgeRealtime> = (state.caseforgeRealtime ??= {
@@ -106,21 +99,6 @@ export async function subscribeRealtime(channel: string, listener: Listener) {
     listeners.delete(listener);
     if (!listeners.size) shared.listeners.delete(topic);
   };
-}
-
-// Keep expired worker leases recoverable even after normal UI polling stops.
-export async function recoverRealtimeLeases() {
-  if (shared.recovery) return shared.recovery;
-  if (Date.now() - (shared.recoveredAt ?? 0) < 15000) return;
-  shared.recovery = recoverExpiredRuns()
-    .then(() => {
-      shared.recoveredAt = Date.now();
-    })
-    .finally(() => {
-      shared.recovery = undefined;
-    });
-
-  return shared.recovery;
 }
 
 export async function readRunUpdates(runId: string, revision: number): Promise<RunUpdate[]> {

@@ -48,7 +48,7 @@ it.each(['ios', 'android'] as const)(
 
     expect(updated.status).toBe(200);
     expect((await updated.json()).test.name).toBe('Edited native case');
-    expect((await (await GET()).json()).tests).toEqual(
+    expect((await (await GET(new Request('http://localhost/api/tests'))).json()).tests).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: test.id, target: expect.objectContaining({ platform }) }),
       ]),

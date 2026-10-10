@@ -192,6 +192,10 @@ export async function releaseLease(lease: RunLease, healthy: boolean) {
 
 export async function recoverLeases() {
   await db.transaction(async (tx) => {
+    const lock = await tx.execute<{ acquired: boolean }>(
+      sql`select pg_try_advisory_xact_lock(731904271) as acquired`,
+    );
+    if (!lock.rows[0].acquired) return;
     const queueTimeout = Number(process.env.CASEFORGE_QUEUE_TIMEOUT_MS || 3600000);
     if (!Number.isFinite(queueTimeout) || queueTimeout < 1000)
       throw new Error('CASEFORGE_QUEUE_TIMEOUT_MS 必须为正毫秒数');

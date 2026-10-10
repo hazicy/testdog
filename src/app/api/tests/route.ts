@@ -1,13 +1,15 @@
+import { listTestPage } from '@/server/workspace/queries';
+import { readPage } from '@/server/shared/pagination';
 import { NextResponse } from 'next/server';
-import { listTests, saveTest } from '@/server/test-cases/repository';
+import { saveTest } from '@/server/test-cases/repository';
 import { testSchema } from '@/features/test-cases/schemas';
 import { apiError } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    return NextResponse.json({ tests: await listTests() });
+    return NextResponse.json(await listTestPage(readPage(request)));
   } catch (error) {
     return apiError(error);
   }

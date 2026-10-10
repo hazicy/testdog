@@ -1,3 +1,4 @@
+import type { ModelClient } from '@/automation/llm/contracts';
 import { SemanticEvaluator, type Evaluator } from '@/automation/evaluator';
 import { modelClient } from '@/server/shared/model';
 import { previewInterval } from '@/server/realtime/preview';
@@ -33,6 +34,7 @@ export interface PlatformRuntime {
 }
 
 export async function openPlatformRuntime(input: {
+  model?: ModelClient;
   run: TestRun;
   plan: Plan;
   source?: TestRun;
@@ -41,6 +43,7 @@ export async function openPlatformRuntime(input: {
   report: (message: string) => Promise<void>;
 }): Promise<PlatformRuntime> {
   const { run, source, resource, signal } = input;
+  const model = input.model ?? modelClient;
   const target = run.targetSnapshot ?? legacyWebTarget(run.url);
   const secrets = new SecretInputs(target.inputs);
   if (target.platform !== 'web') {
@@ -58,8 +61,8 @@ export async function openPlatformRuntime(input: {
     let live: ReturnType<typeof setInterval> | undefined;
     const runtime: PlatformRuntime = {
       session,
-      evaluator: new SemanticEvaluator(modelClient),
-      planner: new NativeActionPlanner(modelClient, target.platform, signal),
+      evaluator: new SemanticEvaluator(model),
+      planner: new NativeActionPlanner(model, target.platform, signal),
       environment: session.environment,
       healthy: false,
       async finalize() {
@@ -165,8 +168,8 @@ export async function openPlatformRuntime(input: {
 
     const runtime: PlatformRuntime = {
       session,
-      evaluator: new SemanticEvaluator(modelClient),
-      planner: new WebActionPlanner(modelClient, signal),
+      evaluator: new SemanticEvaluator(model),
+      planner: new WebActionPlanner(model, signal),
       environment: {
         platform: 'web',
         browser: target.browser,

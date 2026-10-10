@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it } from 'vitest';
-import { BrowserLogPanel } from './BrowserLogPanel';
+import { LogRow } from './BrowserLogPanel';
 import type { BrowserLog } from '@/features/runs/types';
 
 it('renders saved console and network records with expandable details', () => {
@@ -24,15 +24,16 @@ it('renders saved console and network records with expandable details', () => {
       failure: 'connection closed',
     },
   ];
-  const console = renderToStaticMarkup(createElement(BrowserLogPanel, { logs, kind: 'console' }));
+  const console = renderToStaticMarkup(createElement(LogRow, { log: logs[0] }));
 
   expect(console).toContain('Page crashed &lt;script&gt;');
   expect(console).toContain('page-2');
   expect(console).not.toContain('https://example.com/api');
-  const network = renderToStaticMarkup(createElement(BrowserLogPanel, { logs, kind: 'network' }));
+  const network = renderToStaticMarkup(createElement(LogRow, { log: logs[1] }));
 
   expect(network).toContain('503');
   expect(network).toContain('https://example.com/api');
-  expect(network).toContain('connection closed');
+  expect(network).not.toContain('connection closed');
+  expect(network).not.toContain('<pre');
   expect(network).toContain('<details');
 });

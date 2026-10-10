@@ -4,6 +4,8 @@ import type { TestCase } from '../../src/features/test-cases/types';
 import type { TestRun, RunSummary } from '../../src/features/runs/types';
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/workspace/stats', route => route.fulfill({ json: { testCount: 1, runCount: 1, counts: { queued: 0, preparing: 0, running: 0, finalizing: 0, passed: 1, failed: 0, cancelled: 0 } } }));
+  await page.route('**/model-usage', route => route.fulfill({ json: { usage: { calls: 0, failures: 0, retries: 0, durationMs: 0, inputTokens: 0, outputTokens: 0, unknownUsage: 0 }, calls: [] } }));
   await page.route('**/api/builds', (route) => route.fulfill({ json: { builds: [] } }));
   await page.route('**/api/resources', (route) => route.fulfill({ json: { resources: [] } }));
 });
@@ -81,7 +83,7 @@ test('frame playback and step selection keep the matching evidence visible', asy
     })),
   );
 
-  await page.route(`**/api/runs/${run.id}`, (route) =>
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
     route.fulfill({ json: { run: { ...run, steps: [...run.steps, secondStep], artifacts } } }),
   );
   await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) =>
@@ -123,7 +125,7 @@ test('stops frame playback in video mode and pauses video when leaving execution
     size: 1,
   }));
 
-  await page.route(`**/api/runs/${run.id}`, (route) =>
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
     route.fulfill({
       json: {
         run: {
@@ -167,7 +169,7 @@ test('fallback polling keeps unchanged details and receives the completed execut
   let completed = false;
   const conditions: (string | undefined)[] = [];
 
-  await page.route(`**/api/runs/${run.id}`, (route) => {
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => {
     const condition = route.request().headers()['if-none-match'];
 
     conditions.push(condition);
@@ -197,7 +199,7 @@ test('missing execution stops polling and can recover through explicit retry', a
   let missing = true;
 
   await page.clock.install();
-  await page.route(`**/api/runs/${run.id}`, (route) => {
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => {
     reads++;
 
     return missing
@@ -222,7 +224,7 @@ test('retries transient detail errors without requiring a page reload', async ({
   let reads = 0;
 
   await page.clock.install();
-  await page.route(`**/api/runs/${run.id}`, (route) => {
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => {
     reads++;
 
     return reads === 1
@@ -264,10 +266,15 @@ test('case search combines tags and latest status while history uses each execut
     status: 'failed' as const,
   };
 
-  await page.route('**/api/tests', (route) =>
-    route.fulfill({ json: { tests: [saved, untouched] } }),
+  await page.route( /\/api\/tests(?:\?.*)?$/, (route) =>
+    {
+      const params = new URL(route.request().url()).searchParams;
+      const q = (params.get('q') ?? '').toLowerCase();
+      const status = params.get('status') ?? 'all';
+      return route.fulfill({ json: { tests: [saved, untouched].filter(item => `${item.name} ${item.url} ${item.tags.join(' ')}`.toLowerCase().includes(q) && (status === 'all' || (item.id === saved.id ? 'passed' : 'none') === status)), latestRuns: [summary] } });
+    },
   );
-  await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [summary, older] } }));
+  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => { const status = new URL(route.request().url()).searchParams.get('status'); return route.fulfill({ json: { runs: [summary, older].filter(item => !status || item.status === status) } }); });
   await page.goto('/cases');
   const search = page.getByRole('textbox', { name: '搜索测试', exact: true });
   const filter = page.getByLabel('状态筛选');
@@ -299,12 +306,12 @@ test('history loads and refreshes without depending on the case library', async 
   let caseReads = 0;
   let runReads = 0;
 
-  await page.route('**/api/tests', (route) => {
+  await page.route( /\/api\/tests(?:\?.*)?$/, (route) => {
     caseReads++;
 
     return route.fulfill({ status: 503, json: { message: '用例库暂时不可用' } });
   });
-  await page.route('**/api/runs', (route) => {
+  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => {
     runReads++;
 
     return route.fulfill({ json: { runs: [summary] } });
@@ -326,9 +333,9 @@ test('exports complete reports from both history and detail, and allows retry af
 }) => {
   let rejectExport = true;
 
-  await page.route('**/api/tests', (route) => route.fulfill({ json: { tests: [saved] } }));
-  await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [summary] } }));
-  await page.route(`**/api/runs/${run.id}`, (route) => {
+  await page.route( /\/api\/tests(?:\?.*)?$/, (route) => route.fulfill({ json: { tests: [saved] } }));
+  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => route.fulfill({ json: { runs: [summary] } }));
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => {
     if (rejectExport) {
       rejectExport = false;
 
@@ -357,8 +364,8 @@ test('exports complete reports from both history and detail, and allows retry af
 });
 
 test('dialogs support keyboard entry, Escape dismissal and focus restoration', async ({ page }) => {
-  await page.route('**/api/tests', (route) => route.fulfill({ json: { tests: [saved] } }));
-  await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [summary] } }));
+  await page.route( /\/api\/tests(?:\?.*)?$/, (route) => route.fulfill({ json: { tests: [saved] } }));
+  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => route.fulfill({ json: { runs: [summary] } }));
   await page.goto('/cases');
   const create = page.getByRole('button', { name: '新建测试', exact: true });
 
@@ -415,7 +422,7 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
 
     return route.fulfill({ json: { test: tests[0] } });
   });
-  await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [summary] } }));
+  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => route.fulfill({ json: { runs: [summary] } }));
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).click();
   const dialog = page.getByRole('dialog');
@@ -485,7 +492,7 @@ test('nested plans keep node evidence and dependency navigation through zoom and
     },
   };
 
-  await page.route(`**/api/runs/${run.id}`, (route) =>
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
     route.fulfill({
       json: {
         run: { ...run, plan, steps: [{ ...run.steps[0], planNodeId: 'open' }] },
@@ -528,7 +535,7 @@ test('validates the current draft and locks editing while saving a version', asy
   });
   let submitted = '';
 
-  await page.route(`**/api/runs/${run.id}`, (route) => route.fulfill({ json: { run } }));
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
   await page.route(`**/api/runs/${run.id}/recording`, async (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { versions: [] } });
     submitted = route.request().postDataJSON().code;
@@ -581,7 +588,7 @@ test('loads recording versions only when opened and keeps the draft across view 
 }) => {
   let versionReads = 0;
 
-  await page.route(`**/api/runs/${run.id}`, (route) => route.fulfill({ json: { run } }));
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
   await page.route(`**/api/runs/${run.id}/recording`, (route) => {
     versionReads++;
 
@@ -648,7 +655,7 @@ test('plan subflows retain both branch paths, shared references and external dep
   const errors: string[] = [];
 
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.route(`**/api/runs/${run.id}`, (route) =>
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
     route.fulfill({
       json: {
         run: { ...run, plan, steps: [{ ...run.steps[0], planNodeId: 'shared', status: 'failed' }] },
@@ -695,7 +702,7 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
   });
 
   await page.clock.install();
-  await page.route(`**/api/runs/${run.id}`, async (route) => {
+  await page.route(`**/api/runs/${run.id}{,?*}`, async (route) => {
     if (route.request().method() === 'DELETE') return route.fulfill({ json: {} });
     reads++;
     if (reads === 2) await pending;

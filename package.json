@@ -24,6 +24,7 @@
     "test:watch": "vitest",
     "typecheck": "next typegen && tsc --noEmit",
     "worker": "tsx scripts/worker.ts",
+    "maintenance": "tsx scripts/maintenance.ts",
     "register:build": "tsx scripts/register-build.ts",
     "recover:resource": "tsx scripts/recover-resource.ts"
   },

@@ -41,16 +41,20 @@ export const users = pgTable('users', {
 });
 
 // Execution records are independent snapshots; deleting a case does not delete history.
-export const testCases = pgTable('test_cases', {
-  target: jsonb().$type<TestTarget>(),
-  id: uuid().primaryKey().defaultRandom(),
-  name: text().notNull(),
-  url: text().notNull(),
-  goal: text().notNull(),
-  tags: jsonb().$type<string[]>().notNull().default([]),
-  createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
-  updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
-});
+export const testCases = pgTable(
+  'test_cases',
+  {
+    target: jsonb().$type<TestTarget>(),
+    id: uuid().primaryKey().defaultRandom(),
+    name: text().notNull(),
+    url: text().notNull(),
+    goal: text().notNull(),
+    tags: jsonb().$type<string[]>().notNull().default([]),
+    createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [index('test_cases_updated_idx').on(table.updatedAt, table.id)],
+);
 export const testRuns = pgTable(
   'test_runs',
   {
@@ -99,7 +103,8 @@ export const testRuns = pgTable(
   },
   (table) => [
     index('test_runs_started_idx').on(table.startedAt, table.id),
-    index('test_runs_case_idx').on(table.testId),
+    index('test_runs_case_idx').on(table.testId, table.startedAt, table.id),
+    index('test_runs_status_started_idx').on(table.status, table.startedAt, table.id),
     index('test_runs_active_lease_idx')
       .on(table.heartbeatAt)
       .where(sql`${table.status} = 'running'`),
@@ -301,4 +306,30 @@ export const realtimeOutbox = pgTable(
       .on(table.id)
       .where(sql`${table.publishedAt} is null`),
   ],
+);
+
+export const submissionRequests = pgTable('submission_requests', {
+  key: uuid().primaryKey(),
+  fingerprint: text().notNull(),
+  response: jsonb().$type<Record<string, unknown>>(),
+  createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+});
+export const modelCalls = pgTable(
+  'model_calls',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    runId: uuid()
+      .notNull()
+      .references(() => testRuns.id, { onDelete: 'cascade' }),
+    startedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
+    durationMs: integer().notNull(),
+    model: text().notNull(),
+    status: text({ enum: ['passed', 'failed', 'cancelled', 'timeout'] }).notNull(),
+    retryCount: integer().notNull(),
+    failedAttempts: integer().notNull(),
+    inputTokens: integer(),
+    outputTokens: integer(),
+    errorCode: text(),
+  },
+  (table) => [index('model_calls_run_idx').on(table.runId, table.startedAt, table.id)],
 );

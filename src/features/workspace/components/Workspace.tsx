@@ -1,4 +1,6 @@
 'use client';
+import { useRunSubmission } from '@/client/useRunSubmission';
+('use client');
 import { Button } from '@/components/ui/Button';
 
 import Link from 'next/link';
@@ -7,7 +9,6 @@ import { useEffect, useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import type { TestRun, RunSummary } from '@/features/runs/types';
 import { WorkspaceIcon as Icon } from '@/components/shared/WorkspaceIcon';
-import { api } from '@/client/api';
 import { downloadRunReport } from '@/client/download';
 import { TestEditor } from '@/features/test-cases/components/TestEditor';
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
@@ -18,8 +19,22 @@ import { WorkspaceList } from './WorkspaceList';
 
 export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const isTests = view === 'tests';
-  const { tests, runs, loading, error, setError, counts, latestRuns, running, connected, refresh } =
-    useWorkspaceData(isTests);
+  const data = useWorkspaceData(isTests);
+  const {
+    tests,
+    runs,
+    testCount,
+    runCount,
+    loading,
+    error,
+    setError,
+    counts,
+    latestRuns,
+    running,
+    connected,
+    refresh,
+  } = data;
+  const submit = useRunSubmission();
   const router = useRouter();
   const params = useSearchParams();
   const [starting, setStarting] = useState(false);
@@ -42,7 +57,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
     setStarting(true);
     setError('');
     try {
-      const { run } = await api.post('/api/runs', { json: { testId } }).json<{ run: TestRun }>();
+      const { run } = await submit<{ run: TestRun }>('/api/runs', { testId });
 
       router.push(`/runs/${run.id}`);
       await refresh();
@@ -64,9 +79,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
     setStarting(true);
     setMatrixError('');
     try {
-      await api.post('/api/run-batches', {
-        json: { testId: matrixTest.id, variants: JSON.parse(matrixCode) },
-      });
+      await submit('/api/run-batches', { testId: matrixTest.id, variants: JSON.parse(matrixCode) });
       setMatrixTest(null);
       router.push('/runs');
       await refresh();
@@ -96,7 +109,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           <h1 className="text-2xl font-semibold tracking-tight">
             {isTests ? '测试用例' : '执行记录'}
             <span className="ml-3 rounded-md bg-badge-surface px-2 py-1 align-middle text-xs font-medium text-badge-ink">
-              {loading ? '—' : isTests ? tests.length : runs.length}
+              {loading ? '—' : isTests ? testCount : runCount}
             </span>
           </h1>
           <p className="mt-2 text-sm text-text-neutral">
@@ -124,8 +137,8 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       </div>
       <WorkspaceStats
         isTests={isTests}
-        testCount={tests.length}
-        runCount={runs.length}
+        testCount={testCount}
+        runCount={runCount}
         counts={counts}
         running={running}
         loading={loading}
@@ -142,6 +155,15 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         </div>
       )}
       <WorkspaceList
+        query={data.query}
+        setQuery={data.setQuery}
+        filter={data.filter}
+        setFilter={data.setFilter}
+        page={data.page}
+        hasPrevious={data.hasPrevious}
+        hasNext={data.hasNext}
+        nextPage={data.nextPage}
+        previousPage={data.previousPage}
         isTests={isTests}
         tests={tests}
         runs={runs}

@@ -1,3 +1,5 @@
+import { budgetedModel, modelBudgetFromEnv } from '@/automation/llm/budget';
+import { recordModelCall } from './modelUsage';
 import { inputGoal, SecretInputs } from '@/automation/platform/inputs';
 import { hostname } from 'node:os';
 import { leaseScope, setRunPhase, runWrite } from '@/server/scheduling/lease';
@@ -69,6 +71,9 @@ export async function executeRun(
   let error: string | undefined;
   let evidenceComplete = true;
   try {
+    const model = budgetedModel(modelClient, modelBudgetFromEnv(), (metric) =>
+      recordModelCall(run.id, metric),
+    );
     await pulse();
     controller.signal.throwIfAborted();
     const source = run.sourceRunId ? await getRun(run.sourceRunId) : undefined;
@@ -89,7 +94,7 @@ export async function executeRun(
               },
             },
           }
-        : await new TextCompiler(modelClient).compile(
+        : await new TextCompiler(model).compile(
             inputGoal(run.goal, run.targetSnapshot?.inputs),
             run.url || undefined,
             controller.signal,
@@ -102,6 +107,7 @@ export async function executeRun(
         : '计划已生成，正在准备执行环境',
     );
     runtime = await openPlatformRuntime({
+      model,
       run,
       plan,
       source,

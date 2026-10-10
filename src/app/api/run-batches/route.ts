@@ -1,9 +1,9 @@
+import { submitOnce } from '@/server/shared/idempotency';
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { TestTargetSchema } from '@/automation/platform/target';
 import { createRun } from '@/server/runs/repository';
-import { db } from '@/db';
 import { apiError } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
@@ -24,9 +24,9 @@ export async function POST(request: Request) {
   const result = schema.safeParse(await request.json().catch(() => null));
   if (!result.success)
     return NextResponse.json({ message: '请提供用例及平台目标矩阵' }, { status: 400 });
-  const batchId = randomUUID();
   try {
-    const runs = await db.transaction(async (tx) => {
+    const body = await submitOnce(request, result.data, async (tx) => {
+      const batchId = randomUUID();
       const resultRuns = [];
       for (const variant of result.data.variants)
         resultRuns.push(
@@ -41,10 +41,10 @@ export async function POST(request: Request) {
           ),
         );
 
-      return resultRuns;
+      return { batchId, runs: resultRuns };
     });
 
-    return NextResponse.json({ batchId, runs }, { status: 202 });
+    return NextResponse.json(body, { status: 202 });
   } catch (error) {
     return apiError(error);
   }

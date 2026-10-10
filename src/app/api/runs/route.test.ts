@@ -48,7 +48,9 @@ describe('execution API with PostgreSQL persistence', () => {
     expect(mocks.after).not.toHaveBeenCalled();
     expect(mocks.execute).not.toHaveBeenCalled();
     expect((await POST(request({ testId: test.id }))).status).toBe(202);
-    expect((await (await GET()).json()).runs).toHaveLength(2);
+    expect((await (await GET(new Request('http://localhost/api/runs'))).json()).runs).toHaveLength(
+      2,
+    );
   });
   it('rejects invalid targets, malformed requests and missing cases without scheduling jobs', async () => {
     expect((await POST(request({ case: 'Check', url: 'file:///etc/passwd' }))).status).toBe(400);

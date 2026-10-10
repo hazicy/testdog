@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/tests', (route) => route.fulfill({ json: { tests: [] } }));
-  await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [] } }));
+  await page.route('**/api/workspace/stats', route => route.fulfill({ json: { testCount: 1, runCount: 1, counts: { queued: 0, preparing: 0, running: 0, finalizing: 0, passed: 1, failed: 0, cancelled: 0 } } }));
+  await page.route('**/model-usage', route => route.fulfill({ json: { usage: { calls: 0, failures: 0, retries: 0, durationMs: 0, inputTokens: 0, outputTokens: 0, unknownUsage: 0 }, calls: [] } }));
+  await page.route( /\/api\/tests(?:\?.*)?$/, (route) => route.fulfill({ json: { tests: [] } }));
+  await page.route( /\/api\/runs(?:\?.*)?$/, (route) => route.fulfill({ json: { runs: [] } }));
   await page.route('**/api/builds', (route) => route.fulfill({ json: { builds: [] } }));
   await page.route('**/api/resources', (route) =>
     route.fulfill({
@@ -48,7 +50,7 @@ test('native setup validates required selection and submits custom checkbox valu
     release = resolve;
   });
 
-  await page.route('**/api/tests', async (route) => {
+  await page.route( /\/api\/tests(?:\?.*)?$/, async (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { tests: [] } });
     submitted = route.request().postDataJSON();
     await pending;

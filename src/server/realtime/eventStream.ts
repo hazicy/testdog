@@ -6,12 +6,7 @@ import { getRun } from '@/server/runs/repository';
 import { isActiveRun } from '@/features/runs/types';
 import { readyRedis, redisClient } from '@/server/shared/redis';
 import { latestPreview, watchPreview } from './preview';
-import {
-  readRunUpdates,
-  recoverRealtimeLeases,
-  startOutboxPublisher,
-  subscribeRealtime,
-} from './realtime';
+import { readRunUpdates, startOutboxPublisher, subscribeRealtime } from './realtime';
 
 async function workspaceVersion() {
   const [row] = await db
@@ -72,7 +67,7 @@ export async function eventStream(request: Request, runId?: string) {
     );
   };
   const snapshot = async () => {
-    const run = await getRun(runId!);
+    const run = await getRun(runId!, { includeLogs: false });
 
     revision = run.realtimeRevision ?? 0;
     send('snapshot', { run }, revision);
@@ -92,7 +87,6 @@ export async function eventStream(request: Request, runId?: string) {
         dirty = false;
         await readyRedis();
         await readyRedis(true);
-        await recoverRealtimeLeases();
         if (closed) return;
         if (runId) {
           const [row] = await db
@@ -115,7 +109,13 @@ export async function eventStream(request: Request, runId?: string) {
               await snapshot();
             else {
               revision = updates.at(-1)!.revision;
-              send('updates', updates, revision);
+              send(
+                'updates',
+                updates.map((update) =>
+                  update.kind === 'log' ? { kind: 'logs', revision: update.revision } : update,
+                ),
+                revision,
+              );
               if (revision < row.revision) dirty = true;
             }
           }

@@ -44,6 +44,7 @@ export type LLMContentBlock =
 
 export type LLMGenerateParams = {
   signal?: AbortSignal;
+  maxOutputTokens?: number;
   messages: Array<{
     role: 'user' | 'assistant';
     content: LLMContentBlock | LLMContentBlock[];
@@ -68,6 +69,8 @@ export type LLMGenerateParams = {
 };
 
 export type LLMGenerateResult = {
+  model?: string;
+  usage?: { inputTokens: number; outputTokens: number };
   role: 'assistant';
   content: { type: 'text'; text: string };
   toolCalls: Array<{ id: string; name: string; arguments: string }>;

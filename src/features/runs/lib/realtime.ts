@@ -5,6 +5,7 @@ export type RunUpdate =
   | { kind: 'run'; revision: number; data: Partial<TestRun> }
   | { kind: 'step'; revision: number; data: ExecutionStep }
   | { kind: 'artifact'; revision: number; data: RunArtifact }
+  | { kind: 'logs'; revision: number; data?: undefined }
   | { kind: 'log'; revision: number; data: BrowserLog };
 
 export function applyRunUpdates(run: TestRun, updates: RunUpdate[]): TestRun {
@@ -20,7 +21,8 @@ export function applyRunUpdates(run: TestRun, updates: RunUpdate[]): TestRun {
     } else if (update.kind === 'artifact') {
       if (!next.artifacts.some((artifact) => artifact.id === update.data.id))
         next = { ...next, artifacts: [...next.artifacts, update.data] };
-    } else if (!next.browserLogs?.some((log) => log.id === update.data.id))
+    } else if (update.kind === 'logs') next = { ...next, browserLogRevision: update.revision };
+    else if (!next.browserLogs?.some((log) => log.id === update.data.id))
       next = { ...next, browserLogs: [...(next.browserLogs ?? []), update.data] };
     next = { ...next, realtimeRevision: update.revision };
   }

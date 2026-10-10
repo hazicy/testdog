@@ -1,4 +1,6 @@
 'use client';
+import { useRunSubmission } from '@/client/useRunSubmission';
+('use client');
 import { Button } from '@/components/ui/Button';
 
 import { isActiveRun } from '@/features/runs/types';
@@ -39,6 +41,7 @@ const RecordingEditor = dynamic(
 
 export function RunDetail({ id }: { id: string }) {
   const router = useRouter();
+  const submit = useRunSubmission();
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
   const playback = useRunPlayback();
@@ -105,11 +108,10 @@ export function RunDetail({ id }: { id: string }) {
     if (!run) return;
     setBusy(true);
     try {
-      const data = await api
-        .post('/api/runs', {
-          json: mode === 'replay' ? { mode, sourceRunId: id } : { testId: run.testId },
-        })
-        .json<{ run: TestRun }>();
+      const data = await submit<{ run: TestRun }>(
+        '/api/runs',
+        mode === 'replay' ? { mode, sourceRunId: id } : { testId: run.testId },
+      );
 
       router.push(`/runs/${data.run.id}`);
     } catch (cause) {
@@ -235,7 +237,7 @@ export function RunDetail({ id }: { id: string }) {
             onSelect={selectStep}
           />
         </div>
-        <RunInspector
+        {view === 'execution' && <RunInspector
           id={id}
           run={run}
           tab={tab}
@@ -247,7 +249,7 @@ export function RunDetail({ id }: { id: string }) {
           diagnostics={diagnostics}
           stepFrames={stepFrames}
           onShowFrame={playback.showFrame}
-        />
+        />}
       </div>
     </div>
   );

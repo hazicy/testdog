@@ -1,4 +1,6 @@
 'use client';
+import { useRunSubmission } from '@/client/useRunSubmission';
+('use client');
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { isActiveRun } from '@/features/runs/types';
@@ -17,6 +19,7 @@ import { recordingCodeSchema, recordingInputMessage } from '@/features/runs/sche
 
 export function RecordingEditor({ run }: { run: TestRun }) {
   const router = useRouter();
+  const submit = useRunSubmission();
   const platform = run.targetSnapshot?.platform ?? 'web';
   const original = useMemo(
     () =>
@@ -95,15 +98,11 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         setMessage('新版本已保存。');
       }
       if (execute) {
-        const data = await api
-          .post('/api/runs', {
-            json: {
-              mode: 'replay',
-              sourceRunId: run.id,
-              recordingVersionId: version.id,
-            },
-          })
-          .json<{ run: TestRun }>();
+        const data = await submit<{ run: TestRun }>('/api/runs', {
+          mode: 'replay',
+          sourceRunId: run.id,
+          recordingVersionId: version.id,
+        });
 
         router.push(`/runs/${data.run.id}`);
       }

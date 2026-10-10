@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { runWrite, leaseScope } from '@/server/scheduling/lease';
 import { activeRunStatuses, isActiveRun } from '@/features/runs/types';
 import { legacyWebTarget, type TestTarget } from '@/automation/platform/target';
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   testCases,
@@ -96,42 +96,23 @@ export async function recoverExpiredRuns() {
 }
 
 export async function listRuns(): Promise<RunSummary[]> {
-  await recoverExpiredRuns();
-  const rows = await db
-    .select({
-      id: testRuns.id,
-      testId: testRuns.testId,
-      name: testRuns.name,
-      url: testRuns.url,
-      mode: testRuns.mode,
-      status: testRuns.status,
-      startedAt: testRuns.startedAt,
-      finishedAt: testRuns.finishedAt,
-      durationMs: testRuns.durationMs,
-      error: testRuns.error,
-      sourceRunId: testRuns.sourceRunId,
-      replayable: testRuns.replayable,
-      cancelRequested: testRuns.cancelRequested,
-    })
-    .from(testRuns)
-    .orderBy(desc(testRuns.startedAt), desc(testRuns.id));
-
-  return rows.map((row) => ({
-    ...row,
-    testId: optional(row.testId),
-    finishedAt: optional(row.finishedAt),
-    durationMs: optional(row.durationMs),
-    error: optional(row.error),
-    sourceRunId: optional(row.sourceRunId),
-  }));
+  const { listRunPage } = await import('@/server/workspace/queries');
+  return (await listRunPage({ limit: 50, q: '', status: 'all', cursor: undefined })).runs;
 }
 
-export async function getRun(id: string): Promise<TestRun> {
-  await recoverExpiredRuns();
-
+export async function getRun(
+  id: string,
+  options: { includeLogs?: boolean } = {},
+): Promise<TestRun> {
   return db.transaction(
     async (tx) => {
-      const [row] = await tx.select().from(testRuns).where(eq(testRuns.id, id));
+      const { browserLogs: _logs, ...detailColumns } = getTableColumns(testRuns);
+      void _logs;
+      const [selected] = await tx
+        .select(options.includeLogs === false ? detailColumns : getTableColumns(testRuns))
+        .from(testRuns)
+        .where(eq(testRuns.id, id));
+      const row = selected ? { browserLogs: [], ...selected } : undefined;
       if (!row) throw new WorkspaceError('执行记录不存在。', 404);
       const run = runRecord(row);
       const [steps, artifacts, logs] = await Promise.all([
@@ -141,18 +122,23 @@ export async function getRun(id: string): Promise<TestRun> {
           .from(runArtifacts)
           .where(eq(runArtifacts.runId, id))
           .orderBy(asc(runArtifacts.elapsedMs), asc(runArtifacts.capturedAt), asc(runArtifacts.id)),
-        tx
-          .select({ data: runBrowserLogs.data })
-          .from(runBrowserLogs)
-          .where(eq(runBrowserLogs.runId, id))
-          .orderBy(asc(runBrowserLogs.sequence)),
+        options.includeLogs === false
+          ? Promise.resolve([])
+          : tx
+              .select({ data: runBrowserLogs.data })
+              .from(runBrowserLogs)
+              .where(eq(runBrowserLogs.runId, id))
+              .orderBy(asc(runBrowserLogs.sequence)),
       ]);
 
       return {
         ...run,
         steps: steps.map(stepRecord),
         artifacts: artifacts.map(artifactRecord),
-        browserLogs: [...(run.browserLogs ?? []), ...logs.map((log) => log.data)],
+        browserLogs:
+          options.includeLogs === false
+            ? undefined
+            : [...(run.browserLogs ?? []), ...logs.map((log) => log.data)],
       };
     },
     { isolationLevel: 'repeatable read' },
@@ -183,7 +169,6 @@ export async function createRun(
     recordingVersionId?: string;
     mode?: 'record' | 'replay';
   } = { ...parsed.data, batchId: request.batchId, goalOverride: request.goalOverride };
-  if (!transaction) await recoverExpiredRuns();
   const persist = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => {
     let snapshot: {
       targetSnapshot?: TestTarget;

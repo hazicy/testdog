@@ -1,4 +1,6 @@
 'use client';
+import { ModelUsagePanel } from './ModelUsagePanel';
+('use client');
 import { Button } from '@/components/ui/Button';
 import type { ExecutionStep, RunArtifact, TestRun } from '@/features/runs/types';
 import type { indexRun } from '@/features/runs/lib/runIndex';
@@ -176,7 +178,12 @@ export function RunInspector({
             </p>
           ) : (
             <BrowserLogPanel
-              logs={run?.browserLogs || []}
+              key={`${id}:${tab}`}
+              runId={id}
+              revision={run?.browserLogRevision ?? run?.realtimeRevision}
+              active={
+                !!run && ['queued', 'preparing', 'running', 'finalizing'].includes(run.status)
+              }
               kind={tab}
               stepId={selectedStep?.id}
               elapsedMs={currentFrame?.elapsedMs}
@@ -206,6 +213,12 @@ export function RunInspector({
           </>
         ) : (
           <div className="font-mono text-xs leading-7">
+            <ModelUsagePanel
+              id={id}
+              active={
+                !!run && ['queued', 'preparing', 'running', 'finalizing'].includes(run.status)
+              }
+            />
             {run?.events.map((event, index) => (
               <div key={index} className="flex gap-4">
                 <span className="shrink-0 text-page-muted">

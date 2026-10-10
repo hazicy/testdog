@@ -381,6 +381,8 @@ describe('PostgreSQL workspace repository', () => {
       'UPDATE test_runs SET "leaseUntil" = now() - interval \'2 minutes\'  , "startedAt" = now() - interval \'2 minutes\' WHERE id = $1',
       [run.id],
     );
+    expect((await getRun(run.id)).status).toBe('running');
+    await recoverExpiredRuns();
     const recovered = await getRun(run.id);
 
     expect(recovered.status).toBe('failed');

@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useMemo, useState, type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -12,9 +12,27 @@ type Props = Omit<ComponentProps<typeof WorkspaceRows>, 'visibleTests' | 'visibl
   runs: ComponentProps<typeof WorkspaceRows>['visibleRuns'];
   loading: boolean;
   connected: boolean;
+  query: string;
+  setQuery: (query: string) => void;
+  filter: string;
+  setFilter: (filter: string) => void;
+  page: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  nextPage: () => void;
+  previousPage: () => void;
 };
 
 export function WorkspaceList({
+  query,
+  setQuery,
+  filter,
+  setFilter,
+  page,
+  hasPrevious,
+  hasNext,
+  nextPage,
+  previousPage,
   isTests,
   tests,
   runs,
@@ -30,33 +48,8 @@ export function WorkspaceList({
   start,
   exportRun,
 }: Props) {
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState('all');
-  const keyword = query.toLowerCase();
-  const visibleTests = useMemo(
-    () =>
-      isTests
-        ? tests.filter(
-            (test) =>
-              `${test.name} ${test.target && test.target.platform !== 'web' ? `${test.target.platform} · ${test.target.appId}` : test.url} ${test.tags.join(' ')}`
-                .toLowerCase()
-                .includes(keyword) &&
-              (filter === 'all' || (latestRuns.get(test.id)?.status || 'none') === filter),
-          )
-        : [],
-    [isTests, tests, keyword, filter, latestRuns],
-  );
-  const visibleRuns = useMemo(
-    () =>
-      isTests
-        ? []
-        : runs.filter(
-            (run) =>
-              `${run.name} ${run.url}`.toLowerCase().includes(keyword) &&
-              (filter === 'all' || run.status === filter),
-          ),
-    [isTests, runs, keyword, filter],
-  );
+  const visibleTests = tests;
+  const visibleRuns = runs;
 
   return (
     <section
@@ -180,7 +173,17 @@ export function WorkspaceList({
         </div>
       )}
       <div className="flex items-center justify-between border-t border-page-line px-4 py-3 text-xs text-text-subtle">
-        <span>{isTests ? visibleTests.length : visibleRuns.length} 条记录</span>
+        <span>
+          第 {page} 页 · {isTests ? visibleTests.length : visibleRuns.length} 条记录
+        </span>
+        <div className="flex gap-3">
+          <Button disabled={!hasPrevious || loading} onClick={previousPage}>
+            上一页
+          </Button>
+          <Button disabled={!hasNext || loading} onClick={nextPage}>
+            下一页
+          </Button>
+        </div>
         <span className="flex items-center gap-1.5">
           <span
             className={`h-1.5 w-1.5 rounded-full ${running ? 'bg-activity-running' : 'bg-activity-idle'}`}
