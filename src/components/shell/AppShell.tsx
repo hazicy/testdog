@@ -1,5 +1,6 @@
 'use client';
 
+import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Brand } from '@/components/brand/Brand';
 import { Button } from '@/components/ui/Button';
 
@@ -8,7 +9,6 @@ import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
-import globeIcon from '@iconify-icons/lucide/globe';
 import menuIcon from '@iconify-icons/lucide/panel-left';
 import resultsIcon from '@iconify-icons/lucide/play';
 import testsIcon from '@iconify-icons/lucide/flask-conical';
@@ -17,7 +17,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
-  if (pathname === '/' || pathname === '/onboarding') return children;
+  if (
+    pathname === '/' ||
+    pathname === '/onboarding' ||
+    pathname === '/login' ||
+    pathname === '/register'
+  )
+    return children;
   if (/^\/runs\/[^/]+$/.test(pathname)) {
     return (
       <main id="main-content" tabIndex={-1} className="run-studio-main">
@@ -52,10 +58,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
         </Link>
         <div className="px-3 pt-6">
-          <div className="mb-6 flex items-center gap-3 px-2 text-sm">
-            <Icon icon={globeIcon} width="18" aria-hidden="true" />
-            {!collapsed && <span className="hidden font-medium md:block">浏览器测试</span>}
-          </div>
           <nav aria-label="工作区导航" className="space-y-1">
             {[
               { href: '/cases', name: '测试用例', icon: testsIcon, active: !results },
@@ -76,17 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </div>
         <div className={`mt-auto border-t border-page-line p-3`}>
-          <div className="flex items-center gap-3 border border-page-line bg-page p-2">
-            <span className="grid h-7 w-7 shrink-0 place-items-center bg-avatar-surface text-xs font-medium text-avatar-ink">
-              L
-            </span>
-            {!collapsed && (
-              <div className="hidden min-w-0 md:block">
-                <p className="text-xs font-medium">本地工作区</p>
-                <p className="mt-0.5 text-xs text-sidebar-muted">Local workspace</p>
-              </div>
-            )}
-          </div>
+          <UserMenu collapsed={collapsed} />
         </div>
       </aside>
       <div className="min-w-0">

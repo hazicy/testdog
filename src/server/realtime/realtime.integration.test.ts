@@ -5,6 +5,7 @@ import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 
 const isolated = vi.hoisted(() => ({ db: undefined as unknown }));
 
+vi.mock('@/server/shared/auth', () => ({ requireUserId: async () => null }));
 vi.mock('@/db', () => ({
   get db() {
     return isolated.db;
@@ -105,6 +106,7 @@ it.skipIf(!binary)(
     const response = await eventStream(
       new Request('http://localhost/events?preview=1', { signal: abort.signal }),
       runId,
+      null,
     );
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
@@ -150,6 +152,7 @@ it.skipIf(!binary)(
     const response = await eventStream(
       new Request('http://localhost/events', { signal: abort.signal }),
       runId,
+      null,
     );
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();

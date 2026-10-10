@@ -1,3 +1,4 @@
+import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { storeArtifactFile } from './artifactStorage';
 import { isDeepStrictEqual } from 'node:util';
 import { runWrite, leaseScope } from '@/server/scheduling/lease';
@@ -95,15 +96,15 @@ export async function recoverExpiredRuns() {
   await (await import('@/server/scheduling/scheduler')).recoverLeases();
 }
 
-export async function listRuns(): Promise<RunSummary[]> {
+export async function listRuns(userId: UserScope = null): Promise<RunSummary[]> {
   const { listRunPage } = await import('@/server/workspace/queries');
 
-  return (await listRunPage({ limit: 50, q: '', status: 'all', cursor: undefined })).runs;
+  return (await listRunPage({ limit: 50, q: '', status: 'all', cursor: undefined }, userId)).runs;
 }
 
 export async function getRun(
   id: string,
-  options: { includeLogs?: boolean } = {},
+  options: { includeLogs?: boolean; userId?: UserScope } = {},
 ): Promise<TestRun> {
   return db.transaction(
     async (tx) => {
@@ -113,7 +114,12 @@ export async function getRun(
       const [selected] = await tx
         .select(options.includeLogs === false ? detailColumns : getTableColumns(testRuns))
         .from(testRuns)
-        .where(eq(testRuns.id, id));
+        .where(
+          and(
+            eq(testRuns.id, id),
+            options.userId === undefined ? undefined : ownedBy(testRuns.userId, options.userId),
+          ),
+        );
       const row = selected ? { browserLogs: [], ...selected } : undefined;
 
       if (!row) throw new WorkspaceError('执行记录不存在。', 404);
@@ -154,6 +160,7 @@ export async function createRun(
     goalOverride?: string;
   },
   transaction?: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  userId: UserScope = null,
 ) {
   const parsed = runRequestSchema.safeParse(
     Object.fromEntries(
@@ -187,7 +194,12 @@ export async function createRun(
     };
 
     if (input.mode === 'replay') {
-      const [source] = await tx.select().from(testRuns).where(eq(testRuns.id, input.sourceRunId!));
+      const [source] = await tx
+        .select()
+        .from(testRuns)
+        .where(and(eq(testRuns.id, input.sourceRunId!), ownedBy(testRuns.userId, userId)));
+
+      if (!source) throw new WorkspaceError('原执行不存在。', 404);
 
       if (
         input.target &&
@@ -197,7 +209,6 @@ export async function createRun(
         )
       )
         throw new WorkspaceError('重放目标与原录制不兼容。', 409);
-      if (!source) throw new WorkspaceError('原执行不存在。', 404);
       const [version] = input.recordingVersionId
         ? await tx
             .select()
@@ -227,7 +238,10 @@ export async function createRun(
         recordingSteps: version?.steps,
       };
     } else if (input.testId) {
-      const [test] = await tx.select().from(testCases).where(eq(testCases.id, input.testId));
+      const [test] = await tx
+        .select()
+        .from(testCases)
+        .where(and(eq(testCases.id, input.testId), ownedBy(testCases.userId, userId)));
 
       if (!test) throw new WorkspaceError('用例不存在。', 404);
       snapshot = {
@@ -260,7 +274,7 @@ export async function createRun(
 
     const [run] = await tx
       .insert(testRuns)
-      .values({ ...snapshot, batchId: input.batchId, status: 'queued' })
+      .values({ ...snapshot, userId, batchId: input.batchId, status: 'queued' })
       .returning();
 
     return runRecord(run);
@@ -306,9 +320,20 @@ export async function heartbeat(id: string) {
   return (await import('@/server/scheduling/scheduler')).renewLease(lease);
 }
 
-export async function requestCancellation(id: string) {
+export async function requestCancellation(id: string, userId?: UserScope) {
   await db.transaction(async (tx) => {
-    const [run] = await tx.select().from(testRuns).where(eq(testRuns.id, id)).for('update');
+    const [run] = await tx
+      .select()
+      .from(testRuns)
+      .where(
+        and(
+          eq(testRuns.id, id),
+          userId === undefined ? undefined : ownedBy(testRuns.userId, userId),
+        ),
+      )
+      .for('update');
+
+    if (!run) throw new WorkspaceError('执行记录不存在。', 404);
 
     if (!run || !isActiveRun(run.status)) throw new WorkspaceError('该测试已结束或不存在。', 409);
     await tx
@@ -406,7 +431,8 @@ export async function insertArtifact(artifact: RunArtifact, path: string) {
   }
 }
 
-export async function getArtifact(runId: string, id: string) {
+export async function getArtifact(runId: string, id: string, userId?: UserScope) {
+  if (userId !== undefined) await assertRunAccess(runId, userId);
   const [artifact] = await db
     .select()
     .from(runArtifacts)
@@ -429,4 +455,14 @@ export async function appendBrowserLogs(
       .values(logs.map((data) => ({ id: data.id, runId: id, data })))
       .onConflictDoNothing();
   });
+}
+
+// Worker reads are internal; every HTTP caller must pass the authenticated scope.
+export async function assertRunAccess(id: string, userId: UserScope) {
+  const [run] = await db
+    .select({ id: testRuns.id })
+    .from(testRuns)
+    .where(and(eq(testRuns.id, id), ownedBy(testRuns.userId, userId)));
+
+  if (!run) throw new WorkspaceError('执行记录不存在。', 404);
 }

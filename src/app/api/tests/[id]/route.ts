@@ -1,3 +1,4 @@
+import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
 import { saveTest, deleteTest } from '@/server/test-cases/repository';
 import { testSchema, testInputMessage } from '@/features/test-cases/schemas';
@@ -14,18 +15,20 @@ export async function PATCH(request: Request, context: Context) {
   try {
     validId(id);
 
-    return NextResponse.json({ test: await saveTest(parsed.data, id) });
+    return NextResponse.json({
+      test: await saveTest(parsed.data, id, await requireUserId(request)),
+    });
   } catch (error) {
     return apiError(error);
   }
 }
 
-export async function DELETE(_request: Request, context: Context) {
+export async function DELETE(request: Request, context: Context) {
   const { id } = await context.params;
 
   try {
     validId(id);
-    await deleteTest(id);
+    await deleteTest(id, await requireUserId(request));
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,4 +1,5 @@
-import { desc, eq } from 'drizzle-orm';
+import { ownedBy, type UserScope } from '@/server/shared/ownership';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { recordingVersions, testRuns } from '@/db/schema';
 import { parseRecordingScript, ScriptError } from '@/features/runs/lib/recordingScript';
@@ -19,9 +20,17 @@ const recordingVersionFields = {
   schemaVersion: recordingVersions.schemaVersion,
 };
 
-export async function listRecordingVersions(runId: string) {
+export async function listRecordingVersions(runId: string, userId?: UserScope) {
   await recoverExpiredRuns();
-  const [run] = await db.select({ id: testRuns.id }).from(testRuns).where(eq(testRuns.id, runId));
+  const [run] = await db
+    .select({ id: testRuns.id })
+    .from(testRuns)
+    .where(
+      and(
+        eq(testRuns.id, runId),
+        userId === undefined ? undefined : ownedBy(testRuns.userId, userId),
+      ),
+    );
 
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
 
@@ -32,7 +41,7 @@ export async function listRecordingVersions(runId: string) {
     .orderBy(desc(recordingVersions.createdAt), desc(recordingVersions.id));
 }
 
-export async function saveRecordingVersion(runId: string, code: string) {
+export async function saveRecordingVersion(runId: string, code: string, userId?: UserScope) {
   const parsed = recordingCodeSchema.safeParse(code);
 
   if (!parsed.success) throw new WorkspaceError(recordingInputMessage);
@@ -44,7 +53,12 @@ export async function saveRecordingVersion(runId: string, code: string) {
       targetSnapshot: testRuns.targetSnapshot,
     })
     .from(testRuns)
-    .where(eq(testRuns.id, runId));
+    .where(
+      and(
+        eq(testRuns.id, runId),
+        userId === undefined ? undefined : ownedBy(testRuns.userId, userId),
+      ),
+    );
 
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
   if (isActiveRun(run.status)) throw new WorkspaceError('请等待录制结束后编辑。', 409);

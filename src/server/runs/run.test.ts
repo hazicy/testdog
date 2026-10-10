@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/automation/llm/deepseek', () => ({ deepseekClient: { generate: mocks.generate } }));
+vi.mock('@/server/shared/auth', () => ({ requireUserId: async () => null }));
 vi.mock('@/db', async () => {
   const result = await (await import('@/server/testing/testDatabase')).createTestDatabase();
 

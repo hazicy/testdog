@@ -34,7 +34,7 @@ erDiagram
 
 平台使用版本化 target：Web 包含 URL/browser/deviceProfile，原生包含 appId/deviceProfileId/buildArtifactId/resetPolicy/launchUrl。可选 inputs 保存普通值或 secretRef，原生 evidence 按能力请求 video/trace/logs。运行详情提供冻结 target、实际 environment、capabilities 和 evidenceComplete。
 
-`POST /api/run-batches` 接收 testId 与 variants（每项 target 和可选 goal），事务内创建独立 run 并返回 batchId。`GET /api/resources` 返回 workers/resources，`GET /api/builds` 返回构建身份与摘要，均不暴露私有路径。原生录制编辑保存版本化 JSON IR，支持 structured check、semantic assertion 和分支。
+`POST /api/run-batches` 接收 testId 与 variants（每项 target 和可选 goal），事务内创建独立 run 并返回 batchId。`GET /api/resources` 返回共享资源容量目录（不含任务归属、执行 ID、租约及 worker 详情），`GET /api/builds` 返回构建身份与摘要，均不暴露私有路径。原生录制编辑保存版本化 JSON IR，支持 structured check、semantic assertion 和分支。
 
 生产模式默认要求认证，附件也受认证与运行归属校验保护。跨主机附件可使用私有 S3。部署切换与实测证据见 [实施记录](automation-implementation.md)。
 
@@ -128,7 +128,7 @@ erDiagram
 
 ## 保留的旧接口
 
-`GET/POST /api/cases` 与 `/api` 健康检查保留兼容原项目。旧 `/api/cases` 操作原 `case` 表，不作为新工作台的数据源。
+`/api` 提供健康检查。旧版 `case` 表及 `/api/cases` 接口已移除，工作台统一使用 `/api/tests` 与 `test_cases`。
 
 ## 嵌套计划画板与录制编辑
 
@@ -192,7 +192,7 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 }
 ```
 
-- `GET /api/resources`：已登记资源与 worker，包含 available/busy/quarantined 状态。
+- `GET /api/resources`：已登记资源的容量目录，包含 available/busy/quarantined 状态，不包含任务和 worker 的内部信息。
 - `GET /api/builds`：构建元数据与摘要，私有路径不输出。
 - `POST /api/run-batches`：`{testId, variants:[{target, goal?}]}`，在同一事务创建各平台独立执行并以 batchId 关联。
 - 原生录制版本使用 `{schemaVersion:1, platform, steps}` JSON，保留语义断言与分支，拒绝临时 refs 和坐标手势。
@@ -224,3 +224,7 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 模型 SDK 在进程内复用，关闭 SDK 隐式重试；每条测试的编译、动作规划和断言共用预算。默认单次调用（包括重试）60 秒、最多 60 次请求（重试计入）、累计模型耗时 300 秒、已知 token 总量 200000、单次输出最多 8192 tokens、临时错误最多重试 1 次。可用 `.env.example` 中的 `CASEFORGE_AI_*` 调整。
 
 `model_calls` 保存调用开始时间、耗时、模型、终态、失败与重试次数，以及提供方返回的输入/输出 tokens，不保存提示词或原始错误。`GET /api/runs/:id/model-usage` 返回汇总和逐次调用，界面在“执行日志”面板打开时加载。缺少用量的失败/重试显示为未知，不记作零成本。token 阈值以已返回的用量为准，超出后禁止下一次调用；它不能预先约束输入 token 或提供方未返回用量的请求，费用预算需要价格表与可靠用量另行实现。
+
+## 用户数据归属
+
+业务 API 从 Better Auth 会话读取当前用户 ID；用例与执行记录保存 userId，所有 HTTP 调用显式传递用户范围。子资源通过所属执行记录校验权限，跨用户访问返回 404。后台 worker 的内部读取可以访问已领取的任务，不接受浏览器传入的用户身份。幂等键使用用户与请求 ID 的唯一约束，实时 outbox 保存归属，workspace 通知使用每用户频道。历史无归属数据不向普通用户展示，认领方式见 README。

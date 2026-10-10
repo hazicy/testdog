@@ -92,7 +92,7 @@ it('retains pending notifications during a Redis outage and tolerates duplicate 
   redis.publish.mockResolvedValue(1);
   await flushOutbox();
   expect(redis.publish).toHaveBeenCalledWith(`test:run:${runId}`, '{"kind":"changed"}');
-  expect(redis.publish).toHaveBeenCalledWith('test:workspace', '{"kind":"changed"}');
+  expect(redis.publish).toHaveBeenCalledWith('test:workspace:legacy', '{"kind":"changed"}');
   expect(
     (await database.client.query('SELECT id FROM realtime_outbox WHERE "publishedAt" IS NULL'))
       .rows,

@@ -1,3 +1,4 @@
+import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
 import { listBrowserLogs } from '@/server/runs/logs';
 import { apiError, validId } from '@/server/shared/http';
@@ -10,7 +11,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 
     validId(id);
 
-    return NextResponse.json(await listBrowserLogs(id, request));
+    return NextResponse.json(await listBrowserLogs(id, request, await requireUserId(request)));
   } catch (error) {
     return apiError(error);
   }

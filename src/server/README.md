@@ -15,3 +15,5 @@
 `src/app/api` 负责请求解析、响应和调用业务模块；`scripts/worker.ts` 使用同一套执行与调度模块消费任务。数据库连接和表定义在 `src/db`，自动化算法与平台驱动在 `src/automation`，前后端共用的类型、校验和纯函数在所属 `src/features/<功能>` 中。
 
 浏览器组件、功能 hooks 和通用客户端代码不能直接导入本目录的运行时代码，边界由 ESLint 检查；共享类型优先从领域模块导入。后端代码使用普通模块，保留独立 worker 和测试直接运行的能力。
+
+HTTP 路由必须调用 `requireUserId(request)`，并将返回的 `UserScope` 传入查询、修改、执行创建和实时订阅。`null` 仅代表显式本地免登录模式的无归属数据，不表示所有用户。`getRun` 等 worker 共用读取方法不传用户范围时仅供内部 worker 使用，HTTP 路由必须显式传递范围或先调用 `assertRunAccess`；新增接口同样遵守这一约定。

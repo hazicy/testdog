@@ -1,5 +1,6 @@
+import { ownedBy, type UserScope } from './ownership';
 import { createHash } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/db';
 import { submissionRequests } from '@/db/schema';
@@ -20,6 +21,7 @@ export async function submitOnce<T extends Record<string, unknown>>(
   request: Request,
   payload: unknown,
   create: (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => Promise<T>,
+  userId: UserScope = null,
 ): Promise<T> {
   const key = request.headers.get('Idempotency-Key');
 
@@ -32,7 +34,7 @@ export async function submitOnce<T extends Record<string, unknown>>(
     if (!key) return create(tx);
     const inserted = await tx
       .insert(submissionRequests)
-      .values({ key, fingerprint })
+      .values({ key, fingerprint, userId })
       .onConflictDoNothing()
       .returning();
 
@@ -40,7 +42,7 @@ export async function submitOnce<T extends Record<string, unknown>>(
       const [existing] = await tx
         .select()
         .from(submissionRequests)
-        .where(eq(submissionRequests.key, key));
+        .where(and(eq(submissionRequests.key, key), ownedBy(submissionRequests.userId, userId)));
 
       if (existing.fingerprint !== fingerprint)
         throw new WorkspaceError('同一请求 ID 不能提交不同参数。', 409);
@@ -50,7 +52,10 @@ export async function submitOnce<T extends Record<string, unknown>>(
 
     const response = await create(tx);
 
-    await tx.update(submissionRequests).set({ response }).where(eq(submissionRequests.key, key));
+    await tx
+      .update(submissionRequests)
+      .set({ response })
+      .where(and(eq(submissionRequests.key, key), ownedBy(submissionRequests.userId, userId)));
 
     return response;
   });

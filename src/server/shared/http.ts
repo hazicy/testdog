@@ -17,7 +17,9 @@ export function apiError(error: unknown) {
   );
 }
 
-export function withApiError<Args extends unknown[]>(handler: (...args: Args) => Promise<Response>) {
+export function withApiError<Args extends unknown[]>(
+  handler: (...args: Args) => Promise<Response>,
+) {
   return async (...args: Args) => {
     try {
       return await handler(...args);

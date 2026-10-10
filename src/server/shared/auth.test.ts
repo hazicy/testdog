@@ -1,38 +1,49 @@
-import { afterEach, expect, test, vi } from 'vitest';
-import { workspaceAuthorized } from './auth';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-afterEach(() => vi.unstubAllEnvs());
-test('configured credentials protect workspace and artifact access', () => {
-  vi.stubEnv('CASEFORGE_AUTH_USER', 'operator');
-  vi.stubEnv('CASEFORGE_AUTH_PASSWORD', 'secret:with:colons');
-  const request = (value?: string) =>
-    new Request('http://localhost/api/runs/run/artifacts/artifact', {
-      headers: value ? { authorization: value } : {},
-    });
+const getSession = vi.hoisted(() => vi.fn());
 
-  expect(workspaceAuthorized(request())).toBe(false);
-  expect(workspaceAuthorized(request('Bearer secret'))).toBe(false);
-  expect(
-    workspaceAuthorized(request(`Basic ${Buffer.from('operator:wrong').toString('base64')}`)),
-  ).toBe(false);
-  expect(
-    workspaceAuthorized(
-      request(`Basic ${Buffer.from('operator:secret:with:colons').toString('base64')}`),
-    ),
-  ).toBe(true);
-});
-test('required authentication fails closed when credentials are missing', () => {
-  vi.stubEnv('CASEFORGE_AUTH_USER', '');
-  vi.stubEnv('CASEFORGE_AUTH_PASSWORD', '');
-  vi.stubEnv('CASEFORGE_REQUIRE_AUTH', 'true');
-  expect(workspaceAuthorized(new Request('http://localhost'))).toBe(false);
-});
-test('production defaults to authenticated access and requires an explicit local opt-out', () => {
-  vi.stubEnv('NODE_ENV', 'production');
-  vi.stubEnv('CASEFORGE_AUTH_USER', '');
-  vi.stubEnv('CASEFORGE_AUTH_PASSWORD', '');
+vi.mock('@/server/auth/auth', () => ({ auth: { api: { getSession } } }));
+import { requireUserId, workspaceAuthorized } from './auth';
+
+beforeEach(() => {
+  getSession.mockReset();
   vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', '');
-  expect(workspaceAuthorized(new Request('http://localhost'))).toBe(false);
+});
+afterEach(() => vi.unstubAllEnvs());
+
+test('requires a database validated session, even with a forged cookie or legacy Basic credentials', async () => {
+  getSession.mockResolvedValue(null);
+  const request = new Request('http://localhost/api/runs', {
+    headers: {
+      cookie: 'better-auth.session_token=forged',
+      authorization: 'Basic b3BlcmF0b3I6c2VjcmV0',
+    },
+  });
+
+  expect(await workspaceAuthorized(request)).toBe(false);
+  expect(getSession).toHaveBeenCalledWith({ headers: request.headers });
+});
+
+test('allows authenticated users', async () => {
+  getSession.mockResolvedValue({ user: { id: 'user-1' }, session: { id: 'session-1' } });
+  expect(await workspaceAuthorized(new Request('http://localhost/cases'))).toBe(true);
+});
+
+test('requires an explicit local opt-out in every environment', async () => {
+  getSession.mockResolvedValue(null);
+  vi.stubEnv('NODE_ENV', 'development');
+  expect(await workspaceAuthorized(new Request('http://localhost/cases'))).toBe(false);
   vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', 'true');
-  expect(workspaceAuthorized(new Request('http://localhost'))).toBe(true);
+  expect(await workspaceAuthorized(new Request('http://localhost/cases'))).toBe(true);
+});
+
+test('derives ownership from the session and rejects unauthenticated API calls', async () => {
+  const request = new Request('http://localhost/api/tests', { headers: { 'x-user-id': 'forged' } });
+
+  getSession.mockResolvedValue(null);
+  await expect(requireUserId(request)).rejects.toMatchObject({ status: 401 });
+  vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', 'true');
+  expect(await requireUserId(request)).toBeNull();
+  getSession.mockResolvedValue({ user: { id: 'real-user' } });
+  expect(await requireUserId(request)).toBe('real-user');
 });

@@ -1,3 +1,4 @@
+import { requireUserId } from '@/server/shared/auth';
 import { eventStream } from '@/server/realtime/eventStream';
 import { apiError, validId } from '@/server/shared/http';
 
@@ -9,7 +10,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 
     validId(id);
 
-    return await eventStream(request, id);
+    return await eventStream(request, id, await requireUserId(request));
   } catch (error) {
     return apiError(error);
   }

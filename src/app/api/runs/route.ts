@@ -1,3 +1,4 @@
+import { requireUserId } from '@/server/shared/auth';
 import { submitOnce } from '@/server/shared/idempotency';
 import { listRunPage } from '@/server/workspace/queries';
 import { readPage } from '@/server/shared/pagination';
@@ -10,10 +11,11 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 export const GET = withApiError(async (request: Request) =>
-  NextResponse.json(await listRunPage(readPage(request))),
+  NextResponse.json(await listRunPage(readPage(request), await requireUserId(request))),
 );
 
 export const POST = withApiError(async (request: Request) => {
+  const userId = await requireUserId(request);
   const parsed = runRequestSchema.safeParse(await request.json().catch(() => null));
 
   if (!parsed.success)
@@ -22,10 +24,15 @@ export const POST = withApiError(async (request: Request) => {
       { status: 400 },
     );
 
-  const body = await submitOnce(request, parsed.data, async (tx) => ({
-    success: true,
-    run: await createRun(parsed.data, tx),
-  }));
+  const body = await submitOnce(
+    request,
+    parsed.data,
+    async (tx) => ({
+      success: true,
+      run: await createRun(parsed.data, tx, userId),
+    }),
+    userId,
+  );
 
   return NextResponse.json(body, { status: 202 });
 });

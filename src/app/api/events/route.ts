@@ -1,11 +1,13 @@
+import { requireUserId } from '@/server/shared/auth';
+import { apiError } from '@/server/shared/http';
 import { eventStream } from '@/server/realtime/eventStream';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   try {
-    return await eventStream(request);
-  } catch {
-    return Response.json({ message: '实时连接暂不可用' }, { status: 503 });
+    return await eventStream(request, undefined, await requireUserId(request));
+  } catch (error) {
+    return apiError(error);
   }
 }

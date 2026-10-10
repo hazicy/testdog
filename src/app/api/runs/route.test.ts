@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   client: undefined as import('@electric-sql/pglite').PGlite | undefined,
 }));
 
+vi.mock('@/server/shared/auth', () => ({ requireUserId: async () => null }));
 vi.mock('@/db', async () => {
   const result = await (await import('@/server/testing/testDatabase')).createTestDatabase();
 

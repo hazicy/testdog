@@ -30,20 +30,82 @@ import type {
   PlaywrightAssertion,
 } from '@/features/runs/types';
 
-export const Case = pgTable('case', {
-  id: integer(),
-  goal: varchar(),
-});
-
 export const users = pgTable('users', {
   id: integer(),
   name: varchar(),
 });
 
+// Keep the legacy users table intact; authentication has its own persistent models.
+export const authUsers = pgTable('auth_users', {
+  id: text().primaryKey(),
+  name: text().notNull(),
+  email: text().notNull().unique(),
+  emailVerified: boolean().notNull().default(false),
+  image: text(),
+  createdAt: timestamp().notNull().defaultNow(),
+  updatedAt: timestamp().notNull().defaultNow(),
+});
+
+export const authSessions = pgTable(
+  'auth_sessions',
+  {
+    id: text().primaryKey(),
+    token: text().notNull().unique(),
+    userId: text()
+      .notNull()
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp().notNull(),
+    ipAddress: text(),
+    userAgent: text(),
+    createdAt: timestamp().notNull().defaultNow(),
+    updatedAt: timestamp().notNull().defaultNow(),
+  },
+  (table) => [index('auth_sessions_user_idx').on(table.userId)],
+);
+
+export const authAccounts = pgTable(
+  'auth_accounts',
+  {
+    id: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
+    accountId: text().notNull(),
+    providerId: text().notNull(),
+    accessToken: text(),
+    refreshToken: text(),
+    idToken: text(),
+    accessTokenExpiresAt: timestamp(),
+    refreshTokenExpiresAt: timestamp(),
+    scope: text(),
+    password: text(),
+    createdAt: timestamp().notNull().defaultNow(),
+    updatedAt: timestamp().notNull().defaultNow(),
+  },
+  (table) => [
+    index('auth_accounts_user_idx').on(table.userId),
+    uniqueIndex('auth_accounts_provider_idx').on(table.providerId, table.accountId),
+  ],
+);
+
+export const authVerifications = pgTable(
+  'auth_verifications',
+  {
+    id: text().primaryKey(),
+    identifier: text().notNull(),
+    value: text().notNull(),
+    expiresAt: timestamp().notNull(),
+    createdAt: timestamp().notNull().defaultNow(),
+    updatedAt: timestamp().notNull().defaultNow(),
+  },
+  (table) => [index('auth_verifications_identifier_idx').on(table.identifier)],
+);
+
 // Execution records are independent snapshots; deleting a case does not delete history.
 export const testCases = pgTable(
   'test_cases',
   {
+    userId: text().references(() => authUsers.id),
     target: jsonb().$type<TestTarget>(),
     id: uuid().primaryKey().defaultRandom(),
     name: text().notNull(),
@@ -53,11 +115,15 @@ export const testCases = pgTable(
     createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
-  (table) => [index('test_cases_updated_idx').on(table.updatedAt, table.id)],
+  (table) => [
+    index('test_cases_updated_idx').on(table.updatedAt, table.id),
+    index('test_cases_user_updated_idx').on(table.userId, table.updatedAt, table.id),
+  ],
 );
 export const testRuns = pgTable(
   'test_runs',
   {
+    userId: text().references(() => authUsers.id),
     id: uuid().primaryKey().defaultRandom(),
     testId: uuid().references(() => testCases.id, { onDelete: 'set null' }),
     recordingVersionId: uuid().references((): AnyPgColumn => recordingVersions.id, {
@@ -103,6 +169,7 @@ export const testRuns = pgTable(
   },
   (table) => [
     index('test_runs_started_idx').on(table.startedAt, table.id),
+    index('test_runs_user_started_idx').on(table.userId, table.startedAt, table.id),
     index('test_runs_case_idx').on(table.testId, table.startedAt, table.id),
     index('test_runs_status_started_idx').on(table.status, table.startedAt, table.id),
     index('test_runs_active_lease_idx')
@@ -294,6 +361,7 @@ export const automationBuilds = pgTable('automation_builds', {
 export const realtimeOutbox = pgTable(
   'realtime_outbox',
   {
+    userId: text().references(() => authUsers.id),
     id: bigserial({ mode: 'number' }).primaryKey(),
     runId: uuid().references(() => testRuns.id, { onDelete: 'cascade' }),
     revision: integer(),
@@ -305,18 +373,32 @@ export const realtimeOutbox = pgTable(
   },
   (table) => [
     uniqueIndex('realtime_outbox_run_revision_idx').on(table.runId, table.revision),
+    index('realtime_outbox_user_summary_idx')
+      .on(table.userId, table.id)
+      .where(sql`${table.summary} = true`),
     index('realtime_outbox_pending_idx')
       .on(table.id)
       .where(sql`${table.publishedAt} is null`),
   ],
 );
 
-export const submissionRequests = pgTable('submission_requests', {
-  key: uuid().primaryKey(),
-  fingerprint: text().notNull(),
-  response: jsonb().$type<Record<string, unknown>>(),
-  createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
-});
+export const submissionRequests = pgTable(
+  'submission_requests',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    key: uuid().notNull(),
+    userId: text().references(() => authUsers.id),
+    fingerprint: text().notNull(),
+    response: jsonb().$type<Record<string, unknown>>(),
+    createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('submission_requests_user_key_idx').on(table.userId, table.key),
+    uniqueIndex('submission_requests_legacy_key_idx')
+      .on(table.key)
+      .where(sql`${table.userId} is null`),
+  ],
+);
 export const modelCalls = pgTable(
   'model_calls',
   {

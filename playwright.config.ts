@@ -8,7 +8,6 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:3100',
     headless: true,
     trace: 'retain-on-failure',
-    httpCredentials: { username: 'caseforge-ui', password: 'local-ui-test' },
   },
   webServer: {
     command: 'pnpm exec next start --hostname 127.0.0.1 --port 3100',
@@ -16,9 +15,9 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 30000,
     env: {
-      CASEFORGE_REQUIRE_AUTH: 'true',
-      CASEFORGE_AUTH_USER: 'caseforge-ui',
-      CASEFORGE_AUTH_PASSWORD: 'local-ui-test',
+      CASEFORGE_ALLOW_UNAUTHENTICATED: 'true',
+      BETTER_AUTH_URL: 'http://127.0.0.1:3100',
+      BETTER_AUTH_SECRET: 'caseforge-ui-test-secret-at-least-32-characters',
     },
   },
 });

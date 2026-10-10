@@ -41,7 +41,7 @@ pnpm maintenance
 
 ## 数据库与 API
 
-结构、状态和接口示例见 [工作台接口文档](docs/workspace.md)。迁移仅新增工作台表和约束，保留原有 `case` 与 `users` 表。
+结构、状态和接口示例见 [工作台接口文档](docs/workspace.md)。旧版 `case` 表及 `/api/cases` 接口已移除，工作台使用 `test_cases`；用户认证使用独立的 `auth_users`、`auth_sessions`、`auth_accounts` 和 `auth_verifications` 表。
 
 Web 使用 Playwright mobile、Android/iOS 使用 agent-device 的架构见 [多平台自动化架构](docs/automation-architecture.md)，包含会话接口、设备调度、数据迁移、重放规则与实施验收。实现与验收证据、部署切换见 [实施记录](docs/automation-implementation.md)。
 
@@ -164,7 +164,17 @@ pnpm register:build ios /path/to/App.app
 
 API 和 worker 连接同一个数据库。本地附件模式需共享 CASEFORGE_DATA_DIR；跨主机部署可设置 CASEFORGE_ARTIFACT_BUCKET、CASEFORGE_ARTIFACT_PREFIX、AWS_REGION 和 AWS 凭据，兼容 S3 的服务另设 CASEFORGE_ARTIFACT_ENDPOINT。对象保持私有，API 校验运行和附件归属后读取，支持 Range。应用构建需在设备 worker 主机登记或使用共享构建目录。
 
-生产模式默认要求认证。设置 CASEFORGE_AUTH_USER 和 CASEFORGE_AUTH_PASSWORD，通过 HTTPS 访问；浏览器使用标准认证对话框，API 使用 Basic Authorization。CASEFORGE_REQUIRE_AUTH=true 可在开发模式强制认证；受控本地部署可显式设置 CASEFORGE_ALLOW_UNAUTHENTICATED=true。
+工作区默认使用 Better Auth 认证（开发环境同样需要登录）。未登录访问页面会跳转到 `/login`，业务 API 返回 401。原 Basic Auth 配置不再生效。
+
+配置 `.env` 中的 `BETTER_AUTH_SECRET`（使用 `openssl rand -base64 32` 生成）和 `BETTER_AUTH_URL`（浏览器实际访问的完整站点 origin，生产环境使用 HTTPS），执行 `pnpm db:migrate` 后启动应用。访问 `/register` 使用姓名、邮箱和至少 8 位密码注册，或在 `/login` 登录；工作区侧栏显示当前用户并支持退出。邮箱注册使用密码认证，本次未启用邮件验证码、邮箱验证或找回密码，因此不需要 SMTP。
+
+第三方登录支持 Google 和 GitHub。分别在提供商后台创建 OAuth 应用，配置 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` 或 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`；仅完整配置的提供商会显示按钮。回调地址分别为 `<BETTER_AUTH_URL>/api/auth/callback/google` 和 `<BETTER_AUTH_URL>/api/auth/callback/github`。OAuth 回调和密码校验由 Better Auth 处理，客户端不能读取服务端 secret。
+
+用例和执行记录按 `userId` 隔离，用户 ID 从 Better Auth 会话获取，客户端不能指定归属。列表、搜索、最新执行状态、统计、取消、重放、录制版本、日志、模型调用、附件下载及实时事件均限制为当前用户的数据；访问其他用户的记录返回 404。相同幂等请求 ID 在不同用户之间独立生效。切换账号时重建前端缓存并断开旧实时订阅。
+
+已有数据保留为 `userId = NULL`，迁移和新用户注册不会自动认领。需要保留给某个用户时，先注册该用户，再由运维显式执行 `pnpm assign:legacy user@example.com`，将所有无归属用例、执行历史、幂等记录在一个事务中分配给该用户。该命令不会转移已归属数据；幂等键冲突会回滚整个事务。本次迁移未执行数据认领。
+
+受控本地部署和独立 UI 测试可显式设置 `CASEFORGE_ALLOW_UNAUTHENTICATED=true` 跳过页面保护，但匿名业务请求仅能访问无归属数据，已登录用户仍只访问自己的数据。构建目录和执行资源容量属于部署级共享设施；资源 API 不返回任务归属、执行 ID、租约或 worker 详情。认证集成参考 [Better Auth Next.js 文档](https://better-auth.com/docs/integrations/next) 和 [Drizzle 适配器文档](https://better-auth.com/docs/adapters/drizzle)。
 
 worker 默认并发数为登记资源数，可用 CASEFORGE_WORKER_CONCURRENCY 降低。每条执行独占一个 slot/设备；排队默认上限 1 小时（CASEFORGE_QUEUE_TIMEOUT_MS），准备 2 分钟，执行 5 分钟，归档 30 秒。Web 归档超时后另给浏览器清理最多 10 秒；确认浏览器关闭后释放 slot，但证据不完整的执行仍标记失败并禁止重放。清理失败或超时才隔离该 Web slot；原生资源继续按设备清理与诊断结果判断能否释放。
 

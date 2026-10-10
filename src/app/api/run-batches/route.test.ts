@@ -9,6 +9,7 @@ const fixture = vi.hoisted(() => ({
   calls: 0,
 }));
 
+vi.mock('@/server/shared/auth', () => ({ requireUserId: async () => null }));
 vi.mock('@/db', async () => {
   const isolated = await (await import('@/server/testing/testDatabase')).createTestDatabase();
 

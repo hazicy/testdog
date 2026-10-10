@@ -1,21 +1,18 @@
+import { assertRunAccess } from '@/server/runs/repository';
+import { requireUserId } from '@/server/shared/auth';
 import { RESP_TYPES } from 'redis';
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
-import { testRuns } from '@/db/schema';
 import { readyRedis, redisKey } from '@/server/shared/redis';
 import { apiError, validId } from '@/server/shared/http';
 import type { Preview } from '@/features/runs/lib/realtime';
 
 export const runtime = 'nodejs';
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
 
     validId(id);
-    const [run] = await db.select({ id: testRuns.id }).from(testRuns).where(eq(testRuns.id, id));
-
-    if (!run) return new Response(null, { status: 404 });
+    await assertRunAccess(id, await requireUserId(request));
     const client = (await readyRedis()).withTypeMapping({ [RESP_TYPES.BLOB_STRING]: Buffer });
     const [bytes, meta] = await client.mGet([
       redisKey(`preview:${id}:bytes`),

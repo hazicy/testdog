@@ -1,4 +1,5 @@
-import { desc, eq } from 'drizzle-orm';
+import { ownedBy, type UserScope } from '@/server/shared/ownership';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { testCases } from '@/db/schema';
 import { legacyWebTarget } from '@/automation/platform/target';
@@ -6,11 +7,12 @@ import type { TestCase } from '@/features/test-cases/types';
 import { testSchema } from '@/features/test-cases/schemas';
 import { WorkspaceError } from '@/server/shared/errors';
 
-export const listTests = async () =>
+export const listTests = async (userId: UserScope = null) =>
   (
     await db
       .select()
       .from(testCases)
+      .where(ownedBy(testCases.userId, userId))
       .orderBy(desc(testCases.updatedAt), desc(testCases.id))
       .limit(50)
   ).map((test) => ({
@@ -21,6 +23,7 @@ export const listTests = async () =>
 export async function saveTest(
   input: Pick<TestCase, 'name' | 'url' | 'goal' | 'tags' | 'target'>,
   id?: string,
+  userId: UserScope = null,
 ) {
   const parsed = testSchema.safeParse(input);
 
@@ -39,19 +42,22 @@ export async function saveTest(
     ? await db
         .update(testCases)
         .set({ ...input, updatedAt: new Date().toISOString() })
-        .where(eq(testCases.id, id))
+        .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)))
         .returning()
-    : await db.insert(testCases).values(input).returning();
+    : await db
+        .insert(testCases)
+        .values({ ...input, userId })
+        .returning();
 
   if (!test) throw new WorkspaceError('用例不存在。', 404);
 
   return test;
 }
 
-export async function deleteTest(id: string) {
+export async function deleteTest(id: string, userId: UserScope = null) {
   const rows = await db
     .delete(testCases)
-    .where(eq(testCases.id, id))
+    .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)))
     .returning({ id: testCases.id });
 
   if (!rows.length) throw new WorkspaceError('用例不存在。', 404);

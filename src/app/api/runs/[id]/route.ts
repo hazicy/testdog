@@ -1,3 +1,4 @@
+import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
 import { getRun, requestCancellation } from '@/server/runs/repository';
 import { apiError, validId } from '@/server/shared/http';
@@ -14,6 +15,7 @@ export async function GET(request: Request, context: Context) {
 
     return jsonResponse(request, {
       run: await getRun(id, {
+        userId: await requireUserId(request),
         includeLogs: new URL(request.url).searchParams.get('include') === 'logs',
       }),
     });
@@ -22,12 +24,12 @@ export async function GET(request: Request, context: Context) {
   }
 }
 
-export async function DELETE(_request: Request, context: Context) {
+export async function DELETE(request: Request, context: Context) {
   const { id } = await context.params;
 
   try {
     validId(id);
-    await requestCancellation(id);
+    await requestCancellation(id, await requireUserId(request));
 
     return NextResponse.json({ success: true });
   } catch (error) {

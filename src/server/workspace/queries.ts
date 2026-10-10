@@ -1,3 +1,4 @@
+import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { testCases, testRuns } from '@/db/schema';
@@ -45,13 +46,17 @@ function validateStatus(status: string, tests = false) {
     throw new WorkspaceError('状态筛选参数无效。');
 }
 
-export async function listRunPage({ limit, q, status, cursor }: PageQuery) {
+export async function listRunPage(
+  { limit, q, status, cursor }: PageQuery,
+  userId: UserScope = null,
+) {
   validateStatus(status);
   const rows = await db
     .select(summaryColumns)
     .from(testRuns)
     .where(
       and(
+        ownedBy(testRuns.userId, userId),
         q
           ? sql`concat_ws(' ', ${testRuns.name}, ${testRuns.url}) ilike ${searchPattern(q)}`
           : undefined,
@@ -72,15 +77,19 @@ export async function listRunPage({ limit, q, status, cursor }: PageQuery) {
   };
 }
 
-export async function listTestPage({ limit, q, status, cursor }: PageQuery) {
+export async function listTestPage(
+  { limit, q, status, cursor }: PageQuery,
+  userId: UserScope = null,
+) {
   validateStatus(status, true);
   // The latest execution is independent of the execution-list page.
-  const latestStatus = sql`(select r.status from test_runs r where r."testId" = ${testCases.id} order by r."startedAt" desc, r.id desc limit 1)`;
+  const latestStatus = sql`(select r.status from test_runs r where r."testId" = ${testCases.id} and r."userId" is not distinct from ${userId}::text order by r."startedAt" desc, r.id desc limit 1)`;
   const rows = await db
     .select(getTableColumns(testCases))
     .from(testCases)
     .where(
       and(
+        ownedBy(testCases.userId, userId),
         q
           ? sql`concat_ws(' ', ${testCases.name}, ${testCases.url}, ${testCases.tags}::text, ${testCases.target}->>'appId', ${testCases.target}->>'platform') ilike ${searchPattern(q)}`
           : undefined,
@@ -102,9 +111,12 @@ export async function listTestPage({ limit, q, status, cursor }: PageQuery) {
         .selectDistinctOn([testRuns.testId], summaryColumns)
         .from(testRuns)
         .where(
-          inArray(
-            testRuns.testId,
-            page.map((test) => test.id),
+          and(
+            ownedBy(testRuns.userId, userId),
+            inArray(
+              testRuns.testId,
+              page.map((test) => test.id),
+            ),
           ),
         )
         .orderBy(testRuns.testId, desc(testRuns.startedAt), desc(testRuns.id))
@@ -118,14 +130,18 @@ export async function listTestPage({ limit, q, status, cursor }: PageQuery) {
   };
 }
 
-export async function workspaceStats(): Promise<WorkspaceStats> {
+export async function workspaceStats(userId: UserScope = null): Promise<WorkspaceStats> {
   return db.transaction(
     async (tx) => {
       const [tests, runs] = await Promise.all([
-        tx.select({ count: sql<number>`count(*)::int` }).from(testCases),
+        tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(testCases)
+          .where(ownedBy(testCases.userId, userId)),
         tx
           .select({ status: testRuns.status, count: sql<number>`count(*)::int` })
           .from(testRuns)
+          .where(ownedBy(testRuns.userId, userId))
           .groupBy(testRuns.status),
       ]);
       const counts = emptyCounts();

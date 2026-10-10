@@ -4,6 +4,7 @@ import { realtimeOutbox, runArtifacts, runSteps, testRuns } from '@/db/schema';
 import { artifactRecord, runRecord, stepRecord } from '@/server/runs/repository';
 import { readyRedis, redisClient, redisKey } from '@/server/shared/redis';
 import type { RunUpdate } from '@/features/runs/lib/realtime';
+import { workspaceChannel } from '@/server/shared/ownership';
 
 type Listener = (message: string) => void;
 const state = globalThis as typeof globalThis & {
@@ -47,8 +48,13 @@ export async function flushOutbox() {
       const runs = new Set(rows.flatMap((row) => (row.runId ? [row.runId] : [])));
 
       for (const id of runs) await client.publish(redisKey(`run:${id}`), '{"kind":"changed"}');
-      if (rows.some((row) => row.summary))
-        await client.publish(redisKey('workspace'), JSON.stringify({ kind: 'changed' }));
+      const owners = new Set(rows.filter((row) => row.summary).map((row) => row.userId));
+
+      for (const userId of owners)
+        await client.publish(
+          redisKey(workspaceChannel(userId)),
+          JSON.stringify({ kind: 'changed' }),
+        );
       for (const row of rows)
         await tx
           .update(realtimeOutbox)
@@ -83,9 +89,7 @@ export async function subscribeRealtime(channel: string, listener: Listener) {
     };
 
     await client.pSubscribe(redisKey('run:*'), dispatch);
-    await client.subscribe(redisKey('workspace'), (message) =>
-      dispatch(message, redisKey('workspace')),
-    );
+    await client.pSubscribe(redisKey('workspace:*'), dispatch);
   })().catch((error) => {
     shared.subscribed = undefined;
     throw error;

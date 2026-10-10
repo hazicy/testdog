@@ -9,8 +9,7 @@ export const retryVisibleRequest: NonNullable<SWRConfiguration['onErrorRetry']> 
   revalidate,
   options,
 ) => {
-  if (isHTTPError(error) && (error.response.status === 400 || error.response.status === 404))
-    return;
+  if (isHTTPError(error) && [400, 401, 403, 404].includes(error.response.status)) return;
   if (!config.isVisible() || !config.isOnline()) return;
   setTimeout(() => {
     if (config.isVisible() && config.isOnline()) revalidate(options);

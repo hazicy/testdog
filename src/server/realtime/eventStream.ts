@@ -1,23 +1,26 @@
 import { randomUUID } from 'node:crypto';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { realtimeOutbox, testRuns } from '@/db/schema';
-import { getRun } from '@/server/runs/repository';
+import { assertRunAccess, getRun } from '@/server/runs/repository';
+import { ownedBy, workspaceChannel, type UserScope } from '@/server/shared/ownership';
+import { requireUserId } from '@/server/shared/auth';
 import { isActiveRun } from '@/features/runs/types';
 import { readyRedis, redisClient } from '@/server/shared/redis';
 import { latestPreview, watchPreview } from './preview';
 import { readRunUpdates, startOutboxPublisher, subscribeRealtime } from './realtime';
 
-async function workspaceVersion() {
+export async function workspaceVersion(userId: UserScope) {
   const [row] = await db
     .select({ version: sql<string>`concat(count(*), ':', coalesce(sum(${realtimeOutbox.id}), 0))` })
     .from(realtimeOutbox)
-    .where(eq(realtimeOutbox.summary, true));
+    .where(and(eq(realtimeOutbox.summary, true), ownedBy(realtimeOutbox.userId, userId)));
 
   return row.version;
 }
 
-export async function eventStream(request: Request, runId?: string) {
+export async function eventStream(request: Request, runId: string | undefined, userId: UserScope) {
+  if (runId) await assertRunAccess(runId, userId);
   startOutboxPublisher();
   redisClient(true);
   await readyRedis();
@@ -71,7 +74,7 @@ export async function eventStream(request: Request, runId?: string) {
   };
 
   const snapshot = async () => {
-    const run = await getRun(runId!, { includeLogs: false });
+    const run = await getRun(runId!, { includeLogs: false, userId });
 
     revision = run.realtimeRevision ?? 0;
     send('snapshot', { run }, revision);
@@ -91,6 +94,13 @@ export async function eventStream(request: Request, runId?: string) {
     try {
       do {
         dirty = false;
+        // Recheck the session so logout and session expiry also close existing streams.
+        if ((await requireUserId(request)) !== userId) {
+          close();
+
+          return;
+        }
+
         await readyRedis();
         await readyRedis(true);
         if (closed) return;
@@ -98,7 +108,7 @@ export async function eventStream(request: Request, runId?: string) {
           const [row] = await db
             .select({ revision: testRuns.realtimeRevision, status: testRuns.status })
             .from(testRuns)
-            .where(eq(testRuns.id, runId));
+            .where(and(eq(testRuns.id, runId), ownedBy(testRuns.userId, userId)));
 
           if (!row) {
             close();
@@ -150,7 +160,7 @@ export async function eventStream(request: Request, runId?: string) {
             close();
           }
         } else {
-          const version = await workspaceVersion();
+          const version = await workspaceVersion(userId);
 
           if (workspaceCursor !== version) {
             workspaceCursor = version;
@@ -178,7 +188,7 @@ export async function eventStream(request: Request, runId?: string) {
       void (async () => {
         try {
           const release = await subscribeRealtime(
-            runId ? `run:${runId}` : 'workspace',
+            runId ? `run:${runId}` : workspaceChannel(userId),
             (message) => {
               const event = JSON.parse(message);
 
@@ -211,7 +221,7 @@ export async function eventStream(request: Request, runId?: string) {
           unsubscribe = release;
           if (runId) await snapshot();
           else {
-            workspaceCursor = await workspaceVersion();
+            workspaceCursor = await workspaceVersion(userId);
             send('changed', {});
           }
 

@@ -1,3 +1,4 @@
+import { requireUserId } from '@/server/shared/auth';
 import { serveArtifact } from '@/server/runs/artifactResponse';
 import { getArtifact } from '@/server/runs/repository';
 import { apiError, validId } from '@/server/shared/http';
@@ -14,7 +15,10 @@ export async function GET(
     validId(id);
     validId(artifactId);
 
-    return await serveArtifact(request, await getArtifact(id, artifactId));
+    return await serveArtifact(
+      request,
+      await getArtifact(id, artifactId, await requireUserId(request)),
+    );
   } catch (error) {
     return apiError(error);
   }

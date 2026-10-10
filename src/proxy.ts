@@ -1,17 +1,41 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { workspaceAuthorized } from './server/shared/auth';
 
-export function proxy(request: NextRequest) {
-  if (!workspaceAuthorized(request))
-    return new NextResponse('Workspace authentication required', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="CaseForge", charset="UTF-8"',
-        'Cache-Control': 'no-store',
-      },
-    });
+export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  if (
+    path === '/' ||
+    path === '/login' ||
+    path === '/register' ||
+    path === '/api/auth' ||
+    path.startsWith('/api/auth/')
+  )
+    return NextResponse.next();
+  if (!(await workspaceAuthorized(request))) {
+    if (path === '/api' || path.startsWith('/api/'))
+      return NextResponse.json(
+        { success: false, message: '请先登录' },
+        { status: 401, headers: { 'Cache-Control': 'no-store' } },
+      );
+    const url = new URL('/login', request.url);
+
+    url.searchParams.set('callbackURL', path + request.nextUrl.search);
+
+    return NextResponse.redirect(url);
+  }
 
   return NextResponse.next();
 }
 
-export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] };
+export const config = {
+  matcher: [
+    '/',
+    '/login',
+    '/register',
+    '/onboarding/:path*',
+    '/cases/:path*',
+    '/runs/:path*',
+    '/api/:path*',
+  ],
+};
