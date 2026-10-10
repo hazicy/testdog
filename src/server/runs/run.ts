@@ -87,6 +87,27 @@ export async function executeRun(
     const report = (message: string) => appendEvent(run.id, message);
     const plan =
       source?.plan ||
+      (run.plan && {
+        ...run.plan,
+        nodes: Object.fromEntries(
+          Object.entries(run.plan.nodes).map(([id, node]) => [
+            id,
+            node.kind === 'branch'
+              ? { ...node, condition: inputGoal(node.condition, run.targetSnapshot?.inputs) }
+              : {
+                  ...node,
+                  goal: inputGoal(node.goal, run.targetSnapshot?.inputs),
+                  ...(node.kind === 'task'
+                    ? {
+                        assertions: node.assertions.map((a) => ({
+                          description: inputGoal(a.description, run.targetSnapshot?.inputs),
+                        })),
+                      }
+                    : {}),
+                },
+          ]),
+        ),
+      }) ||
       (run.recordingSteps
         ? {
             rootId: 'recording',

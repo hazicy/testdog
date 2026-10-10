@@ -75,6 +75,7 @@ export function recordingScript(steps: ExecutionStep[]) {
         `await expectBranch(${page}, ${quote(step.condition)}, ${step.decision ?? false});`,
       );
     else if (action?.type === 'navigate') lines.push(`await ${page}.goto(${quote(action.value)});`);
+    else if (action?.type === 'screenshot') lines.push(`await ${page}.screenshot();`);
     else if (action?.type === 'wait') {
       if (action.condition === 'observe')
         lines.push(`await ${page}.waitForTimeout(${action.timeoutMs});`);
@@ -326,6 +327,14 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
           type: 'navigate',
           target: { kind: 'css', value: '', name: '' },
           value: url,
+        };
+      } else if (method === 'screenshot' && args.length === 0) {
+        step.pageId = pageId(object);
+        step.kind = 'action';
+        step.action = {
+          type: 'screenshot',
+          target: { kind: 'css', value: '', name: '' },
+          value: '',
         };
       } else if (method === 'waitForTimeout' && args.length === 1) {
         step.pageId = pageId(object);

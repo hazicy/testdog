@@ -21,7 +21,7 @@ export const listTests = async (userId: UserScope = null) =>
   }));
 
 export async function saveTest(
-  input: Pick<TestCase, 'name' | 'url' | 'goal' | 'tags' | 'target'>,
+  input: Pick<TestCase, 'name' | 'url' | 'goal' | 'tags' | 'target' | 'plan'>,
   id?: string,
   userId: UserScope = null,
 ) {

@@ -19,6 +19,7 @@ vi.mock('@/db', async () => {
   return { db: result.db };
 });
 import { createRun, getRun, getArtifact } from './repository';
+import { saveTest } from '@/server/test-cases/repository';
 import { saveRecordingVersion } from './recordings';
 import { requestCancellation } from './runLifecycle';
 import { recordingScript } from '@/features/runs/lib/recordingScript';
@@ -133,6 +134,54 @@ beforeEach(async () => {
   });
 });
 describe('recording and replay with real PostgreSQL and Chromium', () => {
+  it('executes an authored tree with inputs without compiling its text again', async () => {
+    const saved = await saveTest({
+      name: 'Board case',
+      url,
+      goal: 'Original text',
+      tags: [],
+      target: {
+        schemaVersion: 1,
+        platform: 'web',
+        url,
+        browser: 'chromium',
+        deviceProfile: 'Pixel 7',
+        inputs: { name: { value: 'Ada' } },
+      },
+      plan: {
+        rootId: 'authored',
+        nodes: {
+          authored: {
+            id: 'authored',
+            kind: 'task',
+            goal: 'Fill ${input.name} and submit',
+            dependsOn: [],
+            requirementIds: [],
+            assertions: [{ description: 'Welcome ${input.name} is visible' }],
+          },
+        },
+      },
+    });
+    const run = await createRun({ testId: saved.id });
+
+    await executeRun(run);
+    const recorded = await getRun(run.id);
+
+    expect(recorded.status, recorded.error).toBe('passed');
+    expect(recorded.plan?.nodes.authored).toMatchObject({
+      goal: 'Fill Ada and submit',
+      assertions: [{ description: 'Welcome Ada is visible' }],
+    });
+    expect(mocks.generate.mock.calls.some(([input]) => input.responseFormat?.name === 'plan')).toBe(
+      false,
+    );
+    expect(
+      recorded.steps
+        .filter((step) => step.kind !== 'navigate')
+        .every((step) => step.planNodeId === 'authored'),
+    ).toBe(true);
+  });
+
   it('records each action, screenshots, video and trace, then replays without calling the planner', async () => {
     const run = await createRun({ case: 'Enter Ada, submit and verify welcome', url });
 

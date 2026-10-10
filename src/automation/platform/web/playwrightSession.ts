@@ -22,7 +22,7 @@ export class PlaywrightSession implements AutomationSession {
   readonly platform = 'web' as const;
   readonly executionPolicy = { reobserveAfterAction: false };
   readonly capabilities = {
-    actions: ['navigate', 'click', 'fill', 'press', 'wait'],
+    actions: ['navigate', 'click', 'fill', 'press', 'wait', 'screenshot'],
     artifacts: ['screenshot', 'snapshot', 'video', 'trace', 'console', 'network'],
     assertions: ['semantic', 'visible', 'text', 'containsText', 'value', 'url'],
     observations: ['aria-tree', 'url', 'focused-element'],

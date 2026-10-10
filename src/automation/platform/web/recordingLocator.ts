@@ -7,7 +7,8 @@ export async function recordAction(
   page: Page,
   action: Step,
 ): Promise<{ action: RecordedAction; replayable: boolean }> {
-  if (action.type === 'wait' || action.type === 'navigate') return { action, replayable: true };
+  if (action.type === 'wait' || action.type === 'navigate' || action.type === 'screenshot')
+    return { action, replayable: true };
   const original = locateWebElement(page, action.target);
   const handle = await original.elementHandle({ timeout: 3000 });
 

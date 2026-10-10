@@ -12,6 +12,8 @@ import { Icon } from '@iconify/react/offline';
 import plusIcon from '@iconify-icons/lucide/plus';
 import testsIcon from '@iconify-icons/lucide/flask-conical';
 import { downloadRunReport } from '@/client/download';
+import { writeCaseDraft } from '@/features/test-cases/lib/caseDraft';
+import { editablePlan } from '@/features/test-cases/lib/authoring';
 import { TestEditor } from '@/features/test-cases/components/TestEditor';
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
 import { RunMatrixDialog } from '@/features/test-cases/components/RunMatrixDialog';
@@ -52,7 +54,20 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   }, [selectedId, router]);
 
   function openEditor(test?: TestCase, duplicate = false) {
-    setEditing({ test, duplicate });
+    if (test?.plan) {
+      const id = crypto.randomUUID();
+      const name = `${test.name}${duplicate ? '（副本）' : ''}`;
+
+      writeCaseDraft(id, {
+        test,
+        duplicate,
+        name,
+        url: test.url,
+        goal: test.goal,
+        plan: editablePlan(test.plan, name),
+      });
+      router.push(`/cases/editor/${id}`);
+    } else setEditing({ test, duplicate });
   }
 
   async function start(testId: string) {

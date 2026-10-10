@@ -403,3 +403,37 @@ describe('PostgreSQL workspace repository', () => {
     await expect(createRun({ mode: 'replay', sourceRunId: run.id })).rejects.toThrow('不能重放');
   });
 });
+
+it('snapshots an authored tree and clears it for a text goal override', async () => {
+  const plan = {
+    rootId: 'task',
+    nodes: {
+      task: {
+        id: 'task',
+        kind: 'task' as const,
+        goal: '点击登录',
+        dependsOn: [],
+        requirementIds: [],
+        assertions: [{ description: '显示登录表单' }],
+      },
+    },
+  };
+  const saved = await saveTest({
+    name: 'Authored',
+    url: 'https://example.com',
+    goal: '登录',
+    tags: [],
+    plan,
+  });
+  const first = await createQueuedRun({ testId: saved.id });
+
+  expect(first.plan).toEqual(plan);
+  await saveTest(
+    { ...saved, target: saved.target ?? undefined, goal: '修改文本', plan: null },
+    saved.id,
+  );
+  expect((await getRun(first.id))?.plan).toEqual(plan);
+  const overridden = await createQueuedRun({ testId: saved.id, goalOverride: '只检查首页' });
+
+  expect(overridden.plan).toBeUndefined();
+});

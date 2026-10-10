@@ -1,3 +1,4 @@
+import type { Plan } from '@/automation/compiler/schema';
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { storeArtifactFile } from './artifactStorage';
 import { isDeepStrictEqual } from 'node:util';
@@ -186,6 +187,7 @@ export async function createRun(
       testId?: string;
       name: string;
       goal: string;
+      plan?: Plan | null;
       url: string;
       sourceRunId?: string;
       recordingVersionId?: string;
@@ -250,6 +252,7 @@ export async function createRun(
         name: test.name,
         url: input.target?.platform === 'web' ? input.target.url : input.target ? '' : test.url,
         goal: input.goalOverride ?? test.goal,
+        plan: input.goalOverride ? undefined : test.plan,
         mode: 'record',
       };
     } else {

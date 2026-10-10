@@ -51,7 +51,10 @@ test.beforeEach(async ({ page }) => {
 test('select keyboard navigation and Escape stay within the editor dialog', async ({ page }) => {
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.locator('[role=dialog], .case-canvas-page');
+
+  await dialog.getByRole('button', { name: '直接创建画板' }).click();
+  await dialog.getByRole('button', { name: 'Settings', exact: true }).click();
   const platform = dialog.getByRole('combobox', { name: '平台', exact: true });
 
   await platform.focus();
@@ -68,8 +71,9 @@ test('select keyboard navigation and Escape stay within the editor dialog', asyn
   await expect(dialog).toBeVisible();
   await expect(platform).toBeFocused();
   await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: '返回用例列表' }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '新建测试', exact: true }).first()).toBeFocused();
 });
 
 test('native setup validates required selection and submits custom checkbox values', async ({
@@ -89,15 +93,23 @@ test('native setup validates required selection and submits custom checkbox valu
   });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.locator('[role=dialog], .case-canvas-page');
+
+  await dialog.getByRole('button', { name: '直接创建画板' }).click();
+  await dialog.getByRole('button', { name: 'Settings', exact: true }).click();
 
   await dialog.getByLabel('测试名称', { exact: true }).fill('Native setup');
   await dialog.getByLabel('平台', { exact: true }).click();
   await page.getByRole('option', { name: 'iOS · 原生应用', exact: true }).click();
   await dialog.getByLabel('应用标识', { exact: true }).fill('com.example.fixture');
-  await dialog.getByLabel('测试步骤与预期结果', { exact: true }).fill('Verify welcome');
+  await dialog.getByRole('button', { name: '关闭设置' }).click();
+  await dialog.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
+  await page.getByRole('menuitem').filter({ hasText: /^Act/ }).click();
+  await dialog.locator('[data-step-type=act] .plan-content-button').click();
+  await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('Verify welcome');
+  await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
   await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
-  await expect(dialog.getByLabel('设备配置', { exact: true })).toBeFocused();
+  await expect(dialog.getByRole('alert')).toContainText('设备配置');
   expect(submitted).toBeUndefined();
   await dialog.getByLabel('设备配置', { exact: true }).click();
   await page.getByRole('option', { name: 'iphone-fixture · 可用', exact: true }).click();
@@ -106,6 +118,7 @@ test('native setup validates required selection and submits custom checkbox valu
   await video.focus();
   await video.press('Space');
   await expect(video).toBeChecked();
+
   await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
   await expect(dialog).toHaveAttribute('aria-busy', 'true');
   await expect(video).toBeDisabled();

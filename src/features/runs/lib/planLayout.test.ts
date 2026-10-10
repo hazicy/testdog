@@ -51,16 +51,6 @@ it('lays out nested groups, shared branch targets and cross-group dependencies w
   expect(nodes.filter((node) => !node.reference)).toHaveLength(Object.keys(plan.nodes).length);
   for (const node of nodes) {
     expect(Number.isFinite(node.position.x) && Number.isFinite(node.position.y)).toBe(true);
-    if (node.parentId) {
-      const parent = byId.get(node.parentId)!;
-
-      expect(nodes.indexOf(parent)).toBeLessThan(nodes.indexOf(node));
-      expect(node.position.x).toBeGreaterThanOrEqual(24);
-      expect(node.position.y).toBeGreaterThanOrEqual(224);
-      expect(node.position.x + node.width).toBeLessThanOrEqual(parent.width - 24);
-      expect(node.position.y + node.height).toBeLessThanOrEqual(parent.height - 24);
-    }
-
     for (const other of nodes) {
       if (node === other || node.parentId !== other.parentId) continue;
       const separated =
@@ -77,7 +67,6 @@ it('lays out nested groups, shared branch targets and cross-group dependencies w
 
   expect(reference).toMatchObject({
     planNodeId: 'shared',
-    parentId: 'plan:branch',
     pathLabel: 'YES / 条件成立',
   });
   expect(edges).toContainEqual(
@@ -118,4 +107,23 @@ it('handles a task root and a branch without an otherwise path', async () => {
   expect(branch.nodes).toHaveLength(2);
   expect(branch.edges).toHaveLength(1);
   expect(branch.edges[0]).toMatchObject({ label: 'YES', target: 'plan:only' });
+});
+
+it('connects group children vertically in authored execution order', async () => {
+  const plan = PlanSchema.parse({
+    rootId: 'root',
+    nodes: {
+      root: { id: 'root', kind: 'group', goal: '流程', children: ['b', 'a'], dependsOn: [] },
+      a: task('a'),
+      b: task('b'),
+    },
+  });
+  const layout = await layoutPlan(plan);
+  const a = layout.nodes.find((node) => node.planNodeId === 'a')!;
+  const b = layout.nodes.find((node) => node.planNodeId === 'b')!;
+
+  expect(b.position.y + b.height).toBeLessThan(a.position.y);
+  expect(layout.edges).toContainEqual(
+    expect.objectContaining({ source: b.id, target: a.id, kind: 'sequence' }),
+  );
 });

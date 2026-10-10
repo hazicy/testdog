@@ -21,6 +21,7 @@ export const NativeActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('tap'), target: NativeLocatorSchema }),
   z.strictObject({ type: z.literal('fill'), target: NativeLocatorSchema, value: z.string() }),
   z.strictObject({ type: z.literal('back') }),
+  z.strictObject({ type: z.literal('screenshot') }),
   z.strictObject({ type: z.literal('swipe'), direction: z.enum(['up', 'down', 'left', 'right']) }),
   z.strictObject({
     type: z.literal('wait'),

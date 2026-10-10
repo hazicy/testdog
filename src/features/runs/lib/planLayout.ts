@@ -1,12 +1,12 @@
-import ELK, { type ElkNode } from 'elkjs/lib/elk.bundled.js';
-import type { Plan } from '@/automation/compiler/schema';
-import { planForest, type PlanTree } from './planTree';
+import type { Plan, PlanNode } from '@/automation/compiler/schema';
+import type { Insertion } from '@/features/test-cases/lib/authoring';
 
 export type LayoutNode = {
   id: string;
   planNodeId: string;
   parentId?: string;
   reference: boolean;
+  assertionIndex?: number;
   pathLabel?: string;
   position: { x: number; y: number };
   width: number;
@@ -16,159 +16,196 @@ export type LayoutEdge = {
   id: string;
   source: string;
   target: string;
-  kind: 'dependency' | 'branch' | 'reference';
+  kind: 'dependency' | 'branch' | 'reference' | 'sequence';
   label?: string;
 };
-export type PlanLayout = { nodes: LayoutNode[]; edges: LayoutEdge[] };
+export type LayoutInsertion = Insertion & { id: string; position: { x: number; y: number } };
+export type PlanLayout = {
+  nodes: LayoutNode[];
+  edges: LayoutEdge[];
+  insertions: LayoutInsertion[];
+};
+const WIDTH = 880,
+  GAP = 56;
+const text = (node: PlanNode) => (node.kind === 'branch' ? node.condition : node.goal);
+const height = (value: string) => Math.max(72, 40 + Math.ceil(value.length / 58) * 28);
 
-const CARD_WIDTH = 300;
-const HEADER_HEIGHT = 200;
-
-// Layout each container from the inside out. Cross-container dependencies are
-// projected onto siblings for ordering, but retain their real endpoints in the UI.
+// Rows share one visual language in creation and execution. Groups are headers,
+// not giant containers; branch paths remain side by side and merge before the
+// next sibling. Hidden sequence boundaries preserve authored dependency semantics.
 export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
-  const elk = new ELK();
-  const nodes: LayoutNode[] = [];
-  const edges: LayoutEdge[] = [];
-  const children = new Map<string, LayoutNode[]>();
-  const actual = new Map<string, string>();
-  let referenceId = 0;
-  const visit = (tree: PlanTree, parentId?: string, pathLabel?: string) => {
-    const id = tree.reference ? `reference:${referenceId++}` : `plan:${tree.id}`;
-    const node: LayoutNode = {
-      id,
-      planNodeId: tree.id,
-      parentId,
-      reference: !!tree.reference,
-      pathLabel,
-      position: { x: 0, y: 0 },
-      width: CARD_WIDTH,
-      height: tree.reference ? 80 : HEADER_HEIGHT,
-    };
+  const nodes: LayoutNode[] = [],
+    edges: LayoutEdge[] = [],
+    insertions: LayoutInsertion[] = [];
+  const seen = new Set<string>();
+  const actual = new Map<string, { first?: string; last?: string }>();
+  let reference = 0;
 
-    nodes.push(node);
-    if (!tree.reference) actual.set(tree.id, id);
-    const nested = tree.children.map((child) => visit(child, id));
+  type Subtree = { first?: string; last?: string; bottom: number; right: number };
 
-    if (tree.then) {
-      const target = visit(tree.then, id, 'YES / 条件成立');
+  function slot(groupId: string, index: number, x: number, y: number) {
+    insertions.push({
+      id: `insert:${groupId}:${index}`,
+      groupId,
+      index,
+      position: { x: x + WIDTH / 2 - 18, y: y - 18 },
+    });
+  }
 
-      nested.push(target);
-      edges.push({ id: `then:${id}`, source: id, target: target.id, kind: 'branch', label: 'YES' });
-    }
+  function visit(id: string, x: number, y: number, pathLabel?: string): Subtree {
+    const node = plan.nodes[id];
 
-    if (tree.otherwise) {
-      const target = visit(tree.otherwise, id, 'NO / 条件不成立');
+    if (seen.has(id)) {
+      const refId = `reference:${reference++}`;
 
-      nested.push(target);
-      edges.push({
-        id: `otherwise:${id}`,
-        source: id,
-        target: target.id,
-        kind: 'branch',
-        label: 'NO',
+      nodes.push({
+        id: refId,
+        planNodeId: id,
+        reference: true,
+        pathLabel,
+        position: { x, y },
+        width: WIDTH,
+        height: 72,
       });
-    }
-
-    children.set(id, nested);
-
-    return node;
-  };
-
-  const roots = planForest(plan).map((tree) => visit(tree));
-
-  for (const node of nodes) {
-    if (node.reference) {
       edges.push({
-        id: `ref:${node.id}`,
-        source: node.id,
-        target: actual.get(node.planNodeId)!,
+        id: `ref:${refId}`,
+        source: refId,
+        target: actual.get(id)?.first ?? `plan:${id}`,
         kind: 'reference',
         label: '引用',
       });
-      continue;
+
+      return { first: refId, last: refId, bottom: y + 72, right: x + WIDTH };
     }
 
-    for (const dependency of plan.nodes[node.planNodeId].dependsOn) {
-      edges.push({
-        id: `dep:${JSON.stringify([dependency, node.planNodeId])}`,
-        source: actual.get(dependency)!,
-        target: node.id,
-        kind: 'dependency',
+    seen.add(id);
+    const hidden =
+      node.kind === 'group' && node.presentation === 'sequence' && node.children.length > 0;
+    const rowId = `plan:${id}`;
+    const rowHeight = height(text(node));
+    let first: string | undefined = hidden ? undefined : rowId;
+    let last = first;
+    let bottom = hidden ? y : y + rowHeight;
+    let right = x + WIDTH;
+
+    actual.set(id, { first, last });
+    if (!hidden)
+      nodes.push({
+        id: rowId,
+        planNodeId: id,
+        reference: false,
+        pathLabel,
+        position: { x, y },
+        width: WIDTH,
+        height: rowHeight,
       });
-    }
-  }
+    if (node.kind === 'group') {
+      slot(id, 0, x, hidden ? y - GAP / 2 : bottom + GAP / 2);
+      for (const [index, child] of node.children.entries()) {
+        const subtree = visit(child, x, hidden && index === 0 ? y : bottom + GAP);
 
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  const arrange = async (siblings: LayoutNode[], parent?: LayoutNode) => {
-    for (const node of siblings) {
-      const nested = children.get(node.id)!;
+        if (last && subtree.first)
+          edges.push({
+            id: `sequence:${id}:${index}`,
+            source: last,
+            target: subtree.first,
+            kind: 'sequence',
+          });
+        first ??= subtree.first;
+        last = subtree.last ?? last;
+        bottom = subtree.bottom;
+        right = Math.max(right, subtree.right);
+        slot(id, index + 1, x, bottom + GAP / 2);
+      }
 
-      if (nested.length) await arrange(nested, node);
-    }
+      if (!node.children.length) bottom += GAP;
+    } else if (node.kind === 'branch') {
+      const yes = visit(node.then, x, bottom + GAP, 'YES / 条件成立');
 
-    const owner = (id: string): string | undefined => {
-      let node = byId.get(id);
+      if (yes.first)
+        edges.push({
+          id: `then:${id}`,
+          source: rowId,
+          target: yes.first,
+          kind: 'branch',
+          label: 'YES',
+        });
+      let no: Subtree | undefined;
 
-      while (node && node.parentId !== parent?.id)
-        node = node.parentId ? byId.get(node.parentId) : undefined;
+      if (node.otherwise) {
+        no = visit(node.otherwise, yes.right + 64, y + rowHeight + GAP, 'NO / 条件不成立');
+        if (no.first)
+          edges.push({
+            id: `otherwise:${id}`,
+            source: rowId,
+            target: no.first,
+            kind: 'branch',
+            label: 'NO',
+          });
+      }
 
-      return node?.id;
-    };
+      bottom = Math.max(yes.bottom, no?.bottom ?? 0);
+      right = Math.max(yes.right, no?.right ?? 0);
+      last = yes.last ?? rowId;
+    } else if (node.actionType !== 'assert') {
+      for (const [index, assertion] of node.assertions.entries()) {
+        const assertionId = `assertion:${id}:${index}`;
+        const rowHeight = height(assertion.description);
 
-    const links = new Map<string, { id: string; sources: string[]; targets: string[] }>();
-
-    for (const edge of edges) {
-      if (edge.kind !== 'dependency') continue;
-      const source = owner(edge.source);
-      const target = owner(edge.target);
-
-      if (source && target && source !== target) {
-        const id = JSON.stringify([source, target]);
-
-        links.set(id, { id, sources: [source], targets: [target] });
+        nodes.push({
+          id: assertionId,
+          planNodeId: id,
+          assertionIndex: index,
+          reference: false,
+          position: { x, y: bottom + GAP },
+          width: WIDTH,
+          height: rowHeight,
+        });
+        edges.push({
+          id: `assert:${id}:${index}`,
+          source: last!,
+          target: assertionId,
+          kind: 'sequence',
+        });
+        bottom += GAP + rowHeight;
+        last = assertionId;
       }
     }
 
-    const graph = await elk.layout<ElkNode>({
-      id: parent?.id ?? 'layout-root',
-      layoutOptions: {
-        'elk.algorithm': 'layered',
-        'elk.direction':
-          parent && plan.nodes[parent.planNodeId].kind === 'branch' ? 'RIGHT' : 'DOWN',
-        'elk.padding': parent
-          ? `[top=${HEADER_HEIGHT + 24},left=24,bottom=24,right=24]`
-          : '[top=0,left=0,bottom=0,right=0]',
-        'elk.spacing.nodeNode': '32',
-        'elk.layered.spacing.nodeNodeBetweenLayers': '48',
-        'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-        'elk.separateConnectedComponents': 'false',
-      },
-      children: siblings.map(({ id, width, height }) => ({ id, width, height })),
-      edges: [...links.values()],
-    });
+    const result = { first, last, bottom, right };
 
-    for (const item of graph.children ?? []) {
-      byId.get(item.id)!.position = { x: item.x ?? 0, y: item.y ?? 0 };
-    }
+    actual.set(id, result);
 
-    if (parent) {
-      parent.width = Math.max(CARD_WIDTH, graph.width ?? CARD_WIDTH);
-      parent.height = graph.height ?? HEADER_HEIGHT;
-    }
-  };
+    return result;
+  }
 
-  try {
-    await arrange(roots);
+  let top = 0;
 
-    return { nodes, edges };
-  } finally {
-    // elk.bundled 的 PromisedWorker 在部分环境(如 node/某些 worker 配置)没有 terminate,
-    // 清理失败不应让已经成功的布局结果变成异常。
-    try {
-      elk.terminateWorker();
-    } catch {
-      /* ignore */
+  function prerequisite(id: string) {
+    if (seen.has(id)) return;
+    plan.nodes[id].dependsOn.forEach(prerequisite);
+    top = visit(id, 0, top).bottom + GAP;
+  }
+
+  plan.nodes[plan.rootId].dependsOn.forEach(prerequisite);
+  let bottom = visit(plan.rootId, 0, top).bottom;
+
+  for (const id of Object.keys(plan.nodes))
+    if (!seen.has(id)) bottom = visit(id, 0, bottom + GAP).bottom;
+  for (const node of Object.values(plan.nodes)) {
+    for (const dependency of node.dependsOn) {
+      const source = actual.get(dependency)?.last,
+        target = actual.get(node.id)?.first;
+
+      if (source && target)
+        edges.push({
+          id: `dep:${JSON.stringify([dependency, node.id])}`,
+          source,
+          target,
+          kind: 'dependency',
+        });
     }
   }
+
+  return { nodes, edges, insertions };
 }

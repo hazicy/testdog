@@ -31,7 +31,9 @@ export function Dialog({
         if (
           busy ||
           (details.reason === 'escape-key' &&
-            popup.current?.querySelector('[role="combobox"][aria-expanded="true"]'))
+            popup.current?.querySelector(
+              '[role="combobox"][aria-expanded="true"], [aria-haspopup="menu"][aria-expanded="true"]',
+            ))
         ) {
           details.cancel();
 

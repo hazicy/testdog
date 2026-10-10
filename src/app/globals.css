@@ -582,3 +582,389 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+.case-tree-dialog {
+  width: min(1280px, calc(100vw - 32px));
+  max-width: 1280px;
+}
+
+.plan-node.task {
+  border-color: #a8c9ff;
+  border-radius: 2px;
+}
+.plan-node.group {
+  border-style: dashed;
+}
+
+/* Text-first creation opens a dedicated canvas with optional settings. */
+.case-text-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-width: 760px;
+}
+.case-text-body {
+  padding: 24px;
+}
+.case-text-input {
+  min-height: 300px;
+  resize: vertical;
+  line-height: 1.8;
+  font-size: 14px;
+}
+.case-editor-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.case-editor-form > .ws-dialog-header,
+.case-editor-form > .ws-dialog-footer {
+  flex-shrink: 0;
+}
+.case-editor-form > .ws-dialog-footer {
+  justify-content: space-between;
+}
+.case-canvas-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  padding: 0 16px;
+}
+.case-settings-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.case-editor-error {
+  color: var(--error-ink);
+  padding: 10px 24px;
+  font-size: 13px;
+  border-top: 1px solid var(--page-line);
+  flex-shrink: 0;
+}
+
+.plan-board {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+.plan-board-full {
+  flex: 1;
+  min-height: 0;
+}
+.plan-board-body {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+}
+.plan-board-body.has-inspector {
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+.plan-board .plan-viewport {
+  background: #fff;
+  --xy-background-color: #fff;
+  --xy-handle-background-color: transparent;
+  --xy-handle-border-color: transparent;
+}
+.plan-board-full .plan-viewport {
+  height: 100%;
+  min-height: 0;
+}
+.plan-inspector {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px;
+  border-left: 1px solid #eceef1;
+  background: #fff;
+  color: #242629;
+}
+.plan-board .plan-node {
+  pointer-events: auto;
+  border: 1px solid #b6d2ff;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+.plan-board .plan-node.assert {
+  border-color: #a1e7c8;
+}
+.plan-board .plan-node.login {
+  border-color: #d6b5ff;
+}
+.plan-board .plan-node.files {
+  border-color: #ffd09b;
+}
+.plan-board .plan-node.screenshot {
+  border-color: #d3dbe6;
+}
+.plan-board .plan-node.group {
+  border-color: #e3e5e8;
+  border-style: dashed;
+}
+.plan-board .plan-node.branch {
+  border-color: #d8c5ef;
+}
+.plan-board .plan-node.reference {
+  border-style: dashed;
+}
+.plan-board .plan-node.active {
+  outline: 2px solid #b7c7d9;
+  outline-offset: 3px;
+}
+.plan-node-row {
+  pointer-events: auto;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 20px;
+  text-align: left;
+  cursor: pointer;
+  color: #191b1e;
+}
+.plan-node.group .plan-node-row {
+  justify-content: center;
+  font-weight: 600;
+}
+.plan-node.group .step-badge {
+  border: none;
+  background: none;
+  color: #f58a00;
+}
+.plan-node-content {
+  flex: 1;
+  min-width: 0;
+  font-size: 20px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.plan-node.group .plan-node-content {
+  flex: 0 1 auto;
+}
+.plan-path-label {
+  display: block;
+  font-size: 11px;
+  color: #717780;
+  margin-bottom: 3px;
+}
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  border: 1px solid;
+  color: #1755ff;
+  border-color: #9bc3ff;
+  background: #eff6ff;
+}
+.step-badge.assert {
+  color: #008760;
+  border-color: #6ce6b1;
+  background: #effcf5;
+}
+.step-badge.login {
+  color: #8934d4;
+  border-color: #d1a7fc;
+  background: #f8f1ff;
+}
+.step-badge.files {
+  color: #c97200;
+  border-color: #f3c07e;
+  background: #fff8ed;
+}
+.step-badge.screenshot {
+  color: #54657b;
+  border-color: #c9d6e5;
+  background: #f6f8fb;
+}
+.step-badge.branch {
+  color: #754cab;
+  border-color: #cab6e3;
+  background: #f6f1fc;
+}
+.step-badge.group {
+  color: #7b7f86;
+  border-color: #d6d9de;
+  background: #f8f9fa;
+}
+.step-insert-trigger {
+  pointer-events: auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #e3e5e8;
+  background: #fff;
+  color: #333;
+  box-shadow: 0 2px 5px #00000012;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  line-height: 1;
+}
+.step-insert-trigger:hover,
+.step-insert-trigger[aria-expanded='true'] {
+  border-color: #99b7e8;
+  background: #f5f8ff;
+}
+.step-menu-positioner {
+  z-index: 110;
+}
+.step-type-menu {
+  background: #fff;
+  padding: 8px;
+  border: 1px solid #e3e5e8;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px #00000018;
+  min-width: 300px;
+  color: #202328;
+}
+.step-type-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+}
+.step-type-option[data-highlighted] {
+  background: #f1f5fb;
+}
+.step-type-option .step-badge {
+  font-size: 13px;
+  min-width: 116px;
+  justify-content: flex-start;
+}
+@media (max-width: 760px) {
+  .case-canvas-content {
+    padding: 0 8px;
+  }
+  .case-text-body {
+    padding: 16px;
+  }
+  .plan-board-body.has-inspector {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(180px, 1fr) minmax(180px, 40%);
+  }
+  .plan-inspector {
+    border-left: none;
+    border-top: 1px solid #eceef1;
+    padding: 12px;
+  }
+  .plan-board-toolbar {
+    padding: 8px;
+  }
+  .plan-board-toolbar .ws-button {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+}
+
+.case-workspace-main {
+  height: calc(100dvh - 56px);
+  overflow: hidden;
+}
+.case-canvas-page {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+.case-canvas-page .case-editor-form {
+  flex: 1;
+}
+.case-canvas-page .case-canvas-content {
+  padding: 0;
+}
+.case-canvas-page .plan-board {
+  border: 0;
+}
+.plan-node {
+  position: relative;
+}
+.plan-node-actions {
+  position: absolute;
+  right: 0;
+  top: -34px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+.plan-node-actions::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.plan-node:hover .plan-node-actions,
+.plan-node:focus-within .plan-node-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+.plan-node-actions button {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.plan-node-actions button:hover {
+  background: #f3f4f6;
+}
+.plan-drag-handle {
+  cursor: grab;
+}
+.plan-content-button {
+  width: 100%;
+  text-align: inherit;
+  white-space: pre-wrap;
+  cursor: text;
+}
+.plan-inline-input {
+  width: 100%;
+  min-height: 42px;
+  resize: none;
+  outline: none;
+  background: transparent;
+  line-height: inherit;
+}
+.plan-inline-evidence {
+  pointer-events: auto;
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  box-shadow: 0 4px 12px #0001;
+}
+@media (hover: none) {
+  .plan-node-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

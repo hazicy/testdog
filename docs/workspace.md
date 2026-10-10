@@ -48,6 +48,10 @@ erDiagram
 
 ### 用例
 
+新建测试默认打开文本输入 modal，输入操作与预期结果后由 AI 创建画板；也可以直接进入独立的画板页面手动创建。画板不使用 modal，也不显示工具栏或节点属性侧栏；点击卡片文字原位编辑，悬停显示拖拽排序、复制和删除操作。草稿与设置保存在当前标签页的 sessionStorage，刷新页面可恢复，保存成功后清除。名称自动生成，可在画板 Settings 侧栏修改；平台、设备、标签和输入引用也在侧栏设置。画板使用宽卡片与纵向连线，在连线上的 ＋ 菜单插入 Act、Assert、Login、Files、Screenshot、分组或分支。保存时检查步骤和目标配置，转换失败保留草稿。创建与编辑支持文本和步骤树两种模式。`POST /api/tests/compile` 接收 `goal` 与可选 Web `url`，通过 AI 返回经结构校验的 `plan`，不保存用例。转换失败保留文本，可重试。用例创建/更新接受可选 `plan`（传 `null` 清除），支持分组、任务、断言、条件分支与前置依赖。画板编辑保留节点 ID，阻止无效引用和循环；分组内可调整执行顺序。
+
+执行创建时冻结用例的树到运行 `plan`，后续编辑用例不影响已有运行；执行使用该树，无需重新编译文本。指定文本 goal override 时重新编译。旧文本用例仍在执行时生成计划。运行详情继续使用同一画板展示计划与节点对应的执行步骤。
+
 - `GET /api/tests` → `{ tests: TestCase[], latestRuns: RunSummary[], nextCursor: string | null }`，按更新时间与 ID 倒序。
 - `POST /api/tests` → HTTP 201 `{ test: TestCase }`。
 - `PATCH /api/tests/:id` → `{ test: TestCase }`，整体更新可编辑字段。

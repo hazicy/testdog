@@ -99,7 +99,23 @@ export class PlanRunner {
         if (next) await this.visit(next, completed, visiting);
       } else {
         await this.options.report?.(`执行任务：${node.goal}`);
-        await this.task(node);
+        if (node.actionType === 'screenshot') {
+          await this.observe();
+          const platform = this.options.session.platform;
+
+          await this.action(
+            platform === 'web'
+              ? {
+                  platform,
+                  action: {
+                    type: 'screenshot',
+                    target: { kind: 'css', value: '', name: '' },
+                    value: '',
+                  },
+                }
+              : { platform, action: { type: 'screenshot' } },
+          );
+        } else if (node.actionType !== 'assert') await this.task(node);
         for (const assertion of node.assertions) {
           await this.traced(
             { kind: 'assertion', title: assertion.description, assertion },

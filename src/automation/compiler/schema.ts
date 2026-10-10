@@ -8,7 +8,7 @@ export const TargetSchema = z.object({
 });
 
 const ActionStepSchema = z.object({
-  type: z.enum(['navigate', 'click', 'fill', 'press']),
+  type: z.enum(['navigate', 'click', 'fill', 'press', 'screenshot']),
   target: TargetSchema,
   value: z.string(),
 });
@@ -25,13 +25,24 @@ export type WaitStep = z.infer<typeof WaitStepSchema>;
 const id = z.string().trim().min(1);
 const ids = z.array(id);
 
+export const StepTypeSchema = z.enum(['act', 'assert', 'login', 'files', 'screenshot']);
+export type StepType = z.infer<typeof StepTypeSchema>;
+
 export const NodeSchema = z.discriminatedUnion('kind', [
   z
-    .object({ kind: z.literal('group'), id, goal: id, children: ids.min(1), dependsOn: ids })
+    .object({
+      kind: z.literal('group'),
+      id,
+      goal: id,
+      children: ids,
+      dependsOn: ids,
+      presentation: z.literal('sequence').optional(),
+    })
     .strict(),
   z
     .object({
       kind: z.literal('task'),
+      actionType: StepTypeSchema.optional(),
       id,
       goal: id,
       dependsOn: ids,

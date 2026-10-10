@@ -33,6 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const results = pathname.startsWith('/runs');
+  const canvas = pathname.startsWith('/cases/editor/');
 
   return (
     <div
@@ -95,13 +96,38 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Icon icon={menuIcon} width="18" aria-hidden="true" />
           </Button>
-          <Link href="/" className="text-sm text-page-muted">
-            工作区
-          </Link>
-          <Icon icon={chevronIcon} className="text-text-subtle" width="14" aria-hidden="true" />
-          <span className="truncate text-sm">浏览器测试</span>
+          <nav aria-label="面包屑" className="flex min-w-0 items-center gap-3 text-sm">
+            <Link href="/" className="text-page-muted">
+              工作区
+            </Link>
+            <Icon icon={chevronIcon} className="text-text-subtle" width="14" aria-hidden="true" />
+            {canvas ? (
+              <>
+                <Link href="/cases" className="text-page-muted">
+                  测试用例
+                </Link>
+                <Icon
+                  icon={chevronIcon}
+                  className="text-text-subtle"
+                  width="14"
+                  aria-hidden="true"
+                />
+                <span aria-current="page" className="truncate">
+                  画板
+                </span>
+              </>
+            ) : (
+              <span aria-current="page" className="truncate">
+                浏览器测试
+              </span>
+            )}
+          </nav>
         </header>
-        <main id="main-content" tabIndex={-1} className="px-4 py-7 sm:px-6 md:px-8 md:py-9">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className={canvas ? 'case-workspace-main' : 'px-4 py-7 sm:px-6 md:px-8 md:py-9'}
+        >
           {children}
         </main>
       </div>

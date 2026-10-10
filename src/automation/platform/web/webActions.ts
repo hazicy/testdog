@@ -8,7 +8,10 @@ export async function executeWebAction(
   useTouch = false,
 ): Promise<void> {
   // 执行操作
-  if (step.type === 'navigate') {
+  if (step.type === 'screenshot') {
+    await page.screenshot();
+    // The session recorder archives the corresponding before/after image.
+  } else if (step.type === 'navigate') {
     await page.goto(step.value, { waitUntil: 'domcontentloaded' });
   } else if (step.type === 'click') {
     const target = locateWebElement(page, step.target);

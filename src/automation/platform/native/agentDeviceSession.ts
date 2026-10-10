@@ -65,6 +65,7 @@ export class AgentDeviceSession implements AutomationSession {
         ['swipe', 'swipe'],
         ['back', 'back'],
         ['wait', 'snapshot'],
+        ['screenshot', 'screenshot'],
       ]
         .filter(([, command]) => available.includes(command))
         .map(([action]) => action),
@@ -289,6 +290,12 @@ export class AgentDeviceSession implements AutomationSession {
 
     if (!this.capabilities.actions.includes(action.type))
       throw new Error(`Unsupported action: ${action.type}`);
+    if (action.type === 'screenshot') {
+      await this.capture({ kind: 'screenshot' }, signal);
+
+      return;
+    }
+
     if (action.type === 'wait') {
       const deadline = Date.now() + action.timeoutMs;
 

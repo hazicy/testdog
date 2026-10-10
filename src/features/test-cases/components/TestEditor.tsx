@@ -1,400 +1,383 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Checkbox } from '@/components/ui/Checkbox';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import { api } from '@/client/api';
 import { Dialog } from '@/components/shared/Dialog';
 import { Icon } from '@iconify/react/offline';
+import { PlanBoard } from '@/features/runs/components/PlanBoard';
+import type { Plan } from '@/automation/compiler/schema';
+import { testSchema } from '@/features/test-cases/schemas';
+import { caseName, goalUrl } from '../lib/authoring';
+import { editablePlan, emptyPlan, planText } from '../lib/authoring';
+import { useRouter } from 'next/navigation';
+import { writeCaseDraft, type CaseDraft } from '../lib/caseDraft';
+import { CaseSettings } from './CaseSettings';
+import { initialCaseSettings, caseTarget, type CaseSettingsValue } from '../lib/caseSettings';
 import closeIcon from '@iconify-icons/lucide/x';
+import backIcon from '@iconify-icons/lucide/arrow-left';
 
 export function TestEditor({
   test,
   duplicate = false,
   onClose,
   onSaved,
+  initialDraft,
+  draftId,
 }: {
   test?: TestCase;
   duplicate?: boolean;
   onClose: () => void;
   onSaved: () => Promise<void>;
+  initialDraft?: CaseDraft;
+  draftId?: string;
 }) {
-  const [name, setName] = useState(test ? `${test.name}${duplicate ? '（副本）' : ''}` : '');
-  const [url, setUrl] = useState(test?.url || '');
-  const native = test?.target && test.target.platform !== 'web' ? test.target : undefined;
-  const [platform, setPlatform] = useState<'web' | 'android' | 'ios'>(
-    test?.target?.platform ?? 'web',
+  const router = useRouter();
+  const isPage = !!draftId;
+  const [name, setName] = useState(
+    initialDraft?.name ?? (test ? `${test.name}${duplicate ? '（副本）' : ''}` : caseName('')),
   );
-  const [webProfile, setWebProfile] = useState<string>(
-    test?.target?.platform === 'web'
-      ? test.target.deviceProfile
-      : test
-        ? 'legacy-desktop'
-        : 'Pixel 7',
-  );
-  const [appId, setAppId] = useState(native?.appId || '');
-  const [deviceProfileId, setDeviceProfileId] = useState(native?.deviceProfileId || '');
-  const [buildArtifactId, setBuildArtifactId] = useState(native?.buildArtifactId || '');
-  const [resetPolicy, setResetPolicy] = useState<'preserve' | 'clear-data' | 'reinstall'>(
-    native?.resetPolicy || 'preserve',
-  );
-  const [launchUrl, setLaunchUrl] = useState(native?.launchUrl || '');
-  const [nativeVideo, setNativeVideo] = useState(native?.evidence?.video || false);
-  const [nativeTrace, setNativeTrace] = useState(native?.evidence?.trace || false);
-  const [nativeLogs, setNativeLogs] = useState(native?.evidence?.logs || false);
-  const [inputRefs, setInputRefs] = useState(JSON.stringify(test?.target?.inputs || {}, null, 2));
-  const [builds, setBuilds] = useState<
-    { id: string; platform: string; appId: string; sha256: string }[]
-  >([]);
-  const [deviceResources, setDeviceResources] = useState<
-    { id: string; platform: string; profileId: string; status: string }[]
-  >([]);
-  const [goal, setGoal] = useState(test?.goal || '');
-  const [tags, setTags] = useState(test?.tags.join(', ') || '');
+  const nameChanged = useRef(false);
+  const [configuration, setConfiguration] = useState<CaseSettingsValue>(() => ({
+    ...initialCaseSettings(test),
+    ...initialDraft?.settings,
+    url: initialDraft?.url ?? test?.url ?? '',
+  }));
+  const { url, platform, webProfile, appId, deviceProfileId, inputRefs, tags } = configuration;
+
+  function changeSettings(patch: Partial<CaseSettingsValue>) {
+    setConfiguration((current) => ({ ...current, ...patch }));
+  }
+
+  const [goal, setGoal] = useState(initialDraft?.goal ?? test?.goal ?? '');
+  const [plan, setPlan] = useState<Plan | undefined>(() => {
+    if (initialDraft) return initialDraft.plan;
+    if (!test?.plan) return undefined;
+    const draft = editablePlan(test.plan, name);
+    const root = draft.nodes[draft.rootId];
+
+    if (root.kind === 'group') draft.nodes[root.id] = { ...root, goal: name };
+
+    return draft;
+  });
+  const [mode, setMode] = useState<'text' | 'board'>(initialDraft || test?.plan ? 'board' : 'text');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [compiling, setCompiling] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  useEffect(() => {
-    void api
-      .get('/api/builds')
-      .json<{ builds: typeof builds }>()
-      .then((data) => setBuilds(data.builds))
-      .catch(() => {});
-    void api
-      .get('/api/resources')
-      .json<{ resources: typeof deviceResources }>()
-      .then((data) => setDeviceResources(data.resources))
-      .catch(() => {});
-  }, []);
+  function enterCanvas(next: Plan, title: string, startUrl: string) {
+    if (isPage) {
+      setPlan(next);
+      setMode('board');
 
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
-    setSaving(true);
+      return;
+    }
+
+    const id = crypto.randomUUID();
+
+    writeCaseDraft(id, { test, duplicate, name: title, url: startUrl, goal, plan: next });
+    onClose();
+    router.push(`/cases/editor/${id}`);
+  }
+
+  useEffect(() => {
+    if (draftId && plan)
+      writeCaseDraft(draftId, { test, duplicate, name, url, goal, plan, settings: configuration });
+  }, [draftId, plan, name, url, goal, configuration, test, duplicate]);
+
+  function changeName(value: string) {
+    nameChanged.current = true;
+    setName(value);
+    if (plan) {
+      const root = plan.nodes[plan.rootId];
+
+      if (root.kind === 'group')
+        setPlan({
+          ...plan,
+          nodes: { ...plan.nodes, [root.id]: { ...root, goal: value || '未命名测试' } },
+        });
+    }
+  }
+
+  async function compile() {
+    if (saving || compiling || !goal.trim()) return;
+    setCompiling(true);
     setFormError('');
     try {
-      const editing = test && !duplicate;
+      const startUrl = platform === 'web' ? url.trim() || goalUrl(goal) : undefined;
+      const { plan: source } = await api
+        .post('/api/tests/compile', {
+          json: { goal, ...(startUrl ? { url: startUrl } : {}) },
+          timeout: 100000,
+          totalTimeout: 100000,
+        })
+        .json<{ plan: Plan }>();
+      const root = source.nodes[source.rootId];
+      const title =
+        !test && !nameChanged.current ? caseName(root.kind === 'branch' ? goal : root.goal) : name;
 
-      const payload = {
-        name,
-        ...(platform === 'web'
-          ? {
-              url: url.trim(),
-              target: {
-                schemaVersion: 1,
-                platform,
-                url: url.trim(),
-                browser: webProfile === 'iPhone 13' ? 'webkit' : 'chromium',
-                deviceProfile: webProfile,
-                inputs: JSON.parse(inputRefs),
-              },
-            }
-          : {
-              target: {
-                schemaVersion: 1,
-                platform,
-                appId,
-                deviceProfileId,
-                inputs: JSON.parse(inputRefs),
-                resetPolicy,
-                evidence: { video: nativeVideo, trace: nativeTrace, logs: nativeLogs },
-                ...(buildArtifactId ? { buildArtifactId } : {}),
-                ...(launchUrl.trim() ? { launchUrl: launchUrl.trim() } : {}),
-              },
-            }),
+      setName(title);
+      const next = editablePlan(source, title);
+      const nextRoot = next.nodes[next.rootId];
 
-        goal,
-        tags: tags
-          .split(/[,，]/)
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-      };
+      if (nextRoot.kind === 'group') next.nodes[nextRoot.id] = { ...nextRoot, goal: title };
+      setPlan(next);
+      if (startUrl && !url.trim()) changeSettings({ url: startUrl });
+      setSettingsOpen(false);
+      enterCanvas(next, title, startUrl || url);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : '转换失败，请重试');
+    } finally {
+      setCompiling(false);
+    }
+  }
 
-      if (editing) await api.patch(`/api/tests/${test.id}`, { json: payload });
-      else await api.post('/api/tests', { json: payload });
+  function openCanvas() {
+    if (saving || compiling) return;
+    const title = !test && !nameChanged.current ? caseName(goal) : name;
+    const next = plan ?? emptyPlan(title);
+    const startUrl = url.trim() || goalUrl(goal) || '';
+
+    setName(title);
+    changeSettings({ url: startUrl });
+    setFormError('');
+    setSettingsOpen(false);
+    enterCanvas(next, title, startUrl);
+  }
+
+  async function save() {
+    if (saving || compiling || !plan) return;
+    setFormError('');
+    if (!Object.values(plan.nodes).some((node) => node.kind === 'task')) {
+      setFormError('请点击画板上的 ＋ 添加至少一个步骤。');
+
+      return;
+    }
+
+    let inputs: unknown;
+
+    try {
+      inputs = JSON.parse(inputRefs);
+    } catch {
+      setFormError('请在 Settings 中填写有效的输入引用 JSON。');
+      setSettingsOpen(true);
+
+      return;
+    }
+
+    const payload = {
+      name,
+      ...(platform === 'web' ? { url: url.trim() } : {}),
+      target: caseTarget(configuration, inputs),
+      goal: planText(plan),
+      plan,
+      tags: tags
+        .split(/[,，]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    };
+    const parsed = testSchema.safeParse(payload);
+
+    if (!parsed.success) {
+      const missing = !name.trim()
+        ? '测试名称'
+        : platform === 'web' && !url.trim()
+          ? '网站地址'
+          : platform !== 'web' && !appId.trim()
+            ? '应用标识'
+            : platform !== 'web' && !deviceProfileId
+              ? '设备配置'
+              : '测试目标、输入引用和标签';
+
+      setFormError(`请在 Settings 中检查${missing}。`);
+      setSettingsOpen(true);
+
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (test && !duplicate) await api.patch(`/api/tests/${test.id}`, { json: parsed.data });
+      else await api.post('/api/tests', { json: parsed.data });
       await onSaved();
-    } catch (cause) {
-      setFormError(cause instanceof Error ? cause.message : '保存失败');
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : '保存失败');
     } finally {
       setSaving(false);
     }
   }
 
-  return (
-    <Dialog
-      titleId="editor-title"
-      busy={saving}
-      onDismiss={onClose}
-      initialFocus='[name="testName"]'
+  const content = (
+    <form
+      className="case-editor-form"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        void (mode === 'text' ? compile() : save());
+      }}
     >
-      <form onSubmit={(event) => void save(event)}>
-        <div className="ws-dialog-header">
-          <div>
-            <h2 id="editor-title" className="text-lg font-semibold">
-              {test && !duplicate ? '编辑测试' : '新建测试'}
-            </h2>
-            <p className="mt-1 text-xs text-text-subtle">描述操作与预期结果，由 AI 规划执行。</p>
-          </div>
+      <div className="ws-dialog-header">
+        <div>
+          <h2 id="editor-title" className="text-lg font-semibold">
+            {mode === 'board' ? name : test && !duplicate ? '编辑测试' : '新建测试'}
+          </h2>
+          <p className="mt-1 text-xs text-text-subtle">
+            {mode === 'text'
+              ? '描述操作和预期结果，由 AI 整理成可编辑的步骤画板。'
+              : `${platform.toUpperCase()} · ${platform === 'web' ? webProfile : deviceProfileId || '未设置设备'} · ${Object.values(plan?.nodes ?? {}).filter((node) => node.kind === 'task').length} 个步骤`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {mode === 'board' && (
+            <Button
+              type="button"
+              aria-label="Settings"
+              aria-pressed={settingsOpen}
+              className="ws-button"
+              disabled={saving || compiling}
+              onClick={() => setSettingsOpen(!settingsOpen)}
+            >
+              Settings
+            </Button>
+          )}
           <Button
             type="button"
             className="ws-icon-button"
-            disabled={saving}
-            aria-label="关闭编辑器"
-            onClick={() => onClose()}
+            disabled={saving || compiling}
+            aria-label={isPage ? '返回用例列表' : '关闭编辑器'}
+            onClick={onClose}
           >
-            <Icon icon={closeIcon} width="18" aria-hidden="true" />
+            <Icon icon={isPage ? backIcon : closeIcon} width="18" aria-hidden="true" />
           </Button>
         </div>
-        <div className="space-y-5 p-6">
-          <label className="ws-label">
-            测试名称
-            <Input
-              name="testName"
-              className="ws-input"
-              required
-              maxLength={120}
-              value={name}
-              disabled={saving}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="例如：验证登录页面"
-            />
-          </label>
-          <label className="ws-label">
-            平台
-            <Select
-              className="ws-input"
-              aria-label="平台"
-              value={platform}
-              disabled={saving}
-              onValueChange={(value) => setPlatform(value as typeof platform)}
-              items={[
-                { value: 'web', label: 'Web · 移动浏览器' },
-                { value: 'android', label: 'Android · 原生应用' },
-                { value: 'ios', label: 'iOS · 原生应用' },
-              ]}
-            />
-          </label>
-          {platform === 'web' ? (
-            <>
-              <label className="ws-label">
-                网站地址
-                <Input
-                  className="ws-input"
-                  required
-                  type="url"
-                  value={url}
-                  disabled={saving}
-                  onChange={(event) => setUrl(event.target.value)}
-                  placeholder="https://your-app.com"
-                />
-              </label>
-              <label className="ws-label">
-                浏览器与设备
-                <Select
-                  className="ws-input"
-                  aria-label="浏览器与设备"
-                  value={webProfile}
-                  disabled={saving}
-                  onValueChange={(value) => setWebProfile(value)}
-                  items={[
-                    { value: 'Pixel 7', label: 'Pixel 7 · Chromium' },
-                    { value: 'iPhone 13', label: 'iPhone 13 · WebKit' },
-                    webProfile === 'legacy-desktop' && {
-                      value: 'legacy-desktop',
-                      label: '历史桌面 Chromium',
-                    },
-                  ]}
-                />
-              </label>
-            </>
-          ) : (
-            <>
-              <label className="ws-label">
-                应用标识
-                <Input
-                  className="ws-input"
-                  required
-                  value={appId}
-                  disabled={saving}
-                  onChange={(event) => setAppId(event.target.value)}
-                  placeholder="com.example.app"
-                />
-              </label>
-              <label className="ws-label">
-                设备配置
-                <Select
-                  className="ws-input"
-                  required
-                  aria-label="设备配置"
-                  value={deviceProfileId}
-                  disabled={saving}
-                  onValueChange={(value) => setDeviceProfileId(value)}
-                  items={[
-                    { value: '', label: '选择已登记的设备配置' },
-                    deviceResources
-                      .filter((resource) => resource.platform === platform)
-                      .map((resource) => ({
-                        value: resource.profileId,
-                        label: (
-                          <>
-                            {resource.profileId} ·{' '}
-                            {resource.status === 'quarantined'
-                              ? '隔离中'
-                              : resource.status === 'busy'
-                                ? '使用中'
-                                : '可用'}
-                          </>
-                        ),
-                      })),
-                    !!deviceProfileId &&
-                      !deviceResources.some(
-                        (resource) =>
-                          resource.profileId === deviceProfileId && resource.platform === platform,
-                      ) && { value: deviceProfileId, label: <>{deviceProfileId} · 未连接</> },
-                  ]}
-                />
-              </label>
-              <label className="ws-label">
-                应用构建
-                <Select
-                  className="ws-input"
-                  aria-label="应用构建"
-                  value={buildArtifactId}
-                  disabled={saving}
-                  onValueChange={(value) => setBuildArtifactId(value)}
-                  items={[
-                    { value: '', label: '使用设备上已安装的应用' },
-                    builds
-                      .filter((build) => build.platform === platform && build.appId === appId)
-                      .map((build) => ({
-                        value: build.id,
-                        label: (
-                          <>
-                            {build.appId} · {build.sha256.slice(0, 12)}
-                          </>
-                        ),
-                      })),
-                    !!buildArtifactId &&
-                      !builds.some((build) => build.id === buildArtifactId) && {
-                        value: buildArtifactId,
-                        label: <>{buildArtifactId} · 不可用</>,
-                      },
-                  ]}
-                />
-              </label>
-              <label className="ws-label">
-                初始化策略
-                <Select
-                  className="ws-input"
-                  aria-label="初始化策略"
-                  value={resetPolicy}
-                  disabled={saving}
-                  onValueChange={(value) => setResetPolicy(value as typeof resetPolicy)}
-                  items={[
-                    { value: 'preserve', label: '保留应用数据' },
-                    { value: 'clear-data', label: '清除应用数据' },
-                    { value: 'reinstall', label: '重新安装所选构建' },
-                  ]}
-                />
-              </label>
-              <fieldset className="space-y-2 text-xs text-page-muted">
-                <legend className="mb-2">诊断附件</legend>
-                <label className="flex items-center gap-2">
-                  <Checkbox
-                    checked={nativeVideo}
-                    disabled={saving}
-                    onCheckedChange={(checked) => setNativeVideo(checked)}
-                  />{' '}
-                  视频
-                </label>
-                <label className="flex items-center gap-2">
-                  <Checkbox
-                    checked={nativeTrace}
-                    disabled={saving}
-                    onCheckedChange={(checked) => setNativeTrace(checked)}
-                  />{' '}
-                  设备 trace
-                </label>
-                <label className="flex items-center gap-2">
-                  <Checkbox
-                    checked={nativeLogs}
-                    disabled={saving}
-                    onCheckedChange={(checked) => setNativeLogs(checked)}
-                  />{' '}
-                  应用日志
-                </label>
-              </fieldset>
-              <label className="ws-label">
-                启动链接（可选）
-                <Input
-                  className="ws-input"
-                  value={launchUrl}
-                  disabled={saving}
-                  onChange={(event) => setLaunchUrl(event.target.value)}
-                  placeholder="myapp://login"
-                />
-              </label>
-              <p className="text-xs text-page-muted">
-                设备繁忙时会排队。重新安装及 iOS 清除数据需要选择应用构建。
-              </p>
-            </>
-          )}
-          <label className="ws-label">
-            输入引用（JSON，可选）
-            <textarea
-              className="ws-input min-h-24 font-mono text-xs"
-              aria-label="输入引用（JSON，可选）"
-              value={inputRefs}
-              disabled={saving}
-              onChange={(event) => setInputRefs(event.target.value)}
-            />
-            <span className="text-xs text-page-muted">
-              步骤中用 {'${input.name}'} 引用输入。普通输入：{'{"name":{"value":"Ada"}}'}；密码：
-              {'{"password":{"secretRef":"LOGIN_PASSWORD"}}'}。密钥由 worker 配置。
-            </span>
-          </label>
+      </div>
+      {mode === 'text' ? (
+        <div className="case-text-body">
           <label className="ws-label">
             测试步骤与预期结果
             <textarea
-              className="ws-input min-h-48 resize-y leading-6"
-              required
+              name="caseText"
+              aria-label="测试步骤与预期结果"
+              className="ws-input case-text-input"
               maxLength={20000}
               value={goal}
-              disabled={saving}
+              disabled={saving || compiling}
               onChange={(event) => setGoal(event.target.value)}
-              placeholder={'1. 打开网站首页\n2. 点击登录按钮\n3. 验证页面包含邮箱输入框和提交按钮'}
+              placeholder={`打开 https://example.com
+点击登录，使用测试账号登录
+验证页面显示账号名称`}
             />
           </label>
-          <p className="text-xs leading-5 text-text-subtle">
-            测试会实际操作目标网站。建议使用测试环境，并写明判断通过的条件。
+          <p className="mt-3 text-xs text-page-muted">
+            也可以直接打开空画板，点击连线上的 ＋ 自己添加步骤。
           </p>
-          <label className="ws-label">
-            标签 <span className="font-normal text-text-subtle">（可选，逗号分隔）</span>
-            <Input
-              className="ws-input"
-              value={tags}
-              disabled={saving}
-              onChange={(event) => setTags(event.target.value)}
-              placeholder="冒烟测试, 登录"
-            />
-          </label>
-          {formError && (
-            <p role="alert" className="text-sm text-error-ink">
-              {formError}
-            </p>
-          )}
         </div>
-        <div className="ws-dialog-footer">
-          <Button type="button" disabled={saving} className="ws-button" onClick={() => onClose()}>
-            取消
+      ) : (
+        plan && (
+          <div className="case-canvas-content">
+            <PlanBoard
+              fullHeight
+              plan={plan}
+              steps={[]}
+              onStep={() => {}}
+              onChange={
+                saving || compiling
+                  ? undefined
+                  : (next) => {
+                      setPlan(next);
+                      const root = next.nodes[next.rootId];
+
+                      if (root.kind === 'group') setName(root.goal);
+                    }
+              }
+              settings={
+                <CaseSettings
+                  name={name}
+                  onNameChange={changeName}
+                  value={configuration}
+                  onChange={changeSettings}
+                  busy={saving || compiling}
+                />
+              }
+              settingsOpen={settingsOpen}
+              onSettingsClose={() => setSettingsOpen(false)}
+            />
+          </div>
+        )
+      )}
+      {formError && (
+        <p role="alert" className="case-editor-error">
+          {formError}
+        </p>
+      )}
+      <div className="ws-dialog-footer">
+        {mode === 'text' ? (
+          <Button
+            key="direct"
+            type="button"
+            className="ws-button"
+            disabled={saving || compiling}
+            onClick={openCanvas}
+          >
+            直接创建画板
           </Button>
-          <Button type="submit" disabled={saving} className="ws-button primary">
+        ) : (
+          <Button
+            key="text"
+            type="button"
+            className="ws-button"
+            disabled={saving || compiling}
+            onClick={() => {
+              if (plan) setGoal(planText(plan));
+              setMode('text');
+              setFormError('');
+            }}
+          >
+            返回文本
+          </Button>
+        )}
+        {mode === 'text' ? (
+          <Button
+            key="compile"
+            type="submit"
+            className="ws-button primary"
+            disabled={saving || compiling || !goal.trim()}
+          >
+            {compiling ? 'AI 解析中…' : 'AI 创建画板'}
+          </Button>
+        ) : (
+          <Button
+            key="save"
+            type="submit"
+            className="ws-button primary"
+            disabled={saving || compiling}
+          >
             {saving ? '保存中…' : '保存测试'}
           </Button>
-        </div>
-      </form>
+        )}
+      </div>
+    </form>
+  );
+
+  if (isPage)
+    return (
+      <section className="case-canvas-page" aria-label="测试画板" aria-busy={saving || compiling}>
+        {content}
+      </section>
+    );
+  if (test?.plan) return null;
+
+  return (
+    <Dialog
+      titleId="editor-title"
+      className="case-text-dialog"
+      busy={saving || compiling}
+      onDismiss={onClose}
+      initialFocus='[name="caseText"]'
+    >
+      {content}
     </Dialog>
   );
 }

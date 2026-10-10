@@ -32,6 +32,7 @@ const schema = objectSchema({
         }),
         objectSchema({
           kind: { type: 'string', enum: ['task'] },
+          actionType: { type: 'string', enum: ['act', 'assert', 'login', 'files', 'screenshot'] },
           id: stringSchema,
           goal: stringSchema,
           dependsOn: arraySchema,
@@ -71,7 +72,12 @@ const CompiledSchema = z
       )
       .min(1),
   })
-  .strict();
+  .strict()
+  .superRefine((plan, ctx) => {
+    for (const node of plan.nodes)
+      if (node.kind === 'group' && !node.children.length)
+        ctx.addIssue({ code: 'custom', message: `Empty group: ${node.id}` });
+  });
 
 export class TextCompiler {
   constructor(private model: ModelClient) {}
@@ -86,6 +92,7 @@ export class TextCompiler {
         systemPrompt: `将用户的自动化测试用例编译为逻辑嵌套、结构扁平的执行计划，只返回 JSON。
 rootId 指向根节点。nodes 是节点数组，每个节点有唯一 id；所有引用只使用 id，禁止内嵌节点。
 group 用 goal 描述分组，children 是按执行顺序排列的非空节点 ID 数组，允许引用嵌套 group。
+task 的 actionType 为 act（一般操作）、assert（纯验证）、login（登录）、files（页面文件操作）、screenshot（仅截取当前画面）；按用户明确要求选择类型，不得编造额外步骤。assert 的 goal 是验证描述，assertions 包含同一描述；screenshot 不包含额外界面操作。
 task 是界面自动化执行的完整子目标，goal 必须保留用户指定的输入值、URL、操作顺序和环境上下文。
 requirementIds 只使用用户明确提供的需求 ID，没有则为空数组，不得编造。
 assertions 只包含用户明确要求的验证，用 description 忠实保留预期，不得编造成功提示或额外验证。

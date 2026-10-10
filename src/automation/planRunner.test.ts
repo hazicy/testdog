@@ -287,3 +287,76 @@ it('stops replay when the injected evaluator disagrees with the recorded branch'
   expect(planner.plan).not.toHaveBeenCalled();
   expect(driver.emit).toHaveBeenLastCalledWith(expect.objectContaining({ phase: 'error' }));
 });
+
+it('executes standalone assertions and screenshot steps without asking the action planner', async () => {
+  const driver = session();
+
+  driver.capabilities.actions.push('screenshot');
+  const planner = {
+    plan: vi.fn(async () => {
+      throw new Error('action planning forbidden');
+    }),
+  };
+  const authored = {
+    rootId: 'root',
+    nodes: {
+      root: {
+        id: 'root',
+        kind: 'group' as const,
+        goal: '验证',
+        children: ['check', 'capture'],
+        dependsOn: [],
+      },
+      check: {
+        id: 'check',
+        kind: 'task' as const,
+        actionType: 'assert' as const,
+        goal: '欢迎页面可见',
+        dependsOn: [],
+        requirementIds: [],
+        assertions: [{ description: '欢迎页面可见' }],
+      },
+      capture: {
+        id: 'capture',
+        kind: 'task' as const,
+        actionType: 'screenshot' as const,
+        goal: '截取当前页面',
+        dependsOn: [],
+        requirementIds: [],
+        assertions: [],
+      },
+    },
+  };
+  const runner = new PlanRunner({ plan: authored, evaluator, planner, session: driver, signal });
+
+  await runner.record();
+  expect(planner.plan).not.toHaveBeenCalled();
+  expect(evaluator.evaluate).toHaveBeenCalledOnce();
+  expect(driver.perform).toHaveBeenCalledWith(
+    { platform: 'ios', action: { type: 'screenshot' } },
+    signal,
+  );
+  const events = driver.emit.mock.calls.map(([event]) => event);
+
+  expect(events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ planNodeId: 'check', kind: 'assertion', phase: 'finish' }),
+      expect.objectContaining({
+        planNodeId: 'capture',
+        action: { platform: 'ios', action: { type: 'screenshot' } },
+        phase: 'finish',
+      }),
+    ]),
+  );
+  await runner.replay([
+    {
+      event: {
+        kind: 'action',
+        title: 'screenshot',
+        action: { platform: 'ios', action: { type: 'screenshot' } },
+      },
+    },
+  ]);
+  expect(planner.plan).not.toHaveBeenCalled();
+  expect(driver.perform).toHaveBeenCalledTimes(2);
+});

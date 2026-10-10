@@ -111,6 +111,7 @@ export const testCases = pgTable(
     name: text().notNull(),
     url: text().notNull(),
     goal: text().notNull(),
+    plan: jsonb().$type<Plan>(),
     tags: jsonb().$type<string[]>().notNull().default([]),
     createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
