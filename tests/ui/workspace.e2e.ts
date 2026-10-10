@@ -472,6 +472,13 @@ test('nested plans keep node evidence and dependency navigation through zoom and
   );
   await page.goto(`/runs/${run.id}`);
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  const dependency = page.locator('.react-flow__edge[aria-label="依赖：open → check"]');
+
+  await expect(dependency).toBeVisible();
+  await page.getByRole('button', { name: '依赖连线', exact: true }).click();
+  await expect(dependency).toHaveCount(0);
+  await page.getByRole('button', { name: '依赖连线', exact: true }).click();
+  await expect(dependency).toBeVisible();
   await page.getByRole('button', { name: '查看节点 check', exact: true }).click();
   const detail = page.getByRole('complementary', { name: '计划节点详情' });
 
@@ -573,4 +580,77 @@ test('loads recording versions only when opened and keeps the draft across view 
   await page.getByRole('button', { name: '编辑录制', exact: true }).click();
   await expect(editor).toHaveText(draft);
   expect(versionReads).toBe(1);
+});
+
+test('plan subflows retain both branch paths, shared references and external dependencies', async ({
+  page,
+}) => {
+  const task = (id: string) => ({
+    id,
+    kind: 'task',
+    goal: id,
+    dependsOn: [],
+    requirementIds: [],
+    assertions: [],
+  });
+  const plan = {
+    rootId: 'root',
+    nodes: {
+      root: {
+        id: 'root',
+        kind: 'group',
+        goal: '嵌套流程',
+        children: ['nested', 'branch'],
+        dependsOn: ['external'],
+      },
+      nested: {
+        id: 'nested',
+        kind: 'group',
+        goal: '准备步骤',
+        children: ['shared'],
+        dependsOn: [],
+      },
+      branch: {
+        id: 'branch',
+        kind: 'branch',
+        condition: '是否登录？',
+        then: 'shared',
+        otherwise: 'login',
+        dependsOn: ['shared'],
+      },
+      shared: { ...task('shared'), assertions: [{ description: '共享步骤完成' }] },
+      login: task('login'),
+      external: task('external'),
+    },
+  };
+  const errors: string[] = [];
+
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route(`**/api/runs/${run.id}`, (route) =>
+    route.fulfill({
+      json: {
+        run: { ...run, plan, steps: [{ ...run.steps[0], planNodeId: 'shared', status: 'failed' }] },
+      },
+    }),
+  );
+  await page.goto(`/runs/${run.id}`);
+  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await expect(page.getByText('YES / 条件成立', { exact: true })).toBeVisible();
+  await expect(page.getByText('NO / 条件不成立', { exact: true })).toBeVisible();
+  await expect(page.locator('.react-flow__edge[aria-label="依赖：external → root"]')).toBeVisible();
+  await expect(page.locator('[data-plan-node="shared"] .ws-status.failed')).toHaveCount(2);
+  await page.getByRole('button', { name: '查看引用节点 shared', exact: true }).click();
+  const detail = page.getByRole('complementary', { name: '计划节点详情' });
+
+  await expect(detail).toContainText('预期：共享步骤完成');
+  await expect(detail.getByRole('button', { name: /打开网站/ })).toBeVisible();
+  await page.getByRole('button', { name: '重置', exact: true }).click();
+  await expect(page.locator('.react-flow__viewport')).toHaveCSS(
+    'transform',
+    'matrix(1, 0, 0, 1, 24, 24)',
+  );
+  await page.getByRole('button', { name: '适应画板', exact: true }).click();
+  await expect(page.getByRole('button', { name: '查看节点 login', exact: true })).toBeInViewport();
+  await expect(detail).toContainText('预期：共享步骤完成');
+  expect(errors).toEqual([]);
 });

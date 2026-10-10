@@ -1,150 +1,130 @@
 'use client';
+
 import { Button } from '@/components/ui/Button';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Background,
+  MarkerType,
+  useReactFlow,
+  useViewport,
+  type Edge,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import type { Plan } from '@/automation/compiler/schema';
 import type { ExecutionStep } from '@/workspace/types';
-import { planForest } from '@/workspace/planTree';
-import { PlanNodes } from './PlanNodes';
+import { layoutPlan, type PlanLayout } from '@/workspace/planLayout';
+import { PlanNodes, type PlanFlowNode } from './PlanNodes';
 
-type Edge = { key: string; x1: number; y1: number; x2: number; y2: number };
+const nodeTypes = { plan: PlanNodes };
+type BoardProps = { plan?: Plan; steps: ExecutionStep[]; onStep: (step: ExecutionStep) => void };
 
-export function PlanBoard({
+export function PlanBoard(props: BoardProps) {
+  if (!props.plan)
+    return (
+      <p className="p-6 text-sm text-page-muted">
+        {props.steps.length ? '此记录没有保存编译计划。' : '计划生成后会在此展示。'}
+      </p>
+    );
+  const planKey = JSON.stringify(props.plan);
+
+  return (
+    <ReactFlowProvider key={planKey}>
+      <PlanBoardContent {...props} plan={props.plan} planKey={planKey} />
+    </ReactFlowProvider>
+  );
+}
+
+function PlanBoardContent({
   plan,
+  planKey,
   steps,
   onStep,
-}: {
-  plan?: Plan;
-  steps: ExecutionStep[];
-  onStep: (step: ExecutionStep) => void;
-}) {
-  const viewport = useRef<HTMLDivElement>(null);
-  const stage = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const [view, setView] = useState({ x: 24, y: 24, scale: 1 });
+}: BoardProps & { plan: Plan; planKey: string }) {
+  const [layout, setLayout] = useState<PlanLayout>();
+  const [layoutError, setLayoutError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [selected, setSelected] = useState<string>();
-  const [edges, setEdges] = useState<Edge[]>([]);
   const [showEdges, setShowEdges] = useState(true);
-  const forest = useMemo(() => (plan ? planForest(plan) : []), [plan]);
+  const flow = useReactFlow<PlanFlowNode>();
+  const view = useViewport();
   const stepsByNode = useMemo(() => {
     const index = new Map<string, ExecutionStep[]>();
     for (const step of steps) {
       if (!step.planNodeId) continue;
       const recorded = index.get(step.planNodeId);
+
       if (recorded) recorded.push(step);
       else index.set(step.planNodeId, [step]);
     }
 
     return index;
   }, [steps]);
-  const node = plan?.nodes[selected || ''];
+  const node = plan.nodes[selected || ''];
   const selectedSteps = selected ? stepsByNode.get(selected) || [] : [];
-  const fit = useCallback(() => {
-    if (
-      !viewport.current ||
-      !stage.current ||
-      !viewport.current.clientWidth ||
-      !stage.current.offsetWidth
-    )
-      return;
-    const scale = Math.min(
-      1,
-      (viewport.current.clientWidth - 48) / stage.current.offsetWidth,
-      (viewport.current.clientHeight - 48) / stage.current.offsetHeight,
-    );
-
-    setView({ x: 24, y: 24, scale: Math.max(0.15, scale) });
-  }, []);
 
   useEffect(() => {
-    const surface = viewport.current;
-    const content = stage.current;
-    if (!surface || !content) return;
-    let frame = 0;
-    const update = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(fit);
-    };
-    const observer = new ResizeObserver(update);
+    let cancelled = false;
 
-    observer.observe(surface);
-    observer.observe(content);
-    update();
+    layoutPlan(JSON.parse(planKey) as Plan).then(
+      (result) => {
+        if (!cancelled) setLayout(result);
+      },
+      () => {
+        if (!cancelled) setLayoutError(true);
+      },
+    );
 
     return () => {
-      observer.disconnect();
-      cancelAnimationFrame(frame);
+      cancelled = true;
     };
-  }, [fit, plan?.rootId]);
-  useEffect(() => {
-    const surface = viewport.current;
-    if (!surface) return;
-    const wheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const rect = surface.getBoundingClientRect();
+  }, [planKey, attempt]);
 
-      setView((v) => {
-        if (event.ctrlKey || event.metaKey) {
-          const scale = Math.max(0.15, Math.min(2, v.scale * Math.exp(-event.deltaY * 0.005)));
-          const px = event.clientX - rect.left,
-            py = event.clientY - rect.top;
-
-          return {
-            scale,
-            x: px - ((px - v.x) * scale) / v.scale,
-            y: py - ((py - v.y) * scale) / v.scale,
-          };
-        }
-
-        return { ...v, x: v.x - event.deltaX, y: v.y - event.deltaY };
-      });
-    };
-
-    surface.addEventListener('wheel', wheel, { passive: false });
-
-    return () => surface.removeEventListener('wheel', wheel);
-  }, [plan]);
-  useEffect(() => {
-    const element = stage.current;
-    if (!element || !plan) return;
-    const update = () => {
-      const root = element.getBoundingClientRect();
-      const scale = root.width / element.offsetWidth;
-      const positions = new Map<string, DOMRect>();
-
-      element
-        .querySelectorAll<HTMLElement>('[data-plan-node]')
-        .forEach((el) => positions.set(el.dataset.planNode!, el.getBoundingClientRect()));
-      const result: Edge[] = [];
-
-      Object.values(plan.nodes).forEach((n) =>
-        n.dependsOn.forEach((dep) => {
-          const a = positions.get(dep),
-            b = positions.get(n.id);
-          if (a && b)
-            result.push({
-              key: `${dep}:${n.id}`,
-              x1: (a.right - root.left) / scale,
-              y1: (a.top + 26 * scale - root.top) / scale,
-              x2: (b.left - root.left) / scale,
-              y2: (b.top + 26 * scale - root.top) / scale,
-            });
-        }),
-      );
-      setEdges(result);
-    };
-    const observer = new ResizeObserver(update);
-
-    observer.observe(element);
-    update();
-
-    return () => observer.disconnect();
-  }, [plan, forest]);
-  if (!plan)
-    return (
-      <p className="p-6 text-sm text-page-muted">
-        {steps.length ? '此记录没有保存编译计划。' : '计划生成后会在此展示。'}
-      </p>
-    );
+  const nodes = useMemo<PlanFlowNode[]>(
+    () =>
+      (layout?.nodes ?? []).map((item) => ({
+        id: item.id,
+        parentId: item.parentId,
+        extent: item.parentId ? 'parent' : undefined,
+        type: 'plan',
+        position: item.position,
+        width: item.width,
+        height: item.height,
+        style: { width: item.width, height: item.height },
+        data: {
+          node: plan.nodes[item.planNodeId],
+          reference: item.reference,
+          pathLabel: item.pathLabel,
+          steps: stepsByNode.get(item.planNodeId) ?? [],
+          active: selected === item.planNodeId,
+          onSelect: setSelected,
+        },
+      })),
+    [layout, plan, stepsByNode, selected],
+  );
+  const edges = useMemo<Edge[]>(
+    () =>
+      (layout?.edges ?? []).map((edge) => ({
+        ...edge,
+        type: 'smoothstep',
+        hidden: edge.kind === 'dependency' && !showEdges,
+        zIndex: 1,
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--plan-edge)' },
+        style: {
+          stroke: 'var(--plan-edge)',
+          strokeWidth: 1.5,
+          strokeDasharray: edge.kind === 'branch' ? undefined : '5 4',
+        },
+        labelStyle: { fill: 'var(--page-muted)', fontSize: 11 },
+        labelBgStyle: { fill: 'var(--surface)' },
+        ariaLabel:
+          edge.kind === 'dependency'
+            ? `依赖：${edge.source.slice(5)} → ${edge.target.slice(5)}`
+            : edge.label,
+      })),
+    [layout, showEdges],
+  );
 
   return (
     <div className="border border-page-line bg-surface">
@@ -166,107 +146,104 @@ export function PlanBoard({
           <Button
             className="ws-button"
             aria-label="缩小画板"
-            onClick={() => setView((v) => ({ ...v, scale: Math.max(0.15, v.scale / 1.2) }))}
+            disabled={!layout}
+            onClick={() => void flow.zoomOut()}
           >
             −
           </Button>
-          <span className="w-10 text-center font-mono text-xs">
-            {Math.round(view.scale * 100)}%
-          </span>
+          <span className="w-10 text-center font-mono text-xs">{Math.round(view.zoom * 100)}%</span>
           <Button
             className="ws-button"
             aria-label="放大画板"
-            onClick={() => setView((v) => ({ ...v, scale: Math.min(2, v.scale * 1.2) }))}
+            disabled={!layout}
+            onClick={() => void flow.zoomIn()}
           >
             +
           </Button>
-          <Button className="ws-button" onClick={fit}>
+          <Button
+            className="ws-button"
+            disabled={!layout}
+            onClick={() => void flow.fitView({ padding: 0.12, maxZoom: 1 })}
+          >
             适应画板
           </Button>
-          <Button className="ws-button" onClick={() => setView({ x: 24, y: 24, scale: 1 })}>
+          <Button
+            className="ws-button"
+            disabled={!layout}
+            onClick={() => void flow.setViewport({ x: 24, y: 24, zoom: 1 })}
+          >
             重置
           </Button>
         </div>
       </div>
       <div className="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div
-          ref={viewport}
           className="plan-viewport"
           aria-label="计划画板"
           tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.target !== e.currentTarget) return;
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
             const delta: Record<string, [number, number]> = {
               ArrowLeft: [40, 0],
               ArrowRight: [-40, 0],
               ArrowUp: [0, 40],
               ArrowDown: [0, -40],
             };
-            if (delta[e.key]) {
-              e.preventDefault();
-              const [x, y] = delta[e.key];
+            const movement = delta[event.key];
 
-              setView((v) => ({ ...v, x: v.x + x, y: v.y + y }));
+            if (movement) {
+              event.preventDefault();
+              const current = flow.getViewport();
+
+              void flow.setViewport({
+                ...current,
+                x: current.x + movement[0],
+                y: current.y + movement[1],
+              });
             }
           }}
-          onPointerDown={(e) => {
-            if ((e.target as HTMLElement).closest('button') || e.button !== 0) return;
-            drag.current = { x: e.clientX, y: e.clientY, ox: view.x, oy: view.y };
-            e.currentTarget.setPointerCapture(e.pointerId);
-          }}
-          onPointerMove={(e) => {
-            const d = drag.current;
-            if (d) setView((v) => ({ ...v, x: d.ox + e.clientX - d.x, y: d.oy + e.clientY - d.y }));
-          }}
-          onPointerUp={() => {
-            drag.current = null;
-          }}
-          onPointerCancel={() => {
-            drag.current = null;
-          }}
         >
-          <div
-            ref={stage}
-            className="plan-stage"
-            style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
-          >
-            <PlanNodes
-              plan={plan}
-              forest={forest}
-              stepsByNode={stepsByNode}
-              selected={selected}
-              onSelect={setSelected}
-            />
-            {showEdges && (
-              <svg className="plan-edges" aria-label="节点依赖连线">
-                <defs>
-                  <marker
-                    id="dep-arrow"
-                    markerWidth="8"
-                    markerHeight="8"
-                    refX="7"
-                    refY="4"
-                    orient="auto"
+          {layout ? (
+            <ReactFlow<PlanFlowNode>
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              nodesFocusable={false}
+              edgesFocusable={false}
+              deleteKeyCode={null}
+              panOnScroll
+              zoomOnScroll={false}
+              zoomActivationKeyCode={['Meta', 'Control']}
+              minZoom={0.05}
+              maxZoom={2}
+              fitView
+              fitViewOptions={{ padding: 0.12, maxZoom: 1 }}
+            >
+              <Background color="var(--plan-grid)" gap={20} size={1} />
+            </ReactFlow>
+          ) : (
+            <div className="p-6 text-sm text-page-muted" role="status">
+              {layoutError ? (
+                <>
+                  计划布局失败。
+                  <Button
+                    className="ws-button ml-3"
+                    onClick={() => {
+                      setLayoutError(false);
+                      setAttempt((value) => value + 1);
+                    }}
                   >
-                    <path d="M0,0 L8,4 L0,8" fill="var(--plan-edge)" />
-                  </marker>
-                </defs>
-                {edges.map((e) => (
-                  <path
-                    key={e.key}
-                    d={`M${e.x1},${e.y1} C${e.x1 + 50},${e.y1} ${e.x2 - 50},${e.y2} ${e.x2},${e.y2}`}
-                    stroke="var(--plan-edge)"
-                    fill="none"
-                    strokeWidth="1.5"
-                    strokeDasharray="5 4"
-                    markerEnd="url(#dep-arrow)"
-                  >
-                    <title>{e.key}</title>
-                  </path>
-                ))}
-              </svg>
-            )}
-          </div>
+                    重试
+                  </Button>
+                </>
+              ) : (
+                '正在整理计划布局…'
+              )}
+            </div>
+          )}
         </div>
         <aside
           className="min-w-0 border-t border-page-line p-5 lg:border-t-0 lg:border-l"

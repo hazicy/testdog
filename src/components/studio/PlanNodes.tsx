@@ -1,107 +1,89 @@
 'use client';
-import { Button } from '@/components/ui/Button';
 
 import { memo } from 'react';
-import type { Plan } from '@/automation/compiler/schema';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
+import { Button } from '@/components/ui/Button';
+import type { PlanNode } from '@/automation/compiler/schema';
 import type { ExecutionStep } from '@/workspace/types';
-import type { PlanTree } from '@/workspace/planTree';
 
-export const PlanNodes = memo(function PlanNodes({
-  plan,
-  forest,
-  stepsByNode,
-  selected,
-  onSelect,
-}: {
-  plan: Plan;
-  forest: PlanTree[];
-  stepsByNode: Map<string, ExecutionStep[]>;
-  selected?: string;
-  onSelect: (id: string) => void;
-}) {
-  function render(tree: PlanTree) {
-    const n = plan.nodes[tree.id];
-    if (tree.reference)
-      return (
-        <Button key={tree.id} className="plan-reference" onClick={() => onSelect(tree.id)}>
-          ↗ 引用 {tree.id}
-        </Button>
-      );
-    const recorded = stepsByNode.get(n.id) || [];
-    const state = recorded.some((s) => s.status === 'failed')
-      ? 'failed'
-      : recorded.some((s) => s.status === 'running')
-        ? 'running'
-        : recorded.length
-          ? 'passed'
-          : 'none';
+export type PlanFlowNode = Node<
+  {
+    node: PlanNode;
+    reference: boolean;
+    pathLabel?: string;
+    steps: ExecutionStep[];
+    active: boolean;
+    onSelect: (id: string) => void;
+  },
+  'plan'
+>;
 
-    return (
-      <div
-        key={tree.id}
-        data-plan-node={n.id}
-        className={`plan-node ${n.kind} ${selected === n.id ? 'active' : ''}`}
-      >
-        <Button
-          className="plan-node-header"
-          onClick={() => onSelect(n.id)}
-          aria-label={`查看节点 ${n.id}`}
-        >
-          <span className="flex items-center justify-between gap-4">
-            <span className="font-mono text-xs tracking-wider text-page-muted">
-              {n.kind.toUpperCase()} / {n.id}
-            </span>
-            {recorded.length > 0 && (
-              <span className={`ws-status ${state}`}>
-                <span />
-                {recorded.length} 步
-              </span>
-            )}
-          </span>
-          <span className="mt-2 block text-left text-sm leading-6">
-            {n.kind === 'branch' ? n.condition : n.goal}
-          </span>
-          {n.dependsOn.length > 0 && (
-            <span className="mt-2 block text-left text-xs text-page-muted">
-              依赖：{n.dependsOn.join(' · ')}
-            </span>
-          )}
-          {n.kind === 'task' && (
-            <span className="mt-2 block text-left text-xs text-page-muted">
-              {n.assertions.length} 个预期
-              {n.requirementIds.length ? ` · ${n.requirementIds.join(', ')}` : ''}
-            </span>
-          )}
-        </Button>
-        {n.kind === 'group' && <div className="plan-children">{tree.children.map(render)}</div>}
-        {n.kind === 'branch' && (
-          <div className="plan-branches">
-            <div>
-              <p className="mb-3 font-mono text-xs text-step-success">YES / 条件成立</p>
-              {tree.then && render(tree.then)}
-            </div>
-            <div>
-              <p className="mb-3 font-mono text-xs text-page-muted">NO / 条件不成立</p>
-              {tree.otherwise ? (
-                render(tree.otherwise)
-              ) : (
-                <p className="text-xs text-page-muted">跳过</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
+export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNode>) {
+  const { node: n, steps, onSelect } = data;
+  const state = steps.some((s) => s.status === 'failed')
+    ? 'failed'
+    : steps.some((s) => s.status === 'running')
+      ? 'running'
+      : steps.length
+        ? 'passed'
+        : 'none';
 
   return (
-    <>
-      {forest.map((tree, index) => (
-        <div key={tree.id}>
-          {index > 0 && <p className="mb-3 text-xs text-page-muted">依赖 / 独立节点</p>}
-          {render(tree)}
-        </div>
-      ))}
-    </>
+    <div
+      data-plan-node={n.id}
+      className={`plan-node ${n.kind} ${data.reference ? 'reference' : ''} ${data.active ? 'active' : ''}`}
+    >
+      <Handle type="target" position={Position.Left} style={{ top: 28 }} isConnectable={false} />
+      <Handle type="source" position={Position.Right} style={{ top: 28 }} isConnectable={false} />
+      <Button
+        className="plan-node-header nodrag"
+        onClick={() => onSelect(n.id)}
+        aria-label={data.reference ? `查看引用节点 ${n.id}` : `查看节点 ${n.id}`}
+      >
+        {data.pathLabel && (
+          <span className="mb-2 block text-xs text-page-muted">{data.pathLabel}</span>
+        )}
+        <span className="flex items-center justify-between gap-2">
+          <span className="truncate font-mono text-xs tracking-wider text-page-muted" title={n.id}>
+            {data.reference ? '↗ 引用' : n.kind.toUpperCase()} / {n.id}
+          </span>
+          {steps.length > 0 && (
+            <span className={`ws-status shrink-0 ${state}`}>
+              <span />
+              {steps.length} 步
+            </span>
+          )}
+        </span>
+        {!data.reference && (
+          <>
+            <span
+              className="mt-2 line-clamp-3 text-left text-sm leading-6"
+              title={n.kind === 'branch' ? n.condition : n.goal}
+            >
+              {n.kind === 'branch' ? n.condition : n.goal}
+            </span>
+            {n.dependsOn.length > 0 && (
+              <span
+                className="mt-2 block truncate text-left text-xs text-page-muted"
+                title={n.dependsOn.join(' · ')}
+              >
+                依赖：{n.dependsOn.join(' · ')}
+              </span>
+            )}
+            {n.kind === 'task' && (
+              <span className="mt-2 block truncate text-left text-xs text-page-muted">
+                {n.assertions.length} 个预期
+                {n.requirementIds.length ? ` · ${n.requirementIds.join(', ')}` : ''}
+              </span>
+            )}
+            {n.kind === 'branch' && !n.otherwise && (
+              <span className="mt-2 block text-left text-xs text-page-muted">
+                NO / 条件不成立：跳过
+              </span>
+            )}
+          </>
+        )}
+      </Button>
+    </div>
   );
 });

@@ -3,10 +3,7 @@ import { z } from 'zod';
 
 export const websiteSchema = z
   .url()
-  .refine(
-    (value) => ['http:', 'https:'].includes(new URL(value).protocol),
-    '网站地址必须使用 http 或 https',
-  );
+  .refine((value) => /^https?:\/\//i.test(value), '网站地址必须使用 http 或 https');
 export const runRequestSchema = z.union([
   z.strictObject({
     testId: z.uuid(),
@@ -33,7 +30,9 @@ export const recordingInputMessage = '请提供有效脚本（最多 100,000 字
 export const testSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
-    url: websiteSchema.optional(),
+    // Native cases normalize their legacy URL column to ''. API and repository
+    // validation must both accept this representation without requiring a URL.
+    url: z.preprocess((value) => (value === '' ? undefined : value), websiteSchema.optional()),
     target: TestTargetSchema.optional(),
     goal: z.string().trim().min(1).max(20000),
     tags: z.array(z.string().trim().min(1).max(30)).max(10).default([]),
