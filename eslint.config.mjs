@@ -6,6 +6,7 @@ import stylistic from '@stylistic/eslint-plugin';
 
 const serverImportPattern = '^(?:@/|(?:\\.{1,2}/)+(?:src/)?)server(?:/|$)';
 
+// 函数声明（包括 export function 和 export default function）
 const functionStatements = [
   'function',
   {
@@ -14,25 +15,72 @@ const functionStatements = [
   },
 ];
 
+// 通用空行规则
+const paddingRules = [
+  // import 语句与其他语句之间空一行
+  { blankLine: 'always', prev: 'import', next: '*' },
+
+  // 连续 import 不强制空行
+  { blankLine: 'any', prev: 'import', next: 'import' },
+
+  // directive 之后空一行（如 'use client'）
+  { blankLine: 'always', prev: 'directive', next: '*' },
+
+  // 连续 directive 不强制空行
+  { blankLine: 'any', prev: 'directive', next: 'directive' },
+
+  // 函数声明前后空一行
+  { blankLine: 'always', prev: '*', next: functionStatements },
+  { blankLine: 'always', prev: functionStatements, next: '*' },
+
+  // 变量声明之后空一行
+  {
+    blankLine: 'always',
+    prev: ['const', 'let'],
+    next: '*',
+  },
+
+  // 连续变量声明保持紧凑
+  {
+    blankLine: 'any',
+    prev: ['const', 'let'],
+    next: ['const', 'let'],
+  },
+
+  // 代码块之后空一行（if、for、while 等）
+  {
+    blankLine: 'always',
+    prev: 'block-like',
+    next: '*',
+  },
+
+  // return 前空一行
+  {
+    blankLine: 'always',
+    prev: '*',
+    next: 'return',
+  },
+];
+
 const eslintConfig = defineConfig([
+  // Next.js + TypeScript
   ...nextVitals,
   ...nextTs,
-  // Disable formatting rules that conflict with Prettier.
+
+  // 关闭与 Prettier 冲突的格式化规则
   prettier,
+
+  // 代码空行规范
   {
-    plugins: { '@stylistic': stylistic },
+    plugins: {
+      '@stylistic': stylistic,
+    },
     rules: {
-      '@stylistic/padding-line-between-statements': [
-        'error',
-        { blankLine: 'always', prev: 'import', next: '*' },
-        { blankLine: 'any', prev: 'import', next: 'import' },
-        { blankLine: 'always', prev: '*', next: functionStatements },
-        { blankLine: 'always', prev: functionStatements, next: '*' },
-        { blankLine: 'always', prev: ['const', 'let'], next: 'expression' },
-        { blankLine: 'always', prev: '*', next: 'return' },
-      ],
+      '@stylistic/padding-line-between-statements': ['error', ...paddingRules],
     },
   },
+
+  // 模型消费者依赖限制
   {
     files: [
       'src/automation/compiler/textCompiler.ts',
@@ -54,6 +102,8 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+
+  // Web 会话和录制定位依赖限制
   {
     files: [
       'src/automation/platform/web/playwrightSession.ts',
@@ -73,6 +123,8 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+
+  // PlanRunner 依赖限制
   {
     files: ['src/automation/planRunner.ts'],
     rules: {
@@ -90,6 +142,8 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+
+  // 浏览器组件依赖限制
   {
     files: [
       'src/components/**/*.{ts,tsx}',
@@ -111,9 +165,9 @@ const eslintConfig = defineConfig([
       ],
     },
   },
-  // Override default ignores of eslint-config-next.
+
+  // 忽略文件
   globalIgnores([
-    // Default ignores of eslint-config-next:
     '.next/**',
     'out/**',
     'build/**',

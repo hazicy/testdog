@@ -81,9 +81,11 @@ export class WebActionPlanner implements ActionPlanner {
 
     const calls = response.toolCalls;
     const isDone = /(?:^|\n)\s*DONE\s*$/.test(response.content.text.trim());
+
     if (calls.length === 0 && isDone) {
       return { done: true, steps: [] as PlatformAction[] };
     }
+
     if (calls.length === 0 || isDone) {
       console.error('Planner returned an invalid response', {
         goal: input.goal,
@@ -92,12 +94,15 @@ export class WebActionPlanner implements ActionPlanner {
       });
       throw new Error('Planner must return one or more action tool calls or DONE');
     }
+
     const steps = calls.map((call): Step => {
       if (!Object.hasOwn(ActionArguments, call.name)) {
         throw new Error(`Unknown browser action tool: ${call.name}`);
       }
+
       const schema = ActionArguments[call.name as keyof typeof ActionArguments];
       const args = schema.parse(JSON.parse(call.arguments));
+
       if (call.name === 'wait') {
         if (calls.length !== 1) throw new Error('Wait must be followed by a fresh observation');
         if ('condition' in args && ['url', 'text'].includes(args.condition) && !args.value.trim())

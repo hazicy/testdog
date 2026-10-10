@@ -46,6 +46,7 @@ export async function openPlatformRuntime(input: {
   const model = input.model ?? modelClient;
   const target = run.targetSnapshot ?? legacyWebTarget(run.url);
   const secrets = new SecretInputs(target.inputs);
+
   if (target.platform !== 'web') {
     if (!resource?.deviceId) throw new Error('设备租约没有绑定设备 ID');
     const recorder = new DeviceRecorder(run);
@@ -68,6 +69,7 @@ export async function openPlatformRuntime(input: {
       async finalize() {
         clearInterval(live);
         const failures: unknown[] = [];
+
         try {
           for (const job of [
             () => recorder.drain(),
@@ -84,11 +86,14 @@ export async function openPlatformRuntime(input: {
           await session.close();
           runtime.healthy = session.safeToRelease;
         }
+
         if (failures.length) throw new AggregateError(failures, 'Native evidence incomplete');
       },
     };
+
     try {
       const observation = await session.observe(signal);
+
       if (source?.environmentSnapshot) {
         for (const key of ['osVersion', 'driverVersion', 'buildSha256']) {
           if (
@@ -97,6 +102,7 @@ export async function openPlatformRuntime(input: {
           )
             throw new Error(`设备 ${key} 与录制不兼容，请重新录制`);
         }
+
         if (
           source.environmentSnapshot.viewport &&
           JSON.stringify(source.environmentSnapshot.viewport) !==
@@ -104,6 +110,7 @@ export async function openPlatformRuntime(input: {
         )
           throw new Error('设备屏幕与录制不兼容');
       }
+
       runtime.environment.viewport = observation.viewport;
       if (!secrets.enabled) live = setInterval(() => recorder.sample(session), previewInterval());
 
@@ -113,6 +120,7 @@ export async function openPlatformRuntime(input: {
       throw error;
     }
   }
+
   const profile = source?.environmentSnapshot?.profile
     ? (source.environmentSnapshot.profile as BrowserContextOptions)
     : resolveWebProfile(target);
@@ -162,6 +170,7 @@ export async function openPlatformRuntime(input: {
           event.id,
         ),
     );
+
     if (secrets.enabled)
       session.capabilities.artifacts = ['screenshot', 'snapshot', 'console', 'network'];
     let browserCleanup: Promise<void> | undefined;
@@ -201,6 +210,7 @@ export async function openPlatformRuntime(input: {
         } finally {
           await runtime.cleanup!();
         }
+
         evidence.assertComplete();
       },
     };

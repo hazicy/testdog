@@ -77,6 +77,7 @@ export class EvidenceSink {
       const persist = async () => {
         await insertArtifact(record, path);
       };
+
       if (this.persistence) await this.persistence.enqueue(persist);
       else await persist();
     }

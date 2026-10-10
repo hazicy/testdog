@@ -22,12 +22,14 @@ const schema = z.strictObject({
 
 export const POST = withApiError(async (request: Request) => {
   const result = schema.safeParse(await request.json().catch(() => null));
+
   if (!result.success)
     return NextResponse.json({ message: '请提供用例及平台目标矩阵' }, { status: 400 });
 
   const body = await submitOnce(request, result.data, async (tx) => {
     const batchId = randomUUID();
     const runs = [];
+
     for (const variant of result.data.variants)
       runs.push(
         await createRun(

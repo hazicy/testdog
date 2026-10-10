@@ -34,9 +34,11 @@ let directory: string;
 function ref(value: unknown, role: string): string | undefined {
   if (!value || typeof value !== 'object') return;
   const node = value as { role?: string; ref?: string };
+
   if (node.role === role && node.ref) return node.ref;
   for (const child of Object.values(value)) {
     const found = ref(child, role);
+
     if (found) return found;
   }
 }
@@ -52,11 +54,13 @@ beforeAll(async () => {
 
       return;
     }
+
     if (request.url === '/api/fail') {
       request.socket.destroy();
 
       return;
     }
+
     response.setHeader('Content-Type', 'text/html');
     response.end(
       request.url === '/popup'
@@ -96,6 +100,7 @@ beforeEach(async () => {
     if (input.responseFormat?.name === 'assertion_result')
       return { structuredContent: { passed: true, evidence: 'Welcome Ada heading is visible' } };
     const state = JSON.parse(input.messages[0].content.text);
+
     if (state.completedSteps.length >= 3) return { content: { text: 'DONE' }, toolCalls: [] };
     if (state.completedSteps.length === 2)
       return {
@@ -266,6 +271,7 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
           },
         };
       const state = JSON.parse(input.messages[0].content.text);
+
       if (state.completedSteps.length > 0) {
         if (
           state.completedSteps.some((step: { type: string }) => step.type === 'wait') &&
@@ -342,6 +348,7 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
       await original.apply(this, args);
       throw new Error('evidence export failed');
     });
+
     try {
       const run = await createRun({ case: 'Archive failure', url });
 
@@ -378,6 +385,7 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     );
     const run = await createRun({ case: 'Cancel active browser', url });
     const job = executeRun(run);
+
     try {
       await vi.waitFor(
         () => expect(mocks.generate.mock.calls.some(([input]) => input.tools)).toBe(true),
@@ -388,6 +396,7 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
       await job.catch(() => {});
       throw error;
     }
+
     await requestCancellation(run.id);
     cancelRun(run.id);
     await job;

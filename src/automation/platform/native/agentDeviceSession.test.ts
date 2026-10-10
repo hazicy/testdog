@@ -53,6 +53,7 @@ describe('native session invariants', () => {
       async () => {},
       sdk as unknown as AgentDeviceClient,
     );
+
     try {
       const observed = await session.observe(signal);
       const action = {
@@ -79,6 +80,7 @@ describe('native session invariants', () => {
       async () => {},
       sdk as unknown as AgentDeviceClient,
     );
+
     try {
       await expect(
         session.perform(
@@ -182,6 +184,7 @@ it('closes the named SDK session when open partially succeeds then fails', async
 it('refuses secret input in a nonsecure field before issuing SDK fill', async () => {
   vi.stubEnv('CASEFORGE_SECRET_PASSWORD', 'private-password');
   const sdk = client();
+
   try {
     const session = await AgentDeviceSession.open(
       'secure',
@@ -233,6 +236,7 @@ it('redacts reflected secrets and withholds a screenshot if the app shows them i
   const sdk = client([
     { index: 0, ref: 'e1', role: 'text', identifier: 'leak', label: 'private-password' },
   ]);
+
   try {
     const session = await AgentDeviceSession.open(
       'secret-screen',

@@ -18,6 +18,7 @@ import { layoutPlan, type PlanLayout } from '@/features/runs/lib/planLayout';
 import { PlanNodes, type PlanFlowNode } from './PlanNodes';
 
 const nodeTypes = { plan: PlanNodes };
+
 type BoardProps = { plan?: Plan; steps: ExecutionStep[]; onStep: (step: ExecutionStep) => void };
 
 export function PlanBoard(props: BoardProps) {
@@ -51,6 +52,7 @@ function PlanBoardContent({
   const view = useViewport();
   const stepsByNode = useMemo(() => {
     const index = new Map<string, ExecutionStep[]>();
+
     for (const step of steps) {
       if (!step.planNodeId) continue;
       const recorded = index.get(step.planNodeId);

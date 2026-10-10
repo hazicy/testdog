@@ -12,8 +12,10 @@ export const artifactRoot = () =>
 
 function remote() {
   const bucket = process.env.CASEFORGE_ARTIFACT_BUCKET;
+
   if (!bucket) return undefined;
   const prefix = (process.env.CASEFORGE_ARTIFACT_PREFIX || 'caseforge').replace(/^\/+|\/+$/g, '');
+
   if (!prefix || prefix.split('/').some((part) => part === '..'))
     throw new Error('Invalid artifact prefix');
 
@@ -36,8 +38,10 @@ export async function storeArtifactFile(
   contentType: string,
 ) {
   const config = remote();
+
   if (!config) return { path, rollback: async () => {} };
   const key = `${config.prefix}/${runId}/${id}`;
+
   try {
     await config.client.send(
       new PutObjectCommand({
@@ -52,12 +56,14 @@ export async function storeArtifactFile(
     config.client.destroy();
     throw error;
   }
+
   config.client.destroy();
 
   return {
     path: `s3://${config.bucket}/${key}`,
     rollback: async () => {
       const cleanup = remote()!;
+
       try {
         await cleanup.client.send(new DeleteObjectCommand({ Bucket: cleanup.bucket, Key: key }), {
           abortSignal: AbortSignal.timeout(10000),
@@ -72,10 +78,12 @@ export async function storeArtifactFile(
 export async function readArtifactFile(runId: string, id: string, path: string): Promise<Buffer> {
   if (path.startsWith('s3://')) {
     const config = remote();
+
     if (!config || path !== `s3://${config.bucket}/${config.prefix}/${runId}/${id}`) {
       config?.client.destroy();
       throw new Error('Invalid artifact object reference');
     }
+
     try {
       const object = await config.client.send(
         new GetObjectCommand({
@@ -84,6 +92,7 @@ export async function readArtifactFile(runId: string, id: string, path: string):
         }),
         { abortSignal: AbortSignal.timeout(20000) },
       );
+
       if (!object.Body) throw new Error('Artifact body unavailable');
 
       return Buffer.from(await object.Body.transformToByteArray());
@@ -91,7 +100,9 @@ export async function readArtifactFile(runId: string, id: string, path: string):
       config.client.destroy();
     }
   }
+
   const local = relative(join(artifactRoot(), runId), path);
+
   if (!local || local.startsWith('..') || isAbsolute(local))
     throw new Error('Invalid artifact path');
 

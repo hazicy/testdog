@@ -1,4 +1,5 @@
 'use client';
+
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { useRef, type ReactNode } from 'react';
 
@@ -36,6 +37,7 @@ export function Dialog({
 
           return;
         }
+
         onDismiss();
       }}
       disablePointerDismissal

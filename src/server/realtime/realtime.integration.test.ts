@@ -112,9 +112,11 @@ it.skipIf(!binary)(
     const until = async (event: string) => {
       while (!received.includes(`event: ${event}\n`)) {
         const chunk = await reader.read();
+
         if (chunk.done) throw new Error(`Stream ended before ${event}`);
         received += decoder.decode(chunk.value);
       }
+
       const result = received;
 
       received = '';
@@ -152,11 +154,13 @@ it.skipIf(!binary)(
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
     let body = '';
+
     while (!body.includes('event: ready')) {
       const chunk = await reader.read();
 
       body += decoder.decode(chunk.value);
     }
+
     await database.client.query(`UPDATE test_runs SET name = 'Recovered snapshot' WHERE id = $1`, [
       runId,
     ]);
@@ -170,9 +174,11 @@ it.skipIf(!binary)(
     body = '';
     while (!body.includes('Recovered snapshot')) {
       const chunk = await reader.read();
+
       if (chunk.done) throw new Error('Stream ended before reset');
       body += decoder.decode(chunk.value);
     }
+
     expect(body).toContain('event: snapshot');
     abort.abort();
     await reader.cancel();

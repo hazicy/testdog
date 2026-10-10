@@ -29,6 +29,7 @@ export class NativeDiagnostics {
       });
       this.video = true;
     }
+
     if (this.enabled.trace) {
       await this.client.recording.trace({
         action: 'start',
@@ -37,6 +38,7 @@ export class NativeDiagnostics {
       });
       this.trace = true;
     }
+
     if (this.enabled.logs) {
       await this.client.observability.logs({ action: 'start', signal });
       this.logs = true;
@@ -45,6 +47,7 @@ export class NativeDiagnostics {
   private async ownedFile(path: string, root: string) {
     const resolved = await realpath(path);
     const inside = relative(await realpath(root), resolved);
+
     if (!inside || inside.startsWith('..') || isAbsolute(inside))
       throw new Error('Diagnostic path escaped its session directory');
 
@@ -64,8 +67,10 @@ export class NativeDiagnostics {
   ): Promise<ArtifactDescriptor[]> {
     if (this.exported.has(request.kind)) return this.exported.get(request.kind)!;
     let result: ArtifactDescriptor[] = [];
+
     if (request.kind === 'video' && this.video) {
       const stopped = await this.client.recording.record({ action: 'stop', signal });
+
       if (
         stopped.recording !== 'stopped' ||
         stopped.recorder !== 'confirmed' ||
@@ -74,6 +79,7 @@ export class NativeDiagnostics {
         this.safeToRelease = false;
         throw new Error('Native recorder termination is unconfirmed; keep resource quarantined');
       }
+
       this.video = false;
       result = [
         {
@@ -86,6 +92,7 @@ export class NativeDiagnostics {
       ];
     } else if (request.kind === 'device-trace' && this.trace) {
       const stopped = await this.client.recording.trace({ action: 'stop', signal });
+
       if (stopped.trace !== 'stopped') throw new Error('Native trace did not stop');
       this.trace = false;
       result = [
@@ -105,6 +112,7 @@ export class NativeDiagnostics {
       const session = sessions.find(
         (session) => session.name === this.id || session.address === this.id,
       );
+
       if (!session?.sessionStateDir || typeof pathResult.path !== 'string')
         throw new Error('App log path is unavailable for this named session');
       result = [
@@ -117,12 +125,14 @@ export class NativeDiagnostics {
         },
       ];
     }
+
     this.exported.set(request.kind, result);
 
     return result;
   }
   async stop(signal: AbortSignal) {
     const failures: unknown[] = [];
+
     for (const kind of ['video', 'device-trace', 'log'] as const) {
       try {
         await this.capture({ kind }, signal);
@@ -130,6 +140,7 @@ export class NativeDiagnostics {
         failures.push(error);
       }
     }
+
     if (failures.length) throw new AggregateError(failures, 'Native diagnostics did not finalize');
   }
   async cleanup() {

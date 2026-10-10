@@ -1,4 +1,5 @@
 'use client';
+
 import { Button } from '@/components/ui/Button';
 
 import Link from 'next/link';
@@ -9,6 +10,7 @@ import { WorkspaceIcon } from '../shared/WorkspaceIcon';
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+
   if (pathname === '/' || pathname === '/onboarding') return children;
   const results = pathname.startsWith('/runs');
 

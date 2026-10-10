@@ -45,6 +45,7 @@ export async function eventStream(request: Request, runId?: string) {
     request.signal.removeEventListener('abort', close);
     if (runId && watching) void watchPreview(runId, viewer, false).catch(() => {});
   };
+
   const close = () => {
     cleanup();
     try {
@@ -53,6 +54,7 @@ export async function eventStream(request: Request, runId?: string) {
       /* Reader already cancelled. */
     }
   };
+
   const send = (event: string, data: unknown, id?: number) => {
     if (closed) return;
     if ((controller.desiredSize ?? 0) < -32) {
@@ -60,12 +62,14 @@ export async function eventStream(request: Request, runId?: string) {
 
       return;
     }
+
     controller.enqueue(
       encoder.encode(
         `${id === undefined ? '' : `id: ${id}\n`}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
       ),
     );
   };
+
   const snapshot = async () => {
     const run = await getRun(runId!, { includeLogs: false });
 
@@ -74,6 +78,7 @@ export async function eventStream(request: Request, runId?: string) {
 
     return run;
   };
+
   const sync = async () => {
     if (closed || !initialized) return;
     if (busy) {
@@ -81,6 +86,7 @@ export async function eventStream(request: Request, runId?: string) {
 
       return;
     }
+
     busy = true;
     try {
       do {
@@ -93,13 +99,16 @@ export async function eventStream(request: Request, runId?: string) {
             .select({ revision: testRuns.realtimeRevision, status: testRuns.status })
             .from(testRuns)
             .where(eq(testRuns.id, runId));
+
           if (!row) {
             close();
 
             return;
           }
+
           if (row.revision > revision) {
             const updates = await readRunUpdates(runId, revision);
+
             // Retention gaps require an authoritative snapshot, not a partial replay.
             if (
               !updates.length ||
@@ -119,6 +128,7 @@ export async function eventStream(request: Request, runId?: string) {
               if (revision < row.revision) dirty = true;
             }
           }
+
           if (watching && isActiveRun(row.status)) {
             await watchPreview(runId, viewer, true);
             if (closed) {
@@ -126,18 +136,22 @@ export async function eventStream(request: Request, runId?: string) {
 
               return;
             }
+
             const preview = await latestPreview(runId);
+
             if (preview && preview.version !== previewVersion) {
               previewVersion = preview.version;
               send('preview', preview);
             }
           }
+
           if (!isActiveRun(row.status) && revision >= row.revision) {
             send('done', {});
             close();
           }
         } else {
           const version = await workspaceVersion();
+
           if (workspaceCursor !== version) {
             workspaceCursor = version;
             send('changed', {});
@@ -150,6 +164,7 @@ export async function eventStream(request: Request, runId?: string) {
       busy = false;
     }
   };
+
   const stream = new ReadableStream<Uint8Array>({
     start(output) {
       controller = output;
@@ -159,12 +174,14 @@ export async function eventStream(request: Request, runId?: string) {
 
         return;
       }
+
       void (async () => {
         try {
           const release = await subscribeRealtime(
             runId ? `run:${runId}` : 'workspace',
             (message) => {
               const event = JSON.parse(message);
+
               if (event.kind === 'preview') {
                 if (watching && initialized && event.version !== previewVersion) {
                   previewVersion = event.version;
@@ -173,26 +190,31 @@ export async function eventStream(request: Request, runId?: string) {
 
                 return;
               }
+
               if (!initialized) {
                 dirty = true;
 
                 return;
               }
+
               clearTimeout(debounce);
               debounce = setTimeout(() => void sync(), 250);
             },
           );
+
           if (closed) {
             release();
 
             return;
           }
+
           unsubscribe = release;
           if (runId) await snapshot();
           else {
             workspaceCursor = await workspaceVersion();
             send('changed', {});
           }
+
           initialized = true;
           send('ready', {});
           await sync();
@@ -203,6 +225,7 @@ export async function eventStream(request: Request, runId?: string) {
 
               return;
             }
+
             if (!closed) controller.enqueue(encoder.encode(': heartbeat\n\n'));
             void sync();
           }, 15000);

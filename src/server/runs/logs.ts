@@ -18,12 +18,14 @@ const querySchema = z.object({
 
 export async function listBrowserLogs(id: string, request: Request) {
   const parsed = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
+
   if (!parsed.success) throw new WorkspaceError('日志筛选参数无效。');
   const query = parsed.data;
   const [run] = await db
     .select({ legacy: testRuns.browserLogs })
     .from(testRuns)
     .where(eq(testRuns.id, id));
+
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
   const matches = (log: BrowserLog) =>
     log.kind === query.kind &&

@@ -78,6 +78,7 @@ export class TextCompiler {
 
   async compile(goal: string, startUrl?: string, signal?: AbortSignal): Promise<Plan> {
     let feedback = '';
+
     for (let attempt = 0; attempt < 2; attempt++) {
       signal?.throwIfAborted();
       const response = await this.model.generate({
@@ -104,9 +105,11 @@ children、then、otherwise 已经表达父节点到子节点的执行关系，�
         temperature: 0,
         responseFormat: { type: 'json_schema', name: 'plan', schema },
       });
+
       try {
         const compiled = CompiledSchema.parse(response.structuredContent);
         const nodes: Plan['nodes'] = {};
+
         for (const node of compiled.nodes) {
           if (Object.hasOwn(nodes, node.id)) throw new Error(`Duplicate node id: ${node.id}`);
           const normalized =
@@ -135,6 +138,7 @@ children、then、otherwise 已经表达父节点到子节点的执行关系，�
         feedback = `上一份计划未通过结构校验。请修正后重新生成完整计划，保留原用例的全部操作和预期。错误：${error instanceof Error ? error.message : String(error)}\n上一份计划：${JSON.stringify(response.structuredContent)}`;
       }
     }
+
     throw new Error('计划编译失败');
   }
 }

@@ -33,8 +33,10 @@ export async function registerWorker(
       .values(resource)
       .onConflictDoNothing()
       .returning();
+
     if (!inserted) {
       const [existing] = await db.select().from(resources).where(eq(resources.id, resource.id));
+
       if (
         !existing ||
         existing.hostId !== resource.hostId ||
@@ -55,6 +57,7 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
       .where(and(eq(resources.hostId, hostId), eq(resources.status, 'available')))
       .orderBy(asc(resources.id))
       .for('update', { skipLocked: true });
+
     for (const resource of available) {
       const platform = sql`coalesce(${testRuns.targetSnapshot}->>'platform', 'web')`;
       const profile = sql`${testRuns.targetSnapshot}->>'deviceProfileId'`;
@@ -73,6 +76,7 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
         .orderBy(asc(testRuns.queuedAt))
         .limit(1)
         .for('update', { skipLocked: true });
+
       if (!run) continue;
       const token = resource.fencingToken + 1;
       const leaseUntil = new Date(Date.now() + 60000).toISOString();
@@ -104,6 +108,7 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
       return { runId: run.id, workerId, fencingToken: token, resource };
     }
   });
+
   if (!claimed) return;
   const run = await getRun(claimed.runId);
 
@@ -133,6 +138,7 @@ export async function renewLease(lease: RunLease) {
         ),
       )
       .for('update');
+
     if (!run) return;
     const leaseUntil = new Date(Date.now() + 60000).toISOString();
 
@@ -171,6 +177,7 @@ export async function releaseLease(lease: RunLease, healthy: boolean) {
       .from(testRuns)
       .where(eq(testRuns.id, lease.runId))
       .for('update');
+
     if (!run || run.workerId !== lease.workerId || run.fencingToken !== lease.fencingToken) return;
     await tx
       .update(resources)
@@ -195,8 +202,10 @@ export async function recoverLeases() {
     const lock = await tx.execute<{ acquired: boolean }>(
       sql`select pg_try_advisory_xact_lock(731904271) as acquired`,
     );
+
     if (!lock.rows[0].acquired) return;
     const queueTimeout = Number(process.env.CASEFORGE_QUEUE_TIMEOUT_MS || 3600000);
+
     if (!Number.isFinite(queueTimeout) || queueTimeout < 1000)
       throw new Error('CASEFORGE_QUEUE_TIMEOUT_MS 必须为正毫秒数');
     await tx
@@ -228,6 +237,7 @@ export async function recoverLeases() {
         ),
       )
       .for('update', { skipLocked: true });
+
     for (const run of expired) {
       await tx
         .update(resources)
@@ -277,6 +287,7 @@ export async function recoverResource(
     .where(
       and(eq(resources.id, id), eq(resources.hostId, hostId), eq(resources.status, 'quarantined')),
     );
+
   if (!resource || !(await verify(resource)))
     throw new WorkspaceError('无法证明旧执行已停止且设备健康，继续隔离。', 409);
   const [released] = await db

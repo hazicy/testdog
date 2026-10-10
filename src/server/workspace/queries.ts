@@ -129,6 +129,7 @@ export async function workspaceStats(): Promise<WorkspaceStats> {
           .groupBy(testRuns.status),
       ]);
       const counts = emptyCounts();
+
       for (const row of runs) counts[row.status] = row.count;
 
       return {

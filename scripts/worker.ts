@@ -29,16 +29,19 @@ const configs = configSchema.parse(
       JSON.stringify([{ id: `${hostId}:web:1`, platform: 'web', profileId: 'mobile' }]),
   ),
 );
+
 for (const resource of configs) {
   if (resource.platform !== 'web' && !resource.deviceId)
     throw new Error('Native resources require explicit deviceId');
   if (resource.platform === 'ios' && process.platform !== 'darwin')
     throw new Error('Local iOS worker requires macOS');
 }
+
 startOutboxPublisher();
 const stopMaintenance = startLeaseMaintenance();
 let stopping = false;
 const activeIds = new Set<string>();
+
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.on(signal, () => {
     stopping = true;
@@ -51,12 +54,14 @@ await registerWorker(
 );
 process.stdout.write(`Worker ${workerId} ready with ${configs.length} resources\n`);
 const concurrency = Number(process.env.CASEFORGE_WORKER_CONCURRENCY || configs.length);
+
 if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > configs.length)
   throw new Error('Worker concurrency must be between 1 and the number of resources');
 
 async function consume() {
   while (!stopping) {
     const claimed = await claimRun(workerId, hostId);
+
     if (claimed) {
       activeIds.add(claimed.run.id);
       try {

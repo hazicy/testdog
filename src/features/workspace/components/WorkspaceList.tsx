@@ -1,4 +1,5 @@
 'use client';
+
 import Link from 'next/link';
 import { type ComponentProps } from 'react';
 import { Button } from '@/components/ui/Button';

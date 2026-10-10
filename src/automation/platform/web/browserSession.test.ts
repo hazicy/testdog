@@ -48,6 +48,7 @@ describe('BrowserSession', () => {
     async (redirect) => {
       await page.context().route('https://session.test/**', async (route) => {
         const path = new URL(route.request().url()).pathname;
+
         if (path === '/data') {
           await new Promise((resolve) => setTimeout(resolve, 300));
           await route.fulfill({ body: 'ok' });

@@ -33,6 +33,7 @@ it('preserves microsecond cursor precision and does not duplicate or skip tied t
   const runs = await Promise.all(
     Array.from({ length: 4 }, (_, i) => createRun({ case: `Run ${i}`, url: input.url })),
   );
+
   for (const [i, run] of runs.entries())
     await isolated.client!.query('UPDATE test_runs SET "startedAt" = $1 WHERE id = $2', [
       `2026-10-10T00:00:00.00000${i > 1 ? 2 : 1}Z`,

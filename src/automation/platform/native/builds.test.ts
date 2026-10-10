@@ -21,6 +21,7 @@ import { getBuild, hashBuild, installedBuildHash } from './builds';
 afterAll(() => isolated.client?.close());
 it('validates platform, app identity and content hash before allowing an install', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'caseforge-build-test-'));
+
   try {
     const path = join(directory, 'fixture.apk');
 

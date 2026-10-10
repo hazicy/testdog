@@ -6,13 +6,16 @@ import { expect, it } from 'vitest';
 
 it('moves historical logs in order, compacts the run row, and cascades deletion', async () => {
   const client = new PGlite();
+
   try {
     const directory = join(process.cwd(), 'drizzle');
     const entries = (await readdir(directory)).filter((entry) => /^\d{14}_/.test(entry)).sort();
     const migration = '20261010024139_spotty_blacklash';
+
     for (const entry of entries.filter((entry) => entry < migration)) {
       await client.exec(await readFile(join(directory, entry, 'migration.sql'), 'utf8'));
     }
+
     const id = randomUUID();
     const logs = [
       { id: randomUUID(), kind: 'console', message: 'first' },

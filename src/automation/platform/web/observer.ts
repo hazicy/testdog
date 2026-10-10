@@ -29,6 +29,7 @@ export class Observer {
 
     const focused = await page.evaluate((): FocusedElement | null => {
       const active = document.activeElement;
+
       if (!(active instanceof HTMLElement) || active === document.body) return null;
 
       const isPassword = active instanceof HTMLInputElement && active.type === 'password';

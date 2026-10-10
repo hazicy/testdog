@@ -9,6 +9,7 @@ export async function GET(
   context: { params: Promise<{ id: string; artifactId: string }> },
 ) {
   const { id, artifactId } = await context.params;
+
   try {
     validId(id);
     validId(artifactId);

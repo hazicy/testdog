@@ -11,6 +11,7 @@ const headers = (values: Record<string, string>) =>
       /authorization|cookie|token|api-key/i.test(key) ? '[redacted]' : value.slice(0, 4096),
     ]),
   );
+
 export class BrowserLogs {
   private pending: BrowserLog[] = [];
   private count = 0;
@@ -75,11 +76,13 @@ export class BrowserLogs {
   private onRequest = (request: Request) => {
     if (!this.reserve()) return;
     let page;
+
     try {
       page = request.frame().page();
     } catch {
       /* Service worker requests have no frame. */
     }
+
     const log: BrowserLog = {
       ...this.base(page),
       kind: 'network',
@@ -93,6 +96,7 @@ export class BrowserLogs {
   };
   private onResponse = (response: import('playwright').Response) => {
     const log = this.requests.get(response.request());
+
     if (log) {
       log.status = response.status();
       log.responseHeaders = headers(response.headers());
@@ -100,6 +104,7 @@ export class BrowserLogs {
   };
   private complete(request: Request, failure?: string) {
     const log = this.requests.get(request);
+
     if (!log) return;
     log.durationMs = Math.max(0, Date.now() - Date.parse(log.at));
     log.failure = failure;

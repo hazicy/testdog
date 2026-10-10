@@ -8,6 +8,7 @@ type Context = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, context: Context) {
   const { id } = await context.params;
+
   try {
     validId(id);
 
@@ -23,6 +24,7 @@ export async function GET(request: Request, context: Context) {
 
 export async function DELETE(_request: Request, context: Context) {
   const { id } = await context.params;
+
   try {
     validId(id);
     await requestCancellation(id);

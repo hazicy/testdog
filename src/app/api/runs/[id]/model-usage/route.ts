@@ -14,6 +14,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
     validId(id);
     const [run] = await db.select({ id: testRuns.id }).from(testRuns).where(eq(testRuns.id, id));
+
     if (!run) throw new WorkspaceError('执行记录不存在。', 404);
     const calls = await db
       .select()

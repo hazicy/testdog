@@ -21,6 +21,7 @@ export function useRealtime(url: string | null, onEvent: (event: string, data: u
       source = undefined;
       setConnected(false);
     };
+
     const connect = () => {
       clearTimeout(retry);
       disconnect();
@@ -29,6 +30,7 @@ export function useRealtime(url: string | null, onEvent: (event: string, data: u
       source.onerror = () => {
         setConnected(false);
       };
+
       source.addEventListener('ready', () => {
         clearTimeout(watchdog);
         setConnected(true);
@@ -50,6 +52,7 @@ export function useRealtime(url: string | null, onEvent: (event: string, data: u
         }
       }, 20000);
     };
+
     const visibility = () => {
       if (document.visibilityState === 'visible') connect();
       else {

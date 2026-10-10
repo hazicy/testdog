@@ -1,4 +1,5 @@
 'use client';
+
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -84,6 +85,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
     setMessage('');
     try {
       let version = versions.find((v) => v.id === selected);
+
       if (!version || dirty) {
         const data = await api
           .post(`/api/runs/${run.id}/recording`, {
@@ -96,6 +98,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         setSelected(version.id);
         setMessage('新版本已保存。');
       }
+
       if (execute) {
         const data = await submit<{ run: TestRun }>('/api/runs', {
           mode: 'replay',

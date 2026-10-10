@@ -17,9 +17,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
+
   if (!parsed.success) {
     return NextResponse.json({ success: false, message: parsed.error.message }, { status: 400 });
   }
+
   const { id, goal } = parsed.data;
   const newCase = await createCase(id, goal);
 

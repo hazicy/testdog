@@ -25,12 +25,15 @@ function contained(root: string, path: string) {
 
 function byteRange(value: string, size: number) {
   const match = /^bytes=(\d*)-(\d*)$/.exec(value);
+
   if (!match || (!match[1] && !match[2]) || size === 0) return;
   const first = Number(match[1]);
   const last = Number(match[2]);
+
   if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last)) return;
   const start = match[1] ? first : Math.max(0, size - last);
   const end = match[1] && match[2] ? Math.min(last, size - 1) : size - 1;
+
   if (start > end || start >= size) return;
 
   return { start, end };
@@ -44,11 +47,13 @@ function representation(request: Request, artifact: ArtifactFile, size: number) 
     'Cache-Control': 'private, max-age=31536000, immutable',
     'X-Content-Type-Options': 'nosniff',
   };
+
   if (artifact.kind === 'trace' || new URL(request.url).searchParams.has('download'))
     headers['Content-Disposition'] =
       `attachment; filename="${artifact.kind}-${artifact.id}.${artifact.kind === 'trace' ? 'zip' : extensions[artifact.contentType] || 'bin'}"`;
   const requested = request.method === 'HEAD' ? null : request.headers.get('range');
   const range = requested === null ? undefined : byteRange(requested, size);
+
   if (requested !== null && !range)
     return {
       headers: { ...headers, 'Content-Range': `bytes */${size}`, 'Content-Length': '0' },
@@ -83,6 +88,7 @@ export async function serveArtifact(request: Request, artifact: ArtifactRecord) 
     return artifactResponse(request, artifact, artifactRoot());
   const bytes = await readArtifactFile(artifact.runId, artifact.id, artifact.path);
   const { headers, range, unsatisfiable } = representation(request, artifact, bytes.length);
+
   if (unsatisfiable) return new Response(null, { status: 416, headers });
   if (request.method === 'HEAD' || bytes.length === 0) return new Response(null, { headers });
 
@@ -96,15 +102,19 @@ async function readArtifact(request: Request, artifact: ArtifactFile, root: stri
   if (!contained(root, artifact.path))
     return new Response('Invalid artifact path', { status: 403 });
   const [resolvedRoot, resolvedPath] = await Promise.all([realpath(root), realpath(artifact.path)]);
+
   if (!contained(resolvedRoot, resolvedPath))
     return new Response('Invalid artifact path', { status: 403 });
 
   const file = await open(resolvedPath, 'r');
   let streamOwnsFile = false;
+
   try {
     const info = await file.stat();
+
     if (!info.isFile()) return new Response('Artifact unavailable', { status: 404 });
     const { headers, range, unsatisfiable } = representation(request, artifact, info.size);
+
     if (unsatisfiable) return new Response(null, { status: 416, headers });
     if (request.method === 'HEAD' || info.size === 0) return new Response(null, { headers });
 

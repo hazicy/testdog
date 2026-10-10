@@ -27,6 +27,7 @@ export class DeviceRecorder {
           ? (this.run.targetSnapshot?.appId ?? session.id)
           : session.id,
     };
+
     if (event.phase === 'start') {
       const binding =
         event.action && event.action.platform !== 'web'
@@ -80,6 +81,7 @@ export class DeviceRecorder {
   }
   async finalizeDiagnostics(session: AutomationSession) {
     const failures: unknown[] = [];
+
     for (const kind of ['video', 'device-trace', 'log'] as const) {
       if (!session.capabilities.artifacts.includes(kind)) continue;
       try {
@@ -88,6 +90,7 @@ export class DeviceRecorder {
         failures.push(error);
       }
     }
+
     if (failures.length) throw new AggregateError(failures, 'Native diagnostics incomplete');
   }
   async drain() {
@@ -105,10 +108,12 @@ export class DeviceRecorder {
         if (this.stopping || this.started.size) return;
         const artifacts = await session.capture({ kind: 'screenshot' }, AbortSignal.timeout(3000));
         const screenshot = artifacts.find((artifact) => artifact.kind === 'screenshot');
+
         if (screenshot) await publishPreview(this.run.id, screenshot.bytes, screenshot.contentType);
 
         return;
       }
+
       await this.evidence.capture(session, { kind: 'screenshot' }, stage, stepId);
       await this.evidence.capture(session, { kind: 'snapshot' }, stage, stepId);
     });

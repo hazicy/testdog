@@ -9,6 +9,7 @@ type Context = { params: Promise<{ id: string }> };
 export async function PATCH(request: Request, context: Context) {
   const { id } = await context.params;
   const parsed = testSchema.safeParse(await request.json().catch(() => null));
+
   if (!parsed.success) return NextResponse.json({ message: testInputMessage }, { status: 400 });
   try {
     validId(id);
@@ -21,6 +22,7 @@ export async function PATCH(request: Request, context: Context) {
 
 export async function DELETE(_request: Request, context: Context) {
   const { id } = await context.params;
+
   try {
     validId(id);
     await deleteTest(id);

@@ -14,6 +14,7 @@ export function MarketingMotion({
 
   useEffect(() => {
     const root = rootRef.current;
+
     if (!root) return;
 
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');

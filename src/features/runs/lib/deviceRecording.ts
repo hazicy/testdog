@@ -62,6 +62,7 @@ export function parseDeviceRecordingScript(
   platform: 'android' | 'ios',
 ): ExecutionStep[] {
   const recording = schema.parse(JSON.parse(code));
+
   if (
     recording.platform !== platform ||
     recording.steps.some((entry) => entry.check && entry.check.platform !== platform)

@@ -115,6 +115,7 @@ export async function getRun(
         .from(testRuns)
         .where(eq(testRuns.id, id));
       const row = selected ? { browserLogs: [], ...selected } : undefined;
+
       if (!row) throw new WorkspaceError('执行记录不存在。', 404);
       const run = runRecord(row);
       const [steps, artifacts, logs] = await Promise.all([
@@ -159,6 +160,7 @@ export async function createRun(
       Object.entries(request).filter(([key]) => key !== 'batchId' && key !== 'goalOverride'),
     ),
   );
+
   if (!parsed.success) throw new WorkspaceError('执行参数无效，请指定用例、测试描述或重放来源。');
   const input: {
     batchId?: string;
@@ -183,8 +185,10 @@ export async function createRun(
       recordingSteps?: ExecutionStep[];
       mode: 'record' | 'replay';
     };
+
     if (input.mode === 'replay') {
       const [source] = await tx.select().from(testRuns).where(eq(testRuns.id, input.sourceRunId!));
+
       if (
         input.target &&
         !isDeepStrictEqual(
@@ -205,6 +209,7 @@ export async function createRun(
               ),
             )
         : [];
+
       if (input.recordingVersionId && !version)
         throw new WorkspaceError('录制版本不存在或不属于此执行。', 404);
       if (isActiveRun(source.status)) throw new WorkspaceError('请等待录制结束后重放。', 409);
@@ -223,6 +228,7 @@ export async function createRun(
       };
     } else if (input.testId) {
       const [test] = await tx.select().from(testCases).where(eq(testCases.id, input.testId));
+
       if (!test) throw new WorkspaceError('用例不存在。', 404);
       snapshot = {
         targetSnapshot: input.target ?? test.target ?? legacyWebTarget(test.url),
@@ -251,6 +257,7 @@ export async function createRun(
         mode: 'record',
       };
     }
+
     const [run] = await tx
       .insert(testRuns)
       .values({ ...snapshot, batchId: input.batchId, status: 'queued' })
@@ -293,6 +300,7 @@ export async function savePlan(id: string, plan: TestRun['plan']) {
 
 export async function heartbeat(id: string) {
   const lease = leaseScope.getStore();
+
   if (!lease || lease.runId !== id) return;
 
   return (await import('@/server/scheduling/scheduler')).renewLease(lease);
@@ -301,6 +309,7 @@ export async function heartbeat(id: string) {
 export async function requestCancellation(id: string) {
   await db.transaction(async (tx) => {
     const [run] = await tx.select().from(testRuns).where(eq(testRuns.id, id)).for('update');
+
     if (!run || !isActiveRun(run.status)) throw new WorkspaceError('该测试已结束或不存在。', 409);
     await tx
       .update(testRuns)
@@ -374,6 +383,7 @@ export async function finishStep(id: string, patch: Partial<ExecutionStep>) {
     .select({ runId: runSteps.runId })
     .from(runSteps)
     .where(eq(runSteps.id, id));
+
   if (!existing) throw new WorkspaceError('步骤不存在', 404);
 
   return runWrite(existing.runId, async (tx) => {
@@ -383,6 +393,7 @@ export async function finishStep(id: string, patch: Partial<ExecutionStep>) {
 
 export async function insertArtifact(artifact: RunArtifact, path: string) {
   const stored = await storeArtifactFile(artifact.runId, artifact.id, path, artifact.contentType);
+
   try {
     return await runWrite(artifact.runId, async (tx) => {
       await tx.insert(runArtifacts).values({ ...artifact, path: stored.path });
@@ -400,6 +411,7 @@ export async function getArtifact(runId: string, id: string) {
     .select()
     .from(runArtifacts)
     .where(and(eq(runArtifacts.runId, runId), eq(runArtifacts.id, id)));
+
   if (!artifact) throw new WorkspaceError('画面附件不存在。', 404);
 
   return artifact;

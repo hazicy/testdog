@@ -10,6 +10,7 @@ export type RunUpdate =
 
 export function applyRunUpdates(run: TestRun, updates: RunUpdate[]): TestRun {
   let next = run;
+
   for (const update of updates) {
     if (update.revision <= (next.realtimeRevision ?? 0)) continue;
     if (update.kind === 'run') next = { ...next, ...update.data };

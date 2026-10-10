@@ -91,6 +91,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
     let session: AgentDeviceSession | undefined;
     const signal = AbortSignal.timeout(240000);
     const app = join(directory, 'CaseForgeFixture.app');
+
     try {
       await mkdir(app);
       await cp('src/automation/platform/native/fixtures/ios/Info.plist', join(app, 'Info.plist'));
@@ -122,6 +123,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
         (r: { identifier: string; isAvailable: boolean }) =>
           r.isAvailable && r.identifier.includes('.iOS-'),
       );
+
       if (!runtime) throw new Error('No installed iOS runtime');
       udid = (
         await exec('xcrun', [
@@ -157,6 +159,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
         { type: 'wait', text: 'Welcome Ada', timeoutMs: 5000 },
       ];
       const bindings: PlatformAction[] = [];
+
       for (const action of commands) {
         await session.observe(signal);
         const binding = session.binding(action);
@@ -165,6 +168,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
         bindings.push({ platform: 'ios', action: binding.action });
         await session.perform({ platform: 'ios', action }, signal);
       }
+
       const observed = await session.observe(signal);
 
       expect(JSON.stringify(observed)).toContain('Welcome Ada');
@@ -191,6 +195,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
         await exec('xcrun', ['simctl', 'shutdown', udid]).catch(() => {});
         await exec('xcrun', ['simctl', 'delete', udid]).catch(() => {});
       }
+
       await rm(directory, { recursive: true, force: true });
       vi.unstubAllEnvs();
     }
@@ -214,6 +219,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
     const adb = join(sdk, 'platform-tools', 'adb');
     const signal = AbortSignal.timeout(180000);
     let session: AgentDeviceSession | undefined;
+
     try {
       const classes = join(directory, 'classes');
 
@@ -320,6 +326,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         { type: 'wait', text: 'Welcome Ada', timeoutMs: 5000 },
       ];
       const bindings: PlatformAction[] = [];
+
       for (const action of commands) {
         await session.observe(signal);
         const binding = session.binding(action);
@@ -328,6 +335,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         bindings.push({ platform: 'android', action: binding.action });
         await session.perform({ platform: 'android', action }, signal);
       }
+
       expect(JSON.stringify(await session.observe(signal))).toContain('Welcome Ada');
       const path = join(directory, 'result.png');
 
@@ -369,6 +377,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         if (kind === 'video')
           expect(Buffer.from(artifacts[0].bytes).subarray(4, 8).toString()).toBe('ftyp');
       }
+
       expect(session.safeToRelease).toBe(true);
     } finally {
       await session?.close().catch(() => {});

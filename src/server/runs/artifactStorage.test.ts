@@ -37,6 +37,7 @@ test('private S3 upload, retrieval and rollback use the exact owned object key',
     expect(request.headers['x-amz-acl']).toBeUndefined();
     if (request.method === 'PUT') {
       const chunks: Buffer[] = [];
+
       for await (const chunk of request) chunks.push(Buffer.from(chunk));
       objects.set(path, Buffer.concat(chunks));
       response.end();
@@ -56,6 +57,7 @@ test('private S3 upload, retrieval and rollback use the exact owned object key',
   vi.stubEnv('AWS_ACCESS_KEY_ID', 'fixture');
   vi.stubEnv('AWS_SECRET_ACCESS_KEY', 'fixture');
   const directory = await mkdtemp(join(tmpdir(), 'caseforge-s3-'));
+
   try {
     const path = join(directory, 'screen.png');
 

@@ -48,6 +48,7 @@ export class AgentDeviceSession implements AutomationSession {
           trace: settings.trace && available.includes('trace'),
           logs: settings.logs && available.includes('logs'),
         };
+
     for (const [key, command] of [
       ['video', 'record'],
       ['trace', 'trace'],
@@ -90,6 +91,7 @@ export class AgentDeviceSession implements AutomationSession {
     const build = target.buildArtifactId
       ? await getBuild(target.buildArtifactId, target.platform, target.appId)
       : undefined;
+
     if (
       (target.resetPolicy === 'reinstall' ||
         (target.resetPolicy === 'clear-data' && target.platform === 'ios')) &&
@@ -102,6 +104,7 @@ export class AgentDeviceSession implements AutomationSession {
       ...selection,
       signal,
     });
+
     if (
       compatibleEnvironment &&
       (!compatibleEnvironment.osVersion ||
@@ -118,6 +121,7 @@ export class AgentDeviceSession implements AutomationSession {
       if (build) {
         const reinstall = target.resetPolicy === 'reinstall' || target.resetPolicy === 'clear-data';
         const command = reinstall ? 'reinstall' : 'install';
+
         if (!capabilities.availableCommands.includes(command))
           throw new Error(`Device lacks ${command} capability`);
         if (reinstall)
@@ -137,6 +141,7 @@ export class AgentDeviceSession implements AutomationSession {
             signal,
           });
       }
+
       await client.apps.open({
         platform: target.platform,
         ...selection,
@@ -159,6 +164,7 @@ export class AgentDeviceSession implements AutomationSession {
           signal,
         });
       }
+
       const installedHash =
         capabilities.device.kind === 'device'
           ? build?.sha256
@@ -192,6 +198,7 @@ export class AgentDeviceSession implements AutomationSession {
           { cause: error },
         );
       }
+
       throw error;
     }
   }
@@ -241,6 +248,7 @@ export class AgentDeviceSession implements AutomationSession {
           ? node.identifier === target.value
           : node.label === target.value && (!target.role || node.role === target.role),
     );
+
     if (nodes.length !== 1)
       throw new Error(`Device locator must resolve uniquely, found ${nodes.length}`);
 
@@ -250,6 +258,7 @@ export class AgentDeviceSession implements AutomationSession {
     if (!('target' in action)) return { action, replayable: action.type !== 'swipe' };
     const node = this.resolve(action.target);
     const candidates: NativeLocator[] = [];
+
     if (node.identifier) candidates.push({ kind: 'identifier', value: node.identifier });
     if (node.label && !node.password && this.secrets.redact(node.label) === node.label)
       candidates.push({
@@ -277,10 +286,12 @@ export class AgentDeviceSession implements AutomationSession {
   async perform(supplied: PlatformAction, signal: AbortSignal) {
     if (supplied.platform !== this.platform) throw new Error('Platform mismatch');
     const action = NativeActionSchema.parse(supplied.action);
+
     if (!this.capabilities.actions.includes(action.type))
       throw new Error(`Unsupported action: ${action.type}`);
     if (action.type === 'wait') {
       const deadline = Date.now() + action.timeoutMs;
+
       do {
         await this.observe(signal);
         if (
@@ -296,6 +307,7 @@ export class AgentDeviceSession implements AutomationSession {
             clearTimeout(timer);
             reject(signal.reason);
           };
+
           const timer = setTimeout(() => {
             signal.removeEventListener('abort', stop);
             resolve();
@@ -305,18 +317,23 @@ export class AgentDeviceSession implements AutomationSession {
           if (signal.aborted) stop();
         });
       } while (Date.now() < deadline);
+
       throw new Error(`Native wait timed out after ${action.timeoutMs}ms`);
     }
+
     try {
       if (action.type === 'tap' || action.type === 'fill') {
         const node = this.resolve(action.target);
+
         if (!node.ref) throw new Error('Target has no actionable ref');
         const token = node.ref.startsWith('@') ? node.ref : `@${node.ref}`;
         const ref = this.refsGeneration === undefined ? token : `${token}~s${this.refsGeneration}`;
+
         if (action.type === 'tap')
           await this.client.interactions.press({ ref, signal, settle: true, timeoutMs: 15000 });
         else {
           const input = this.secrets.resolve(action.value);
+
           if (input.sensitive && !node.password)
             throw new Error('Secret inputs require a secure field');
           await this.client.interactions.fill({
@@ -412,6 +429,7 @@ export class AgentDeviceSession implements AutomationSession {
       ];
     if (request.kind !== 'screenshot') return this.diagnostics.capture(request, signal);
     const directory = await mkdtemp(join(tmpdir(), 'caseforge-capture-'));
+
     try {
       const path = join(directory, 'capture.png');
 
@@ -461,11 +479,13 @@ export class AgentDeviceSession implements AutomationSession {
   async close() {
     if (this.closed) return;
     let failure: unknown;
+
     try {
       await this.diagnostics.stop(AbortSignal.timeout(20000));
     } catch (error) {
       failure = error;
     }
+
     await this.client.sessions.close({ signal: AbortSignal.timeout(30000) });
     this.closed = true;
     await this.diagnostics.cleanup();

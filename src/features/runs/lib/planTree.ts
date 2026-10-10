@@ -26,7 +26,9 @@ export function planForest(plan: Plan): PlanTree[] {
         : {}),
     };
   };
+
   const result = [visit(plan.rootId)];
+
   for (const id of Object.keys(plan.nodes)) if (!seen.has(id)) result.push(visit(id));
 
   return result;

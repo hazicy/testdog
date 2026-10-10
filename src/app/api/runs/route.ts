@@ -15,6 +15,7 @@ export const GET = withApiError(async (request: Request) =>
 
 export const POST = withApiError(async (request: Request) => {
   const parsed = runRequestSchema.safeParse(await request.json().catch(() => null));
+
   if (!parsed.success)
     return NextResponse.json(
       { success: false, message: '请提供用例 ID，或重放来源 ID，或测试描述与网站地址。' },

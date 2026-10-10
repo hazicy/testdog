@@ -12,6 +12,7 @@ export class NativeActionPlanner implements ActionPlanner {
     const allowed = NativeActionSchema.options.filter((schema) =>
       input.capabilities.actions.includes(schema.shape.type.value),
     );
+
     if (!allowed.length) throw new Error('No device actions supported');
     const schema = z.strictObject({
       done: z.boolean(),
@@ -36,6 +37,7 @@ export class NativeActionPlanner implements ActionPlanner {
       },
     });
     const result = schema.parse(response.structuredContent);
+
     if (result.done === result.steps.length > 0)
       throw new Error('Expected either one action or done');
 

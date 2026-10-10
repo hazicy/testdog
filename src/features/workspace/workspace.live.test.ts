@@ -24,6 +24,7 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
       const url = new URL(route.request().url());
       const method = route.request().method();
       let body: unknown;
+
       if (url.pathname === '/api/tests' && method === 'POST') {
         const test = {
           ...route.request().postDataJSON(),

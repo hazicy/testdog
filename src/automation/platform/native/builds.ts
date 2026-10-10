@@ -31,9 +31,11 @@ export async function hashBuild(path: string): Promise<string> {
 
 export async function registerBuild(platform: 'android' | 'ios', inputPath: string) {
   const source = await realpath(inputPath);
+
   if (extname(source) !== (platform === 'android' ? '.apk' : '.app'))
     throw new Error('Android 需要 APK，iOS 需要 .app');
   let appId: string;
+
   if (platform === 'ios')
     appId = (
       await exec('/usr/libexec/PlistBuddy', [
@@ -51,9 +53,11 @@ export async function registerBuild(platform: 'android' | 'ios', inputPath: stri
       await exec(join(sdk, 'build-tools', versions[0], 'aapt'), ['dump', 'badging', source])
     ).stdout;
     const match = /^package: name='([^']+)'/m.exec(output);
+
     if (!match) throw new Error('无法读取 APK package ID');
     appId = match[1];
   }
+
   const id = randomUUID();
   const root = join(process.env.CASEFORGE_DATA_DIR || join(process.cwd(), '.automation'), 'builds');
 
@@ -72,6 +76,7 @@ export async function registerBuild(platform: 'android' | 'ios', inputPath: stri
 
 export async function getBuild(id: string, platform: 'android' | 'ios', appId: string) {
   const [build] = await db.select().from(automationBuilds).where(eq(automationBuilds.id, id));
+
   if (!build || build.platform !== platform || build.appId !== appId)
     throw new Error('构建不存在或与应用/平台不兼容');
   if ((await hashBuild(build.path)) !== build.sha256) throw new Error('构建附件摘要不匹配');
@@ -86,6 +91,7 @@ export async function clearAndroidData(deviceId: string, appId: string, signal: 
     ['-s', deviceId, 'shell', 'pm', 'clear', appId],
     { signal, timeout: 30000 },
   );
+
   if (!result.stdout.includes('Success')) throw new Error('无法清理应用数据');
 }
 
@@ -105,6 +111,7 @@ export async function installedBuildHash(
 
     return hashBuild(path);
   }
+
   const { mkdtemp, rm } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const sdk = process.env.ANDROID_SDK_ROOT || join(homedir(), 'Library/Android/sdk');
@@ -116,6 +123,7 @@ export async function installedBuildHash(
     .split('\n')
     .map((line) => line.trim().replace(/^package:/, ''))
     .sort();
+
   if (
     !paths.length ||
     paths.some(
@@ -127,6 +135,7 @@ export async function installedBuildHash(
   )
     throw new Error('无法获取已安装应用的 APK 路径');
   const directory = await mkdtemp(join(tmpdir(), 'caseforge-fingerprint-'));
+
   try {
     for (const [index, path] of paths.entries())
       await exec(adb, ['-s', deviceId, 'pull', path, join(directory, `${index}.apk`)], {

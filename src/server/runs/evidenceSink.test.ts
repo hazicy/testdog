@@ -41,6 +41,7 @@ it('captures snapshot bytes and surface before queued storage while finalization
       { kind: 'snapshot', bytes: Buffer.from('before snapshot'), contentType: 'application/json' },
     ]),
   };
+
   try {
     await sink.capture(
       session as unknown as AutomationSession,
@@ -94,6 +95,7 @@ it('keeps an earlier capture failure visible even after later evidence is saved 
         },
       ]),
   } as unknown as AutomationSession;
+
   try {
     await expect(sink.capture(session, { kind: 'snapshot' }, 'before', 'step')).rejects.toThrow(
       'disconnected',

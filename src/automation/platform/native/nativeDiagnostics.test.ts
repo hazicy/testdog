@@ -24,6 +24,7 @@ it('retains quarantine when native recorder termination is unconfirmed', async (
   });
   const client = { recording: { record } } as unknown as AgentDeviceClient;
   const diagnostics = new NativeDiagnostics(client, 'owned-session', { video: true });
+
   try {
     await diagnostics.start(new AbortController().signal);
     await expect(
@@ -57,6 +58,7 @@ it('rejects an exported file outside the exact capture directory', async () => {
     },
   } as unknown as AgentDeviceClient;
   const diagnostics = new NativeDiagnostics(client, 'owned-session', { video: true });
+
   try {
     await diagnostics.start(new AbortController().signal);
     await expect(

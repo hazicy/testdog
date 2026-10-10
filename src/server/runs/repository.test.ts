@@ -215,6 +215,7 @@ describe('PostgreSQL workspace repository', () => {
       '00000000-0000-4000-8000-000000000002',
       '00000000-0000-4000-8000-000000000001',
     ];
+
     for (const [index, id] of ids.entries())
       await insertArtifact(
         {

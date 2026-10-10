@@ -60,6 +60,7 @@ it('lays out nested groups, shared branch targets and cross-group dependencies w
       expect(node.position.x + node.width).toBeLessThanOrEqual(parent.width - 24);
       expect(node.position.y + node.height).toBeLessThanOrEqual(parent.height - 24);
     }
+
     for (const other of nodes) {
       if (node === other || node.parentId !== other.parentId) continue;
       const separated =
@@ -71,6 +72,7 @@ it('lays out nested groups, shared branch targets and cross-group dependencies w
       expect(separated, `${node.id} overlaps ${other.id}`).toBe(true);
     }
   }
+
   const reference = nodes.find((node) => node.reference)!;
 
   expect(reference).toMatchObject({

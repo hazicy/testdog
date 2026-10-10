@@ -14,6 +14,7 @@ export type InputRefs = z.infer<typeof InputRefsSchema>;
 export function inputGoal(goal: string, inputs: InputRefs = {}) {
   return goal.replace(/\$\{input\.([A-Za-z][A-Za-z0-9_]*)\}/g, (_match, key: string) => {
     const input = inputs[key];
+
     if (!input) throw new Error(`Missing input reference: ${key}`);
 
     return 'value' in input ? input.value : `\$\{secret:${input.secretRef}\}`;
@@ -26,6 +27,7 @@ export class SecretInputs {
     for (const input of Object.values(inputs)) {
       if (!('secretRef' in input)) continue;
       const value = process.env[`CASEFORGE_SECRET_${input.secretRef}`];
+
       if (!value) throw new Error(`Missing worker secret: ${input.secretRef}`);
       this.values.set(input.secretRef, value);
     }
@@ -38,13 +40,16 @@ export class SecretInputs {
   }
   resolve(value: string): { value: string; sensitive: boolean } {
     const match = /^\$\{secret:([A-Z][A-Z0-9_]*)\}$/.exec(value);
+
     if (!match) {
       if (value.includes('${secret:'))
         throw new Error('Secret reference must be the entire fill value');
 
       return { value, sensitive: false };
     }
+
     const secret = this.values.get(match[1]);
+
     if (!secret) throw new Error('Unregistered secret reference');
 
     return { value: secret, sensitive: true };

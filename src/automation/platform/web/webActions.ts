@@ -12,6 +12,7 @@ export async function executeWebAction(
     await page.goto(step.value, { waitUntil: 'domcontentloaded' });
   } else if (step.type === 'click') {
     const target = locateWebElement(page, step.target);
+
     if (useTouch) await target.tap();
     else await target.click();
   } else if (step.type === 'fill') {

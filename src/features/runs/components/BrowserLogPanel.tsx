@@ -1,4 +1,5 @@
 'use client';
+
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -38,6 +39,7 @@ export function BrowserLogPanel({
     return () => clearTimeout(timer);
   }, [query]);
   const params = new URLSearchParams({ kind, q: search, errors: String(errors) });
+
   if (scope === 'step' && stepId) params.set('stepId', stepId);
   if (scope === 'time' && elapsedMs !== undefined) params.set('untilMs', String(elapsedMs));
   if (cursors.length) params.set('cursor', cursors.at(-1)!);

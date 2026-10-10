@@ -8,12 +8,14 @@ it('returns an unchanged representation without a body and invalidates it when c
 
   expect(await initial.json()).toEqual(data);
   const etag = initial.headers.get('etag')!;
+
   for (const value of [etag, `W/${etag}`, `"other", ${etag}`]) {
     const same = jsonResponse(new Request(request, { headers: { 'If-None-Match': value } }), data);
 
     expect(same.status).toBe(304);
     expect(same.body).toBeNull();
   }
+
   for (const patch of [
     { status: 'passed' },
     { steps: [{ status: 'passed' }] },

@@ -12,8 +12,10 @@ export function ownerProcessStopped(owner: string | null, hostId: string): boole
   if (!owner?.startsWith(`${hostId}:`)) return false;
   const remainder = owner.slice(hostId.length + 1);
   const match = /^(\d+):[0-9a-f-]{36}$/.exec(remainder);
+
   if (!match) return false;
   const pid = Number(match[1]);
+
   if (!Number.isSafeInteger(pid) || pid <= 1) return false;
   try {
     process.kill(pid, 0);
@@ -34,12 +36,14 @@ export async function recoverLocalResource(id: string, hostId: string) {
     )
       return false;
     const run = await getRun(resource.runId);
+
     if (resource.platform === 'web') {
       // Web slots have isolated process-local browser contexts. A dead worker
       // cannot issue commands; prove a fresh browser can start and stop.
       const browser = await launchWebBrowser(
         run.targetSnapshot?.platform === 'web' ? run.targetSnapshot : legacyWebTarget(run.url),
       );
+
       try {
         const page = await browser.newPage();
 
@@ -51,6 +55,7 @@ export async function recoverLocalResource(id: string, hostId: string) {
 
       return true;
     }
+
     if (!resource.deviceId) return false;
     const selection =
       resource.platform === 'ios' ? { udid: resource.deviceId } : { serial: resource.deviceId };
@@ -61,8 +66,10 @@ export async function recoverLocalResource(id: string, hostId: string) {
       ...selection,
       signal: AbortSignal.timeout(15000),
     });
+
     if (before.device.claimedBy && before.device.claimedBy.session !== oldSession) return false;
     const sessions = await oldClient.sessions.list({ signal: AbortSignal.timeout(15000) });
+
     if (sessions.some((session) => session.name === oldSession || session.address === oldSession))
       await oldClient.sessions.close({ signal: AbortSignal.timeout(30000) });
     const client = createAgentDeviceClient({
@@ -70,6 +77,7 @@ export async function recoverLocalResource(id: string, hostId: string) {
       responseLevel: 'full',
     });
     const directory = await mkdtemp(join(tmpdir(), 'caseforge-recovery-'));
+
     try {
       await client.apps.open({
         platform: resource.platform,
@@ -81,11 +89,13 @@ export async function recoverLocalResource(id: string, hostId: string) {
         signal: AbortSignal.timeout(90000),
         timeoutMs: 90000,
       });
+
       if (!observation.nodes.length) return false;
       const path = join(directory, 'health.png');
 
       await client.capture.screenshot({ path, signal: AbortSignal.timeout(15000) });
       const bytes = await readFile(path);
+
       if (!bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])))
         return false;
     } finally {
@@ -95,6 +105,7 @@ export async function recoverLocalResource(id: string, hostId: string) {
         await rm(directory, { recursive: true, force: true });
       }
     }
+
     const after = await client.devices.capabilities({
       platform: resource.platform,
       ...selection,

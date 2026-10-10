@@ -49,25 +49,31 @@ export class PlaywrightSession implements AutomationSession {
   }
   async selectSurface(id: string, signal: AbortSignal) {
     const deadline = Date.now() + 15000;
+
     while (!this.pages.has(id) && Date.now() < deadline) {
       signal.throwIfAborted();
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+
     signal.throwIfAborted();
     const page = this.pages.get(id);
+
     if (!page || page.isClosed()) throw new Error(`重放页面 ${id} 不存在`);
     this.session.activate(page);
   }
   async prepareReplayStep(step: ReplayStep, signal: AbortSignal) {
     signal.throwIfAborted();
     const action = step.event.action;
+
     if (action && action.platform !== this.platform) throw new Error('Expected Web action');
     const browserAction = action?.action;
+
     // A popup wait belongs to the preceding action's page, even if the popup is already open.
     if (!(browserAction?.type === 'wait' && browserAction.condition === 'newPage')) {
       if (!step.surfaceId) throw new Error('重放步骤缺少页面 ID');
       await this.selectSurface(step.surfaceId, signal);
     }
+
     if (
       browserAction &&
       browserAction.type !== 'navigate' &&
@@ -107,10 +113,13 @@ export class PlaywrightSession implements AutomationSession {
     signal.throwIfAborted();
     if (step.platform !== 'web') throw new Error('Expected Web action');
     let action = step.action;
+
     if (action.type === 'fill') {
       const input = this.secrets.resolve(action.value);
+
       if (input.sensitive) {
         const locator = locateWebElement(this.session.page, action.target);
+
         if (
           !(await locator.evaluate(
             (element) => element instanceof HTMLInputElement && element.type === 'password',
@@ -121,6 +130,7 @@ export class PlaywrightSession implements AutomationSession {
         action = { ...action, value: input.value };
       }
     }
+
     if (action.type === 'wait') await this.session.wait(action);
     else await this.session.perform((page) => executeWebAction(page, action, this.useTouch));
     signal.throwIfAborted();
@@ -143,6 +153,7 @@ export class PlaywrightSession implements AutomationSession {
         if (!assertion.target) throw new Error('Assertion target required');
         const base = playwrightExpect(locateWebElement(this.session.page, assertion.target));
         const check = assertion.negate ? base.not : base;
+
         if (assertion.type === 'visible') await check.toBeVisible({ timeout: 5000 });
         else if (assertion.type === 'text')
           await check.toHaveText(assertion.value!, { timeout: 5000 });
@@ -150,6 +161,7 @@ export class PlaywrightSession implements AutomationSession {
           await check.toContainText(assertion.value!, { timeout: 5000 });
         else await check.toHaveValue(assertion.value!, { timeout: 5000 });
       }
+
       signal.throwIfAborted();
 
       return { passed: true, evidence: `Playwright ${assertion.type} passed` };

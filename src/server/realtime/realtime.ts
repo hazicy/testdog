@@ -33,6 +33,7 @@ export async function flushOutbox() {
       `);
       shared.cleanedAt = Date.now();
     }
+
     const client = await readyRedis();
 
     await db.transaction(async (tx) => {
@@ -44,6 +45,7 @@ export async function flushOutbox() {
         .limit(200)
         .for('update', { skipLocked: true });
       const runs = new Set(rows.flatMap((row) => (row.runId ? [row.runId] : [])));
+
       for (const id of runs) await client.publish(redisKey(`run:${id}`), '{"kind":"changed"}');
       if (rows.some((row) => row.summary))
         await client.publish(redisKey('workspace'), JSON.stringify({ kind: 'changed' }));
@@ -111,6 +113,7 @@ export async function readRunUpdates(runId: string, revision: number): Promise<R
 
   return rows.map((row): RunUpdate => {
     const revision = row.revision!;
+
     if (row.kind === 'run') {
       const {
         steps: _steps,
@@ -125,6 +128,7 @@ export async function readRunUpdates(runId: string, revision: number): Promise<R
 
       return { kind: 'run', revision, data };
     }
+
     if (row.kind === 'step')
       return { kind: 'step', revision, data: stepRecord(row.data as typeof runSteps.$inferSelect) };
     if (row.kind === 'artifact')

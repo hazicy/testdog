@@ -7,10 +7,12 @@ export const previewInterval = () => {
 
   return Number.isFinite(configured) ? Math.max(1000, configured) : 3000;
 };
+
 const watchersKey = (runId: string) => redisKey(`watchers:${runId}`);
 
 export async function watchPreview(runId: string, viewer: string, watching: boolean) {
   const client = await readyRedis();
+
   if (watching) {
     await client
       .multi()

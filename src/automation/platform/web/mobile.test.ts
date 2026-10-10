@@ -18,6 +18,7 @@ describe('mobile browser environments', () => {
       }) as WebTarget;
       const profile = resolveWebProfile(target);
       const instance = await launchWebBrowser(target);
+
       try {
         const context = await instance.newContext(profile);
         const page = await context.newPage();
@@ -44,6 +45,7 @@ describe('mobile browser environments', () => {
       }
     }, 30000);
   }
+
   it('preserves legacy desktop and rejects mismatched profiles and native URLs', () => {
     expect(resolveWebProfile(legacyWebTarget('https://example.com')).viewport).toEqual({
       width: 1280,

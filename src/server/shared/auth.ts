@@ -10,6 +10,7 @@ function equal(actual: string, expected: string) {
 export function workspaceAuthorized(request: Request): boolean {
   const username = process.env.CASEFORGE_AUTH_USER;
   const password = process.env.CASEFORGE_AUTH_PASSWORD;
+
   if (!username && !password) {
     const required =
       process.env.CASEFORGE_REQUIRE_AUTH === 'true' ||
@@ -18,11 +19,14 @@ export function workspaceAuthorized(request: Request): boolean {
 
     return !required;
   }
+
   if (!username || !password) return false;
   const header = request.headers.get('authorization');
+
   if (!header?.startsWith('Basic ')) return false;
   const credentials = Buffer.from(header.slice(6), 'base64').toString('utf8');
   const separator = credentials.indexOf(':');
+
   if (separator < 0) return false;
 
   return (

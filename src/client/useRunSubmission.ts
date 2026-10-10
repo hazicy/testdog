@@ -1,4 +1,5 @@
 'use client';
+
 import { useRef } from 'react';
 import { isHTTPError } from 'ky';
 import { api } from './api';

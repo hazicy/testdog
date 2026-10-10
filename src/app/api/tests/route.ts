@@ -13,6 +13,7 @@ export const GET = withApiError(async (request: Request) =>
 
 export const POST = withApiError(async (request: Request) => {
   const parsed = testSchema.safeParse(await request.json().catch(() => null));
+
   if (!parsed.success) return NextResponse.json({ message: testInputMessage }, { status: 400 });
 
   return NextResponse.json({ test: await saveTest(parsed.data) }, { status: 201 });

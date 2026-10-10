@@ -31,6 +31,7 @@ export function redisClient(subscriber = false) {
   if (!process.env.REDIS_URL) throw new Error('Redis is not configured');
   const field = subscriber ? 'caseforgeRedisSubscriber' : 'caseforgeRedis';
   const client = (state[field] ??= makeClient());
+
   if (!client.isOpen) void client.connect().catch(() => {});
 
   return client;
@@ -38,6 +39,7 @@ export function redisClient(subscriber = false) {
 
 export async function readyRedis(subscriber = false) {
   const client = redisClient(subscriber);
+
   if (!client.isReady) throw new Error('Realtime service is unavailable');
 
   return client.withCommandOptions({ timeout: 1500 });

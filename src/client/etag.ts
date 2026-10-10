@@ -11,6 +11,7 @@ export function createJsonReader<T>(url: string) {
       throwHttpErrors: (status) => status !== 304,
     });
     const response = await request;
+
     if (response.status === 304 && value !== undefined) return value;
     const data = await request.json<T>();
 

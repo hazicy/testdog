@@ -74,6 +74,7 @@ it.skipIf(!enabled)(
     expect(result.status, result.error).toBe('passed');
     expect(result.steps.length).toBe(recorded.steps.length);
     const preview = process.env.CASEFORGE_PREVIEW_DIR;
+
     if (preview) {
       await mkdir(preview, { recursive: true });
       await writeFile(

@@ -20,6 +20,7 @@ export class PlanRunner {
   private async observe() {
     const { session, signal } = this.options;
     const observation = ObservationSchema.parse(await session.observe(signal));
+
     if (
       observation.sessionId !== session.id ||
       observation.surface.platform !== session.platform ||
@@ -35,6 +36,7 @@ export class PlanRunner {
   }
   async replay(steps: ReplayStep[]) {
     const { session, signal } = this.options;
+
     for (const step of steps) {
       const { event } = step;
 
@@ -46,6 +48,7 @@ export class PlanRunner {
         await this.action(event.action);
       } else if (event.platformAssertion) {
         const assertion = PlatformAssertionSchema.parse(event.platformAssertion);
+
         if (
           assertion.platform !== session.platform ||
           !session.capabilities.assertions.includes(assertion.type)
@@ -53,6 +56,7 @@ export class PlanRunner {
           throw new Error('Unsupported platform assertion');
         await this.traced(event, async () => {
           const result = await session.check(assertion, signal);
+
           if (!result.passed) throw new Error(result.evidence);
 
           return result;
@@ -63,6 +67,7 @@ export class PlanRunner {
             event.assertion ? { assertion: event.assertion } : { condition: event.condition },
             event.assertion ? 'assertion_result' : 'branch_result',
           );
+
           if (event.assertion ? !result.passed : result.passed !== event.decision)
             throw new Error(result.evidence);
 
@@ -76,6 +81,7 @@ export class PlanRunner {
     if (completed.has(id)) return;
     if (visiting.has(id)) throw new Error(`Cycle detected at node ${id}`);
     const node = this.options.plan.nodes[id];
+
     if (!node) throw new Error(`Unknown plan node: ${id}`);
     visiting.add(id);
     try {
@@ -89,6 +95,7 @@ export class PlanRunner {
           () => this.evaluate({ condition: node.condition }, 'branch_result'),
         );
         const next = result.passed ? node.then : node.otherwise;
+
         if (next) await this.visit(next, completed, visiting);
       } else {
         await this.options.report?.(`执行任务：${node.goal}`);
@@ -98,6 +105,7 @@ export class PlanRunner {
             { kind: 'assertion', title: assertion.description, assertion },
             async () => {
               const result = await this.evaluate({ assertion }, 'assertion_result');
+
               if (!result.passed) throw new Error(result.evidence);
 
               return result;
@@ -105,6 +113,7 @@ export class PlanRunner {
           );
         }
       }
+
       completed.add(id);
     } finally {
       visiting.delete(id);
@@ -115,6 +124,7 @@ export class PlanRunner {
     const completedSteps: PlatformAction[] = [];
     let remainingWaitMs = 15000;
     let count = 0;
+
     while (true) {
       signal.throwIfAborted();
       const observation = await this.observe();
@@ -133,6 +143,7 @@ export class PlanRunner {
       if (!decision.steps.length) throw new Error('Planner returned no actions');
       for (const supplied of decision.steps) {
         const step = PlatformActionSchema.parse(supplied);
+
         if (step.action.type === 'wait') {
           if (remainingWaitMs <= 0) throw new Error(`Wait budget exceeded: ${node.goal}`);
           const budget = Math.min(step.action.timeoutMs, remainingWaitMs);
@@ -150,6 +161,7 @@ export class PlanRunner {
   private action(action: PlatformAction) {
     action = PlatformActionSchema.parse(action);
     const { session, signal } = this.options;
+
     if (
       action.platform !== session.platform ||
       !session.capabilities.actions.includes(action.action.type)
@@ -214,6 +226,7 @@ export class PlanRunner {
       } catch (captureError) {
         throw new AggregateError([error, captureError], '步骤失败且证据记录失败');
       }
+
       throw error;
     }
   }

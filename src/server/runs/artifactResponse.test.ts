@@ -35,6 +35,7 @@ describe('artifact delivery', () => {
         await symlink(join(root, 'missing.webm'), link);
         path = link;
       }
+
       if (scenario === 'not-directory') path = join(path, 'child.webm');
       const response = await artifactResponse(request(), artifact(), root);
 

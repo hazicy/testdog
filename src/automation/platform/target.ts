@@ -2,6 +2,7 @@ import { InputRefsSchema } from './inputs';
 import { z } from 'zod';
 
 const httpUrl = z.url().refine((value) => /^https?:\/\//.test(value), '须为 HTTP(S) 地址');
+
 export const WebTargetSchema = z
   .strictObject({
     schemaVersion: z.literal(1).default(1),
@@ -38,6 +39,7 @@ const nativeFields = {
   launchUrl: z.url().optional(),
   resetPolicy: z.enum(['preserve', 'clear-data', 'reinstall']).default('preserve'),
 };
+
 export const TestTargetSchema = z.discriminatedUnion('platform', [
   WebTargetSchema,
   z.strictObject({ platform: z.literal('android'), ...nativeFields }),

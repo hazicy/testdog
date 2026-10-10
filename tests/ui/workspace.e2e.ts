@@ -450,6 +450,7 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
 
   await page.route('**/api/tests**', async (route) => {
     const request = route.request();
+
     if (request.method() === 'GET') return route.fulfill({ json: { tests } });
     if (request.method() === 'DELETE') {
       if (rejectDelete) {
@@ -457,15 +458,18 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
 
         return route.fulfill({ status: 503, json: { message: '删除暂时失败' } });
       }
+
       tests = tests.filter((item) => !request.url().endsWith(item.id));
 
       return route.fulfill({ json: { success: true } });
     }
+
     if (rejectSave) {
       rejectSave = false;
 
       return route.fulfill({ status: 503, json: { message: '保存暂时失败' } });
     }
+
     const body = request.postDataJSON();
 
     writes.push({ method: request.method(), body });

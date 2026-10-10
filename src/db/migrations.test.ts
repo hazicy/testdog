@@ -21,6 +21,7 @@ it('backfills existing desktop recordings and terminates only unfinished legacy 
     value: 'https://example.com',
   };
   const code = 'await page1.goto("https://example.com");';
+
   try {
     for (const migration of migrations.filter((name) => name.slice(0, 14) < cutoff))
       await client.exec(await readFile(join(directory, migration, 'migration.sql'), 'utf8'));

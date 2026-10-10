@@ -56,6 +56,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
       nested.push(target);
       edges.push({ id: `then:${id}`, source: id, target: target.id, kind: 'branch', label: 'YES' });
     }
+
     if (tree.otherwise) {
       const target = visit(tree.otherwise, id, 'NO / 条件不成立');
 
@@ -68,10 +69,12 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
         label: 'NO',
       });
     }
+
     children.set(id, nested);
 
     return node;
   };
+
   const roots = planForest(plan).map((tree) => visit(tree));
 
   for (const node of nodes) {
@@ -85,6 +88,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
       });
       continue;
     }
+
     for (const dependency of plan.nodes[node.planNodeId].dependsOn) {
       edges.push({
         id: `dep:${JSON.stringify([dependency, node.planNodeId])}`,
@@ -94,6 +98,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
       });
     }
   }
+
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const arrange = async (siblings: LayoutNode[], parent?: LayoutNode) => {
     for (const node of siblings) {
@@ -101,6 +106,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
 
       if (nested.length) await arrange(nested, node);
     }
+
     const owner = (id: string): string | undefined => {
       let node = byId.get(id);
 
@@ -109,6 +115,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
 
       return node?.id;
     };
+
     const links = new Map<string, { id: string; sources: string[]; targets: string[] }>();
 
     for (const edge of edges) {
@@ -122,6 +129,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
         links.set(id, { id, sources: [source], targets: [target] });
       }
     }
+
     const graph = await elk.layout<ElkNode>({
       id: parent?.id ?? 'layout-root',
       layoutOptions: {
@@ -143,6 +151,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
     for (const item of graph.children ?? []) {
       byId.get(item.id)!.position = { x: item.x ?? 0, y: item.y ?? 0 };
     }
+
     if (parent) {
       parent.width = Math.max(CARD_WIDTH, graph.width ?? CARD_WIDTH);
       parent.height = graph.height ?? HEADER_HEIGHT;

@@ -1,4 +1,5 @@
 'use client';
+
 import { Tabs } from '@/components/ui/Tabs';
 
 const examples = [

@@ -1,4 +1,5 @@
 'use client';
+
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 
@@ -81,6 +82,7 @@ export function RunDetail({ id }: { id: string }) {
     if (!playing || mode !== 'frames' || view !== 'execution') return;
     const current = frames[currentIndex];
     const next = frames[currentIndex + 1];
+
     if (!next || !current) return;
     const timer = setTimeout(
       () => setFrameIndex(currentIndex + 1),

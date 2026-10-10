@@ -11,8 +11,10 @@ const isolated = vi.hoisted(() => ({
 
 vi.mock('@/db', async (original) => {
   const connectionString = process.env.CASEFORGE_TEST_DATABASE_URL;
+
   if (!connectionString) return original<typeof import('@/db')>();
   const url = new URL(connectionString);
+
   if (
     !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) ||
     !url.pathname.startsWith('/caseforge_test_')
@@ -42,6 +44,7 @@ beforeAll(async () => {
   if (!live) return;
   await isolated.pool!.query(`CREATE SCHEMA ${isolated.schema}`);
   const directory = join(process.cwd(), 'drizzle');
+
   for (const migration of (await readdir(directory))
     .filter((entry) => /^\d{14}_/.test(entry))
     .sort())
@@ -82,13 +85,16 @@ it.skipIf(!live)(
       Array.from({ length: 8 }, (_, index) => claimRun(`worker-${index}`, 'host')),
     );
     const claimed = contenders.filter((claim) => claim !== undefined);
+
     // The transaction holding all available resource rows may make simultaneous
     // claimers skip them. Once it commits, another connection can claim the other slot.
     while (claimed.length < 2) {
       const next = await claimRun(`worker-next-${claimed.length}`, 'host');
+
       if (!next) break;
       claimed.push(next);
     }
+
     expect(claimed).toHaveLength(2);
     expect(new Set(claimed.map((claim) => claim.run.id)).size).toBe(2);
     expect(new Set(claimed.map((claim) => claim.resource.deviceId)).size).toBe(2);

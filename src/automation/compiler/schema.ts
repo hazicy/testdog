@@ -24,6 +24,7 @@ export type WaitStep = z.infer<typeof WaitStepSchema>;
 
 const id = z.string().trim().min(1);
 const ids = z.array(id);
+
 export const NodeSchema = z.discriminatedUnion('kind', [
   z
     .object({ kind: z.literal('group'), id, goal: id, children: ids.min(1), dependsOn: ids })
@@ -54,12 +55,15 @@ export const PlanSchema = z
   .strict()
   .superRefine((plan, ctx) => {
     const error = (message: string) => ctx.addIssue({ code: 'custom', message });
+
     if (!Object.hasOwn(plan.nodes, plan.rootId)) error(`Missing root node: ${plan.rootId}`);
     for (const [key, node] of Object.entries(plan.nodes)) {
       if (key !== node.id) error(`Node key ${key} does not match id ${node.id}`);
       const refs = nodeReferences(node);
+
       for (const ref of refs) if (!Object.hasOwn(plan.nodes, ref)) error(`Missing node: ${ref}`);
     }
+
     const active = new Set<string>();
     const visited = new Set<string>();
     const visit = (key: string) => {
@@ -68,6 +72,7 @@ export const PlanSchema = z
 
         return;
       }
+
       if (visited.has(key) || !Object.hasOwn(plan.nodes, key)) return;
       active.add(key);
       const node = plan.nodes[key];

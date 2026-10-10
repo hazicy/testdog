@@ -70,6 +70,7 @@ export class RunRecorder {
       await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
     this.timer = setInterval(() => {
       const page = this.activePage();
+
       if (page && !this.livePending && !this.persistence.busy && !this.activeSteps.size) {
         this.livePending = true;
         void hasPreviewViewers(this.run.id)
@@ -119,6 +120,7 @@ export class RunRecorder {
       await this.capture(page, 'before', event.id);
     } else {
       const step = this.steps.get(event.id);
+
       if (!step) return;
       const finishedAt = new Date().toISOString();
 
@@ -148,6 +150,7 @@ export class RunRecorder {
       const id = randomUUID();
       const capturedAt = new Date().toISOString();
       let bytes: Buffer;
+
       try {
         bytes = await page.screenshot({
           type: 'jpeg',
@@ -165,12 +168,14 @@ export class RunRecorder {
           return;
         throw error;
       }
+
       this.lastCapturedAt = Date.now();
       if (stage === 'live') {
         await publishPreview(this.run.id, bytes, 'image/jpeg');
 
         return;
       }
+
       const path = join(this.directory, `${id}.jpg`);
 
       await writeFile(path, bytes, { mode: 0o600 });
@@ -221,10 +226,12 @@ export class RunRecorder {
     await this.queue;
     if (this.captureError) errors.push(this.captureError);
     const page = this.activePage();
+
     if (!interrupted && page) await attempt(() => this.capture(page, 'final'));
     await attempt(() => this.persistence.drain());
     await attempt(() => logsStopped);
     const trace = join(this.directory, 'trace.zip');
+
     if (!interrupted && !this.secrets.enabled) {
       await attempt(async () => {
         await context.tracing.stop({ path: trace });
@@ -237,6 +244,7 @@ export class RunRecorder {
         );
       });
     }
+
     const videos = [...this.pages].map(([page, id]) => ({
       video: page.video(),
       id,

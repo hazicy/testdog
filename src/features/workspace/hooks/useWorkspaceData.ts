@@ -1,4 +1,5 @@
 'use client';
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import type { TestCase } from '@/features/test-cases/types';
@@ -63,6 +64,7 @@ export function useWorkspaceData(isTests: boolean) {
     mutate: mutateStats,
   } = useSWR<WorkspaceStats>('/api/workspace/stats', fetchJson, options);
   const params = new URLSearchParams();
+
   if (search) params.set('q', search);
   if (filter !== 'all') params.set('status', filter);
   if (cursors.length) params.set('cursor', cursors.at(-1)!);

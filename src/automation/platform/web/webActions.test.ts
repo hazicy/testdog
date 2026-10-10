@@ -67,6 +67,7 @@ it('preserves exact role matching, explicit index selection and unsafe selector 
 it('allows the platform session to perform and check actions using the extracted helpers', async () => {
   const session = new PlaywrightSession('web-actions', page);
   const signal = new AbortController().signal;
+
   try {
     await session.perform(
       {

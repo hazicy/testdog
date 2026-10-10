@@ -36,6 +36,7 @@ export async function executeRun(
   resource?: { deviceId: string | null; metadata: Record<string, unknown> },
 ): Promise<void> {
   const lease = leaseScope.getStore();
+
   if (!lease) {
     const hostId = process.env.CASEFORGE_HOST_ID || hostname();
 
@@ -43,10 +44,12 @@ export async function executeRun(
       { id: `${hostId}:web:inline`, hostId, platform: 'web', profileId: 'mobile' },
     ]);
     const claim = await claimRun(owner, hostId, run.id);
+
     if (!claim) throw new Error('没有匹配的可用执行资源；请启动平台 worker');
 
     return withLease(claim.lease, () => executeRun(claim.run, claim.resource));
   }
+
   const controller = new AbortController();
 
   jobs.set(run.id, controller);
@@ -57,6 +60,7 @@ export async function executeRun(
     pulseBusy = true;
     try {
       const active = await heartbeat(run.id);
+
       if (!active || active.cancelRequested)
         controller.abort(new Error(active?.cancelRequested ? '用户停止了测试' : '执行租约失效'));
     } catch (error) {
@@ -65,11 +69,13 @@ export async function executeRun(
       pulseBusy = false;
     }
   };
+
   const heartbeatTimer = setInterval(() => void pulse(), 5000);
   let deadline = setTimeout(() => controller.abort(new Error('测试准备超过 2 分钟上限')), 120000);
   let status: TestRun['status'] = 'passed';
   let error: string | undefined;
   let evidenceComplete = true;
+
   try {
     const model = budgetedModel(modelClient, modelBudgetFromEnv(), (metric) =>
       recordModelCall(run.id, metric),
@@ -128,6 +134,7 @@ export async function executeRun(
       signal: controller.signal,
       report,
     });
+
     if (source) {
       const steps = run.recordingSteps || source.steps;
 
@@ -146,6 +153,7 @@ export async function executeRun(
   } finally {
     clearTimeout(deadline);
     const current = await getRun(run.id).catch(() => undefined);
+
     if (current?.cancelRequested) status = 'cancelled';
     await setRunPhase(run.id, 'finalizing').catch(() => {});
     if (runtime) {
@@ -157,6 +165,7 @@ export async function executeRun(
         error = `${error ? `${error}\n` : ''}无法归档执行证据：${errorMessage(cause)}`;
       }
     }
+
     jobs.delete(run.id);
     try {
       await runWrite(run.id, async (tx) => {

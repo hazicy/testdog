@@ -24,9 +24,11 @@ export async function runWrite<T>(
       .from(testRuns)
       .where(eq(testRuns.id, runId))
       .for('update');
+
     if (!run) throw new LostLeaseError('Run no longer exists');
     if (!run.workerId) throw new LostLeaseError('Run has not been claimed by a worker');
     const lease = leaseScope.getStore();
+
     if (run.workerId) {
       if (
         !lease ||

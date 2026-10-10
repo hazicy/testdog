@@ -23,6 +23,7 @@ export async function saveTest(
   id?: string,
 ) {
   const parsed = testSchema.safeParse(input);
+
   if (!parsed.success) throw new WorkspaceError('请填写有效的名称、测试目标和测试步骤。');
   input = {
     ...parsed.data,
@@ -41,6 +42,7 @@ export async function saveTest(
         .where(eq(testCases.id, id))
         .returning()
     : await db.insert(testCases).values(input).returning();
+
   if (!test) throw new WorkspaceError('用例不存在。', 404);
 
   return test;
@@ -51,5 +53,6 @@ export async function deleteTest(id: string) {
     .delete(testCases)
     .where(eq(testCases.id, id))
     .returning({ id: testCases.id });
+
   if (!rows.length) throw new WorkspaceError('用例不存在。', 404);
 }

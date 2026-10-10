@@ -124,6 +124,7 @@ for (const width of [1440, 390]) {
     });
   }
 }
+
 await page.goto('http://localhost:3001/');
 await page.getByRole('tab', { name: '登录验证' }).focus();
 await page.keyboard.press('ArrowRight');
@@ -163,6 +164,7 @@ for (const width of [390, 1440]) {
     'recording overflow',
   );
 }
+
 assert.deepEqual(errors, []);
 await browser.close();
 console.log(

@@ -38,12 +38,15 @@ export function modelBudgetFromEnv(): ModelBudget {
     maxRetries: 'MAX_RETRIES',
     maxOutputTokens: 'MAX_OUTPUT_TOKENS',
   };
+
   for (const key of Object.keys(defaults) as (keyof ModelBudget)[]) {
     const value = process.env[`CASEFORGE_AI_${names[key]}`];
+
     if (value !== undefined) defaults[key] = Number(value);
     if (!Number.isSafeInteger(defaults[key]) || defaults[key] < (key === 'maxRetries' ? 0 : 1))
       throw new Error(`CASEFORGE_AI_${names[key]} 配置无效`);
   }
+
   if (defaults.maxRetries > 3) throw new Error('AI 重试最多 3 次');
 
   return defaults;
@@ -85,6 +88,7 @@ export function budgetedModel(
         let failedAttempts = 0;
         let result: LLMGenerateResult | undefined;
         let failure: unknown;
+
         try {
           for (;;) {
             signal.throwIfAborted();
@@ -123,6 +127,7 @@ export function budgetedModel(
                 status === 429 ||
                 (status != null && status >= 500) ||
                 (error instanceof Error && error.name === 'APIConnectionError');
+
               if (
                 signal.aborted ||
                 !retryable ||
@@ -162,6 +167,7 @@ export function budgetedModel(
           });
         }
       };
+
       const next = previous.then(execute, execute);
 
       previous = next.catch(() => {});

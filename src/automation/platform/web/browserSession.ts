@@ -70,25 +70,32 @@ export class BrowserSession {
 
   async observe(observer: Observer) {
     const deadline = Date.now() + 5000;
+
     do {
       const page = this.page;
       const revision = this.revision;
+
       try {
         const observation = await observer.observe(page);
+
         if (page === this.page && revision === this.revision) return observation;
       } catch (error) {
         if (page === this.active && !navigationRace(error)) throw error;
       }
+
       await pause(50);
     } while (Date.now() < deadline);
+
     throw new Error(`Page kept changing during observation: ${this.page.url()}`);
   }
 
   async wait(step: WaitStep) {
     if (step.condition === 'observe') return pause(step.timeoutMs);
     const deadline = Date.now() + step.timeoutMs;
+
     do {
       const page = this.page;
+
       try {
         const ready =
           step.condition === 'newPage'
@@ -96,10 +103,12 @@ export class BrowserSession {
             : step.condition === 'url'
               ? page.url().includes(step.value)
               : await page.getByText(step.value).filter({ visible: true }).first().isVisible();
+
         if (ready && page === this.page) return;
       } catch (error) {
         if (page === this.active && !navigationRace(error)) throw error;
       }
+
       await pause(Math.min(100, Math.max(0, deadline - Date.now())));
     } while (Date.now() < deadline);
     // A wait expiring is inconclusive; the next observation determines what happened.

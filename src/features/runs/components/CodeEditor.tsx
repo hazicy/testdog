@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useMemo, useRef } from 'react';
 import { Compartment, EditorState } from '@codemirror/state';
 import {
@@ -95,6 +96,7 @@ export function CodeEditor({
   }, [editing, readOnly]);
   useEffect(() => {
     const view = editor.current;
+
     if (view && value !== view.state.doc.toString())
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
   }, [value]);
