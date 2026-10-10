@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TestCase, TestRun, RunSummary } from '@/workspace/types';
 import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
 import { requestJson as api } from '@/client/api';
@@ -11,7 +11,15 @@ import { downloadRunReport } from '@/client/download';
 import { TestEditor } from './TestEditor';
 import { DeleteTestDialog } from './DeleteTestDialog';
 
-const statusLabels = { running: '执行中', passed: '已通过', failed: '失败', cancelled: '已停止' };
+const statusLabels = {
+  queued: '排队中',
+  preparing: '准备中',
+  finalizing: '归档中',
+  running: '执行中',
+  passed: '已通过',
+  failed: '失败',
+  cancelled: '已停止',
+};
 function Status({ status }: { status?: RunSummary['status'] }) {
   return (
     <span className={`ws-status ${status || 'none'}`}>
@@ -54,9 +62,21 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const [exporting, setExporting] = useState(false);
   const [editing, setEditing] = useState<{ test?: TestCase; duplicate?: boolean }>();
   const [deleting, setDeleting] = useState<TestCase | null>(null);
+  const [matrixTest, setMatrixTest] = useState<TestCase | null>(null);
+  const [matrixCode, setMatrixCode] = useState('');
+  const [matrixError, setMatrixError] = useState('');
+  const matrixDialog = useRef<HTMLDialogElement>(null);
   const selectedId = params.get('run');
   const { counts, latestRuns } = useMemo(() => {
-    const counts = { running: 0, passed: 0, failed: 0, cancelled: 0 };
+    const counts = {
+      queued: 0,
+      preparing: 0,
+      finalizing: 0,
+      running: 0,
+      passed: 0,
+      failed: 0,
+      cancelled: 0,
+    };
     const latestRuns = new Map<string, RunSummary>();
     for (const run of runs) {
       counts[run.status]++;
@@ -64,7 +84,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
     }
     return { counts, latestRuns };
   }, [runs]);
-  const running = counts.running > 0;
+  const running = counts.running + counts.queued + counts.preparing + counts.finalizing > 0;
   const isTests = view === 'tests';
 
   const load = useCallback(
@@ -107,6 +127,39 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       setStarting(false);
     }
   }
+  function openMatrix(test: TestCase) {
+    setMatrixTest(test);
+    setMatrixError('');
+    const target = test.target || {
+      schemaVersion: 1,
+      platform: 'web',
+      url: test.url,
+      browser: 'chromium',
+      deviceProfile: 'legacy-desktop',
+    };
+    setMatrixCode(JSON.stringify([{ target, goal: test.goal }], null, 2));
+    matrixDialog.current?.showModal();
+  }
+  async function startMatrix(event: React.FormEvent) {
+    event.preventDefault();
+    if (!matrixTest) return;
+    setStarting(true);
+    setMatrixError('');
+    try {
+      await api(
+        '/api/run-batches',
+        json({ testId: matrixTest.id, variants: JSON.parse(matrixCode) }),
+      );
+      matrixDialog.current?.close();
+      setMatrixTest(null);
+      router.push('/runs');
+      await refresh();
+    } catch (cause) {
+      setMatrixError(cause instanceof Error ? cause.message : '矩阵启动失败');
+    } finally {
+      setStarting(false);
+    }
+  }
   async function exportRun(run: RunSummary) {
     setExporting(true);
     setError('');
@@ -125,7 +178,9 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       isTests
         ? tests.filter(
             (test) =>
-              `${test.name} ${test.url} ${test.tags.join(' ')}`.toLowerCase().includes(keyword) &&
+              `${test.name} ${test.target && test.target.platform !== 'web' ? `${test.target.platform} · ${test.target.appId}` : test.url} ${test.tags.join(' ')}`
+                .toLowerCase()
+                .includes(keyword) &&
               (filter === 'all' || (latestRuns.get(test.id)?.status || 'none') === filter),
           )
         : [],
@@ -196,7 +251,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           },
           {
             label: '执行中',
-            value: counts.running,
+            value: counts.running + counts.queued + counts.preparing + counts.finalizing,
             note: running ? '结果自动更新' : '等待下一次测试',
           },
         ].map((stat) => (
@@ -244,6 +299,9 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
               <option value="all">全部状态</option>
               <option value="passed">已通过</option>
               <option value="failed">失败</option>
+              <option value="queued">排队中</option>
+              <option value="preparing">准备中</option>
+              <option value="finalizing">归档中</option>
               <option value="running">执行中</option>
               <option value="cancelled">已停止</option>
               {isTests && <option value="none">未运行</option>}
@@ -328,7 +386,9 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                                 {test.name}
                               </button>
                               <p className="mt-1 max-w-96 truncate text-xs text-[#73766b]">
-                                {test.url}
+                                {test.target && test.target.platform !== 'web'
+                                  ? `${test.target.platform} · ${test.target.appId}`
+                                  : test.url}
                               </p>
                               {test.tags.length > 0 && (
                                 <div className="mt-2 flex gap-1">
@@ -364,10 +424,17 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                                 <button
                                   className="ws-button mr-2"
                                   title={running ? '请等待当前测试完成后再运行' : '运行测试'}
-                                  disabled={running || starting}
+                                  disabled={starting}
                                   onClick={() => void start(test.id)}
                                 >
                                   <Icon name="results" width="14" /> 运行
+                                </button>
+                                <button
+                                  className="ws-button"
+                                  disabled={starting}
+                                  onClick={() => openMatrix(test)}
+                                >
+                                  矩阵运行
                                 </button>
                                 <button
                                   className="ws-icon-button"
@@ -451,6 +518,93 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           </span>
         </div>
       </section>
+      <dialog
+        ref={matrixDialog}
+        className="ws-dialog"
+        aria-labelledby="matrix-title"
+        onCancel={(event) => {
+          if (starting) event.preventDefault();
+        }}
+        onClose={() => setMatrixTest(null)}
+      >
+        <form onSubmit={(event) => void startMatrix(event)}>
+          <div className="ws-dialog-header">
+            <h2 id="matrix-title" className="text-lg font-semibold">
+              平台矩阵 · {matrixTest?.name}
+            </h2>
+          </div>
+          <div className="space-y-4 p-6">
+            <p className="text-sm text-page-muted">
+              填写 1–10 个运行配置。每项包含 target，可用 goal
+              覆盖该平台的步骤与预期。所有运行一起创建，各自排队。
+            </p>
+            <label className="ws-label">
+              运行配置（JSON）
+              <textarea
+                className="ws-input min-h-72 font-mono text-xs"
+                required
+                aria-label="运行配置（JSON）"
+                value={matrixCode}
+                disabled={starting}
+                onChange={(event) => setMatrixCode(event.target.value)}
+              />
+            </label>
+            <details className="text-xs text-page-muted">
+              <summary>平台配置示例</summary>
+              <pre className="mt-2 overflow-auto">
+                {JSON.stringify(
+                  [
+                    {
+                      target: {
+                        platform: 'web',
+                        url: 'https://example.com',
+                        browser: 'chromium',
+                        deviceProfile: 'Pixel 7',
+                      },
+                    },
+                    {
+                      target: {
+                        platform: 'android',
+                        appId: 'com.example.app',
+                        deviceProfileId: 'android-phone',
+                        resetPolicy: 'preserve',
+                      },
+                    },
+                    {
+                      target: {
+                        platform: 'ios',
+                        appId: 'com.example.app',
+                        deviceProfileId: 'iphone-simulator',
+                        resetPolicy: 'preserve',
+                      },
+                    },
+                  ],
+                  null,
+                  2,
+                )}
+              </pre>
+            </details>
+            {matrixError && (
+              <p role="alert" className="text-sm text-red-700">
+                {matrixError}
+              </p>
+            )}
+          </div>
+          <div className="ws-dialog-footer">
+            <button
+              type="button"
+              className="ws-button"
+              disabled={starting}
+              onClick={() => matrixDialog.current?.close()}
+            >
+              取消
+            </button>
+            <button type="submit" className="ws-button primary" disabled={starting}>
+              {starting ? '创建中…' : '运行矩阵'}
+            </button>
+          </div>
+        </form>
+      </dialog>
       {editing && (
         <TestEditor
           {...editing}

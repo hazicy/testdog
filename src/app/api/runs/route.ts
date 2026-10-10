@@ -1,6 +1,5 @@
-import { after, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createRun, listRuns } from '@/workspace/server/store';
-import { executeRun } from '@/workspace/server/run';
 import { apiError } from '@/workspace/server/http';
 import { runRequestSchema } from '@/workspace/validation';
 export const runtime = 'nodejs';
@@ -21,7 +20,6 @@ export async function POST(request: Request) {
     );
   try {
     const run = await createRun(parsed.data);
-    after(() => executeRun(run));
     return NextResponse.json({ success: true, run }, { status: 202 });
   } catch (error) {
     return apiError(error);

@@ -35,10 +35,11 @@ describe('execution API with PostgreSQL persistence', () => {
     expect(response.status).toBe(202);
     const { run } = await response.json();
     expect((await getRun(run.id)).goal).toBe('Check login');
-    await mocks.after.mock.calls[0][0]();
-    expect(mocks.execute).toHaveBeenCalledWith(expect.objectContaining({ id: run.id }));
-    expect((await POST(request({ testId: test.id }))).status).toBe(409);
-    expect((await (await GET()).json()).runs[0].id).toBe(run.id);
+    expect((await getRun(run.id)).status).toBe('queued');
+    expect(mocks.after).not.toHaveBeenCalled();
+    expect(mocks.execute).not.toHaveBeenCalled();
+    expect((await POST(request({ testId: test.id }))).status).toBe(202);
+    expect((await (await GET()).json()).runs).toHaveLength(2);
   });
   it('rejects invalid targets, malformed requests and missing cases without scheduling jobs', async () => {
     expect((await POST(request({ case: 'Check', url: 'file:///etc/passwd' }))).status).toBe(400);

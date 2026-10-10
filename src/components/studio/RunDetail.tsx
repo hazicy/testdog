@@ -1,5 +1,7 @@
 'use client';
 
+import { BrowserLogPanel } from '../BrowserLogPanel';
+import { isActiveRun } from '@/workspace/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -13,7 +15,15 @@ import { downloadRunReport } from '@/client/download';
 import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
 import { StepList } from './StepList';
 import { indexRun } from '@/workspace/runIndex';
-const statuses = { running: '执行中', passed: '已通过', failed: '失败', cancelled: '已停止' };
+const statuses = {
+  queued: '排队中',
+  preparing: '准备中',
+  finalizing: '归档中',
+  running: '执行中',
+  passed: '已通过',
+  failed: '失败',
+  cancelled: '已停止',
+};
 const emptySteps: ExecutionStep[] = [];
 const time = (ms: number) =>
   `${Math.floor(ms / 60000)
@@ -59,7 +69,7 @@ export function RunDetail({ id }: { id: string }) {
   const videoElement = useRef<HTMLVideoElement>(null);
   const [view, setView] = useState<'execution' | 'plan' | 'recording'>('execution');
   const [editorOpened, setEditorOpened] = useState(false);
-  const [tab, setTab] = useState<'step' | 'case' | 'logs'>('step');
+  const [tab, setTab] = useState<'step' | 'case' | 'logs' | 'console' | 'network'>('step');
   const read = useMemo(() => createJsonReader<{ run: TestRun }>(`/api/runs/${id}`), [id]);
   const load = useCallback(
     async (signal: AbortSignal) => {
@@ -80,8 +90,12 @@ export function RunDetail({ id }: { id: string }) {
     },
     [read],
   );
-  const refresh = usePolling(load, unavailable || (run && run.status !== 'running') ? null : 1500);
+  const refresh = usePolling(load, unavailable || (run && !isActiveRun(run.status)) ? null : 1500);
   const { frames, videos, trace, stepFrames, steps } = useMemo(() => indexRun(run), [run]);
+  const diagnostics =
+    run?.artifacts.filter((artifact) =>
+      ['snapshot', 'log', 'device-trace'].includes(artifact.kind),
+    ) || [];
   const currentIndex = follow
     ? Math.max(0, frames.length - 1)
     : Math.min(frameIndex, frames.length - 1);
@@ -199,7 +213,7 @@ export function RunDetail({ id }: { id: string }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {run?.status === 'running' ? (
+          {run && isActiveRun(run.status) ? (
             <button
               disabled={busy || run.cancelRequested}
               onClick={() => void cancel()}
@@ -245,6 +259,11 @@ export function RunDetail({ id }: { id: string }) {
           </button>
         </div>
       </div>
+      {run?.evidenceComplete === false && (
+        <p role="alert" className="mt-5 border border-red-200 p-4 text-sm text-red-700">
+          本次执行的证据归档不完整，请查看执行错误。
+        </p>
+      )}
       {error && (
         <div
           role="alert"
@@ -281,12 +300,12 @@ export function RunDetail({ id }: { id: string }) {
       {view === 'plan' && (
         <PlanBoard plan={run?.plan} steps={run?.steps || []} onStep={selectStep} />
       )}
-      {editorOpened && run && run.status !== 'running' && (
+      {editorOpened && run && !isActiveRun(run.status) && (
         <div hidden={view !== 'recording'}>
           <RecordingEditor key={run.id} run={run} />
         </div>
       )}
-      {view === 'recording' && run?.status === 'running' && (
+      {view === 'recording' && run && isActiveRun(run.status) && (
         <p className="p-6 text-sm text-page-muted">录制结束后可以编辑操作和预期。</p>
       )}
       <div hidden={view !== 'execution'}>
@@ -307,14 +326,14 @@ export function RunDetail({ id }: { id: string }) {
                   target="_blank"
                   rel="noreferrer"
                   className="ws-icon-button shrink-0"
-                  aria-label="放大浏览器画面"
-                  title="放大浏览器画面"
+                  aria-label="放大执行画面"
+                  title="放大执行画面"
                 >
                   <Icon name="maximize" width="14" />
                 </a>
               )}
               <span className="font-mono text-[9px] tracking-wider text-page-muted">
-                {run?.status === 'running' && follow ? '实时画面' : '录制画面'}
+                {run && isActiveRun(run.status) && follow ? '● LIVE' : 'RECORDING'}
               </span>
             </div>
             <div className="relative grid aspect-video place-items-center overflow-hidden bg-[#f0f1ec]">
@@ -330,7 +349,7 @@ export function RunDetail({ id }: { id: string }) {
               ) : currentFrame ? (
                 <Image
                   src={asset(id, currentFrame)}
-                  alt={`浏览器画面：${currentFrame.pageUrl}`}
+                  alt={`执行画面：${currentFrame.pageUrl || currentFrame.surface?.id || ''}`}
                   width={1280}
                   height={800}
                   unoptimized
@@ -340,8 +359,10 @@ export function RunDetail({ id }: { id: string }) {
                 <div className="p-8 text-center">
                   <Icon name="globe" width="36" height="36" className="mx-auto text-[#959c86]" />
                   <p className="mt-5 text-sm text-[#69715b]">
-                    {run?.status === 'running'
-                      ? '浏览器正在准备，画面即将出现。'
+                    {run && isActiveRun(run.status)
+                      ? run.status === 'queued'
+                        ? '执行已排队，等待可用资源。'
+                        : '执行环境正在准备，画面即将出现。'
                       : '本次执行尚未生成画面。'}
                   </p>
                 </div>
@@ -357,6 +378,11 @@ export function RunDetail({ id }: { id: string }) {
                 </button>
                 <button
                   disabled={!videos.length}
+                  title={
+                    !run?.capabilities?.artifacts.includes('video')
+                      ? '此会话不采集录像'
+                      : '归档完成后可回看录像'
+                  }
                   className={`ws-button ${mode === 'video' ? 'selected' : ''}`}
                   onClick={() => {
                     setPlaying(false);
@@ -379,7 +405,7 @@ export function RunDetail({ id }: { id: string }) {
                     ))}
                   </select>
                 )}
-                {run?.status === 'running' && (
+                {run && isActiveRun(run.status) && (
                   <button
                     className={`ws-button ml-auto ${follow ? 'selected' : ''}`}
                     onClick={() => {
@@ -462,6 +488,8 @@ export function RunDetail({ id }: { id: string }) {
               { id: 'step' as const, label: '步骤详情' },
               { id: 'case' as const, label: '用例快照' },
               { id: 'logs' as const, label: '执行日志' },
+              { id: 'console' as const, label: 'Console' },
+              { id: 'network' as const, label: 'Network' },
             ].map((item) => (
               <button
                 key={item.id}
@@ -479,6 +507,23 @@ export function RunDetail({ id }: { id: string }) {
                 >
                   下载录像 ↗
                 </a>
+              )}
+              {diagnostics.length > 0 && (
+                <details className="relative text-[10px] text-page-muted">
+                  <summary className="cursor-pointer">观察与诊断 ({diagnostics.length})</summary>
+                  <div className="absolute right-0 z-10 max-h-60 min-w-48 overflow-auto border border-page-line bg-white p-3">
+                    {diagnostics.map((artifact) => (
+                      <a
+                        key={artifact.id}
+                        className="block py-1 hover:text-brand"
+                        href={`${asset(id, artifact)}?download`}
+                      >
+                        {artifact.kind} · {artifact.stage} ·{' '}
+                        {(artifact.elapsedMs / 1000).toFixed(1)}s ↗
+                      </a>
+                    ))}
+                  </div>
+                </details>
               )}
               {trace && (
                 <a className="text-xs text-page-muted hover:text-brand" href={asset(id, trace)}>
@@ -501,9 +546,19 @@ export function RunDetail({ id }: { id: string }) {
                   <p className="mt-3 break-all font-mono text-xs text-page-muted">
                     {selectedStep.pageId} / {selectedStep.pageUrl}
                   </p>
+                  {selectedStep.platformAssertion && (
+                    <pre className="mt-4 whitespace-pre-wrap break-all border border-page-line p-4 text-xs">
+                      {JSON.stringify(selectedStep.platformAssertion, null, 2)}
+                    </pre>
+                  )}
                   {selectedStep.playwrightAssertion && (
                     <pre className="mt-4 whitespace-pre-wrap break-all border border-page-line p-4 text-xs leading-6">
                       {JSON.stringify(selectedStep.playwrightAssertion, null, 2)}
+                    </pre>
+                  )}
+                  {selectedStep.platformAction && (
+                    <pre className="whitespace-pre-wrap break-all text-xs">
+                      {JSON.stringify(selectedStep.platformAction, null, 2)}
                     </pre>
                   )}
                   {selectedStep.action && (
@@ -564,12 +619,41 @@ export function RunDetail({ id }: { id: string }) {
                   {run?.error || '选择右侧步骤，查看操作、验证证据和前后画面。'}
                 </p>
               )
+            ) : tab === 'console' || tab === 'network' ? (
+              run?.targetSnapshot && run.targetSnapshot.platform !== 'web' ? (
+                <p className="text-sm text-page-muted">
+                  当前设备会话没有采集 {tab === 'console' ? '浏览器控制台' : '网络'}{' '}
+                  记录。截图与步骤证据保存在执行时间线中。
+                </p>
+              ) : (
+                <BrowserLogPanel
+                  logs={run?.browserLogs || []}
+                  kind={tab}
+                  stepId={selectedStep?.id}
+                  elapsedMs={currentFrame?.elapsedMs}
+                />
+              )
             ) : tab === 'case' ? (
               <>
                 <p className="mb-3 text-xs text-page-muted">
                   执行时保存的版本，后续修改用例不会影响此记录。
                 </p>
                 <p className="whitespace-pre-wrap text-sm leading-8 text-ink">{run?.goal}</p>
+                <details className="mt-5 text-xs text-page-muted">
+                  <summary className="cursor-pointer">平台目标与实际执行环境</summary>
+                  <pre className="mt-3 whitespace-pre-wrap break-all">
+                    {JSON.stringify(
+                      {
+                        target: run?.targetSnapshot,
+                        environment: run?.environmentSnapshot,
+                        capabilities: run?.capabilities,
+                        batchId: run?.batchId,
+                      },
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </details>
               </>
             ) : (
               <div className="font-mono text-xs leading-7">

@@ -10,19 +10,53 @@ vi.mock('@/db', async () => {
 });
 import {
   saveTest,
-  createRun,
+  createRun as createQueuedRun,
   getRun,
   deleteTest,
-  insertStep,
+  insertStep as insertClaimedStep,
   listRuns,
-  appendEvent,
+  appendEvent as appendClaimedEvent,
   listTests,
-  insertArtifact,
+  insertArtifact as insertClaimedArtifact,
 } from './store';
-import { finishRun, recoverExpiredRuns, requestCancellation } from './runLifecycle';
+import {
+  finishRun as finishClaimedRun,
+  recoverExpiredRuns,
+  requestCancellation,
+} from './runLifecycle';
 import type { RunRequest } from '../validation';
+
+import { claimRun, registerWorker, withLease } from './scheduler';
+import { setRunPhase, type RunLease } from './lease';
+const testLeases = new Map<string, RunLease>();
+async function createRun(...args: Parameters<typeof createQueuedRun>) {
+  const run = await createQueuedRun(...args);
+  await registerWorker('repository-test', 'test', [
+    { id: `test:${run.id}`, hostId: 'test', platform: 'web', profileId: 'mobile' },
+  ]);
+  const claim = (await claimRun('repository-test', 'test', run.id))!;
+  testLeases.set(run.id, claim.lease);
+  await withLease(claim.lease, () => setRunPhase(run.id, 'running'));
+  return getRun(run.id);
+}
+async function finishRun(id: string, status: import('../types').RunStatus, error?: string) {
+  return withLease(testLeases.get(id)!, () => finishClaimedRun(id, status, error));
+}
+
+async function insertStep(...args: Parameters<typeof insertClaimedStep>) {
+  return withLease(testLeases.get(args[0].runId)!, () => insertClaimedStep(...args));
+}
+async function appendEvent(...args: Parameters<typeof appendClaimedEvent>) {
+  return withLease(testLeases.get(args[0])!, () => appendClaimedEvent(...args));
+}
+async function insertArtifact(...args: Parameters<typeof insertClaimedArtifact>) {
+  return withLease(testLeases.get(args[0].runId)!, () => insertClaimedArtifact(...args));
+}
+
 beforeEach(async () => {
-  await isolated.client!.exec('TRUNCATE run_artifacts, run_steps, test_runs, test_cases CASCADE');
+  await isolated.client!.exec(
+    'TRUNCATE automation_resources, automation_workers, automation_run_events, run_artifacts, run_steps, test_runs, test_cases CASCADE',
+  );
 });
 afterAll(() => isolated.client!.close());
 const input = { name: 'Login', url: 'https://example.com', goal: 'Verify login', tags: ['smoke'] };
@@ -157,7 +191,7 @@ describe('PostgreSQL workspace repository', () => {
         'replacement-worker',
         run.id,
       ]);
-      await finishRun(run.id, status, 'Old worker result');
+      await expect(finishRun(run.id, status, 'Old worker result')).rejects.toThrow('lease lost');
       const current = await getRun(run.id);
       expect(current.status).toBe('running');
       expect(current.finishedAt).toBeUndefined();
@@ -173,7 +207,7 @@ describe('PostgreSQL workspace repository', () => {
       await insertStep(pendingStep(run.id));
       if (operation === 'recover')
         await isolated.client!.query(
-          'UPDATE test_runs SET "heartbeatAt" = now() - interval \'2 minutes\' WHERE id = $1',
+          'UPDATE test_runs SET "leaseUntil" = now() - interval \'2 minutes\' WHERE id = $1',
           [run.id],
         );
       await isolated.client!.exec(`
@@ -218,7 +252,7 @@ describe('PostgreSQL workspace repository', () => {
     expect(finished.steps[0].status).toBe('failed');
     expect(finished.steps[0].finishedAt).toBe(finished.finishedAt);
     expect(finished.steps[0].error).toBe('Browser closed');
-    await finishRun(run.id, 'passed');
+    await expect(finishRun(run.id, 'passed')).rejects.toThrow('lease lost');
     expect(await getRun(run.id)).toEqual(finished);
   });
 
@@ -226,7 +260,7 @@ describe('PostgreSQL workspace repository', () => {
     const expired = await createRun({ case: 'Expired worker', url: input.url });
     await insertStep(pendingStep(expired.id));
     await isolated.client!.query(
-      'UPDATE test_runs SET "heartbeatAt" = now() - interval \'2 minutes\' WHERE id = $1',
+      'UPDATE test_runs SET "leaseUntil" = now() - interval \'2 minutes\' WHERE id = $1',
       [expired.id],
     );
     const live = await createRun({ case: 'Live worker', url: input.url });
@@ -246,7 +280,7 @@ describe('PostgreSQL workspace repository', () => {
       createRun({ testId: test.id }),
       createRun({ testId: test.id }),
     ]);
-    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(2);
     const run = (
       results.find((result) => result.status === 'fulfilled') as PromiseFulfilledResult<
         Awaited<ReturnType<typeof createRun>>
@@ -276,7 +310,7 @@ describe('PostgreSQL workspace repository', () => {
       replayable: true,
     });
     await isolated.client!.query(
-      'UPDATE test_runs SET "heartbeatAt" = now() - interval \'2 minutes\'  , "startedAt" = now() - interval \'2 minutes\' WHERE id = $1',
+      'UPDATE test_runs SET "leaseUntil" = now() - interval \'2 minutes\'  , "startedAt" = now() - interval \'2 minutes\' WHERE id = $1',
       [run.id],
     );
     const recovered = await getRun(run.id);

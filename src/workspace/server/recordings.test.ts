@@ -9,12 +9,35 @@ vi.mock('@/db', async () => {
   isolated.client = result.client;
   return { db: result.db };
 });
-import { createRun, getRun, savePlan } from './store';
-import { finishRun } from './runLifecycle';
+import { createRun as createQueuedRun, getRun, savePlan as saveClaimedPlan } from './store';
+import { finishRun as finishClaimedRun } from './runLifecycle';
 import { saveRecordingVersion, listRecordingVersions } from './recordings';
 
+import { claimRun, registerWorker, withLease } from './scheduler';
+import { setRunPhase, type RunLease } from './lease';
+const testLeases = new Map<string, RunLease>();
+async function createRun(...args: Parameters<typeof createQueuedRun>) {
+  const run = await createQueuedRun(...args);
+  await registerWorker('repository-test', 'test', [
+    { id: `test:${run.id}`, hostId: 'test', platform: 'web', profileId: 'mobile' },
+  ]);
+  const claim = (await claimRun('repository-test', 'test', run.id))!;
+  testLeases.set(run.id, claim.lease);
+  await withLease(claim.lease, () => setRunPhase(run.id, 'running'));
+  return getRun(run.id);
+}
+async function finishRun(id: string, status: import('../types').RunStatus, error?: string) {
+  return withLease(testLeases.get(id)!, () => finishClaimedRun(id, status, error));
+}
+
+async function savePlan(...args: Parameters<typeof saveClaimedPlan>) {
+  return withLease(testLeases.get(args[0])!, () => saveClaimedPlan(...args));
+}
+
 beforeEach(async () => {
-  await isolated.client!.exec('TRUNCATE run_artifacts, run_steps, test_runs, test_cases CASCADE');
+  await isolated.client!.exec(
+    'TRUNCATE automation_resources, automation_workers, automation_run_events, run_artifacts, run_steps, test_runs, test_cases CASCADE',
+  );
 });
 afterAll(() => isolated.client!.close());
 const input = { url: 'https://example.com' };

@@ -9,6 +9,7 @@ const store = vi.hoisted(() => ({
   insertArtifact: vi.fn(),
   insertStep: vi.fn(),
   finishStep: vi.fn(),
+  appendBrowserLogs: vi.fn(),
 }));
 vi.mock('./store', () => store);
 import { RunRecorder } from './recorder';
@@ -30,6 +31,8 @@ async function fixture() {
   await writeFile(video, 'video');
   const page = {
     isClosed: vi.fn(() => false),
+    on: vi.fn(),
+    off: vi.fn(),
     url: () => 'https://example.com',
     screenshot: vi.fn(async () => Buffer.from('jpeg')),
     video: () => ({ path: async () => video }),

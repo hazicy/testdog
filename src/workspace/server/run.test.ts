@@ -17,6 +17,7 @@ import { createRun, getRun, getArtifact } from './store';
 import { saveRecordingVersion } from './recordings';
 import { requestCancellation } from './runLifecycle';
 import { recordingScript } from '../recordingScript';
+import { claimRun, registerWorker } from './scheduler';
 import { executeRun, cancelRun } from './run';
 import { GET as serveArtifact } from '@/app/api/runs/[id]/artifacts/[artifactId]/route';
 let server: Server;
@@ -36,11 +37,20 @@ beforeAll(async () => {
   vi.stubEnv('CASEFORGE_DATA_DIR', directory);
   vi.stubEnv('AUTOMATION_HEADLESS', 'true');
   server = createServer((request, response) => {
+    if (request.url === '/api/check') {
+      response.setHeader('Authorization', 'secret');
+      response.end('ok');
+      return;
+    }
+    if (request.url === '/api/fail') {
+      request.socket.destroy();
+      return;
+    }
     response.setHeader('Content-Type', 'text/html');
     response.end(
       request.url === '/popup'
-        ? '<h1>Popup ready</h1>'
-        : `<h1>Workspace verification</h1><form><label>Name<input data-testid="name" /></label><button data-testid="submit">Continue</button></form><a href="/popup" target="_blank">Open popup</a><script>document.querySelector('form').onsubmit=e=>{e.preventDefault();document.querySelector('h1').textContent='Welcome '+document.querySelector('input').value}</script>`,
+        ? '<h1>Popup ready</h1><script>console.warn("popup console")</script>'
+        : `<h1>Workspace verification</h1><form><label>Name<input data-testid="name" /></label><button data-testid="submit">Continue</button></form><a href="/popup" target="_blank">Open popup</a><script>console.log('browser console');fetch('/api/check');fetch('/api/fail').catch(()=>{});setTimeout(()=>{throw new Error('page exploded')},0);document.querySelector('form').onsubmit=e=>{e.preventDefault();document.querySelector('h1').textContent='Welcome '+document.querySelector('input').value}</script>`,
     );
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -110,6 +120,27 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     await executeRun(run);
     const recorded = await getRun(run.id);
     expect(recorded.status, recorded.error).toBe('passed');
+    expect(recorded.browserLogs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'console', message: 'browser console', pageId: 'page-1' }),
+        expect.objectContaining({
+          kind: 'console',
+          level: 'error',
+          message: expect.stringContaining('page exploded'),
+        }),
+        expect.objectContaining({
+          kind: 'network',
+          url: `${url}/api/check`,
+          status: 200,
+          responseHeaders: expect.objectContaining({ authorization: '[redacted]' }),
+        }),
+        expect.objectContaining({
+          kind: 'network',
+          url: `${url}/api/fail`,
+          failure: expect.any(String),
+        }),
+      ]),
+    );
     expect(recorded.replayable).toBe(true);
     expect(recorded.steps.map((step) => step.kind)).toEqual([
       'navigate',
@@ -150,6 +181,12 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     const replay = await createRun({ mode: 'replay', sourceRunId: run.id });
     await executeRun(replay);
     const result = await getRun(replay.id);
+    expect(result.browserLogs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'console', message: 'browser console' }),
+        expect.objectContaining({ kind: 'network', status: 200 }),
+      ]),
+    );
     expect(result.status, result.error).toBe('passed');
     expect(result.sourceRunId).toBe(run.id);
     expect(result.steps).toHaveLength(5);
@@ -175,7 +212,8 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
       saved.artifacts.some((item) => item.stepId === failed.id && item.stage === 'after'),
     ).toBe(true);
     expect(saved.replayable).toBe(false);
-  });
+    expect(saved.browserLogs?.some((log) => log.kind === 'network')).toBe(true);
+  }, 30000);
   it('records and replays a popup with the correct page and per-page videos', async () => {
     mocks.generate.mockImplementation(async (input) => {
       if (input.responseFormat?.name === 'plan')
@@ -248,6 +286,16 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     const result = await getRun(replay.id);
     expect(result.status, result.error).toBe('passed');
     expect(result.steps.at(-1)?.pageId).toBe('page-2');
+    expect(result.browserLogs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'console',
+          level: 'warning',
+          message: 'popup console',
+          pageId: 'page-2',
+        }),
+      ]),
+    );
     const wait = result.steps.find((step) => step.kind === 'wait');
     expect(wait).toBeDefined();
     expect(wait!.durationMs).toBeLessThan(2000);
@@ -267,26 +315,39 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     );
     const run = await createRun({ case: 'Cancel active browser', url });
     const job = executeRun(run);
-    await vi.waitFor(() =>
-      expect(mocks.generate.mock.calls.some(([input]) => input.tools)).toBe(true),
-    );
+    try {
+      await vi.waitFor(
+        () => expect(mocks.generate.mock.calls.some(([input]) => input.tools)).toBe(true),
+        { timeout: 15000 },
+      );
+    } catch (error) {
+      cancelRun(run.id);
+      await job.catch(() => {});
+      throw error;
+    }
     await requestCancellation(run.id);
     cancelRun(run.id);
     await job;
     const result = await getRun(run.id);
     expect(result.status).toBe('cancelled');
+    expect(result.browserLogs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'console', message: 'browser console' }),
+      ]),
+    );
     expect(result.artifacts.some((item) => item.kind === 'video')).toBe(true);
   });
 
   it('stops before model or browser work when another worker owns the execution', async () => {
     const run = await createRun({ case: 'Ownership changed', url });
-    await mocks.client!.query('UPDATE test_runs SET "workerId" = $1 WHERE id = $2', [
-      'replacement-worker',
-      run.id,
+    await registerWorker('replacement-worker', 'replacement-host', [
+      { id: 'replacement-web', hostId: 'replacement-host', platform: 'web', profileId: 'mobile' },
     ]);
-    await executeRun(run);
+    const claim = await claimRun('replacement-worker', 'replacement-host', run.id);
+    expect(claim).toBeDefined();
+    await expect(executeRun(run)).rejects.toThrow();
     const current = await getRun(run.id);
-    expect(current.status).toBe('running');
+    expect(current.status).toBe('preparing');
     expect(current.cancelRequested).toBe(false);
     expect(current.artifacts).toEqual([]);
     expect(current.steps).toEqual([]);

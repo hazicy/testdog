@@ -13,8 +13,10 @@ cp .env.example .env
 # 使用现有开发数据库，或启动本地 PostgreSQL：
 docker compose up -d
 pnpm db:migrate
-pnpm exec playwright install chromium
+pnpm exec playwright install chromium webkit
 pnpm dev
+# 另一个终端启动执行 worker：
+pnpm worker
 ```
 
 打开 http://localhost:3000，进入工作台：
@@ -37,7 +39,9 @@ pnpm dev
 
 结构、状态和接口示例见 [工作台接口文档](docs/workspace.md)。迁移仅新增工作台表和约束，保留原有 `case` 与 `users` 表。
 
-运行器使用常驻 Node 服务，通过 PostgreSQL 事务锁限制同时执行一条测试。每 5 秒更新租约；60 秒未续约的执行标记为中断。每次执行最多 5 分钟，超时关闭浏览器并保存失败结果。当前部署适用于有本地持久磁盘的 Node 服务器；不适用于会冻结后台任务或没有持久磁盘的短生命周期函数。
+Web 使用 Playwright mobile、Android/iOS 使用 agent-device 的架构见 [多平台自动化架构](docs/automation-architecture.md)，包含会话接口、设备调度、数据迁移、重放规则与实施验收。实现与验收证据、部署切换见 [实施记录](docs/automation-implementation.md)。
+
+API 将任务持久化入队，独立常驻 Node worker 通过 PostgreSQL 行锁领取任务，每个浏览器 slot 或设备同一时间只执行一条测试。每 5 秒更新租约；60 秒未续约的执行标记为中断。每次执行最多 5 分钟，超时关闭浏览器并保存cp失败结果。当前部署适用于有本地持久磁盘的 Node 服务器；不适用于会冻结后台任务或没有持久磁盘的短生命周期函数。
 
 ## 目录
 
@@ -100,3 +104,46 @@ RUN_LIVE_TESTS=true pnpm exec vitest run src/automation/compiler/textCompiler.in
 下载 Trace 后，可以通过 `pnpm exec playwright show-trace <trace.zip>` 查看页面快照和浏览器动作。
 
 修改表定义后运行 `pnpm db:generate`，确认目标数据库后运行 `pnpm db:migrate`。生产构建默认使用 Webpack。
+
+升级到多平台 worker 前，停止旧 API 接收执行并等待或停止旧后台执行进程，再运行迁移、部署新 API 并启动 `pnpm worker`。cutover 迁移会终结旧租约缺失的未完成任务，不能代替停止旧进程；历史桌面录制和附件保留。
+
+执行回放支持 Console 与 Network 记录：包含控制台输出、未捕获页面异常，以及请求方法、URL、状态码、耗时、请求/响应头和失败原因。可搜索、筛选错误，并按当前步骤或画面回放时间查看；录制和重放均会采集，失败或停止后保留已采集记录。每次执行最多采集 2000 条，单条文本最多 16000 字符，请求头中的认证、Cookie 与 token 字段会隐藏。请求/响应正文暂不采集。历史执行不会补录，需重新执行。升级后先运行 `pnpm db:migrate`。
+
+## 平台 worker
+
+新建 Web 用例默认 Pixel 7 / Chromium，可选择 iPhone 13 / WebKit；旧记录继续使用桌面配置。原生用例使用 agent-device 0.21.24，设备配置由 worker 登记。多个 worker 可共享同一个 PostgreSQL，设备不能重复注册为不同资源。
+
+```bash
+# 本机 Web worker（默认一个浏览器 slot）
+pnpm worker
+
+# 原生 worker：以实际设备标识替换示例，iOS 需要 macOS/Xcode
+CASEFORGE_HOST_ID=mac-worker CASEFORGE_RESOURCES='[{"id":"mac-worker:iphone","platform":"ios","profileId":"iphone","deviceId":"实际 UDID"}]' pnpm worker
+CASEFORGE_HOST_ID=android-worker CASEFORGE_RESOURCES='[{"id":"android-worker:pixel","platform":"android","profileId":"pixel","deviceId":"实际 ADB serial"}]' pnpm worker
+
+# 登记已构建的 APK 或 simulator .app；输出构建 ID 和摘要
+pnpm register:build android /path/to/app.apk
+pnpm register:build ios /path/to/App.app
+```
+
+API 和 worker 连接同一个数据库。本地附件模式需共享 CASEFORGE_DATA_DIR；跨主机部署可设置 CASEFORGE_ARTIFACT_BUCKET、CASEFORGE_ARTIFACT_PREFIX、AWS_REGION 和 AWS 凭据，兼容 S3 的服务另设 CASEFORGE_ARTIFACT_ENDPOINT。对象保持私有，API 校验运行和附件归属后读取，支持 Range。应用构建需在设备 worker 主机登记或使用共享构建目录。
+
+生产模式默认要求认证。设置 CASEFORGE_AUTH_USER 和 CASEFORGE_AUTH_PASSWORD，通过 HTTPS 访问；浏览器使用标准认证对话框，API 使用 Basic Authorization。CASEFORGE_REQUIRE_AUTH=true 可在开发模式强制认证；受控本地部署可显式设置 CASEFORGE_ALLOW_UNAUTHENTICATED=true。
+
+worker 默认并发数为登记资源数，可用 CASEFORGE_WORKER_CONCURRENCY 降低。每条执行独占一个 slot/设备；排队默认上限 1 小时（CASEFORGE_QUEUE_TIMEOUT_MS），准备 2 分钟，执行 5 分钟，归档 30 秒。
+
+隔离资源不因 TTL 自动释放。在同一 worker 主机与工作目录停止旧 worker 后运行 `pnpm recover:resource <resource-id>`。工具检查原主机和 PID、清理原命名 SDK 会话、验证快照和截图、关闭探测会话并确认无后端 claim；任一检查失败继续隔离。不会关闭其他用户的 SDK 会话。
+
+平台表单支持构建、初始化策略、启动链接和输入引用。普通输入使用 `{"name":{"value":"Ada"}}`，密码使用 `{"password":{"secretRef":"LOGIN_PASSWORD"}}`，步骤用 `${input.password}` 引用，worker 配置 CASEFORGE_SECRET_LOGIN_PASSWORD。密钥仅在密码控件中解析，不进入模型规划或录制代码。Web 密钥运行关闭视频/trace并遮罩密码截图，日志脱敏；原生依赖 secure 控件的系统遮罩。不要在目标或步骤里填入明文密钥。
+
+“矩阵”入口接受 1–10 项 target/goal 配置，各平台可覆盖输入和预期；整批事务提交，通过 batchId 关联。
+
+真实设备适配器验证使用自建测试应用：
+
+```bash
+RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/android-sdk pnpm exec vitest run src/automation/platform/agentDevice.live.test.ts
+```
+
+该测试为 iOS 创建并删除独立 simulator；Android 需要指定已启动的专用 emulator。Android fixture 编译使用 SDK 36 与 build-tools 36.0.0，Java 路径可用 CASEFORGE_JAVA_HOME 设置。
+
+浏览器工作台验收使用真实页面和隔离 API fixtures：启动本地服务后运行 `CASEFORGE_UI_URL=http://localhost:3015 pnpm exec vitest run src/components/workspace.live.test.ts`。

@@ -2,6 +2,8 @@ import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { recordingVersions, testRuns } from '@/db/schema';
 import { parseRecordingScript, ScriptError } from '../recordingScript';
+import { isActiveRun } from '../types';
+import { parseDeviceRecordingScript } from '../deviceRecording';
 import type { ExecutionStep } from '../types';
 import { WorkspaceError } from './errors';
 import { recoverExpiredRuns } from './runLifecycle';
@@ -12,6 +14,9 @@ const recordingVersionFields = {
   runId: recordingVersions.runId,
   code: recordingVersions.code,
   createdAt: recordingVersions.createdAt,
+  platform: recordingVersions.platform,
+  targetSnapshot: recordingVersions.targetSnapshot,
+  schemaVersion: recordingVersions.schemaVersion,
 };
 export async function listRecordingVersions(runId: string) {
   await recoverExpiredRuns();
@@ -28,14 +33,21 @@ export async function saveRecordingVersion(runId: string, code: string) {
   if (!parsed.success) throw new WorkspaceError(recordingInputMessage);
   await recoverExpiredRuns();
   const [run] = await db
-    .select({ status: testRuns.status, plan: testRuns.plan })
+    .select({
+      status: testRuns.status,
+      plan: testRuns.plan,
+      targetSnapshot: testRuns.targetSnapshot,
+    })
     .from(testRuns)
     .where(eq(testRuns.id, runId));
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
-  if (run.status === 'running') throw new WorkspaceError('请等待录制结束后编辑。', 409);
+  if (isActiveRun(run.status)) throw new WorkspaceError('请等待录制结束后编辑。', 409);
   let steps: ExecutionStep[];
   try {
-    steps = parseRecordingScript(code);
+    steps =
+      run.targetSnapshot && run.targetSnapshot.platform !== 'web'
+        ? parseDeviceRecordingScript(code, run.targetSnapshot.platform)
+        : parseRecordingScript(code);
   } catch (error) {
     throw new WorkspaceError(
       error instanceof ScriptError
@@ -49,7 +61,13 @@ export async function saveRecordingVersion(runId: string, code: string) {
   }
   const [version] = await db
     .insert(recordingVersions)
-    .values({ runId, code, steps })
+    .values({
+      runId,
+      code,
+      steps,
+      platform: run.targetSnapshot?.platform ?? 'web',
+      targetSnapshot: run.targetSnapshot,
+    })
     .returning(recordingVersionFields);
   return version;
 }

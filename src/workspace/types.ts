@@ -1,14 +1,25 @@
+import type {
+  PlatformAction,
+  PlatformAssertion,
+  Observation,
+  CapabilitySet,
+} from '@/automation/platform/contracts';
+import type { TestTarget } from '@/automation/platform/target';
 import type { Assertion, Plan, Step, Target } from '@/automation/compiler/schema';
 export type TestCase = {
   id: string;
   name: string;
   url: string;
   goal: string;
+  target?: TestTarget;
   tags: string[];
   createdAt: string;
   updatedAt: string;
 };
-export type RunStatus = 'running' | 'passed' | 'failed' | 'cancelled';
+export type RunStatus =
+  'queued' | 'preparing' | 'running' | 'finalizing' | 'passed' | 'failed' | 'cancelled';
+export const activeRunStatuses: RunStatus[] = ['queued', 'preparing', 'running', 'finalizing'];
+export const isActiveRun = (status: RunStatus) => activeRunStatuses.includes(status);
 export type RunEvent = { at: string; message: string };
 export type RecordedAction = Step & { sensitive?: boolean };
 export type PlaywrightAssertion = {
@@ -18,6 +29,9 @@ export type PlaywrightAssertion = {
   negate?: boolean;
 };
 export type ExecutionStep = {
+  platformAction?: PlatformAction;
+  surface?: Observation['surface'];
+  observationRevision?: number;
   id: string;
   runId: string;
   sequence: number;
@@ -32,6 +46,7 @@ export type ExecutionStep = {
   planNodeId?: string;
   action?: RecordedAction;
   assertion?: Assertion;
+  platformAssertion?: PlatformAssertion;
   playwrightAssertion?: PlaywrightAssertion;
   condition?: string;
   decision?: boolean;
@@ -40,10 +55,13 @@ export type ExecutionStep = {
   replayable: boolean;
 };
 export type RunArtifact = {
+  surface?: Observation['surface'];
+  producer?: string;
+  format?: string;
   id: string;
   runId: string;
   stepId?: string;
-  kind: 'screenshot' | 'video' | 'trace';
+  kind: 'screenshot' | 'video' | 'trace' | 'snapshot' | 'log' | 'device-trace';
   stage: 'before' | 'after' | 'live' | 'final';
   pageId: string;
   pageUrl: string;
@@ -52,7 +70,37 @@ export type RunArtifact = {
   contentType: string;
   size: number;
 };
+export type BrowserLog = {
+  id: string;
+  kind: 'console' | 'network';
+  at: string;
+  elapsedMs: number;
+  pageId: string;
+  pageUrl: string;
+  stepId?: string;
+  level?: string;
+  message?: string;
+  url?: string;
+  method?: string;
+  resourceType?: string;
+  status?: number;
+  durationMs?: number;
+  requestHeaders?: Record<string, string>;
+  responseHeaders?: Record<string, string>;
+  failure?: string;
+};
 export type TestRun = {
+  workerId?: string;
+  resourceId?: string;
+  batchId?: string;
+  fencingToken?: number;
+  attempt?: number;
+  errorCode?: string;
+
+  targetSnapshot?: TestTarget;
+  environmentSnapshot?: Record<string, unknown>;
+  capabilities?: CapabilitySet;
+  evidenceComplete?: boolean;
   id: string;
   testId?: string;
   name: string;
@@ -68,6 +116,7 @@ export type TestRun = {
   durationMs?: number;
   error?: string;
   events: RunEvent[];
+  browserLogs?: BrowserLog[];
   plan?: Plan;
   replayable: boolean;
   cancelRequested: boolean;
@@ -99,6 +148,7 @@ export type StepSignal = {
   title: string;
   action?: Step;
   assertion?: Assertion;
+  platformAssertion?: PlatformAssertion;
   playwrightAssertion?: PlaywrightAssertion;
   condition?: string;
   decision?: boolean;
@@ -112,6 +162,9 @@ export type ExecutionHooks = {
 };
 
 export type RecordingVersion = {
+  schemaVersion?: number;
+  platform?: TestTarget['platform'];
+  targetSnapshot?: TestTarget;
   id: string;
   runId: string;
   code: string;

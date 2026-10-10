@@ -22,9 +22,9 @@ erDiagram
 
 历史与录制版本索引覆盖时间和 ID 的排序次序。租约索引只包含执行中的记录，避免将已结束的历史执行纳入租约扫描。附件按相对时间、采样时间和 ID 排序，同一毫秒内的截图保持稳定顺序；时间轴索引使用相同字段。
 
-执行状态为 `running`、`passed`、`failed`、`cancelled`。步骤状态为 `running`、`passed`、`failed`，取消时未完成的步骤标记为中断。模式为 `record` 或 `replay`。数据库检查约束限制状态、类型、正序号和非负大小。
+执行状态为 `queued`、`preparing`、`running`、`finalizing`、`passed`、`failed`、`cancelled`。步骤状态为 `running`、`passed`、`failed`，取消时未完成的步骤标记为中断。模式为 `record` 或 `replay`。数据库检查约束限制状态、类型、正序号和非负大小。
 
-执行结束和租约超时恢复在同一事务中更新执行与未完成步骤；步骤更新失败时，执行状态也回滚。超时恢复只处理本次过期的执行，不扫描失败历史的步骤。重复提交结束结果不会覆盖已有终态，耗时根据数据库保存的开始时间计算。状态与租约逻辑集中在 `src/workspace/server/runLifecycle.ts`，业务错误定义在 `src/workspace/server/errors.ts`。
+执行结束和租约超时恢复在同一事务中更新执行与未完成步骤；步骤更新失败时，执行状态也回滚。超时恢复只处理本次过期的执行，不扫描失败历史的步骤。重复提交结束结果不会覆盖已有终态，耗时根据数据库保存的开始时间计算。状态与租约逻辑集中在 `src/workspace/server/scheduler.ts` 和 `src/workspace/server/lease.ts`，业务错误定义在 `src/workspace/server/errors.ts`。
 
 续约和结束写入都校验当前执行器身份。执行归属变化后，旧执行器停止工作，不写入终态或中断新执行器的步骤；租约丢失与用户取消分别处理。过期恢复仍可跨执行器标记已失联的执行。
 
@@ -32,7 +32,13 @@ erDiagram
 
 ## 接口
 
-所有响应为 JSON，附件接口除外。创建和更新字段均在服务器用 Zod 校验。错误响应含 `message`：400 参数错误或不符合重放条件，404 记录不存在，409 已有执行或停止已结束的记录，503 数据库不可用。发起执行返回 202，表示后台工作已接受，不表示测试通过。
+平台使用版本化 target：Web 包含 URL/browser/deviceProfile，原生包含 appId/deviceProfileId/buildArtifactId/resetPolicy/launchUrl。可选 inputs 保存普通值或 secretRef，原生 evidence 按能力请求 video/trace/logs。运行详情提供冻结 target、实际 environment、capabilities 和 evidenceComplete。
+
+`POST /api/run-batches` 接收 testId 与 variants（每项 target 和可选 goal），事务内创建独立 run 并返回 batchId。`GET /api/resources` 返回 workers/resources，`GET /api/builds` 返回构建身份与摘要，均不暴露私有路径。原生录制编辑保存版本化 JSON IR，支持 structured check、semantic assertion 和分支。
+
+生产模式默认要求认证，附件也受认证与运行归属校验保护。跨主机附件可使用私有 S3。部署切换与实测证据见 [实施记录](automation-implementation.md)。
+
+所有响应为 JSON，附件接口除外。创建和更新字段均在服务器用 Zod 校验。错误响应含 `message`：400 参数错误或不符合重放条件，404 记录不存在，409 平台/录制不兼容或停止已结束的记录，503 数据库不可用。发起执行返回 202，表示后台工作已接受，不表示测试通过。
 
 发起执行的请求只接受对应模式的字段：录制指定 `testId`，或 `case` 与可选 `url`；重放必须指定 `mode: "replay"`、`sourceRunId` 与可选 `recordingVersionId`。未知字段和混合模式参数返回 400。API 与仓库使用同一校验定义，校验失败不会创建执行或占用运行名额。
 
@@ -92,7 +98,7 @@ erDiagram
 { "mode": "record", "case": "打开首页，验证标题。", "url": "https://example.com" }
 ```
 
-直接执行时 URL 可省略，测试必须自行描述导航目标。发起执行采用数据库事务与 advisory lock，避免重复占用浏览器。后台通过 `after()` 启动，常驻 Node 进程负责生命周期和续约。租约丢失不会伪报成功。
+直接执行时 URL 可省略，测试必须自行描述导航目标。API 只持久化入队；独立 worker 按资源采用 FOR UPDATE SKIP LOCKED 原子领取，运行过程中续约并检查 fencingToken。失联资源进入隔离，旧 worker 不能写入步骤、附件或结果。
 
 ### 步骤与重放
 
@@ -158,3 +164,31 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 - `POST /api/runs`，`{mode:"replay",sourceRunId,recordingVersionId}`：重放选中的编辑版本，返回 202。
 
 需运行 `pnpm db:migrate` 应用新增的版本表与节点、原生断言、重放快照字段。
+
+## 多平台扩展（实施中）
+
+用例支持 versioned `target`，Web 的 `url` 与原生的 `appId/deviceProfileId` 分别校验。新 Web 用例默认为 Pixel 7 / Chromium；迁移只为历史记录回填 legacy-desktop，不改变原录制。
+
+```json
+{
+  "name": "登录",
+  "goal": "填写用户并提交，验证登录成功",
+  "tags": ["smoke"],
+  "target": {
+    "schemaVersion": 1,
+    "platform": "ios",
+    "appId": "com.example.app",
+    "deviceProfileId": "iphone",
+    "resetPolicy": "preserve"
+  }
+}
+```
+
+- `GET /api/resources`：已登记资源与 worker，包含 available/busy/quarantined 状态。
+- `GET /api/builds`：构建元数据与摘要，私有路径不输出。
+- `POST /api/run-batches`：`{testId, variants:[{target, goal?}]}`，在同一事务创建各平台独立执行并以 batchId 关联。
+- 原生录制版本使用 `{schemaVersion:1, platform, steps}` JSON，保留语义断言与分支，拒绝临时 refs 和坐标手势。
+
+执行详情增加 targetSnapshot、environmentSnapshot、capabilities、resourceId、batchId 和 evidenceComplete。原生步骤使用 platformAction，旧 Web action/pageId/pageUrl 可继续读取。原生截图 MIME 为 image/png，附件下载保留正确扩展名。
+
+当前实现与尚未完成的项目见 [实施记录](automation-implementation.md)。

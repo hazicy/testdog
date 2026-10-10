@@ -2,6 +2,11 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import type { TestCase, TestRun, RunSummary } from '../../src/workspace/types';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/builds', (route) => route.fulfill({ json: { builds: [] } }));
+  await page.route('**/api/resources', (route) => route.fulfill({ json: { resources: [] } }));
+});
+
 const saved: TestCase = {
   id: '62534c46-a8eb-4991-993e-af6df14bece0',
   name: '验证登录',
@@ -84,7 +89,7 @@ test('frame playback and step selection keep the matching evidence visible', asy
     }),
   );
   await page.goto(`/runs/${run.id}`);
-  const image = page.getByRole('img', { name: /^浏览器画面/ });
+  const image = page.getByRole('img', { name: /^执行画面/ });
   await expect(image).toHaveAttribute('src', /frame-1-after$/);
   await page
     .getByRole('region', { name: '执行步骤' })

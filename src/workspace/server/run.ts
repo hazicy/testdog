@@ -1,13 +1,14 @@
-import type { Browser, BrowserContext } from 'playwright';
-import { Executor } from '@/automation/executor';
-import { launchBrowser } from '@/automation/browser';
+import { inputGoal, SecretInputs } from '@/automation/platform/inputs';
+import { hostname } from 'node:os';
+import { leaseScope, setRunPhase, runWrite } from './lease';
+import { claimRun, registerWorker, releaseLease, withLease } from './scheduler';
+import { owner, appendEvent, finishRun, getRun, heartbeat, savePlan } from './store';
 import { TextCompiler } from '@/automation/compiler/textCompiler';
-import { Observer } from '@/automation/observer';
-import { Planner } from '@/automation/planner';
-import { appendEvent, getRun, savePlan } from './store';
-import { finishRun, heartbeat } from './runLifecycle';
-import { RunRecorder } from './recorder';
+import { PlanRunner } from '@/automation/planRunner';
+import { openPlatformRuntime, type PlatformRuntime } from '@/automation/platform/runtime';
 import type { TestRun } from '../types';
+import { testRuns } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 const state = globalThis as typeof globalThis & { caseforgeJobs?: Map<string, AbortController> };
 const jobs = (state.caseforgeJobs ??= new Map());
 export function cancelRun(id: string) {
@@ -19,25 +20,31 @@ export function errorMessage(error: unknown): string {
     return `${error.message}\n${error.errors.map(errorMessage).join('\n')}`;
   return error.cause ? `${error.message}\n${errorMessage(error.cause)}` : error.message;
 }
-export async function executeRun(run: TestRun) {
+export async function executeRun(
+  run: TestRun,
+  resource?: { deviceId: string | null; metadata: Record<string, unknown> },
+): Promise<void> {
+  const lease = leaseScope.getStore();
+  if (!lease) {
+    const hostId = process.env.CASEFORGE_HOST_ID || hostname();
+    await registerWorker(owner, hostId, [
+      { id: `${hostId}:web:inline`, hostId, platform: 'web', profileId: 'mobile' },
+    ]);
+    const claim = await claimRun(owner, hostId, run.id);
+    if (!claim) throw new Error('没有匹配的可用执行资源；请启动平台 worker');
+    return withLease(claim.lease, () => executeRun(claim.run, claim.resource));
+  }
   const controller = new AbortController();
   jobs.set(run.id, controller);
-  let browser: Browser | undefined;
-  let context: BrowserContext | undefined;
-  let recorder: RunRecorder | undefined;
-  let cancelled = false;
+  let runtime: PlatformRuntime | undefined;
   let pulseBusy = false;
   const pulse = async () => {
     if (pulseBusy) return;
     pulseBusy = true;
     try {
       const active = await heartbeat(run.id);
-      if (!active) {
-        controller.abort(new Error('执行租约失效，当前执行器已停止'));
-      } else if (active.cancelRequested) {
-        cancelled = true;
-        controller.abort(new Error('用户停止了测试'));
-      }
+      if (!active || active.cancelRequested)
+        controller.abort(new Error(active?.cancelRequested ? '用户停止了测试' : '执行租约失效'));
     } catch (error) {
       controller.abort(error);
     } finally {
@@ -45,13 +52,10 @@ export async function executeRun(run: TestRun) {
     }
   };
   const heartbeatTimer = setInterval(() => void pulse(), 5000);
-  const deadline = setTimeout(() => controller.abort(new Error('测试超过 5 分钟执行上限')), 300000);
-  const abort = () => {
-    void browser?.close().catch(() => {});
-  };
-  controller.signal.addEventListener('abort', abort);
+  let deadline = setTimeout(() => controller.abort(new Error('测试准备超过 2 分钟上限')), 120000);
   let status: TestRun['status'] = 'passed';
   let error: string | undefined;
+  let evidenceComplete = true;
   try {
     await pulse();
     controller.signal.throwIfAborted();
@@ -73,60 +77,96 @@ export async function executeRun(run: TestRun) {
               },
             },
           }
-        : await new TextCompiler().compile(run.goal, run.url || undefined, controller.signal));
+        : await new TextCompiler().compile(
+            inputGoal(run.goal, run.targetSnapshot?.inputs),
+            run.url || undefined,
+            controller.signal,
+          ));
     await savePlan(run.id, plan);
     await report(
       run.mode === 'replay'
-        ? '开始重放已记录的操作，不重新规划浏览器动作'
-        : '计划已生成，正在启动浏览器',
+        ? '开始重放已记录的操作，不重新规划动作'
+        : '计划已生成，正在准备执行环境',
     );
-    controller.signal.throwIfAborted();
-    browser = await launchBrowser();
-    controller.signal.throwIfAborted();
-    recorder = new RunRecorder(run);
-    await recorder.prepare();
-    context = await browser.newContext({
-      viewport: { width: 1280, height: 800 },
-      recordVideo: { dir: recorder.directory, size: { width: 1280, height: 800 } },
-    });
-    context.setDefaultTimeout(15000);
-    const page = await context.newPage();
-    await recorder.start(context);
-    recorder.onPage(page);
-    const executor = new Executor(
-      new Observer(),
+    runtime = await openPlatformRuntime({
+      run,
       plan,
-      run.url || undefined,
-      new Planner(controller.signal),
+      source,
+      resource,
+      signal: controller.signal,
       report,
-      { signal: controller.signal, onPage: recorder.onPage, onStep: recorder.onStep },
-    );
-    if (source) await executor.replay(page, run.recordingSteps || source.steps);
-    else await executor.record(page);
+    });
+    controller.signal.throwIfAborted();
+    await setRunPhase(run.id, 'running', runtime.environment, runtime.session.capabilities);
+    clearTimeout(deadline);
+    deadline = setTimeout(() => controller.abort(new Error('测试超过 5 分钟执行上限')), 300000);
+    const runner = new PlanRunner({
+      plan,
+      session: runtime.session,
+      planner: runtime.planner,
+      signal: controller.signal,
+      report,
+    });
+    if (source) {
+      const steps = run.recordingSteps || source.steps;
+      await runner.replay(steps);
+    } else await runner.record(runtime.initial);
     await report('全部操作与断言执行完成');
   } catch (cause) {
     status = 'failed';
+    if (!runtime) evidenceComplete = false;
     error = errorMessage(controller.signal.aborted ? controller.signal.reason : cause);
+    try {
+      error = new SecretInputs(run.targetSnapshot?.inputs).redact(error);
+    } catch {
+      /* Missing secrets were never dispatched. */
+    }
   } finally {
-    if (context && recorder) {
+    clearTimeout(deadline);
+    const current = await getRun(run.id).catch(() => undefined);
+    if (current?.cancelRequested) status = 'cancelled';
+    await setRunPhase(run.id, 'finalizing').catch(() => {});
+    if (runtime) {
+      let archiveTimer: ReturnType<typeof setTimeout> | undefined;
       try {
-        await recorder.stop(context, controller.signal.aborted);
+        await Promise.race([
+          runtime.finalize(controller.signal.aborted),
+          new Promise<never>((_resolve, reject) => {
+            archiveTimer = setTimeout(
+              () => reject(new Error('证据归档超过 30 秒上限，资源将保持隔离')),
+              30000,
+            );
+          }),
+        ]);
       } catch (cause) {
-        status = 'failed';
-        error = `${error ? `${error}\n` : ''}无法保存执行录像：${errorMessage(cause)}`;
+        evidenceComplete = false;
+        if (status !== 'cancelled') status = 'failed';
+        error = `${error ? `${error}\n` : ''}无法归档执行证据：${errorMessage(cause)}`;
+      } finally {
+        clearTimeout(archiveTimer);
       }
     }
-    await browser?.close().catch(() => {});
-    clearInterval(heartbeatTimer);
-    clearTimeout(deadline);
-    controller.signal.removeEventListener('abort', abort);
-    if (controller.signal.aborted) {
-      const current = await getRun(run.id).catch(() => undefined);
-      cancelled ||= current?.cancelRequested ?? false;
-      status = cancelled ? 'cancelled' : 'failed';
-      error ||= errorMessage(controller.signal.reason);
-    }
     jobs.delete(run.id);
-    await finishRun(run.id, status, error);
+    try {
+      await runWrite(run.id, async (tx) => {
+        await tx
+          .update(testRuns)
+          .set({
+            evidenceComplete,
+            errorCode: error
+              ? current?.cancelRequested
+                ? 'CANCELLED'
+                : controller.signal.aborted
+                  ? 'TIMEOUT_OR_ABORT'
+                  : 'EXECUTION_FAILED'
+              : null,
+          })
+          .where(eq(testRuns.id, run.id));
+      });
+      await finishRun(run.id, status, run.startedAt, error);
+    } finally {
+      clearInterval(heartbeatTimer);
+      await releaseLease(lease, runtime?.healthy ?? run.targetSnapshot?.platform === 'web');
+    }
   }
 }

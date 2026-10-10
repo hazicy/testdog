@@ -15,8 +15,10 @@ export function CodeEditor({
   value,
   onChange,
   readOnly = false,
+  label = 'Playwright 录制脚本',
 }: {
   value: string;
+  label?: string;
   onChange: (code: string) => void;
   readOnly?: boolean;
 }) {
@@ -45,7 +47,7 @@ export function CodeEditor({
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({
-            'aria-label': 'Playwright 录制脚本',
+            'aria-label': label,
             spellcheck: 'false',
           }),
           EditorView.updateListener.of((update) => {

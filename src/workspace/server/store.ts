@@ -1,19 +1,41 @@
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { storeArtifactFile } from './artifactStorage';
+import { isDeepStrictEqual } from 'node:util';
+import { runWrite, leaseScope } from './lease';
+import { activeRunStatuses, isActiveRun } from '../types';
+import { legacyWebTarget, type TestTarget } from '@/automation/platform/target';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { testCases, testRuns, runSteps, runArtifacts, recordingVersions } from '@/db/schema';
+import {
+  testCases,
+  testRuns,
+  runSteps,
+  runArtifacts,
+  recordingVersions,
+  automationRunEvents,
+} from '@/db/schema';
 import type { TestCase, TestRun, RunSummary, ExecutionStep, RunArtifact } from '../types';
+import { owner } from './runLifecycle';
 import { WorkspaceError } from './errors';
-import { owner, recoverExpiredRuns } from './runLifecycle';
-import { runRequestSchema, testSchema, type RunRequest } from '../validation';
-
+import { runRequestSchema, testSchema } from '../validation';
+export { owner, WorkspaceError };
 const optional = <T>(value: T | null) => value ?? undefined;
 function runRecord(row: typeof testRuns.$inferSelect): TestRun {
   return {
+    workerId: optional(row.workerId),
+    resourceId: optional(row.resourceId),
+    batchId: optional(row.batchId),
+    fencingToken: row.fencingToken,
+    attempt: row.attempt,
+    errorCode: optional(row.errorCode),
     id: row.id,
     testId: optional(row.testId),
     sourceRunId: optional(row.sourceRunId),
     recordingVersionId: optional(row.recordingVersionId),
     recordingSteps: optional(row.recordingSteps),
+    targetSnapshot: row.targetSnapshot ?? legacyWebTarget(row.url),
+    environmentSnapshot: optional(row.environmentSnapshot),
+    capabilities: optional(row.capabilities),
+    evidenceComplete: row.evidenceComplete,
     name: row.name,
     url: row.url,
     goal: row.goal,
@@ -25,6 +47,7 @@ function runRecord(row: typeof testRuns.$inferSelect): TestRun {
     error: optional(row.error),
     plan: optional(row.plan),
     events: row.events,
+    browserLogs: row.browserLogs,
     replayable: row.replayable,
     cancelRequested: row.cancelRequested,
     steps: [],
@@ -34,11 +57,15 @@ function runRecord(row: typeof testRuns.$inferSelect): TestRun {
 function stepRecord(row: typeof runSteps.$inferSelect): ExecutionStep {
   return {
     ...row,
+    platformAction: optional(row.platformAction),
+    surface: optional(row.surface),
+    observationRevision: optional(row.observationRevision),
     finishedAt: optional(row.finishedAt),
     durationMs: optional(row.durationMs),
     planNodeId: optional(row.planNodeId),
     action: optional(row.action),
     assertion: optional(row.assertion),
+    platformAssertion: optional(row.platformAssertion),
     playwrightAssertion: optional(row.playwrightAssertion),
     condition: optional(row.condition),
     decision: optional(row.decision),
@@ -49,16 +76,38 @@ function stepRecord(row: typeof runSteps.$inferSelect): ExecutionStep {
 function artifactRecord(row: typeof runArtifacts.$inferSelect): RunArtifact {
   const { path: _path, ...artifact } = row;
   void _path;
-  return { ...artifact, stepId: optional(row.stepId) };
+  return {
+    ...artifact,
+    surface: optional(row.surface),
+    producer: optional(row.producer),
+    format: optional(row.format),
+    stepId: optional(row.stepId),
+  };
 }
-export const listTests = () => db.select().from(testCases).orderBy(desc(testCases.updatedAt));
+export async function recoverExpiredRuns() {
+  await (await import('./scheduler')).recoverLeases();
+}
+export const listTests = async () =>
+  (await db.select().from(testCases).orderBy(desc(testCases.updatedAt))).map((test) => ({
+    ...test,
+    target: test.target ?? legacyWebTarget(test.url),
+  }));
 export async function saveTest(
-  request: Pick<TestCase, 'name' | 'url' | 'goal' | 'tags'>,
+  input: Pick<TestCase, 'name' | 'url' | 'goal' | 'tags' | 'target'>,
   id?: string,
 ) {
-  const parsed = testSchema.safeParse(request);
-  if (!parsed.success) throw new WorkspaceError('请填写名称、有效的网站地址和测试步骤。');
-  const input = parsed.data;
+  const parsed = testSchema.safeParse(input);
+  if (!parsed.success) throw new WorkspaceError('请填写有效的名称、测试目标和测试步骤。');
+  input = {
+    ...parsed.data,
+    target: input.target ?? {
+      schemaVersion: 1,
+      platform: 'web',
+      url: input.url,
+      browser: 'chromium',
+      deviceProfile: 'Pixel 7',
+    },
+  };
   const [test] = id
     ? await db
         .update(testCases)
@@ -127,20 +176,31 @@ export async function getRun(id: string): Promise<TestRun> {
     artifacts: artifacts.map(artifactRecord),
   };
 }
-export async function createRun(request: RunRequest) {
-  const parsed = runRequestSchema.safeParse(request);
+export async function createRun(
+  request: import('../validation').RunRequest & { batchId?: string; goalOverride?: string },
+  transaction?: Parameters<Parameters<typeof db.transaction>[0]>[0],
+) {
+  const parsed = runRequestSchema.safeParse(
+    Object.fromEntries(
+      Object.entries(request).filter(([key]) => key !== 'batchId' && key !== 'goalOverride'),
+    ),
+  );
   if (!parsed.success) throw new WorkspaceError('执行参数无效，请指定用例、测试描述或重放来源。');
-  const input = parsed.data;
-  await recoverExpiredRuns();
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(481516234)`);
-    const [active] = await tx
-      .select({ id: testRuns.id })
-      .from(testRuns)
-      .where(eq(testRuns.status, 'running'))
-      .limit(1);
-    if (active) throw new WorkspaceError('已有测试正在执行，请等待完成或停止后再运行。', 409);
+  const input: {
+    batchId?: string;
+    goalOverride?: string;
+    target?: TestTarget;
+    testId?: string;
+    case?: string;
+    url?: string;
+    sourceRunId?: string;
+    recordingVersionId?: string;
+    mode?: 'record' | 'replay';
+  } = { ...parsed.data, batchId: request.batchId, goalOverride: request.goalOverride };
+  if (!transaction) await recoverExpiredRuns();
+  const persist = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => {
     let snapshot: {
+      targetSnapshot?: TestTarget;
       testId?: string;
       name: string;
       goal: string;
@@ -151,7 +211,15 @@ export async function createRun(request: RunRequest) {
       mode: 'record' | 'replay';
     };
     if (input.mode === 'replay') {
-      const [source] = await tx.select().from(testRuns).where(eq(testRuns.id, input.sourceRunId));
+      const [source] = await tx.select().from(testRuns).where(eq(testRuns.id, input.sourceRunId!));
+      if (
+        input.target &&
+        !isDeepStrictEqual(
+          input.target,
+          source?.targetSnapshot ?? (source ? legacyWebTarget(source.url) : undefined),
+        )
+      )
+        throw new WorkspaceError('重放目标与原录制不兼容。', 409);
       if (!source) throw new WorkspaceError('原执行不存在。', 404);
       const [version] = input.recordingVersionId
         ? await tx
@@ -166,10 +234,11 @@ export async function createRun(request: RunRequest) {
         : [];
       if (input.recordingVersionId && !version)
         throw new WorkspaceError('录制版本不存在或不属于此执行。', 404);
-      if (source.status === 'running') throw new WorkspaceError('请等待录制结束后重放。', 409);
+      if (isActiveRun(source.status)) throw new WorkspaceError('请等待录制结束后重放。', 409);
       if (!version && (source.status !== 'passed' || !source.replayable))
         throw new WorkspaceError('该记录包含失败或无法稳定定位的步骤，不能重放操作。');
       snapshot = {
+        targetSnapshot: source.targetSnapshot ?? legacyWebTarget(source.url),
         testId: optional(source.testId),
         name: source.name,
         url: source.url,
@@ -179,44 +248,160 @@ export async function createRun(request: RunRequest) {
         recordingVersionId: version?.id,
         recordingSteps: version?.steps,
       };
-    } else if ('testId' in input) {
+    } else if (input.testId) {
       const [test] = await tx.select().from(testCases).where(eq(testCases.id, input.testId));
       if (!test) throw new WorkspaceError('用例不存在。', 404);
       snapshot = {
+        targetSnapshot: input.target ?? test.target ?? legacyWebTarget(test.url),
         testId: test.id,
         name: test.name,
-        url: test.url,
-        goal: test.goal,
+        url: input.target?.platform === 'web' ? input.target.url : input.target ? '' : test.url,
+        goal: input.goalOverride ?? test.goal,
         mode: 'record',
       };
     } else {
-      snapshot = { name: '临时测试', url: input.url || '', goal: input.case, mode: 'record' };
+      snapshot = {
+        targetSnapshot:
+          input.target ??
+          (input.url
+            ? {
+                schemaVersion: 1,
+                platform: 'web',
+                url: input.url,
+                browser: 'chromium',
+                deviceProfile: 'Pixel 7',
+              }
+            : legacyWebTarget('')),
+        name: '临时测试',
+        url: input.target?.platform === 'web' ? input.target.url : input.url || '',
+        goal: input.case || '',
+        mode: 'record',
+      };
     }
     const [run] = await tx
       .insert(testRuns)
-      .values({ ...snapshot, workerId: owner, status: 'running' })
+      .values({ ...snapshot, batchId: input.batchId, status: 'queued' })
       .returning();
     return runRecord(run);
-  });
+  };
+  return transaction ? persist(transaction) : db.transaction(persist);
 }
 export async function appendEvent(id: string, message: string) {
-  const event = JSON.stringify([{ at: new Date().toISOString(), message }]);
-  await db
-    .update(testRuns)
-    .set({ events: sql`${testRuns.events} || ${event}::jsonb` })
-    .where(eq(testRuns.id, id));
+  return runWrite(id, async (tx) => {
+    const event = JSON.stringify([{ at: new Date().toISOString(), message }]);
+    await tx
+      .update(testRuns)
+      .set({ events: sql`${testRuns.events} || ${event}::jsonb` })
+      .where(eq(testRuns.id, id));
+
+    const lease = leaseScope.getStore();
+    const [run] = await tx.select().from(testRuns).where(eq(testRuns.id, id));
+    await tx
+      .insert(automationRunEvents)
+      .values({ runId: id, attempt: run.attempt, sequence: run.events.length, message });
+    void lease;
+  });
 }
 export async function savePlan(id: string, plan: TestRun['plan']) {
-  await db.update(testRuns).set({ plan }).where(eq(testRuns.id, id));
+  return runWrite(id, async (tx) => {
+    await tx.update(testRuns).set({ plan }).where(eq(testRuns.id, id));
+  });
+}
+export async function heartbeat(id: string) {
+  const lease = leaseScope.getStore();
+  if (!lease || lease.runId !== id) return;
+  return (await import('./scheduler')).renewLease(lease);
+}
+export async function requestCancellation(id: string) {
+  await db.transaction(async (tx) => {
+    const [run] = await tx.select().from(testRuns).where(eq(testRuns.id, id)).for('update');
+    if (!run || !isActiveRun(run.status)) throw new WorkspaceError('该测试已结束或不存在。', 409);
+    await tx
+      .update(testRuns)
+      .set({
+        cancelRequested: true,
+        ...(run.status === 'queued'
+          ? { status: 'cancelled' as const, finishedAt: new Date().toISOString() }
+          : {}),
+      })
+      .where(eq(testRuns.id, id));
+  });
+}
+export async function finishRun(
+  id: string,
+  status: TestRun['status'],
+  startedAt: string,
+  error?: string,
+) {
+  return runWrite(id, async (tx) => {
+    const steps = await tx
+      .select({ replayable: runSteps.replayable, status: runSteps.status })
+      .from(runSteps)
+      .where(eq(runSteps.runId, id));
+    const [run] = await tx
+      .select({
+        target: testRuns.targetSnapshot,
+        environment: testRuns.environmentSnapshot,
+        complete: testRuns.evidenceComplete,
+      })
+      .from(testRuns)
+      .where(eq(testRuns.id, id));
+    const compatible =
+      run?.target?.platform === 'web' ||
+      !run?.target ||
+      ['osVersion', 'driverVersion', 'buildSha256', 'viewport'].every(
+        (key) => !!run.environment?.[key],
+      );
+    const finishedAt = new Date().toISOString();
+    await tx
+      .update(testRuns)
+      .set({
+        status: sql`case when ${testRuns.cancelRequested} then 'cancelled' else ${status} end`,
+        finishedAt,
+        durationMs: Date.parse(finishedAt) - Date.parse(startedAt),
+        error,
+        replayable: sql`not ${testRuns.cancelRequested} and ${status === 'passed' && run?.complete && compatible && steps.length > 0 && steps.every((step) => step.replayable && step.status === 'passed')}`,
+      })
+      .where(and(eq(testRuns.id, id), inArray(testRuns.status, activeRunStatuses)));
+    await tx
+      .update(runSteps)
+      .set({
+        status: 'failed',
+        finishedAt,
+        error: error || '执行中断',
+        durationMs: sql`greatest(0, round(extract(epoch from (${finishedAt}::timestamptz - ${runSteps.startedAt})) * 1000))::integer`,
+      })
+      .where(and(eq(runSteps.runId, id), eq(runSteps.status, 'running')));
+  });
 }
 export async function insertStep(step: ExecutionStep) {
-  await db.insert(runSteps).values(step);
+  return runWrite(step.runId, async (tx) => {
+    await tx.insert(runSteps).values(step);
+  });
 }
 export async function finishStep(id: string, patch: Partial<ExecutionStep>) {
-  await db.update(runSteps).set(patch).where(eq(runSteps.id, id));
+  const [existing] = await db
+    .select({ runId: runSteps.runId })
+    .from(runSteps)
+    .where(eq(runSteps.id, id));
+  if (!existing) throw new WorkspaceError('步骤不存在', 404);
+
+  return runWrite(existing.runId, async (tx) => {
+    await tx.update(runSteps).set(patch).where(eq(runSteps.id, id));
+  });
 }
 export async function insertArtifact(artifact: RunArtifact, path: string) {
-  await db.insert(runArtifacts).values({ ...artifact, path });
+  const stored = await storeArtifactFile(artifact.runId, artifact.id, path, artifact.contentType);
+  try {
+    return await runWrite(artifact.runId, async (tx) => {
+      await tx.insert(runArtifacts).values({ ...artifact, path: stored.path });
+    });
+  } catch (error) {
+    await stored
+      .rollback()
+      .catch((cleanupError) => console.error('Artifact cleanup failed', cleanupError));
+    throw error;
+  }
 }
 export async function getArtifact(runId: string, id: string) {
   const [artifact] = await db
@@ -225,4 +410,18 @@ export async function getArtifact(runId: string, id: string) {
     .where(and(eq(runArtifacts.runId, runId), eq(runArtifacts.id, id)));
   if (!artifact) throw new WorkspaceError('画面附件不存在。', 404);
   return artifact;
+}
+
+export { listRecordingVersions, saveRecordingVersion } from './recordings';
+
+export async function appendBrowserLogs(id: string, logs: import('../types').BrowserLog[]) {
+  return runWrite(id, async (tx) => {
+    if (!logs.length) return;
+    await tx
+      .update(testRuns)
+      .set({
+        browserLogs: sql`${testRuns.browserLogs} || ${JSON.stringify(logs)}::jsonb`,
+      })
+      .where(eq(testRuns.id, id));
+  });
 }

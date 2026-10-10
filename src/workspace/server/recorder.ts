@@ -1,13 +1,18 @@
+import { SecretInputs } from '@/automation/platform/inputs';
 import { randomUUID } from 'node:crypto';
 import { chmod, mkdir, writeFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { BrowserContext, Page } from 'playwright';
 import type { ExecutionStep, RunArtifact, StepSignal, TestRun } from '../types';
 import { insertArtifact, insertStep, finishStep } from './store';
+import { BrowserLogs } from './browserLogs';
 import { recordAction } from './locator';
 import { artifactRoot } from './artifactStorage';
 export class RunRecorder {
   private page?: Page;
+  private secrets: SecretInputs;
+  private logs: BrowserLogs;
+  private activeSteps = new Map<Page, string>();
   private pages = new Map<Page, string>();
   private steps = new Map<string, ExecutionStep>();
   private sequence = 0;
@@ -18,6 +23,16 @@ export class RunRecorder {
   private stopping?: Promise<void>;
   readonly directory: string;
   constructor(private run: TestRun) {
+    this.secrets = new SecretInputs(run.targetSnapshot?.inputs);
+    this.logs = new BrowserLogs(
+      run.id,
+      run.startedAt,
+      (page) => ({
+        pageId: this.pageId(page),
+        stepId: this.activeSteps.get(page),
+      }),
+      this.secrets,
+    );
     this.directory = join(artifactRoot(), run.id);
   }
   pageId = (page: Page) => {
@@ -39,9 +54,11 @@ export class RunRecorder {
   }
   async start(context: BrowserContext) {
     await this.prepare();
+    this.logs.start(context);
     context.pages().forEach(this.onPage);
-    await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
     context.on('page', this.onPage);
+    if (!this.secrets.enabled)
+      await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
     this.timer = setInterval(() => {
       const page = this.activePage();
       if (page && !this.livePending) {
@@ -59,6 +76,7 @@ export class RunRecorder {
   onStep = async (event: StepSignal, page: Page) => {
     if (this.captureError) throw this.captureError;
     if (event.phase === 'start') {
+      this.activeSteps.set(page, event.id);
       const recorded = event.action
         ? await recordAction(page, event.action).catch(() => ({
             action: event.action!,
@@ -82,6 +100,7 @@ export class RunRecorder {
         action: recorded?.action,
         replayable: recorded?.replayable ?? true,
         assertion: event.assertion,
+        platformAssertion: event.platformAssertion,
         playwrightAssertion: event.playwrightAssertion,
         condition: event.condition,
       };
@@ -101,6 +120,7 @@ export class RunRecorder {
         error: event.error,
       });
       await this.capture(page, 'after', event.id);
+      this.activeSteps.delete(page);
     }
   };
   capture(page: Page, stage: RunArtifact['stage'], stepId?: string) {
@@ -111,7 +131,17 @@ export class RunRecorder {
       const capturedAt = new Date().toISOString();
       let bytes: Buffer;
       try {
-        bytes = await page.screenshot({ type: 'jpeg', quality: 72, timeout: 3000 });
+        bytes = await page.screenshot({
+          type: 'jpeg',
+          quality: 72,
+          timeout: 3000,
+          mask: this.secrets.enabled
+            ? [
+                page.locator('input[type=password], [data-caseforge-secret]'),
+                ...this.secrets.maskValues.map((value) => page.getByText(value, { exact: false })),
+              ]
+            : undefined,
+        });
       } catch (error) {
         if (page.isClosed() || /Target.*closed|navigation|Execution context/.test(String(error)))
           return;
@@ -136,11 +166,15 @@ export class RunRecorder {
         path,
       );
     });
-    this.queue = operation.catch(() => {});
+    this.queue = operation.catch((error) => {
+      this.captureError ??= error;
+    });
     return operation;
   }
   stop(context: BrowserContext, interrupted = false) {
-    return (this.stopping ??= this.archive(context, interrupted));
+    return (this.stopping ??= this.archive(context, interrupted).finally(() =>
+      this.logs.stop(context),
+    ));
   }
   private async archive(context: BrowserContext, interrupted: boolean) {
     if (this.timer) clearInterval(this.timer);
@@ -158,7 +192,7 @@ export class RunRecorder {
     const page = this.activePage();
     if (!interrupted && page) await attempt(() => this.capture(page, 'final'));
     const trace = join(this.directory, 'trace.zip');
-    if (!interrupted) {
+    if (!interrupted && !this.secrets.enabled) {
       await attempt(async () => {
         await context.tracing.stop({ path: trace });
         await this.addFile(

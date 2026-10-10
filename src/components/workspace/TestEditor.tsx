@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { TestCase } from '@/workspace/types';
 import { requestJson as api } from '@/client/api';
 import { Dialog } from '../shared/Dialog';
@@ -18,10 +18,46 @@ export function TestEditor({
 }) {
   const [name, setName] = useState(test ? `${test.name}${duplicate ? '（副本）' : ''}` : '');
   const [url, setUrl] = useState(test?.url || '');
+  const native = test?.target && test.target.platform !== 'web' ? test.target : undefined;
+  const [platform, setPlatform] = useState<'web' | 'android' | 'ios'>(
+    test?.target?.platform ?? 'web',
+  );
+  const [webProfile, setWebProfile] = useState<string>(
+    test?.target?.platform === 'web'
+      ? test.target.deviceProfile
+      : test
+        ? 'legacy-desktop'
+        : 'Pixel 7',
+  );
+  const [appId, setAppId] = useState(native?.appId || '');
+  const [deviceProfileId, setDeviceProfileId] = useState(native?.deviceProfileId || '');
+  const [buildArtifactId, setBuildArtifactId] = useState(native?.buildArtifactId || '');
+  const [resetPolicy, setResetPolicy] = useState<'preserve' | 'clear-data' | 'reinstall'>(
+    native?.resetPolicy || 'preserve',
+  );
+  const [launchUrl, setLaunchUrl] = useState(native?.launchUrl || '');
+  const [nativeVideo, setNativeVideo] = useState(native?.evidence?.video || false);
+  const [nativeTrace, setNativeTrace] = useState(native?.evidence?.trace || false);
+  const [nativeLogs, setNativeLogs] = useState(native?.evidence?.logs || false);
+  const [inputRefs, setInputRefs] = useState(JSON.stringify(test?.target?.inputs || {}, null, 2));
+  const [builds, setBuilds] = useState<
+    { id: string; platform: string; appId: string; sha256: string }[]
+  >([]);
+  const [deviceResources, setDeviceResources] = useState<
+    { id: string; platform: string; profileId: string; status: string }[]
+  >([]);
   const [goal, setGoal] = useState(test?.goal || '');
   const [tags, setTags] = useState(test?.tags.join(', ') || '');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  useEffect(() => {
+    void api<{ builds: typeof builds }>('/api/builds')
+      .then((data) => setBuilds(data.builds))
+      .catch(() => {});
+    void api<{ resources: typeof deviceResources }>('/api/resources')
+      .then((data) => setDeviceResources(data.resources))
+      .catch(() => {});
+  }, []);
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
@@ -33,7 +69,32 @@ export function TestEditor({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          url: url.trim(),
+          ...(platform === 'web'
+            ? {
+                url: url.trim(),
+                target: {
+                  schemaVersion: 1,
+                  platform,
+                  url: url.trim(),
+                  browser: webProfile === 'iPhone 13' ? 'webkit' : 'chromium',
+                  deviceProfile: webProfile,
+                  inputs: JSON.parse(inputRefs),
+                },
+              }
+            : {
+                target: {
+                  schemaVersion: 1,
+                  platform,
+                  appId,
+                  deviceProfileId,
+                  inputs: JSON.parse(inputRefs),
+                  resetPolicy,
+                  evidence: { video: nativeVideo, trace: nativeTrace, logs: nativeLogs },
+                  ...(buildArtifactId ? { buildArtifactId } : {}),
+                  ...(launchUrl.trim() ? { launchUrl: launchUrl.trim() } : {}),
+                },
+              }),
+
           goal,
           tags: tags
             .split(/[,，]/)
@@ -88,16 +149,187 @@ export function TestEditor({
             />
           </label>
           <label className="ws-label">
-            网站地址
-            <input
+            平台
+            <select
               className="ws-input"
-              required
-              type="url"
-              value={url}
+              aria-label="平台"
+              value={platform}
               disabled={saving}
-              onChange={(event) => setUrl(event.target.value)}
-              placeholder="https://your-app.com"
+              onChange={(event) => setPlatform(event.target.value as typeof platform)}
+            >
+              <option value="web">Web · 移动浏览器</option>
+              <option value="android">Android · 原生应用</option>
+              <option value="ios">iOS · 原生应用</option>
+            </select>
+          </label>
+          {platform === 'web' ? (
+            <>
+              <label className="ws-label">
+                网站地址
+                <input
+                  className="ws-input"
+                  required
+                  type="url"
+                  value={url}
+                  disabled={saving}
+                  onChange={(event) => setUrl(event.target.value)}
+                  placeholder="https://your-app.com"
+                />
+              </label>
+              <label className="ws-label">
+                浏览器与设备
+                <select
+                  className="ws-input"
+                  aria-label="浏览器与设备"
+                  value={webProfile}
+                  disabled={saving}
+                  onChange={(event) => setWebProfile(event.target.value)}
+                >
+                  <option value="Pixel 7">Pixel 7 · Chromium</option>
+                  <option value="iPhone 13">iPhone 13 · WebKit</option>
+                  {webProfile === 'legacy-desktop' && (
+                    <option value="legacy-desktop">历史桌面 Chromium</option>
+                  )}
+                </select>
+              </label>
+            </>
+          ) : (
+            <>
+              <label className="ws-label">
+                应用标识
+                <input
+                  className="ws-input"
+                  required
+                  value={appId}
+                  disabled={saving}
+                  onChange={(event) => setAppId(event.target.value)}
+                  placeholder="com.example.app"
+                />
+              </label>
+              <label className="ws-label">
+                设备配置
+                <select
+                  className="ws-input"
+                  required
+                  aria-label="设备配置"
+                  value={deviceProfileId}
+                  disabled={saving}
+                  onChange={(event) => setDeviceProfileId(event.target.value)}
+                >
+                  <option value="">选择已登记的设备配置</option>
+                  {deviceResources
+                    .filter((resource) => resource.platform === platform)
+                    .map((resource) => (
+                      <option key={resource.id} value={resource.profileId}>
+                        {resource.profileId} ·{' '}
+                        {resource.status === 'quarantined'
+                          ? '隔离中'
+                          : resource.status === 'busy'
+                            ? '使用中'
+                            : '可用'}
+                      </option>
+                    ))}
+                  {deviceProfileId &&
+                    !deviceResources.some(
+                      (resource) =>
+                        resource.profileId === deviceProfileId && resource.platform === platform,
+                    ) && <option value={deviceProfileId}>{deviceProfileId} · 未连接</option>}
+                </select>
+              </label>
+              <label className="ws-label">
+                应用构建
+                <select
+                  className="ws-input"
+                  aria-label="应用构建"
+                  value={buildArtifactId}
+                  disabled={saving}
+                  onChange={(event) => setBuildArtifactId(event.target.value)}
+                >
+                  <option value="">使用设备上已安装的应用</option>
+                  {builds
+                    .filter((build) => build.platform === platform && build.appId === appId)
+                    .map((build) => (
+                      <option key={build.id} value={build.id}>
+                        {build.appId} · {build.sha256.slice(0, 12)}
+                      </option>
+                    ))}
+                  {buildArtifactId && !builds.some((build) => build.id === buildArtifactId) && (
+                    <option value={buildArtifactId}>{buildArtifactId} · 不可用</option>
+                  )}
+                </select>
+              </label>
+              <label className="ws-label">
+                初始化策略
+                <select
+                  className="ws-input"
+                  aria-label="初始化策略"
+                  value={resetPolicy}
+                  disabled={saving}
+                  onChange={(event) => setResetPolicy(event.target.value as typeof resetPolicy)}
+                >
+                  <option value="preserve">保留应用数据</option>
+                  <option value="clear-data">清除应用数据</option>
+                  <option value="reinstall">重新安装所选构建</option>
+                </select>
+              </label>
+              <fieldset className="space-y-2 text-xs text-page-muted">
+                <legend className="mb-2">诊断附件</legend>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={nativeVideo}
+                    disabled={saving}
+                    onChange={(event) => setNativeVideo(event.target.checked)}
+                  />{' '}
+                  视频
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={nativeTrace}
+                    disabled={saving}
+                    onChange={(event) => setNativeTrace(event.target.checked)}
+                  />{' '}
+                  设备 trace
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={nativeLogs}
+                    disabled={saving}
+                    onChange={(event) => setNativeLogs(event.target.checked)}
+                  />{' '}
+                  应用日志
+                </label>
+              </fieldset>
+              <label className="ws-label">
+                启动链接（可选）
+                <input
+                  className="ws-input"
+                  value={launchUrl}
+                  disabled={saving}
+                  onChange={(event) => setLaunchUrl(event.target.value)}
+                  placeholder="myapp://login"
+                />
+              </label>
+              <p className="text-xs text-page-muted">
+                设备繁忙时会排队。重新安装及 iOS 清除数据需要选择应用构建。
+              </p>
+            </>
+          )}
+          <label className="ws-label">
+            输入引用（JSON，可选）
+            <textarea
+              className="ws-input min-h-24 font-mono text-xs"
+              aria-label="输入引用（JSON，可选）"
+              value={inputRefs}
+              disabled={saving}
+              onChange={(event) => setInputRefs(event.target.value)}
             />
+            <span className="text-xs text-page-muted">
+              步骤中用 {'${input.name}'} 引用输入。普通输入：{'{"name":{"value":"Ada"}}'}；密码：
+              {'{"password":{"secretRef":"LOGIN_PASSWORD"}}'}。密钥由 worker 配置。
+            </span>
           </label>
           <label className="ws-label">
             测试步骤与预期结果
