@@ -1,6 +1,6 @@
 # testdog
 
-品牌素材位于 `public/brand`，缺省页插画位于 `public/illustrations`，使用陶土橙配色与小狗验证勾标识。浏览器图标位于 `src/app/icon.svg`。可打开 [素材预览](public/brand/preview.html) 或访问 `/brand/preview.html` 查看整套设计。为了兼容现有部署，`CASEFORGE_*` 环境变量、数据库名称和历史证据格式继续沿用。
+品牌素材位于 `public/brand`，缺省页插画位于 `public/illustrations`，正式采用暖陶土橙侧脸猎犬标识，验证勾融入垂耳。浏览器图标位于 `src/app/icon.svg`。可打开 [素材预览](public/brand/preview.html) 或访问 `/brand/preview.html` 查看整套设计。为了兼容现有部署，`CASEFORGE_*` 环境变量、数据库名称和历史证据格式继续沿用。
 
 基于 Next.js、PostgreSQL、Redis、Playwright 和 DeepSeek 的自然语言测试工作台。编写用例、录制执行、观察浏览器画面、查看逐步证据，并按记录重放操作。
 

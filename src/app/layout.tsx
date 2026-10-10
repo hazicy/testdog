@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'testdog — 用自然语言，让测试发生',
+  title: 'Testdog',
   description:
     '用自然语言编写测试用例，让 AI 规划操作、Playwright 执行浏览器任务，以页面证据验证结果。testdog，让每一次测试更简单。',
 };

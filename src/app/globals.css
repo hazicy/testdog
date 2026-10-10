@@ -7,13 +7,13 @@
   /* Page and brand */
   --page: #faf9f6;
   --ink: #23241f;
-  --brand: #b84c2e;
+  --brand: #b45736;
   --brand-foreground: #ffffff;
-  --brand-hover: #9e3f25;
-  --brand-link: #cf4f2e;
-  --brand-active: #a64227;
-  --brand-soft: #faf0eb;
-  --brand-line: #d9b4a7;
+  --brand-hover: #99482e;
+  --brand-link: #b45736;
+  --brand-active: #a14b30;
+  --brand-soft: #faf1eb;
+  --brand-line: #d8b8a8;
 
   /* Surfaces, controls and text */
   --surface: #fffefa;
