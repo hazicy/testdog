@@ -5,10 +5,11 @@ import { Select } from '@/components/ui/Select';
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TestCase, TestRun, RunSummary } from '@/workspace/types';
 import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
 import { requestJson as api } from '@/client/api';
+import { useRealtime } from '@/client/useRealtime';
 import { usePolling } from '@/client/usePolling';
 import { downloadRunReport } from '@/client/download';
 import { TestEditor } from './TestEditor';
@@ -115,7 +116,15 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
     },
     [isTests],
   );
-  const refresh = usePolling(load, running ? 2000 : 15000);
+  const realtimeRefresh = useRef<() => Promise<void>>(async () => {});
+  const connected = useRealtime('/api/events', () => {
+    void realtimeRefresh.current();
+  });
+  const refresh = usePolling(load, connected ? null : running ? 10000 : 30000);
+
+  useEffect(() => {
+    realtimeRefresh.current = refresh;
+  }, [refresh]);
 
   useEffect(() => {
     if (selectedId) router.replace(`/runs/${selectedId}`);
@@ -531,7 +540,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
             <span
               className={`h-1.5 w-1.5 rounded-full ${running ? 'bg-activity-running' : 'bg-activity-idle'}`}
             />
-            {running ? '执行中 · 每 2 秒更新' : '执行记录持久保存'}
+            {running ? (connected ? '执行中 · 实时更新' : '执行中 · 自动刷新') : '执行记录持久保存'}
           </span>
         </div>
       </section>

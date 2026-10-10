@@ -90,6 +90,7 @@ export const testRuns = pgTable(
     executingAt: timestamp({ withTimezone: true, mode: 'string' }),
     finalizingAt: timestamp({ withTimezone: true, mode: 'string' }),
     errorCode: text(),
+    realtimeRevision: integer().notNull().default(0),
     heartbeatAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     startedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     finishedAt: timestamp({ withTimezone: true, mode: 'string' }),
@@ -280,3 +281,24 @@ export const automationBuilds = pgTable('automation_builds', {
   path: text().notNull(),
   createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 });
+
+// Durable notification outbox; published entries remain briefly for SSE catch-up.
+export const realtimeOutbox = pgTable(
+  'realtime_outbox',
+  {
+    id: bigserial({ mode: 'number' }).primaryKey(),
+    runId: uuid().references(() => testRuns.id, { onDelete: 'cascade' }),
+    revision: integer(),
+    kind: text().notNull(),
+    data: jsonb().$type<Record<string, unknown>>().notNull(),
+    summary: boolean().notNull().default(false),
+    createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    publishedAt: timestamp({ withTimezone: true, mode: 'string' }),
+  },
+  (table) => [
+    uniqueIndex('realtime_outbox_run_revision_idx').on(table.runId, table.revision),
+    index('realtime_outbox_pending_idx')
+      .on(table.id)
+      .where(sql`${table.publishedAt} is null`),
+  ],
+);

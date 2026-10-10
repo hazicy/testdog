@@ -160,7 +160,7 @@ test('stops frame playback in video mode and pauses video when leaving execution
   await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
 });
 
-test('conditional polling keeps unchanged details and receives the completed execution', async ({
+test('fallback polling keeps unchanged details and receives the completed execution', async ({
   page,
 }) => {
   let completed = false;
@@ -178,15 +178,16 @@ test('conditional polling keeps unchanged details and receives the completed exe
       headers: { ETag: completed ? '"done"' : '"running"' },
     });
   });
+  await page.route(`**/api/runs/${run.id}/events?*`, (route) => route.fulfill({ status: 503 }));
   await page.clock.install();
   await page.goto(`/runs/${run.id}`);
   await expect(page.getByText('执行中', { exact: true })).toBeVisible();
   await page.clock.pauseAt(new Date(Date.now() + 3600000));
-  await page.clock.fastForward(1500);
+  await page.clock.fastForward(5000);
   await expect.poll(() => conditions.includes('"running"')).toBe(true);
   await expect(page.getByRole('heading', { name: saved.name, exact: true })).toBeVisible();
   completed = true;
-  await page.clock.fastForward(1500);
+  await page.clock.fastForward(5000);
   await expect(page.getByRole('button', { name: '重放操作', exact: true })).toBeVisible();
 });
 
@@ -653,4 +654,65 @@ test('plan subflows retain both branch paths, shared references and external dep
   await expect(page.getByRole('button', { name: '查看节点 login', exact: true })).toBeInViewport();
   await expect(detail).toContainText('预期：共享步骤完成');
   expect(errors).toEqual([]);
+});
+
+test('applies SSE step updates and stops polling while connected', async ({ page }) => {
+  const activeRun = {
+    ...run,
+    status: 'running' as const,
+    finishedAt: undefined,
+    durationMs: undefined,
+    steps: [],
+    realtimeRevision: 1,
+  };
+  let reads = 0;
+
+  await page.route(`**/api/runs/${run.id}`, (route) => {
+    reads++;
+
+    return route.fulfill({ json: { run: activeRun } });
+  });
+  await page.addInitScript((snapshot) => {
+    const streams: EventTarget[] = [];
+
+    Object.assign(window, { __caseforgeStreams: streams });
+    class FakeEventSource extends EventTarget {
+      onerror = null;
+      constructor() {
+        super();
+        streams.push(this);
+        setTimeout(() => {
+          this.dispatchEvent(
+            new MessageEvent('snapshot', { data: JSON.stringify({ run: snapshot }) }),
+          );
+          this.dispatchEvent(new MessageEvent('ready', { data: '{}' }));
+        }, 0);
+      }
+      close() {}
+    }
+    Object.assign(window, { EventSource: FakeEventSource });
+  }, activeRun);
+  await page.goto(`/runs/${run.id}`);
+  await expect(page.getByText('执行中', { exact: true })).toBeVisible();
+  await page.waitForFunction(
+    () =>
+      (window as unknown as { __caseforgeStreams: EventTarget[] }).__caseforgeStreams.length > 0,
+  );
+  await page.evaluate((step) => {
+    const streams = (window as unknown as { __caseforgeStreams: EventTarget[] }).__caseforgeStreams;
+
+    streams.at(-1)!.dispatchEvent(
+      new MessageEvent('updates', {
+        data: JSON.stringify([
+          { kind: 'step', revision: 2, data: { ...step, title: '推送新增步骤' } },
+        ]),
+      }),
+    );
+  }, run.steps[0]);
+  await expect(
+    page.getByRole('region', { name: '执行步骤' }).getByRole('button', { name: /推送新增步骤/ }),
+  ).toBeVisible();
+  // Cross the fallback interval to verify a healthy stream disabled periodic reads.
+  await page.waitForTimeout(5500);
+  expect(reads).toBe(1);
 });

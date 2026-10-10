@@ -1,6 +1,6 @@
 # CaseForge
 
-基于 Next.js、PostgreSQL、Playwright 和 DeepSeek 的自然语言测试工作台。编写用例、录制执行、观察浏览器画面、查看逐步证据，并按记录重放操作。
+基于 Next.js、PostgreSQL、Redis、Playwright 和 DeepSeek 的自然语言测试工作台。编写用例、录制执行、观察浏览器画面、查看逐步证据，并按记录重放操作。
 
 ## 本地运行
 
@@ -10,7 +10,7 @@
 pnpm install
 cp .env.example .env
 # 配置 DATABASE_URL 和 OPENAI_API_KEY
-# 使用现有开发数据库，或启动本地 PostgreSQL：
+# 启动本地 PostgreSQL 和 Redis：
 docker compose up -d
 pnpm db:migrate
 pnpm exec playwright install chromium webkit
@@ -27,7 +27,7 @@ pnpm worker
 
 工作台使用 PostgreSQL 存储用例、执行快照、步骤和附件元数据。图片、视频和 Trace 存在 `.automation/artifacts`；可设置 `CASEFORGE_DATA_DIR` 指定附件数据目录。旧版本的 `.automation/workspace.json` 不再作为工作台数据源，原文件不会被删除。
 
-每次执行保存用例快照。编辑或删除用例不会改变历史结果；删除用例后，历史记录仍可回看和重放。录制中的页面每秒采样画面，界面每 1.5 秒读取最新执行详情，按钮操作前后另外保存截图。视频和 Trace 在执行结束时完成归档。运行中可以停止执行。
+每次执行保存用例快照。编辑或删除用例不会改变历史结果；删除用例后，历史记录仍可回看和重放。录制中的页面仅在有人观看实时画面时采样，默认每 3 秒一次；界面通过 SSE 接收执行增量，操作前后另外保存永久证据截图。实时预览只保留 Redis 中的最新帧，不进入历史回放时间线。视频和 Trace 在执行结束时完成归档。运行中可以停止执行。
 
 “画面回看”播放保存的画面或录像；“重放操作”创建新的执行，使用记录中的稳定定位器、输入值和页面编号执行原动作顺序，重新验证原断言与条件分支，不调用模型重新规划动作。自然语言断言和分支验证仍需要模型；编辑器也支持直接执行原生 Playwright 断言。原始录制要求成功且每步均可稳定定位；失败录制可修正为独立版本后重放。编辑版本与执行快照保存在数据库，原始录制保持完整。重放可再次影响被测应用。
 
@@ -42,6 +42,24 @@ pnpm worker
 Web 使用 Playwright mobile、Android/iOS 使用 agent-device 的架构见 [多平台自动化架构](docs/automation-architecture.md)，包含会话接口、设备调度、数据迁移、重放规则与实施验收。实现与验收证据、部署切换见 [实施记录](docs/automation-implementation.md)。
 
 API 将任务持久化入队，独立常驻 Node worker 通过 PostgreSQL 行锁领取任务，每个浏览器 slot 或设备同一时间只执行一条测试。每 5 秒更新租约；60 秒未续约的执行标记为中断。每次执行最多 5 分钟，超时关闭浏览器并保存cp失败结果。当前部署适用于有本地持久磁盘的 Node 服务器；不适用于会冻结后台任务或没有持久磁盘的短生命周期函数。
+
+## 实时更新与 Redis
+
+API 和 worker 配置相同的 `REDIS_URL`、`CASEFORGE_REDIS_PREFIX`。本地 Compose 提供绑定在 localhost 的 Redis 7，使用 128 MB 内存上限及 LRU 淘汰；只承载可丢弃的实时数据，无需持久化。跨主机部署使用共享 Redis 服务，配置访问控制，按环境使用独立前缀；Redis Pub/Sub 不按逻辑数据库编号隔离。
+
+PostgreSQL 仍负责任务调度、执行租约和永久证据。数据库触发器在业务事务内写入 `realtime_outbox`，API/worker 每 500ms 发布待发送通知。失败保留待发送项；成功记录保留一小时用于详情增量恢复，未发布记录最多保留 24 小时；超出保留范围通过快照恢复，避免长期中断时无限积压。通知可能重复，客户端按运行版本去重。心跳更新不生成业务事件；列表不接收截图、步骤、日志通知。详情通过 `/api/runs/:id/events` 接收快照、步骤、证据和日志增量，工作区通过 `/api/events` 接收列表失效通知。
+
+SSE 重连从一致性快照恢复；连接中每 15 秒校验运行版本或列表事件标记，补齐丢失通知，事件有缺口时重取快照。每页共用一条连接，页面隐藏后关闭，恢复可见后重新同步；终态关闭详情连接。未配置 Redis 或连接失败时，运行中详情每 5 秒、活动列表每 10 秒、空闲列表每 30 秒降级轮询，历史详情不自动轮询。执行耗时由客户端计时。
+
+实时画面只有处于执行视图、跟随最新画面且选择截图模式的可见页面才申请观看租约。每位观看者独立登记，45 秒到期，多位观看者共享采集。`CASEFORGE_PREVIEW_INTERVAL_MS` 默认为 3000，最低 1000；执行步骤或证据持久化繁忙时跳过采集。最新帧存 Redis 二进制值，60 秒到期、单帧最多 2 MB，经 `/api/runs/:id/preview` 鉴权读取。预览失败和 Redis 中断不影响执行结果；必要证据失败仍使归档不完整。原生密钥运行沿用不采集 live 画面的规则。
+
+升级时先排空旧 worker，执行 `pnpm db:migrate`，配置 Redis，再启动新版 API 和 worker。反向代理需关闭 SSE 响应缓冲和缓存，并将空闲超时设置为大于 15 秒，推荐 HTTP/2。Redis 没有启动时仍可运行测试并保存证据，但不会产生临时预览。
+
+隔离 Redis 集成验证会启动临时本地 Redis，使用随机端口和独立 key 前缀，不访问开发数据库：
+
+```bash
+CASEFORGE_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run src/workspace/server/realtime.integration.test.ts
+```
 
 ## 目录
 

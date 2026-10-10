@@ -1,3 +1,4 @@
+import { previewInterval } from '@/workspace/server/preview';
 import { EvidenceSink } from '@/workspace/server/evidenceSink';
 import { SecretInputs } from './inputs';
 import type { Browser, BrowserContext, BrowserContextOptions } from 'playwright';
@@ -93,7 +94,7 @@ export async function openPlatformRuntime(input: {
           throw new Error('设备屏幕与录制不兼容');
       }
       runtime.environment.viewport = observation.viewport;
-      if (!secrets.enabled) live = setInterval(() => recorder.sample(session), 2000);
+      if (!secrets.enabled) live = setInterval(() => recorder.sample(session), previewInterval());
 
       return runtime;
     } catch (error) {

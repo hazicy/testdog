@@ -22,8 +22,9 @@ import { runRequestSchema, testSchema } from '../validation';
 export { owner, WorkspaceError };
 const optional = <T>(value: T | null) => value ?? undefined;
 
-function runRecord(row: typeof testRuns.$inferSelect): TestRun {
+export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
   return {
+    realtimeRevision: row.realtimeRevision,
     workerId: optional(row.workerId),
     resourceId: optional(row.resourceId),
     batchId: optional(row.batchId),
@@ -58,7 +59,7 @@ function runRecord(row: typeof testRuns.$inferSelect): TestRun {
   };
 }
 
-function stepRecord(row: typeof runSteps.$inferSelect): ExecutionStep {
+export function stepRecord(row: typeof runSteps.$inferSelect): ExecutionStep {
   return {
     ...row,
     platformAction: optional(row.platformAction),
@@ -78,7 +79,7 @@ function stepRecord(row: typeof runSteps.$inferSelect): ExecutionStep {
   };
 }
 
-function artifactRecord(row: typeof runArtifacts.$inferSelect): RunArtifact {
+export function artifactRecord(row: typeof runArtifacts.$inferSelect): RunArtifact {
   const { path: _path, ...artifact } = row;
 
   void _path;
@@ -169,36 +170,37 @@ export async function listRuns(): Promise<RunSummary[]> {
   }));
 }
 
-async function getRunSnapshot(id: string): Promise<TestRun> {
-  await recoverExpiredRuns();
-  const [run] = await db.select().from(testRuns).where(eq(testRuns.id, id));
-  if (!run) throw new WorkspaceError('执行记录不存在。', 404);
-
-  return runRecord(run);
-}
-
 export async function getRun(id: string): Promise<TestRun> {
-  const run = await getRunSnapshot(id);
-  const [steps, artifacts, logs] = await Promise.all([
-    db.select().from(runSteps).where(eq(runSteps.runId, id)).orderBy(asc(runSteps.sequence)),
-    db
-      .select()
-      .from(runArtifacts)
-      .where(eq(runArtifacts.runId, id))
-      .orderBy(asc(runArtifacts.elapsedMs), asc(runArtifacts.capturedAt), asc(runArtifacts.id)),
-    db
-      .select({ data: runBrowserLogs.data })
-      .from(runBrowserLogs)
-      .where(eq(runBrowserLogs.runId, id))
-      .orderBy(asc(runBrowserLogs.sequence)),
-  ]);
+  await recoverExpiredRuns();
 
-  return {
-    ...run,
-    steps: steps.map(stepRecord),
-    artifacts: artifacts.map(artifactRecord),
-    browserLogs: [...(run.browserLogs ?? []), ...logs.map((log) => log.data)],
-  };
+  return db.transaction(
+    async (tx) => {
+      const [row] = await tx.select().from(testRuns).where(eq(testRuns.id, id));
+      if (!row) throw new WorkspaceError('执行记录不存在。', 404);
+      const run = runRecord(row);
+      const [steps, artifacts, logs] = await Promise.all([
+        tx.select().from(runSteps).where(eq(runSteps.runId, id)).orderBy(asc(runSteps.sequence)),
+        tx
+          .select()
+          .from(runArtifacts)
+          .where(eq(runArtifacts.runId, id))
+          .orderBy(asc(runArtifacts.elapsedMs), asc(runArtifacts.capturedAt), asc(runArtifacts.id)),
+        tx
+          .select({ data: runBrowserLogs.data })
+          .from(runBrowserLogs)
+          .where(eq(runBrowserLogs.runId, id))
+          .orderBy(asc(runBrowserLogs.sequence)),
+      ]);
+
+      return {
+        ...run,
+        steps: steps.map(stepRecord),
+        artifacts: artifacts.map(artifactRecord),
+        browserLogs: [...(run.browserLogs ?? []), ...logs.map((log) => log.data)],
+      };
+    },
+    { isolationLevel: 'repeatable read' },
+  );
 }
 
 export async function createRun(

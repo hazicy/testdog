@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { startOutboxPublisher, stopOutboxPublisher } from '../src/workspace/server/realtime';
+import { closeRedis } from '../src/workspace/server/redis';
 import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -37,6 +39,7 @@ for (const resource of configs) {
   if (resource.platform === 'ios' && process.platform !== 'darwin')
     throw new Error('Local iOS worker requires macOS');
 }
+startOutboxPublisher();
 let stopping = false;
 const activeIds = new Set<string>();
 for (const signal of ['SIGINT', 'SIGTERM'])
@@ -77,5 +80,7 @@ async function consume() {
 try {
   await Promise.all(Array.from({ length: concurrency }, () => consume()));
 } finally {
+  stopOutboxPublisher();
+  await closeRedis();
   await pool.end();
 }

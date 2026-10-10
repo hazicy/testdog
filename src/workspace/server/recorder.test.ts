@@ -13,6 +13,13 @@ const store = vi.hoisted(() => ({
   appendBrowserLogs: vi.fn(),
 }));
 
+const preview = vi.hoisted(() => ({
+  hasPreviewViewers: vi.fn(async () => true),
+  publishPreview: vi.fn(async () => {}),
+  previewInterval: () => 3000,
+}));
+
+vi.mock('./preview', () => preview);
 vi.mock('./store', () => store);
 import { RunRecorder } from './recorder';
 
@@ -20,6 +27,8 @@ let directory: string;
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  preview.hasPreviewViewers.mockResolvedValue(true);
+  preview.publishPreview.mockResolvedValue(undefined);
   directory = await mkdtemp(join(tmpdir(), 'caseforge-recorder-'));
   vi.stubEnv('CASEFORGE_DATA_DIR', directory);
   vi.useFakeTimers();
@@ -138,8 +147,8 @@ describe('recorder cleanup and partial archive recovery', () => {
   it('captures existing pages and returns to the main page after a popup closes', async () => {
     const { recorder, browserContext, page } = await fixture();
 
-    await vi.advanceTimersByTimeAsync(1000);
-    await vi.waitFor(() => expect(store.insertArtifact).toHaveBeenCalledTimes(1));
+    await vi.advanceTimersByTimeAsync(3000);
+    await vi.waitFor(() => expect(preview.publishPreview).toHaveBeenCalledTimes(1));
     expect(page.screenshot).toHaveBeenCalledTimes(1);
     const popup = {
       ...page,
@@ -149,12 +158,12 @@ describe('recorder cleanup and partial archive recovery', () => {
     };
 
     recorder.onPage(popup as unknown as Page);
-    await vi.advanceTimersByTimeAsync(1000);
-    await vi.waitFor(() => expect(store.insertArtifact).toHaveBeenCalledTimes(2));
+    await vi.advanceTimersByTimeAsync(3000);
+    await vi.waitFor(() => expect(preview.publishPreview).toHaveBeenCalledTimes(2));
     expect(popup.screenshot).toHaveBeenCalledTimes(1);
     popup.isClosed.mockReturnValue(true);
-    await vi.advanceTimersByTimeAsync(1000);
-    await vi.waitFor(() => expect(store.insertArtifact).toHaveBeenCalledTimes(3));
+    await vi.advanceTimersByTimeAsync(3000);
+    await vi.waitFor(() => expect(preview.publishPreview).toHaveBeenCalledTimes(3));
     expect(page.screenshot).toHaveBeenCalledTimes(2);
     await recorder.stop(browserContext);
     expect(page.screenshot).toHaveBeenCalledTimes(3);
@@ -164,12 +173,24 @@ describe('recorder cleanup and partial archive recovery', () => {
         .map(([artifact]) => artifact)
         .filter((artifact) => artifact.kind === 'screenshot')
         .map(({ pageId, stage }) => ({ pageId, stage })),
-    ).toEqual([
-      { pageId: 'page-1', stage: 'live' },
-      { pageId: 'page-2', stage: 'live' },
-      { pageId: 'page-1', stage: 'live' },
-      { pageId: 'page-1', stage: 'final' },
-    ]);
+    ).toEqual([{ pageId: 'page-1', stage: 'final' }]);
+  });
+
+  it('does not capture previews without a viewer or while steps are active', async () => {
+    const { recorder, browserContext, page } = await fixture();
+
+    preview.hasPreviewViewers.mockResolvedValue(false);
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(page.screenshot).not.toHaveBeenCalled();
+    preview.hasPreviewViewers.mockResolvedValue(true);
+    await recorder.onStep(
+      { id: randomUUID(), kind: 'assertion', title: 'Check', phase: 'start' },
+      page as unknown as Page,
+    );
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(page.screenshot).toHaveBeenCalledTimes(1);
+    expect(preview.publishPreview).not.toHaveBeenCalled();
+    await recorder.stop(browserContext);
   });
 
   it('archives trace and video and closes the context even when the final screenshot fails', async () => {
@@ -216,14 +237,12 @@ describe('recorder cleanup and partial archive recovery', () => {
     expect(context.close).toHaveBeenCalledTimes(1);
   });
 
-  it('surfaces live capture errors discovered just before an interrupted stop', async () => {
+  it('isolates preview failures from evidence and interrupted cleanup', async () => {
     const { recorder, context, browserContext, page } = await fixture();
 
     page.screenshot.mockRejectedValue(new Error('live capture failed'));
-    await vi.advanceTimersByTimeAsync(1000);
-    await expect(recorder.stop(browserContext, true)).rejects.toMatchObject({
-      cause: expect.objectContaining({ message: 'live capture failed' }),
-    });
+    await vi.advanceTimersByTimeAsync(3000);
+    await expect(recorder.stop(browserContext, true)).resolves.toBeUndefined();
     expect(context.tracing.stop).not.toHaveBeenCalled();
     expect(context.close).toHaveBeenCalledTimes(1);
     expect(store.insertArtifact.mock.calls.map(([artifact]) => artifact.kind)).toEqual(['video']);

@@ -91,6 +91,7 @@ export type BrowserLog = {
   failure?: string;
 };
 export type TestRun = {
+  realtimeRevision?: number;
   workerId?: string;
   resourceId?: string;
   batchId?: string;

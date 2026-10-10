@@ -9,6 +9,7 @@ import { BrowserLogs } from './browserLogs';
 import { recordAction } from './locator';
 import { artifactRoot } from './artifactStorage';
 import { PersistenceQueue } from './persistenceQueue';
+import { hasPreviewViewers, previewInterval, publishPreview } from './preview';
 
 export class RunRecorder {
   private page?: Page;
@@ -22,6 +23,7 @@ export class RunRecorder {
   private timer?: ReturnType<typeof setInterval>;
   private captureError?: unknown;
   private livePending = false;
+  private lastCapturedAt = 0;
   private stopping?: Promise<void>;
   readonly directory: string;
   constructor(
@@ -70,15 +72,14 @@ export class RunRecorder {
       const page = this.activePage();
       if (page && !this.livePending && !this.persistence.busy && !this.activeSteps.size) {
         this.livePending = true;
-        void this.capture(page, 'live')
-          .catch((error) => {
-            this.captureError = error;
-          })
+        void hasPreviewViewers(this.run.id)
+          .then((watching) => (watching ? this.capture(page, 'live') : undefined))
+          .catch(() => {})
           .finally(() => {
             this.livePending = false;
           });
       }
-    }, 1000);
+    }, previewInterval());
   }
   onStep = async (event: StepSignal, page: Page) => {
     if (this.captureError) throw this.captureError;
@@ -137,13 +138,20 @@ export class RunRecorder {
     if (this.stopping && stage !== 'final') return Promise.resolve();
     const operation = this.queue.then(async () => {
       if (page.isClosed()) return;
+      if (
+        stage === 'live' &&
+        (this.activeSteps.size ||
+          this.persistence.busy ||
+          Date.now() - this.lastCapturedAt < previewInterval())
+      )
+        return;
       const id = randomUUID();
       const capturedAt = new Date().toISOString();
       let bytes: Buffer;
       try {
         bytes = await page.screenshot({
           type: 'jpeg',
-          quality: 72,
+          quality: stage === 'live' ? 55 : 72,
           timeout: 3000,
           mask: this.secrets.enabled
             ? [
@@ -156,6 +164,12 @@ export class RunRecorder {
         if (page.isClosed() || /Target.*closed|navigation|Execution context/.test(String(error)))
           return;
         throw error;
+      }
+      this.lastCapturedAt = Date.now();
+      if (stage === 'live') {
+        await publishPreview(this.run.id, bytes, 'image/jpeg');
+
+        return;
       }
       const path = join(this.directory, `${id}.jpg`);
 
@@ -180,7 +194,7 @@ export class RunRecorder {
     });
 
     this.queue = operation.catch((error) => {
-      this.captureError ??= error;
+      if (stage !== 'live') this.captureError ??= error;
     });
 
     return operation;

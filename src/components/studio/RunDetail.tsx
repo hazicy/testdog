@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation';
 import type { ExecutionStep, RunArtifact, TestRun } from '@/workspace/types';
 import { createJsonReader, HttpError, requestJson as request } from '@/client/api';
 import { ErrorState } from '../shared/ErrorState';
+import { useRealtime } from '@/client/useRealtime';
+import { applyRunUpdates, type Preview, type RunUpdate } from '@/workspace/realtime';
 import { usePolling } from '@/client/usePolling';
 import { downloadRunReport } from '@/client/download';
 import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
@@ -57,6 +59,7 @@ const RecordingEditor = dynamic(
 export function RunDetail({ id }: { id: string }) {
   const router = useRouter();
   const [run, setRun] = useState<TestRun>();
+  const [preview, setPreview] = useState<Preview>();
   const [error, setError] = useState('');
   const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -79,7 +82,12 @@ export function RunDetail({ id }: { id: string }) {
       try {
         const data = await read({ signal });
         if (signal.aborted) return;
-        setRun(data.run);
+        setRun((current) =>
+          current?.id === data.run.id &&
+          (current.realtimeRevision ?? 0) > (data.run.realtimeRevision ?? 0)
+            ? current
+            : data.run,
+        );
         setNow(Date.now());
         setError('');
         setUnavailable(false);
@@ -93,7 +101,42 @@ export function RunDetail({ id }: { id: string }) {
     },
     [read],
   );
-  const refresh = usePolling(load, unavailable || (run && !isActiveRun(run.status)) ? null : 1500);
+  const wantsPreview =
+    !!run && isActiveRun(run.status) && follow && mode === 'frames' && view === 'execution';
+  const connected = useRealtime(
+    !unavailable && run?.id === id && isActiveRun(run.status)
+      ? `/api/runs/${id}/events?preview=${wantsPreview ? 1 : 0}`
+      : null,
+    (event, data) => {
+      if (event === 'snapshot') {
+        setRun((data as { run: TestRun }).run);
+        setError('');
+      } else if (event === 'updates') {
+        setRun((current) => (current ? applyRunUpdates(current, data as RunUpdate[]) : current));
+      } else if (event === 'preview') setPreview(data as Preview);
+    },
+  );
+  const refresh = usePolling(
+    load,
+    unavailable || connected || (run && !isActiveRun(run.status)) ? null : 5000,
+  );
+
+  const active = !!run && isActiveRun(run.status);
+
+  useEffect(() => {
+    if (!active) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+
+    return () => clearInterval(timer);
+  }, [active]);
+  const previewUrl =
+    wantsPreview &&
+    connected &&
+    preview &&
+    (!run?.artifacts.at(-1) ||
+      Date.parse(preview.capturedAt) > Date.parse(run.artifacts.at(-1)!.capturedAt))
+      ? `/api/runs/${id}/preview?v=${preview.version}`
+      : undefined;
   const { frames, videos, trace, stepFrames, steps } = useMemo(() => indexRun(run), [run]);
   const diagnostics =
     run?.artifacts.filter((artifact) =>
@@ -331,9 +374,9 @@ export function RunDetail({ id }: { id: string }) {
               <span className="ml-2 min-w-0 flex-1 truncate font-mono text-xs text-page-muted">
                 {currentFrame?.pageUrl || run?.url || 'Browser session'}
               </span>
-              {currentFrame && (
+              {(previewUrl || currentFrame) && (
                 <a
-                  href={asset(id, currentFrame)}
+                  href={previewUrl || (currentFrame ? asset(id, currentFrame) : undefined)}
                   target="_blank"
                   rel="noreferrer"
                   className="ws-icon-button shrink-0"
@@ -356,6 +399,16 @@ export function RunDetail({ id }: { id: string }) {
                   src={asset(id, video)}
                   controls
                   className="h-full w-full bg-preview-dark"
+                />
+              ) : previewUrl ? (
+                <Image
+                  src={previewUrl}
+                  alt="实时执行画面"
+                  width={1280}
+                  height={800}
+                  unoptimized
+                  onError={() => setPreview(undefined)}
+                  className="h-full w-full object-contain"
                 />
               ) : currentFrame ? (
                 <Image

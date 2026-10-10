@@ -1,3 +1,4 @@
+import { hasPreviewViewers, publishPreview } from './preview';
 import { join } from 'node:path';
 import { EvidenceSink } from './evidenceSink';
 import type { AutomationSession, SessionEvent } from '@/automation/platform/contracts';
@@ -9,6 +10,7 @@ export class DeviceRecorder {
   private sequence = 0;
   private started = new Map<string, number>();
   private samplePending = false;
+  private stopping = false;
   private captureFailure?: unknown;
   private captureQueue: Promise<unknown> = Promise.resolve();
   readonly directory: string;
@@ -63,15 +65,15 @@ export class DeviceRecorder {
         error: event.error,
       });
       await this.capture(session, 'after', event.id);
+      this.started.delete(event.id);
     }
   };
   sample(session: AutomationSession) {
-    if (this.samplePending) return;
+    if (this.stopping || this.samplePending || this.started.size) return;
     this.samplePending = true;
-    void this.capture(session, 'live')
-      .catch((error) => {
-        this.captureFailure = error;
-      })
+    void hasPreviewViewers(this.run.id)
+      .then((watching) => (watching ? this.capture(session, 'live') : undefined))
+      .catch(() => {})
       .finally(() => {
         this.samplePending = false;
       });
@@ -89,6 +91,7 @@ export class DeviceRecorder {
     if (failures.length) throw new AggregateError(failures, 'Native diagnostics incomplete');
   }
   async drain() {
+    this.stopping = true;
     await this.captureQueue;
     if (this.captureFailure) throw this.captureFailure;
   }
@@ -98,13 +101,20 @@ export class DeviceRecorder {
     stepId?: string,
   ) {
     const job = this.captureQueue.then(async () => {
+      if (stage === 'live') {
+        if (this.stopping || this.started.size) return;
+        const artifacts = await session.capture({ kind: 'screenshot' }, AbortSignal.timeout(3000));
+        const screenshot = artifacts.find((artifact) => artifact.kind === 'screenshot');
+        if (screenshot) await publishPreview(this.run.id, screenshot.bytes, screenshot.contentType);
+
+        return;
+      }
       await this.evidence.capture(session, { kind: 'screenshot' }, stage, stepId);
-      if (stage !== 'live')
-        await this.evidence.capture(session, { kind: 'snapshot' }, stage, stepId);
+      await this.evidence.capture(session, { kind: 'snapshot' }, stage, stepId);
     });
 
     this.captureQueue = job.catch((error) => {
-      this.captureFailure ??= error;
+      if (stage !== 'live') this.captureFailure ??= error;
     });
 
     return job;
