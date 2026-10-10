@@ -45,7 +45,7 @@ API 将任务持久化入队，独立常驻 Node worker 通过 PostgreSQL 行锁
 
 ## 实时更新与 Redis
 
-API 和 worker 配置相同的 `REDIS_URL`、`CASEFORGE_REDIS_PREFIX`。本地 Compose 提供绑定在 localhost 的 Redis 7，使用 128 MB 内存上限及 LRU 淘汰；只承载可丢弃的实时数据，无需持久化。跨主机部署使用共享 Redis 服务，配置访问控制，按环境使用独立前缀；Redis Pub/Sub 不按逻辑数据库编号隔离。
+API 和 worker 配置相同的 `REDIS_URL`、`CASEFORGE_REDIS_PREFIX`。本地 Compose 提供绑定在 `127.0.0.1:6380` 的 Redis 7（容器内部端口 6379），宿主机上的 API/worker 使用 `REDIS_URL=redis://localhost:6380`。Redis 使用 128 MB 内存上限及 LRU 淘汰；只承载可丢弃的实时数据，无需持久化。跨主机部署使用共享 Redis 服务，配置访问控制，按环境使用独立前缀；Redis Pub/Sub 不按逻辑数据库编号隔离。
 
 PostgreSQL 仍负责任务调度、执行租约和永久证据。数据库触发器在业务事务内写入 `realtime_outbox`，API/worker 每 500ms 发布待发送通知。失败保留待发送项；成功记录保留一小时用于详情增量恢复，未发布记录最多保留 24 小时；超出保留范围通过快照恢复，避免长期中断时无限积压。通知可能重复，客户端按运行版本去重。心跳更新不生成业务事件；列表不接收截图、步骤、日志通知。详情通过 `/api/runs/:id/events` 接收快照、步骤、证据和日志增量，工作区通过 `/api/events` 接收列表失效通知。
 
