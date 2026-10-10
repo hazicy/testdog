@@ -65,16 +65,19 @@ export const PlanSchema = z
     const visit = (key: string) => {
       if (active.has(key)) {
         error(`Cycle detected at node: ${key}`);
+
         return;
       }
       if (visited.has(key) || !Object.hasOwn(plan.nodes, key)) return;
       active.add(key);
       const node = plan.nodes[key];
       const refs = nodeReferences(node);
+
       refs.forEach(visit);
       active.delete(key);
       visited.add(key);
     };
+
     Object.keys(plan.nodes).forEach(visit);
   });
 
@@ -85,6 +88,7 @@ function nodeReferences(node: PlanNode): string[] {
       : node.kind === 'branch'
         ? [node.then, ...(node.otherwise ? [node.otherwise] : [])]
         : [];
+
   return [...node.dependsOn, ...children];
 }
 

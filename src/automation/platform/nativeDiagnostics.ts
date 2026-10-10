@@ -47,6 +47,7 @@ export class NativeDiagnostics {
     const inside = relative(await realpath(root), resolved);
     if (!inside || inside.startsWith('..') || isAbsolute(inside))
       throw new Error('Diagnostic path escaped its session directory');
+
     return readFile(resolved);
   }
   async capture(request: CaptureRequest, signal: AbortSignal): Promise<ArtifactDescriptor[]> {
@@ -117,6 +118,7 @@ export class NativeDiagnostics {
       ];
     }
     this.exported.set(request.kind, result);
+
     return result;
   }
   async stop(signal: AbortSignal) {

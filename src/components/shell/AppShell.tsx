@@ -11,6 +11,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (pathname === '/' || pathname === '/onboarding') return children;
   const results = pathname.startsWith('/runs');
+
   return (
     <div
       className={`workspace-shell grid min-h-dvh grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}

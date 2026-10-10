@@ -37,6 +37,7 @@ export class NativeActionPlanner implements ActionPlanner {
     const result = schema.parse(response.structuredContent);
     if (result.done === result.steps.length > 0)
       throw new Error('Expected either one action or done');
+
     return {
       done: result.done,
       steps: result.steps.map((action): PlatformAction => ({ platform: this.platform, action })),

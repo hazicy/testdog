@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { NativeActionSchema, PlatformAssertionSchema } from '@/automation/platform/contracts';
 import type { ExecutionStep } from './types';
+
 const entrySchema = z
   .strictObject({
     title: z.string().trim().min(1),
@@ -34,6 +35,7 @@ const schema = z.strictObject({
   platform: z.enum(['android', 'ios']),
   steps: z.array(entrySchema).min(1).max(200),
 });
+
 export function deviceRecordingScript(platform: 'android' | 'ios', steps: ExecutionStep[]) {
   return JSON.stringify(
     {
@@ -54,6 +56,7 @@ export function deviceRecordingScript(platform: 'android' | 'ios', steps: Execut
     2,
   );
 }
+
 export function parseDeviceRecordingScript(
   code: string,
   platform: 'android' | 'ios',
@@ -64,6 +67,7 @@ export function parseDeviceRecordingScript(
     recording.steps.some((entry) => entry.check && entry.check.platform !== platform)
   )
     throw new Error('录制平台不兼容');
+
   return recording.steps.map((entry, index) => ({
     id: `edited-device-${index + 1}`,
     runId: '',

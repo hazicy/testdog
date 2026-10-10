@@ -17,6 +17,7 @@ export function ownerProcessStopped(owner: string | null, hostId: string): boole
   if (!Number.isSafeInteger(pid) || pid <= 1) return false;
   try {
     process.kill(pid, 0);
+
     return false;
   } catch (error) {
     return (error as NodeJS.ErrnoException).code === 'ESRCH';
@@ -41,11 +42,13 @@ export async function recoverLocalResource(id: string, hostId: string) {
       );
       try {
         const page = await browser.newPage();
+
         await page.setContent('<title>CaseForge recovery</title>');
         if ((await page.title()) !== 'CaseForge recovery') return false;
       } finally {
         await browser.close();
       }
+
       return true;
     }
     if (!resource.deviceId) return false;
@@ -80,6 +83,7 @@ export async function recoverLocalResource(id: string, hostId: string) {
       });
       if (!observation.nodes.length) return false;
       const path = join(directory, 'health.png');
+
       await client.capture.screenshot({ path, signal: AbortSignal.timeout(15000) });
       const bytes = await readFile(path);
       if (!bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])))
@@ -96,6 +100,7 @@ export async function recoverLocalResource(id: string, hostId: string) {
       ...selection,
       signal: AbortSignal.timeout(15000),
     });
+
     return !after.device.claimedBy;
   });
 }

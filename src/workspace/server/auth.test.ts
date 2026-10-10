@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { workspaceAuthorized } from './auth';
+
 afterEach(() => vi.unstubAllEnvs());
 test('configured credentials protect workspace and artifact access', () => {
   vi.stubEnv('CASEFORGE_AUTH_USER', 'operator');
@@ -8,6 +9,7 @@ test('configured credentials protect workspace and artifact access', () => {
     new Request('http://localhost/api/runs/run/artifacts/artifact', {
       headers: value ? { authorization: value } : {},
     });
+
   expect(workspaceAuthorized(request())).toBe(false);
   expect(workspaceAuthorized(request('Bearer secret'))).toBe(false);
   expect(

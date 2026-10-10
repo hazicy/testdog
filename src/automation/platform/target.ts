@@ -46,6 +46,7 @@ export const TestTargetSchema = z.discriminatedUnion('platform', [
 export type TestTarget = z.infer<typeof TestTargetSchema>;
 export type WebTarget = Extract<TestTarget, { platform: 'web' }>;
 export type NativeTarget = Exclude<TestTarget, WebTarget>;
+
 export function legacyWebTarget(url: string): WebTarget {
   return {
     schemaVersion: 1,

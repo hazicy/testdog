@@ -3,10 +3,12 @@ export function createRefreshTask(load: (signal: AbortSignal) => Promise<void>) 
   const controller = new AbortController();
   let pending: Promise<void> | undefined;
   let queued = false;
+
   function refresh(force = false): Promise<void> {
     if (controller.signal.aborted) return Promise.resolve();
     if (pending) {
       if (force) queued = true;
+
       return pending;
     }
     pending = Promise.resolve()
@@ -25,7 +27,9 @@ export function createRefreshTask(load: (signal: AbortSignal) => Promise<void>) 
       .finally(() => {
         pending = undefined;
       });
+
     return pending;
   }
+
   return { refresh, dispose: () => controller.abort() };
 }

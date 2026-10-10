@@ -7,6 +7,7 @@ import { artifactResponse } from './artifactResponse';
 let directory: string;
 let root: string;
 let path: string;
+
 beforeEach(async () => {
   directory = await mkdtemp(join(tmpdir(), 'caseforge-artifacts-'));
   root = join(directory, 'artifacts');
@@ -30,11 +31,13 @@ describe('artifact delivery', () => {
       if (scenario === 'missing-root') await rm(root, { recursive: true });
       if (scenario === 'broken-link') {
         const link = join(root, 'broken.webm');
+
         await symlink(join(root, 'missing.webm'), link);
         path = link;
       }
       if (scenario === 'not-directory') path = join(path, 'child.webm');
       const response = await artifactResponse(request(), artifact(), root);
+
       expect(response.status).toBe(404);
       expect(await response.text()).toBe('Artifact unavailable');
     },
@@ -42,6 +45,7 @@ describe('artifact delivery', () => {
 
   it('streams the complete file with cache and media headers', async () => {
     const response = await artifactResponse(request(), artifact(), root);
+
     expect(response.status).toBe(200);
     expect(response.headers.get('content-length')).toBe('10');
     expect(response.headers.get('content-type')).toBe('video/webm');
@@ -59,6 +63,7 @@ describe('artifact delivery', () => {
     ['bytes=0-0', '0', 'bytes 0-0/10'],
   ])('serves %s precisely', async (range, body, contentRange) => {
     const response = await artifactResponse(request(range), artifact(), root);
+
     expect(response.status).toBe(206);
     expect(response.headers.get('content-range')).toBe(contentRange);
     expect(response.headers.get('content-length')).toBe(String(body.length));
@@ -76,6 +81,7 @@ describe('artifact delivery', () => {
     'bytes=0-9007199254740992',
   ])('rejects invalid or unsatisfiable range %s', async (range) => {
     const response = await artifactResponse(request(range), artifact(), root);
+
     expect(response.status).toBe(416);
     expect(response.headers.get('content-range')).toBe('bytes */10');
     expect(await response.text()).toBe('');
@@ -83,6 +89,7 @@ describe('artifact delivery', () => {
 
   it('provides HEAD metadata without a response body and ignores Range', async () => {
     const response = await artifactResponse(request('bytes=2-5', 'HEAD'), artifact(), root);
+
     expect(response.status).toBe(200);
     expect(response.headers.get('content-length')).toBe('10');
     expect(response.body).toBeNull();
@@ -91,20 +98,24 @@ describe('artifact delivery', () => {
   it('handles empty artifacts and rejects ranges for them', async () => {
     await writeFile(path, '');
     const response = await artifactResponse(request(), artifact(), root);
+
     expect(response.headers.get('content-length')).toBe('0');
     expect(response.body).toBeNull();
     const ranged = await artifactResponse(request('bytes=0-'), artifact(), root);
+
     expect(ranged.status).toBe(416);
     expect(ranged.headers.get('content-range')).toBe('bytes */0');
   });
 
   it('rejects paths outside the root, including symlink escapes', async () => {
     const outside = join(directory, 'secret');
+
     await writeFile(outside, 'secret');
     expect((await artifactResponse(request(), { ...artifact(), path: outside }, root)).status).toBe(
       403,
     );
     const link = join(root, 'link');
+
     await symlink(outside, link);
     expect((await artifactResponse(request(), { ...artifact(), path: link }, root)).status).toBe(
       403,
@@ -117,15 +128,18 @@ describe('artifact delivery', () => {
   it('reads a small range from a large recording without buffering the full file', async () => {
     const file = await open(path, 'w');
     const offset = 512 * 1024 * 1024;
+
     await file.write(Buffer.from('tail'), 0, 4, offset);
     await file.close();
     const response = await artifactResponse(request(`bytes=${offset}-`), artifact(), root);
+
     expect(response.headers.get('content-length')).toBe('4');
     expect(await response.text()).toBe('tail');
   });
 
   it('allows consumers to cancel a download', async () => {
     const response = await artifactResponse(request(), artifact(), root);
+
     await response.body!.cancel();
   });
 
@@ -135,11 +149,13 @@ describe('artifact delivery', () => {
       artifact(),
       root,
     );
+
     expect(video.headers.get('content-disposition')).toBe(
       'attachment; filename="video-recording.webm"',
     );
     await video.body!.cancel();
     const trace = await artifactResponse(request(), { ...artifact(), kind: 'trace' }, root);
+
     expect(trace.headers.get('content-disposition')).toBe(
       'attachment; filename="trace-recording.zip"',
     );

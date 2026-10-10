@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { saveTest, deleteTest } from '@/workspace/server/store';
 import { testSchema } from '@/workspace/validation';
 import { apiError, validId } from '@/workspace/server/http';
+
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
+
 export async function PATCH(request: Request, context: Context) {
   const { id } = await context.params;
   const parsed = testSchema.safeParse(await request.json().catch(() => null));
@@ -14,16 +16,19 @@ export async function PATCH(request: Request, context: Context) {
     );
   try {
     validId(id);
+
     return NextResponse.json({ test: await saveTest(parsed.data, id) });
   } catch (error) {
     return apiError(error);
   }
 }
+
 export async function DELETE(_request: Request, context: Context) {
   const { id } = await context.params;
   try {
     validId(id);
     await deleteTest(id);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return apiError(error);

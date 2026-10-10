@@ -97,14 +97,17 @@ export class Planner {
         if (calls.length !== 1) throw new Error('Wait must be followed by a fresh observation');
         if ('condition' in args && ['url', 'text'].includes(args.condition) && !args.value.trim())
           throw new Error('Wait condition requires a nonempty value');
+
         return StepSchema.parse({ type: 'wait', ...args });
       }
+
       return StepSchema.parse({
         type: call.name,
         target: { kind: 'ariaRef', value: 'ref' in args ? args.ref : '' },
         value: 'url' in args ? args.url : 'value' in args ? args.value : '',
       });
     });
+
     return { done: false, steps };
   }
 }

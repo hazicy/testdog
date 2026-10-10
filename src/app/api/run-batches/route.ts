@@ -5,6 +5,7 @@ import { TestTargetSchema } from '@/automation/platform/target';
 import { createRun } from '@/workspace/server/store';
 import { db } from '@/db';
 import { apiError } from '@/workspace/server/http';
+
 export const runtime = 'nodejs';
 const schema = z.strictObject({
   testId: z.uuid(),
@@ -18,6 +19,7 @@ const schema = z.strictObject({
     .min(1)
     .max(10),
 });
+
 export async function POST(request: Request) {
   const result = schema.safeParse(await request.json().catch(() => null));
   if (!result.success)
@@ -38,8 +40,10 @@ export async function POST(request: Request) {
             tx,
           ),
         );
+
       return resultRuns;
     });
+
     return NextResponse.json({ batchId, runs }, { status: 202 });
   } catch (error) {
     return apiError(error);

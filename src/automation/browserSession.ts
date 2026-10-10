@@ -20,6 +20,7 @@ export class BrowserSession {
 
   get page() {
     if (this.active.isClosed()) throw new Error('No open page in browser session');
+
     return this.active;
   }
 
@@ -60,8 +61,10 @@ export class BrowserSession {
 
   async perform(action: (page: Page) => Promise<unknown>) {
     const revision = this.revision;
+
     this.actionPage = this.page;
     await action(this.page);
+
     return revision !== this.revision;
   }
 

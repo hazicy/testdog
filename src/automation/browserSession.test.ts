@@ -8,6 +8,7 @@ describe('BrowserSession', () => {
   let browser: Browser;
   let page: Page;
   let session: BrowserSession;
+
   beforeAll(async () => {
     browser = await chromium.launch({ headless: true });
   });
@@ -32,9 +33,11 @@ describe('BrowserSession', () => {
     );
     await session.wait({ type: 'wait', condition: 'newPage', value: '', timeoutMs: 1000 });
     const popup = session.page;
+
     expect(popup).not.toBe(page);
     await popup.setContent('<h1>Video player</h1>');
     const observation = await session.observe(new Observer());
+
     expect(JSON.stringify(observation.tree)).toContain('Video player');
     await popup.close();
     expect(session.page).toBe(page);
@@ -64,6 +67,7 @@ describe('BrowserSession', () => {
       await session.perform((current) => current.getByRole('button').click());
       await session.wait({ type: 'wait', condition: 'text', value: 'Logged in', timeoutMs: 1000 });
       const observation = await session.observe(new Observer());
+
       expect(JSON.stringify(observation.tree)).toContain('Logged in');
       if (redirect) expect(observation.page.url).toBe('https://session.test/home');
     },
@@ -103,10 +107,13 @@ describe('BrowserSession', () => {
   it('discards an observation if its page changes during capture', async () => {
     const observer = new Observer();
     const read = vi.spyOn(observer, 'observe');
+
     read.mockImplementationOnce(async () => {
       const popup = page.waitForEvent('popup');
+
       await page.evaluate(() => window.open('about:blank'));
       await popup;
+
       return { tree: {}, page: { url: 'stale', focused: null } };
     });
     read.mockResolvedValueOnce({ tree: {}, page: { url: 'fresh', focused: null } });
@@ -118,6 +125,7 @@ describe('BrowserSession', () => {
     const context = page.context();
     const contextOff = vi.spyOn(context, 'off');
     const pageOff = vi.spyOn(page, 'off');
+
     await page.close();
     expect(() => session.page).toThrow('No open page');
     session.dispose();
@@ -128,6 +136,7 @@ describe('BrowserSession', () => {
 
   it('tolerates readiness timeouts without swallowing action or capture errors', async () => {
     const load = vi.spyOn(page, 'waitForLoadState');
+
     load.mockRejectedValueOnce(new errors.TimeoutError('Still loading'));
     await expect(waitForObservationReady(page, 20)).resolves.toBeUndefined();
     await expect(
@@ -136,6 +145,7 @@ describe('BrowserSession', () => {
       }),
     ).rejects.toThrow('Click failed');
     const observer = new Observer();
+
     vi.spyOn(observer, 'observe').mockRejectedValue(new Error('Capture failed'));
     await expect(session.observe(observer)).rejects.toThrow('Capture failed');
   });

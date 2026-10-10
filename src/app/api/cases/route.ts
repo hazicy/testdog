@@ -11,6 +11,7 @@ const RequestSchema = z.object({
 
 export async function GET() {
   const cases = await getCases();
+
   return NextResponse.json({ cases });
 }
 

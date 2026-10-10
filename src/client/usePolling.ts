@@ -5,11 +5,14 @@ import { createRefreshTask } from './refreshTask';
 
 export function usePolling(load: (signal: AbortSignal) => Promise<void>, interval: number | null) {
   const task = useRef<ReturnType<typeof createRefreshTask> | null>(null);
+
   useEffect(() => {
     const current = createRefreshTask(load);
+
     task.current = current;
     // Start after mount; cancelled effects never update state.
     const initial = setTimeout(() => void current.refresh(), 0);
+
     return () => {
       clearTimeout(initial);
       current.dispose();
@@ -25,11 +28,13 @@ export function usePolling(load: (signal: AbortSignal) => Promise<void>, interva
       window.addEventListener('focus', poll);
       document.addEventListener('visibilitychange', poll);
     }
+
     return () => {
       clearInterval(timer);
       window.removeEventListener('focus', poll);
       document.removeEventListener('visibilitychange', poll);
     };
   }, [interval]);
+
   return useCallback(() => task.current?.refresh(true) ?? Promise.resolve(), []);
 }

@@ -4,6 +4,7 @@ import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useState } from 'react';
 import type { BrowserLog } from '@/workspace/types';
+
 export function BrowserLogPanel({
   logs,
   kind,
@@ -30,6 +31,7 @@ export function BrowserLogPanel({
           .includes(query.toLowerCase()),
     )
     .sort((a, b) => a.elapsedMs - b.elapsedMs);
+
   return (
     <section aria-label={kind === 'console' ? 'Console 记录' : 'Network 记录'}>
       <div className="mb-4 flex flex-wrap items-center gap-3">

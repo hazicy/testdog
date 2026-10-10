@@ -9,11 +9,13 @@ afterEach(() => vi.unstubAllEnvs());
 
 test('local artifacts must belong to the requested run directory', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'caseforge-artifacts-'));
+
   vi.stubEnv('CASEFORGE_DATA_DIR', directory);
   vi.stubEnv('CASEFORGE_ARTIFACT_BUCKET', '');
   try {
     await mkdir(join(artifactRoot(), 'run'), { recursive: true });
     const path = join(artifactRoot(), 'run', 'image.png');
+
     await writeFile(path, 'image');
     expect((await readArtifactFile('run', 'image', path)).toString()).toBe('image');
     await expect(readArtifactFile('other-run', 'image', path)).rejects.toThrow(
@@ -29,6 +31,7 @@ test('private S3 upload, retrieval and rollback use the exact owned object key',
   const requests: string[] = [];
   const server = createServer(async (request, response) => {
     const path = new URL(request.url!, 'http://localhost').pathname;
+
     requests.push(`${request.method} ${path}`);
     expect(request.headers['x-amz-acl']).toBeUndefined();
     if (request.method === 'PUT') {
@@ -42,8 +45,10 @@ test('private S3 upload, retrieval and rollback use the exact owned object key',
       response.end();
     } else response.end(objects.get(path));
   });
+
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address() as { port: number };
+
   vi.stubEnv('CASEFORGE_ARTIFACT_ENDPOINT', `http://127.0.0.1:${address.port}`);
   vi.stubEnv('CASEFORGE_ARTIFACT_BUCKET', 'private-evidence');
   vi.stubEnv('CASEFORGE_ARTIFACT_PREFIX', 'tests');
@@ -52,8 +57,10 @@ test('private S3 upload, retrieval and rollback use the exact owned object key',
   const directory = await mkdtemp(join(tmpdir(), 'caseforge-s3-'));
   try {
     const path = join(directory, 'screen.png');
+
     await writeFile(path, Buffer.from([137, 80, 78, 71]));
     const stored = await storeArtifactFile('run', 'artifact', path, 'image/png');
+
     expect(stored.path).toBe('s3://private-evidence/tests/run/artifact');
     expect(await readArtifactFile('run', 'artifact', stored.path)).toEqual(
       Buffer.from([137, 80, 78, 71]),

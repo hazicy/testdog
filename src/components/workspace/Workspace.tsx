@@ -24,6 +24,7 @@ const statusLabels = {
   failed: '失败',
   cancelled: '已停止',
 };
+
 function Status({ status }: { status?: RunSummary['status'] }) {
   return (
     <span className={`ws-status ${status || 'none'}`}>
@@ -32,6 +33,7 @@ function Status({ status }: { status?: RunSummary['status'] }) {
     </span>
   );
 }
+
 function date(value: string) {
   return new Date(value).toLocaleString('zh-CN', {
     month: '2-digit',
@@ -40,6 +42,7 @@ function date(value: string) {
     minute: '2-digit',
   });
 }
+
 function duration(run: RunSummary) {
   return run.durationMs == null
     ? '—'
@@ -47,6 +50,7 @@ function duration(run: RunSummary) {
       ? `${run.durationMs} ms`
       : `${(run.durationMs / 1000).toFixed(1)} s`;
 }
+
 const json = (body: unknown, method = 'POST'): RequestInit => ({
   method,
   headers: { 'Content-Type': 'application/json' },
@@ -85,6 +89,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       counts[run.status]++;
       if (run.testId && !latestRuns.has(run.testId)) latestRuns.set(run.testId, run);
     }
+
     return { counts, latestRuns };
   }, [runs]);
   const running = counts.running + counts.queued + counts.preparing + counts.finalizing > 0;
@@ -111,17 +116,21 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
     [isTests],
   );
   const refresh = usePolling(load, running ? 2000 : 15000);
+
   useEffect(() => {
     if (selectedId) router.replace(`/runs/${selectedId}`);
   }, [selectedId, router]);
+
   function openEditor(test?: TestCase, duplicate = false) {
     setEditing({ test, duplicate });
   }
+
   async function start(testId: string) {
     setStarting(true);
     setError('');
     try {
       const { run } = await api<{ run: TestRun }>('/api/runs', json({ testId }));
+
       router.push(`/runs/${run.id}`);
       await refresh();
     } catch (cause) {
@@ -130,6 +139,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       setStarting(false);
     }
   }
+
   function openMatrix(test: TestCase) {
     setMatrixTest(test);
     setMatrixError('');
@@ -140,8 +150,10 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       browser: 'chromium',
       deviceProfile: 'legacy-desktop',
     };
+
     setMatrixCode(JSON.stringify([{ target, goal: test.goal }], null, 2));
   }
+
   async function startMatrix(event: React.FormEvent) {
     event.preventDefault();
     if (!matrixTest) return;
@@ -161,6 +173,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       setStarting(false);
     }
   }
+
   async function exportRun(run: RunSummary) {
     setExporting(true);
     setError('');
@@ -172,6 +185,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       setExporting(false);
     }
   }
+
   const latest = (id: string) => latestRuns.get(id);
   const keyword = query.toLowerCase();
   const visibleTests = useMemo(
@@ -378,6 +392,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
                   {isTests
                     ? visibleTests.map((test) => {
                         const run = latest(test.id);
+
                         return (
                           <tr key={test.id}>
                             <td>

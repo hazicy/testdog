@@ -10,6 +10,7 @@ export function proxy(request: NextRequest) {
         'Cache-Control': 'no-store',
       },
     });
+
   return NextResponse.next();
 }
 

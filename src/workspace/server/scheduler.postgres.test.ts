@@ -3,10 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { hostname } from 'node:os';
+
 const isolated = vi.hoisted(() => ({
   pool: undefined as import('pg').Pool | undefined,
   schema: `caseforge_test_${crypto.randomUUID().replaceAll('-', '')}`,
 }));
+
 vi.mock('@/db', async (original) => {
   const connectionString = process.env.CASEFORGE_TEST_DATABASE_URL;
   if (!connectionString) return original<typeof import('@/db')>();
@@ -18,11 +20,13 @@ vi.mock('@/db', async (original) => {
     throw new Error('Real PostgreSQL tests require an explicit local caseforge_test_ database');
   const pg = await import('pg');
   const { drizzle } = await import('drizzle-orm/node-postgres');
+
   isolated.pool = new pg.default.Pool({
     connectionString,
     max: 8,
     options: `-c search_path=${isolated.schema}`,
   });
+
   return { pool: isolated.pool, db: drizzle({ client: isolated.pool }) };
 });
 import { claimRun, recoverLeases, registerWorker, releaseLease, withLease } from './scheduler';
@@ -31,7 +35,9 @@ import { db } from '@/db';
 import { automationResources } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { recoverLocalResource, ownerProcessStopped } from './resourceRecovery';
+
 const live = !!process.env.CASEFORGE_TEST_DATABASE_URL;
+
 beforeAll(async () => {
   if (!live) return;
   await isolated.pool!.query(`CREATE SCHEMA ${isolated.schema}`);
@@ -59,6 +65,7 @@ it.skipIf(!live)(
       profileId: 'iphone',
       deviceId: `udid-${id}`,
     }));
+
     await registerWorker('worker-a', 'host', registrations);
     await registerWorker('worker-b', 'host', []);
     const target = {
@@ -91,6 +98,7 @@ it.skipIf(!live)(
       ),
     );
     const old = claimed[0];
+
     await isolated.pool!.query(
       'UPDATE test_runs SET "leaseUntil"=now()-interval \'1 second\' WHERE id=$1',
       [old.run.id],
@@ -104,15 +112,18 @@ it.skipIf(!live)(
       .select()
       .from(automationResources)
       .where(eq(automationResources.id, old.resource.id));
+
     expect(quarantined.status).toBe('quarantined');
     await registerWorker('replacement', 'host', registrations);
     expect(await claimRun('replacement', 'host')).toBeUndefined();
     const healthy = claimed[1];
+
     await withLease(healthy.lease, () =>
       finishRun(healthy.run.id, 'passed', healthy.run.startedAt),
     );
     await releaseLease(healthy.lease, true);
     const next = (await claimRun('replacement', 'host'))!;
+
     expect(next.resource.id).toBe(healthy.resource.id);
     expect(next.lease.fencingToken).toBeGreaterThan(healthy.lease.fencingToken);
     expect(queued.some((run) => run.id === next.run.id)).toBe(true);
@@ -123,6 +134,7 @@ it.skipIf(!live)(
   'does not allow evidence writes before a worker has claimed a queued run',
   async () => {
     const run = await createRun({ case: 'unclaimed', url: 'https://example.com' });
+
     await expect(appendEvent(run.id, randomUUID())).rejects.toThrow('claimed');
   },
 );
@@ -132,8 +144,10 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
   async () => {
     const host = `recovery-${randomUUID()}`;
     const owner = `${host}:2147483646:${randomUUID()}`;
+
     expect(ownerProcessStopped(owner, host)).toBe(true);
     const resourceId = `recovery-device-${randomUUID()}`;
+
     await registerWorker(owner, host, [
       {
         id: resourceId,
@@ -154,6 +168,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       },
     });
     const claim = (await claimRun(owner, host))!;
+
     expect(claim.run.id).toBe(run.id);
     await isolated.pool!.query(
       'UPDATE test_runs SET "leaseUntil"=now()-interval \'1 second\' WHERE id=$1',
@@ -164,6 +179,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       .select()
       .from(automationResources)
       .where(eq(automationResources.id, resourceId));
+
     expect(before.status).toBe('quarantined');
     expect(before.metadata.ownerHostname).toBe(hostname());
     expect(await recoverLocalResource(resourceId, host)).toMatchObject({
@@ -175,6 +191,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       .select()
       .from(automationResources)
       .where(eq(automationResources.id, resourceId));
+
     expect(after.status).toBe('available');
     expect(after.owner).toBeNull();
   },

@@ -9,17 +9,22 @@ import { openPlatformRuntime, type PlatformRuntime } from '@/automation/platform
 import type { TestRun } from '../types';
 import { testRuns } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+
 const state = globalThis as typeof globalThis & { caseforgeJobs?: Map<string, AbortController> };
 const jobs = (state.caseforgeJobs ??= new Map());
+
 export function cancelRun(id: string) {
   jobs.get(id)?.abort(new Error('用户停止了测试'));
 }
+
 export function errorMessage(error: unknown): string {
   if (!(error instanceof Error)) return String(error);
   if (error instanceof AggregateError)
     return `${error.message}\n${error.errors.map(errorMessage).join('\n')}`;
+
   return error.cause ? `${error.message}\n${errorMessage(error.cause)}` : error.message;
 }
+
 export async function executeRun(
   run: TestRun,
   resource?: { deviceId: string | null; metadata: Record<string, unknown> },
@@ -27,14 +32,17 @@ export async function executeRun(
   const lease = leaseScope.getStore();
   if (!lease) {
     const hostId = process.env.CASEFORGE_HOST_ID || hostname();
+
     await registerWorker(owner, hostId, [
       { id: `${hostId}:web:inline`, hostId, platform: 'web', profileId: 'mobile' },
     ]);
     const claim = await claimRun(owner, hostId, run.id);
     if (!claim) throw new Error('没有匹配的可用执行资源；请启动平台 worker');
+
     return withLease(claim.lease, () => executeRun(claim.run, claim.resource));
   }
   const controller = new AbortController();
+
   jobs.set(run.id, controller);
   let runtime: PlatformRuntime | undefined;
   let pulseBusy = false;
@@ -82,6 +90,7 @@ export async function executeRun(
             run.url || undefined,
             controller.signal,
           ));
+
     await savePlan(run.id, plan);
     await report(
       run.mode === 'replay'
@@ -109,6 +118,7 @@ export async function executeRun(
     });
     if (source) {
       const steps = run.recordingSteps || source.steps;
+
       await runner.replay(steps);
     } else await runner.record(runtime.initial);
     await report('全部操作与断言执行完成');

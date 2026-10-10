@@ -10,10 +10,12 @@ import {
 import { getRun, WorkspaceError } from './store';
 import { leaseScope, type RunLease } from './lease';
 import { activeRunStatuses } from '../types';
+
 export type ResourceRegistration = Pick<
   typeof resources.$inferInsert,
   'id' | 'hostId' | 'platform' | 'profileId' | 'deviceId' | 'metadata'
 >;
+
 export async function registerWorker(
   id: string,
   hostId: string,
@@ -43,6 +45,7 @@ export async function registerWorker(
     }
   }
 }
+
 export async function claimRun(workerId: string, hostId: string, requestedId?: string) {
   const claimed = await db.transaction(async (tx) => {
     const available = await tx
@@ -72,6 +75,7 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
       if (!run) continue;
       const token = resource.fencingToken + 1;
       const leaseUntil = new Date(Date.now() + 60000).toISOString();
+
       await tx
         .update(resources)
         .set({
@@ -95,17 +99,20 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
           leaseUntil,
         })
         .where(eq(testRuns.id, run.id));
+
       return { runId: run.id, workerId, fencingToken: token, resource };
     }
   });
   if (!claimed) return;
   const run = await getRun(claimed.runId);
+
   return {
     run,
     lease: { runId: run.id, workerId, fencingToken: claimed.fencingToken } satisfies RunLease,
     resource: claimed.resource,
   };
 }
+
 export async function renewLease(lease: RunLease) {
   return db.transaction(async (tx) => {
     const [run] = await tx
@@ -123,6 +130,7 @@ export async function renewLease(lease: RunLease) {
       .for('update');
     if (!run) return;
     const leaseUntil = new Date(Date.now() + 60000).toISOString();
+
     await tx
       .update(testRuns)
       .set({ leaseUntil, heartbeatAt: new Date().toISOString() })
@@ -142,9 +150,11 @@ export async function renewLease(lease: RunLease) {
       .update(workers)
       .set({ heartbeatAt: new Date().toISOString() })
       .where(eq(workers.id, lease.workerId));
+
     return { cancelRequested: run.cancelRequested };
   });
 }
+
 export async function releaseLease(lease: RunLease, healthy: boolean) {
   await db.transaction(async (tx) => {
     const [run] = await tx
@@ -170,6 +180,7 @@ export async function releaseLease(lease: RunLease, healthy: boolean) {
       );
   });
 }
+
 export async function recoverLeases() {
   await db.transaction(async (tx) => {
     const queueTimeout = Number(process.env.CASEFORGE_QUEUE_TIMEOUT_MS || 3600000);
@@ -207,6 +218,7 @@ export async function recoverLeases() {
           and(eq(resources.id, run.resourceId!), eq(resources.fencingToken, run.fencingToken)),
         );
       const finishedAt = new Date().toISOString();
+
       await tx
         .update(testRuns)
         .set({
@@ -231,8 +243,10 @@ export async function recoverLeases() {
     }
   });
 }
+
 export const listResources = () => db.select().from(resources).orderBy(asc(resources.id));
 export const listWorkers = () => db.select().from(workers);
+
 // Explicit recovery is separate from TTL reclamation. Caller proves cleanup and health on host.
 export async function recoverResource(
   id: string,
@@ -258,8 +272,10 @@ export async function recoverResource(
       ),
     )
     .returning();
+
   return released;
 }
+
 export function withLease<T>(lease: RunLease, job: () => Promise<T>) {
   return leaseScope.run(lease, job);
 }

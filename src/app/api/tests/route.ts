@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { listTests, saveTest } from '@/workspace/server/store';
 import { testSchema } from '@/workspace/validation';
 import { apiError } from '@/workspace/server/http';
+
 export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     return NextResponse.json({ tests: await listTests() });
@@ -10,6 +12,7 @@ export async function GET() {
     return apiError(error);
   }
 }
+
 export async function POST(request: Request) {
   const parsed = testSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success)

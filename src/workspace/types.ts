@@ -6,6 +6,7 @@ import type {
 } from '@/automation/platform/contracts';
 import type { TestTarget } from '@/automation/platform/target';
 import type { Assertion, Plan, Step, Target } from '@/automation/compiler/schema';
+
 export type TestCase = {
   id: string;
   name: string;

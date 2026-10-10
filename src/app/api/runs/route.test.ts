@@ -1,12 +1,16 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
 const mocks = vi.hoisted(() => ({
   after: vi.fn(),
   execute: vi.fn(),
   client: undefined as import('@electric-sql/pglite').PGlite | undefined,
 }));
+
 vi.mock('@/db', async () => {
   const result = await (await import('@/workspace/server/testDatabase')).createTestDatabase();
+
   mocks.client = result.client;
+
   return { db: result.db };
 });
 vi.mock('next/server', async (original) => ({
@@ -16,6 +20,7 @@ vi.mock('next/server', async (original) => ({
 vi.mock('@/workspace/server/run', () => ({ executeRun: mocks.execute }));
 import { saveTest, getRun } from '@/workspace/server/store';
 import { POST, GET } from './route';
+
 beforeEach(async () => {
   vi.clearAllMocks();
   await mocks.client!.exec('TRUNCATE run_artifacts, run_steps, test_runs, test_cases CASCADE');
@@ -23,6 +28,7 @@ beforeEach(async () => {
 afterAll(() => mocks.client!.close());
 const request = (body: unknown) =>
   new Request('http://localhost/api/runs', { method: 'POST', body: JSON.stringify(body) });
+
 describe('execution API with PostgreSQL persistence', () => {
   it('returns 202 only after persisting a run and schedules its background job', async () => {
     const test = await saveTest({
@@ -32,8 +38,10 @@ describe('execution API with PostgreSQL persistence', () => {
       tags: [],
     });
     const response = await POST(request({ testId: test.id }));
+
     expect(response.status).toBe(202);
     const { run } = await response.json();
+
     expect((await getRun(run.id)).goal).toBe('Check login');
     expect((await getRun(run.id)).status).toBe('queued');
     expect(mocks.after).not.toHaveBeenCalled();

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseRecordingScript, recordingScript } from './recordingScript';
+
 describe('editable recording script', () => {
   it('round trips stable operations, branch checks, model expectations, native assertions and pages', () => {
     const script = `await page1.goto("https://example.com");
@@ -17,6 +18,7 @@ await expect(page2.getByRole("heading")).not.toContainText("Ada");
 await expect(page1.getByPlaceholder("Name", { exact: true })).toHaveValue("Grace");
 await expect(page2).toHaveURL("https://example.com/welcome");`;
     const steps = parseRecordingScript(script);
+
     expect(steps).toHaveLength(13);
     expect(steps[1].planNodeId).toBe('signup');
     expect(steps[1].action).toMatchObject({

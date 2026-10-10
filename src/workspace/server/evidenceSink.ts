@@ -34,6 +34,7 @@ export class EvidenceSink {
   ) {
     const artifacts = await session.capture(request, AbortSignal.timeout(15000));
     const directory = join(artifactRoot(), this.run.id);
+
     await mkdir(directory, { recursive: true });
     for (const artifact of artifacts) {
       const id = randomUUID();
@@ -45,8 +46,10 @@ export class EvidenceSink {
         log: 'log',
       }[artifact.kind];
       const path = join(directory, `${id}.${extension}`);
+
       await writeFile(path, artifact.bytes, { mode: 0o600 });
       const capturedAt = new Date().toISOString();
+
       await insertArtifact(
         {
           id,

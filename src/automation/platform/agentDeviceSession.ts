@@ -177,7 +177,9 @@ export class AgentDeviceSession implements AutomationSession {
         },
         onEvent,
       );
+
       await session.diagnostics.start(signal);
+
       return session;
     } catch (error) {
       try {
@@ -203,10 +205,12 @@ export class AgentDeviceSession implements AutomationSession {
       signal,
       timeoutMs: this.generation === 0 ? 90000 : 15000,
     });
+
     this.nodes = result.nodes;
     this.refsGeneration = result.refsGeneration;
     this.viewport = result.viewport;
     this.generation++;
+
     return (this.observation = {
       schemaVersion: 1,
       sessionId: this.id,
@@ -237,6 +241,7 @@ export class AgentDeviceSession implements AutomationSession {
     );
     if (nodes.length !== 1)
       throw new Error(`Device locator must resolve uniquely, found ${nodes.length}`);
+
     return nodes[0];
   }
   binding(action: NativeAction): { action: NativeAction; replayable: boolean } {
@@ -258,6 +263,7 @@ export class AgentDeviceSession implements AutomationSession {
         /* Try the next binding. */
       }
     }
+
     return { action, replayable: false };
   }
   async perform(supplied: PlatformAction, signal: AbortSignal) {
@@ -286,6 +292,7 @@ export class AgentDeviceSession implements AutomationSession {
             signal.removeEventListener('abort', stop);
             resolve();
           }, 100);
+
           signal.addEventListener('abort', stop, { once: true });
           if (signal.aborted) stop();
         });
@@ -327,6 +334,7 @@ export class AgentDeviceSession implements AutomationSession {
           x: horizontal ? width - from.x : from.x,
           y: horizontal ? from.y : height - from.y,
         };
+
         await this.client.interactions.swipe({ from, to, signal });
       }
     } finally {
@@ -339,6 +347,7 @@ export class AgentDeviceSession implements AutomationSession {
   async wait(action: PlatformAction, signal: AbortSignal) {
     if (action.action.type !== 'wait') throw new Error('Expected wait action');
     await this.perform(action, signal);
+
     return this.observe(signal);
   }
   async check(assertion: PlatformAssertion, signal: AbortSignal) {
@@ -352,6 +361,7 @@ export class AgentDeviceSession implements AutomationSession {
         assertion.type === 'visible'
           ? node.visibleToUser === true || node.hittable === true
           : assertion.value !== undefined && actual === assertion.value;
+
       return {
         passed,
         evidence: JSON.stringify({
@@ -375,6 +385,7 @@ export class AgentDeviceSession implements AutomationSession {
     )
       throw new Error('Recording observation mismatch');
     const bound = this.binding(action.action);
+
     return {
       action: { platform: this.platform, action: bound.action },
       replayable: bound.replayable,
@@ -395,7 +406,9 @@ export class AgentDeviceSession implements AutomationSession {
     const directory = await mkdtemp(join(tmpdir(), 'caseforge-capture-'));
     try {
       const path = join(directory, 'capture.png');
+
       await this.screenshot(path, signal);
+
       return [
         {
           kind: 'screenshot',
@@ -416,6 +429,7 @@ export class AgentDeviceSession implements AutomationSession {
       ...(event.error ? { error: this.secrets.redact(event.error) } : {}),
       ...(event.evidence ? { evidence: this.secrets.redact(event.evidence) } : {}),
     };
+
     return this.onEvent(event, this);
   }
   async screenshot(path: string, signal: AbortSignal) {
@@ -430,6 +444,7 @@ export class AgentDeviceSession implements AutomationSession {
       )
         throw new Error('App exposed a secret in a visible control; screenshot withheld');
     }
+
     return this.client.capture.screenshot({ path, signal });
   }
   get safeToRelease() {

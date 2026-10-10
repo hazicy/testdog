@@ -31,6 +31,7 @@ export class DeviceRecorder {
           ? await session.resolveForRecording(event.action, session.latestObservation!)
           : undefined;
       const at = Date.now();
+
       this.started.set(event.id, at);
       await insertStep({
         id: event.id,
@@ -101,9 +102,11 @@ export class DeviceRecorder {
       if (stage !== 'live')
         await this.evidence.capture(session, { kind: 'snapshot' }, stage, stepId);
     });
+
     this.captureQueue = job.catch((error) => {
       this.captureFailure ??= error;
     });
+
     return job;
   }
 }

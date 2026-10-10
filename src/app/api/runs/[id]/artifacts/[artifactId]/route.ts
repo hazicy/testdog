@@ -3,7 +3,9 @@ import { getArtifact } from '@/workspace/server/store';
 import { artifactRoot } from '@/workspace/server/artifactStorage';
 import { apiError, validId } from '@/workspace/server/http';
 import { readArtifactFile } from '@/workspace/server/artifactStorage';
+
 export const runtime = 'nodejs';
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string; artifactId: string }> },
@@ -34,6 +36,7 @@ export async function GET(
         'text/plain': 'log',
       };
       const extension = extensions[artifact.contentType] || 'bin';
+
       headers['Content-Disposition'] =
         `attachment; filename="${artifact.kind}-${artifact.id}.${extension}"`;
     }
@@ -55,6 +58,7 @@ export async function GET(
           status: 416,
           headers: { 'Content-Range': `bytes */${file.length}` },
         });
+
       return new Response(new Uint8Array(file.subarray(start, end + 1)), {
         status: 206,
         headers: {
@@ -64,6 +68,7 @@ export async function GET(
         },
       });
     }
+
     return new Response(new Uint8Array(file), {
       headers: { ...headers, 'Content-Length': String(file.length) },
     });
@@ -71,4 +76,5 @@ export async function GET(
     return apiError(error);
   }
 }
+
 export const HEAD = GET;

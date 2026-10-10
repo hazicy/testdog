@@ -27,6 +27,7 @@ export class BrowserLogs {
     page?: import('playwright').Page,
   ): Pick<BrowserLog, 'id' | 'at' | 'elapsedMs' | 'pageId' | 'pageUrl' | 'stepId'> {
     const at = new Date().toISOString();
+
     return {
       id: randomUUID(),
       at,
@@ -87,6 +88,7 @@ export class BrowserLogs {
       resourceType: request.resourceType(),
       requestHeaders: headers(request.headers()),
     };
+
     this.requests.set(request, log);
   };
   private onResponse = (response: import('playwright').Response) => {
@@ -117,7 +119,9 @@ export class BrowserLogs {
         throw error;
       }
     });
+
     this.queue = operation.catch(() => {});
+
     return operation;
   }
   async stop(context: BrowserContext) {

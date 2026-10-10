@@ -15,6 +15,7 @@ export function inputGoal(goal: string, inputs: InputRefs = {}) {
   return goal.replace(/\$\{input\.([A-Za-z][A-Za-z0-9_]*)\}/g, (_match, key: string) => {
     const input = inputs[key];
     if (!input) throw new Error(`Missing input reference: ${key}`);
+
     return 'value' in input ? input.value : `\$\{secret:${input.secretRef}\}`;
   });
 }
@@ -40,10 +41,12 @@ export class SecretInputs {
     if (!match) {
       if (value.includes('${secret:'))
         throw new Error('Secret reference must be the entire fill value');
+
       return { value, sensitive: false };
     }
     const secret = this.values.get(match[1]);
     if (!secret) throw new Error('Unregistered secret reference');
+
     return { value: secret, sensitive: true };
   }
   redactData<T>(data: T): T {
@@ -52,8 +55,10 @@ export class SecretInputs {
       if (Array.isArray(value)) return value.map(visit);
       if (value && typeof value === 'object')
         return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, visit(child)]));
+
       return value;
     };
+
     return visit(data) as T;
   }
   redact(text: string) {
@@ -62,6 +67,7 @@ export class SecretInputs {
       text = text.split(value).join('[redacted]');
       text = text.split(encodeURIComponent(value)).join('[redacted]');
     }
+
     return text;
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { useRef, type ReactNode } from 'react';
+
 export function Dialog({
   children,
   titleId,
@@ -18,6 +19,7 @@ export function Dialog({
 }) {
   const popup = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<Element | null>(null);
+
   return (
     <BaseDialog.Root
       open
@@ -31,6 +33,7 @@ export function Dialog({
             popup.current?.querySelector('[role="combobox"][aria-expanded="true"]'))
         ) {
           details.cancel();
+
           return;
         }
         onDismiss();
@@ -47,6 +50,7 @@ export function Dialog({
             aria-busy={busy}
             initialFocus={() => {
               previousFocus.current = document.activeElement;
+
               return (
                 (initialFocus
                   ? popup.current?.querySelector<HTMLElement>(initialFocus)
@@ -63,8 +67,10 @@ export function Dialog({
                   previous instanceof HTMLElement && previous.isConnected
                     ? previous
                     : document.getElementById('main-content');
+
                 target?.focus();
               });
+
               return false;
             }}
           >

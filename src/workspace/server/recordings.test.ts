@@ -4,9 +4,12 @@ import { afterAll, beforeEach, expect, it, vi } from 'vitest';
 const isolated = vi.hoisted(() => ({
   client: undefined as import('@electric-sql/pglite').PGlite | undefined,
 }));
+
 vi.mock('@/db', async () => {
   const result = await (await import('./testDatabase')).createTestDatabase();
+
   isolated.client = result.client;
+
   return { db: result.db };
 });
 import { createRun as createQueuedRun, getRun, savePlan as saveClaimedPlan } from './store';
@@ -15,17 +18,23 @@ import { saveRecordingVersion, listRecordingVersions } from './recordings';
 
 import { claimRun, registerWorker, withLease } from './scheduler';
 import { setRunPhase, type RunLease } from './lease';
+
 const testLeases = new Map<string, RunLease>();
+
 async function createRun(...args: Parameters<typeof createQueuedRun>) {
   const run = await createQueuedRun(...args);
+
   await registerWorker('repository-test', 'test', [
     { id: `test:${run.id}`, hostId: 'test', platform: 'web', profileId: 'mobile' },
   ]);
   const claim = (await claimRun('repository-test', 'test', run.id))!;
+
   testLeases.set(run.id, claim.lease);
   await withLease(claim.lease, () => setRunPhase(run.id, 'running'));
+
   return getRun(run.id);
 }
+
 async function finishRun(id: string, status: import('../types').RunStatus, error?: string) {
   return withLease(testLeases.get(id)!, () => finishClaimedRun(id, status, error));
 }
@@ -46,6 +55,7 @@ it.each(['constructor', 'toString', '__proto__'])(
   'rejects inherited object properties as plan node links: %s',
   async (nodeId) => {
     const run = await createRun({ case: 'Node links', url: input.url });
+
     await savePlan(run.id, {
       rootId: 'task',
       nodes: {
@@ -73,6 +83,7 @@ it.each(['constructor', 'toString', '__proto__'])(
       sourceRunId: run.id,
       recordingVersionId: version.id,
     });
+
     expect(replay.recordingSteps?.[0].planNodeId).toBe('task');
   },
 );
@@ -89,21 +100,25 @@ it.each(['', ' '.repeat(100001)])(
 
 it('preserves scripts exactly at the length limit', async () => {
   const run = await createRun({ case: 'Script boundary', url: input.url });
+
   await finishRun(run.id, 'passed');
   const statement = 'await page1.goto("https://example.com");\n//';
   const code = statement + 'x'.repeat(100000 - statement.length);
   const version = await saveRecordingVersion(run.id, code);
+
   expect(version.code).toBe(code);
   expect((await listRecordingVersions(run.id))[0].code).toBe(code);
 });
 
 it('distinguishes missing recordings from recordings without edited versions', async () => {
   const missing = randomUUID();
+
   await expect(listRecordingVersions(missing)).rejects.toMatchObject({ status: 404 });
   await expect(
     saveRecordingVersion(missing, 'await page1.goto("https://example.com");'),
   ).rejects.toMatchObject({ status: 404 });
   const run = await createRun({ case: 'Check title', url: input.url });
+
   expect(await listRecordingVersions(run.id)).toEqual([]);
   await finishRun(run.id, 'passed');
   await expect(
@@ -114,6 +129,7 @@ it('distinguishes missing recordings from recordings without edited versions', a
 
 it('saves independent versions and claims an immutable replay snapshot from a repaired failed recording', async () => {
   const original = await createRun({ case: 'Original goal', url: input.url });
+
   await expect(
     saveRecordingVersion(original.id, 'await page1.goto("https://example.com");'),
   ).rejects.toThrow('结束');
@@ -124,6 +140,7 @@ it('saves independent versions and claims an immutable replay snapshot from a re
     'await page1.goto("https://example.com");\nawait expect(page1).toHaveURL("https://example.com/");',
   );
   const versions = await listRecordingVersions(original.id);
+
   expect(versions).toHaveLength(1);
   expect(versions[0]).toEqual(version);
   expect(version).not.toHaveProperty('steps');
@@ -133,6 +150,7 @@ it('saves independent versions and claims an immutable replay snapshot from a re
     sourceRunId: original.id,
     recordingVersionId: version.id,
   });
+
   expect(replay.recordingVersionId).toBe(version.id);
   expect(replay.recordingSteps).toHaveLength(2);
   await saveRecordingVersion(original.id, 'await page1.goto("https://other.example.com");');
@@ -140,6 +158,7 @@ it('saves independent versions and claims an immutable replay snapshot from a re
   expect((await getRun(original.id)).error).toBe('Original failure');
   await finishRun(replay.id, 'passed');
   const unrelated = await createRun({ case: 'Other run', url: input.url });
+
   await finishRun(unrelated.id, 'failed');
   await expect(
     createRun({ mode: 'replay', sourceRunId: unrelated.id, recordingVersionId: version.id }),

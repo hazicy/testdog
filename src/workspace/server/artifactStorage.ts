@@ -16,6 +16,7 @@ function remote() {
   const prefix = (process.env.CASEFORGE_ARTIFACT_PREFIX || 'caseforge').replace(/^\/+|\/+$/g, '');
   if (!prefix || prefix.split('/').some((part) => part === '..'))
     throw new Error('Invalid artifact prefix');
+
   return {
     bucket,
     prefix,
@@ -52,6 +53,7 @@ export async function storeArtifactFile(
     throw error;
   }
   config.client.destroy();
+
   return {
     path: `s3://${config.bucket}/${key}`,
     rollback: async () => {
@@ -83,6 +85,7 @@ export async function readArtifactFile(runId: string, id: string, path: string):
         { abortSignal: AbortSignal.timeout(20000) },
       );
       if (!object.Body) throw new Error('Artifact body unavailable');
+
       return Buffer.from(await object.Body.transformToByteArray());
     } finally {
       config.client.destroy();
@@ -91,5 +94,6 @@ export async function readArtifactFile(runId: string, id: string, path: string):
   const local = relative(join(artifactRoot(), runId), path);
   if (!local || local.startsWith('..') || isAbsolute(local))
     throw new Error('Invalid artifact path');
+
   return readFile(path);
 }

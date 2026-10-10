@@ -6,6 +6,7 @@ type ArtifactFile = { path: string; contentType: string; id: string; kind: strin
 
 function contained(root: string, path: string) {
   const local = relative(root, path);
+
   return local !== '' && local !== '..' && !local.startsWith(`..${sep}`) && !isAbsolute(local);
 }
 
@@ -18,6 +19,7 @@ function byteRange(value: string, size: number) {
   const start = match[1] ? first : Math.max(0, size - last);
   const end = match[1] && match[2] ? Math.min(last, size - 1) : size - 1;
   if (start > end || start >= size) return;
+
   return { start, end };
 }
 
@@ -68,18 +70,22 @@ async function readArtifact(request: Request, artifact: ArtifactFile, root: stri
         headers: { ...headers, 'Content-Range': `bytes */${info.size}`, 'Content-Length': '0' },
       });
     const length = range ? range.end - range.start + 1 : info.size;
+
     headers['Content-Length'] = String(length);
     if (range) headers['Content-Range'] = `bytes ${range.start}-${range.end}/${info.size}`;
     if (request.method === 'HEAD' || length === 0) return new Response(null, { headers });
 
     const stream = file.createReadStream({ ...range, autoClose: true });
     const abort = () => stream.destroy();
+
     request.signal.addEventListener('abort', abort, { once: true });
     stream.once('close', () => request.signal.removeEventListener('abort', abort));
     const body = Readable.toWeb(stream) as ReadableStream<Uint8Array>;
     const response = new Response(body, { status: range ? 206 : 200, headers });
+
     streamOwnsFile = true;
     if (request.signal.aborted) abort();
+
     return response;
   } finally {
     if (!streamOwnsFile) await file.close();

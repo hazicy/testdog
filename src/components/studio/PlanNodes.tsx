@@ -35,6 +35,7 @@ export const PlanNodes = memo(function PlanNodes({
         : recorded.length
           ? 'passed'
           : 'none';
+
     return (
       <div
         key={tree.id}
@@ -92,6 +93,7 @@ export const PlanNodes = memo(function PlanNodes({
       </div>
     );
   }
+
   return (
     <>
       {forest.map((tree, index) => (

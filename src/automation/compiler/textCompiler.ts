@@ -14,6 +14,7 @@ function objectSchema(properties: Record<string, JSONType>): JSONType {
     additionalProperties: false,
   };
 }
+
 const stringSchema = { type: 'string' };
 const arraySchema = { type: 'array', items: stringSchema };
 const schema = objectSchema({
@@ -116,6 +117,7 @@ children、then、otherwise 已经表达父节点到子节点的执行关系，�
                   dependsOn: node.dependsOn,
                 }
               : node;
+
           Object.defineProperty(nodes, node.id, {
             value: normalized,
             enumerable: true,
@@ -123,6 +125,7 @@ children、then、otherwise 已经表达父节点到子节点的执行关系，�
             writable: true,
           });
         }
+
         return PlanSchema.parse({ rootId: compiled.rootId, nodes });
       } catch (error) {
         signal?.throwIfAborted();

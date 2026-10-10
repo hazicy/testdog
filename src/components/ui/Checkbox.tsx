@@ -1,5 +1,6 @@
 'use client';
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
+
 export function Checkbox({ className = '', ...props }: BaseCheckbox.Root.Props) {
   return (
     <BaseCheckbox.Root

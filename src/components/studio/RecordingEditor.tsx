@@ -11,6 +11,7 @@ import { CodeEditor } from './CodeEditor';
 import { requestJson as request } from '@/client/api';
 import { downloadText } from '@/client/download';
 import { recordingCodeSchema, recordingInputMessage } from '@/workspace/validation';
+
 export function RecordingEditor({ run }: { run: TestRun }) {
   const router = useRouter();
   const platform = run.targetSnapshot?.platform ?? 'web';
@@ -32,8 +33,10 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   const canSave = !busy && !validating && !validation?.error && !!validation?.count;
   const base = versions.find((v) => v.id === selected)?.code || original;
   const dirty = code !== base;
+
   useEffect(() => {
     const controller = new AbortController();
+
     void request<{ versions: RecordingVersion[] }>(`/api/runs/${run.id}/recording`, {
       signal: controller.signal,
     })
@@ -43,6 +46,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message);
       });
+
     return () => {
       controller.abort();
     };
@@ -62,8 +66,10 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         setValidation({ code, count: 0, error: e instanceof Error ? e.message : '脚本无效' });
       }
     }, 250);
+
     return () => clearTimeout(timer);
   }, [code, platform]);
+
   async function save(execute = false) {
     if (!canSave) return;
     setBusy(true);
@@ -77,6 +83,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code }),
         });
+
         version = data.version;
         setVersions((current) => [data.version, ...current]);
         setSelected(version.id);
@@ -92,6 +99,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             recordingVersionId: version.id,
           }),
         });
+
         router.push(`/runs/${data.run.id}`);
       }
     } catch (e) {
@@ -100,6 +108,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
       setBusy(false);
     }
   }
+
   function download() {
     downloadText(
       code,
@@ -107,12 +116,14 @@ export function RecordingEditor({ run }: { run: TestRun }) {
       platform === 'web' ? 'text/javascript' : 'application/json',
     );
   }
+
   if (isActiveRun(run.status))
     return (
       <p className="border border-page-line p-6 text-sm text-page-muted">
         录制进行中，结束后可编辑操作和预期。
       </p>
     );
+
   return (
     <section className="border border-page-line bg-surface" aria-label="录制编辑器">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-page-line p-5">

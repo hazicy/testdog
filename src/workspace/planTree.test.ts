@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { PlanSchema } from '@/automation/compiler/schema';
 import { planForest } from './planTree';
+
 it('preserves group nesting, both branch paths, shared references and nodes outside containment', () => {
   const task = (id: string) => ({
     id,
@@ -36,6 +37,7 @@ it('preserves group nesting, both branch paths, shared references and nodes outs
     },
   });
   const forest = planForest(plan);
+
   expect(forest.map((n) => n.id)).toEqual(['root', 'dependency', 'independent']);
   expect(forest[0].children[0].children[0].id).toBe('shared');
   expect(forest[0].children[1].then).toMatchObject({ id: 'shared', reference: true });

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateWithOpenAI } from '@/automation/deepseek';
 import { TextCompiler } from './textCompiler';
+
 vi.mock('@/automation/deepseek', () => ({ generateWithOpenAI: vi.fn() }));
 const generate = vi.mocked(generateWithOpenAI);
 const task = {
@@ -26,6 +27,7 @@ const compiled = () => ({
     task,
   ],
 });
+
 function respond(content: unknown) {
   generate.mockResolvedValue({
     role: 'assistant',
@@ -34,11 +36,13 @@ function respond(content: unknown) {
     structuredContent: content,
   } as Awaited<ReturnType<typeof generateWithOpenAI>>);
 }
+
 beforeEach(() => vi.clearAllMocks());
 describe('TextCompiler flat plan', () => {
   it('returns a flat map with logical nesting and preserves task details', async () => {
     respond(compiled());
     const result = await new TextCompiler().compile('登录', 'https://example.com');
+
     expect(result.rootId).toBe('root');
     expect(result.nodes.login).toEqual(task);
     expect(result.nodes.root).toMatchObject({ children: ['branch'] });
@@ -56,6 +60,7 @@ describe('TextCompiler flat plan', () => {
   });
   it('preserves an explicit otherwise reference', async () => {
     const content = compiled();
+
     respond({
       ...content,
       nodes: content.nodes.map((node) =>
@@ -104,6 +109,7 @@ it('regenerates a plan after validation feedback, without accepting an ancestor 
     ...original,
     nodes: original.nodes.map((n) => (n.id === 'login' ? { ...n, dependsOn: ['branch'] } : n)),
   };
+
   respond(compiled());
   generate.mockResolvedValueOnce({
     role: 'assistant',
@@ -113,6 +119,7 @@ it('regenerates a plan after validation feedback, without accepting an ancestor 
     structuredContent: invalid,
   } as Awaited<ReturnType<typeof generateWithOpenAI>>);
   const result = await new TextCompiler().compile('登录');
+
   expect(result.nodes.login.dependsOn).toEqual([]);
   expect(generate).toHaveBeenCalledTimes(2);
   expect(JSON.stringify(generate.mock.calls[1][0].messages)).toContain('Cycle detected');

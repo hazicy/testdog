@@ -5,16 +5,19 @@ import { randomUUID } from 'node:crypto';
 import type { BrowserContext, Page } from 'playwright';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TestRun } from '../types';
+
 const store = vi.hoisted(() => ({
   insertArtifact: vi.fn(),
   insertStep: vi.fn(),
   finishStep: vi.fn(),
   appendBrowserLogs: vi.fn(),
 }));
+
 vi.mock('./store', () => store);
 import { RunRecorder } from './recorder';
 
 let directory: string;
+
 beforeEach(async () => {
   vi.clearAllMocks();
   directory = await mkdtemp(join(tmpdir(), 'caseforge-recorder-'));
@@ -26,8 +29,10 @@ afterEach(async () => {
   vi.unstubAllEnvs();
   await rm(directory, { recursive: true, force: true });
 });
+
 async function fixture() {
   const video = join(directory, 'video.webm');
+
   await writeFile(video, 'video');
   const page = {
     isClosed: vi.fn(() => false),
@@ -65,7 +70,9 @@ async function fixture() {
   };
   const recorder = new RunRecorder(run);
   const browserContext = context as unknown as BrowserContext;
+
   await recorder.start(browserContext);
+
   return { recorder, context, browserContext, page };
 }
 
@@ -74,17 +81,20 @@ describe('recorder cleanup and partial archive recovery', () => {
     'restricts execution directories and archived attachments to the owner',
     async () => {
       const { recorder, browserContext } = await fixture();
+
       await chmod(recorder.directory, 0o755);
       await recorder.prepare();
       expect((await stat(recorder.directory)).mode & 0o777).toBe(0o700);
       await recorder.stop(browserContext);
       const files = store.insertArtifact.mock.calls.map(([, path]) => path as string);
+
       expect(files).toHaveLength(3);
       for (const path of files) expect((await stat(path)).mode & 0o777).toBe(0o600);
     },
   );
   it('captures existing pages and returns to the main page after a popup closes', async () => {
     const { recorder, browserContext, page } = await fixture();
+
     await vi.advanceTimersByTimeAsync(1000);
     await vi.waitFor(() => expect(store.insertArtifact).toHaveBeenCalledTimes(1));
     expect(page.screenshot).toHaveBeenCalledTimes(1);
@@ -94,6 +104,7 @@ describe('recorder cleanup and partial archive recovery', () => {
       url: () => 'https://example.com/popup',
       screenshot: vi.fn(async () => Buffer.from('popup')),
     };
+
     recorder.onPage(popup as unknown as Page);
     await vi.advanceTimersByTimeAsync(1000);
     await vi.waitFor(() => expect(store.insertArtifact).toHaveBeenCalledTimes(2));
@@ -120,6 +131,7 @@ describe('recorder cleanup and partial archive recovery', () => {
 
   it('archives trace and video and closes the context even when the final screenshot fails', async () => {
     const { recorder, context, browserContext, page } = await fixture();
+
     page.screenshot.mockRejectedValue(new Error('screenshot failed'));
     await expect(recorder.stop(browserContext)).rejects.toThrow('执行附件归档失败');
     expect(context.off).toHaveBeenCalledWith('page', recorder.onPage);
@@ -134,14 +146,17 @@ describe('recorder cleanup and partial archive recovery', () => {
 
   it('continues archiving later videos after trace and one video fail', async () => {
     const { recorder, context, browserContext, page } = await fixture();
+
     context.tracing.stop.mockRejectedValue(new Error('trace failed'));
     const validVideo = page.video();
+
     page.video = () => ({ path: async () => join(directory, 'missing.webm') });
     recorder.onPage({
       ...page,
       video: () => validVideo,
     } as unknown as Page);
     const stopping = recorder.stop(browserContext);
+
     await expect(stopping).rejects.toMatchObject({
       errors: expect.arrayContaining([
         expect.objectContaining({ message: 'trace failed' }),
@@ -160,6 +175,7 @@ describe('recorder cleanup and partial archive recovery', () => {
 
   it('surfaces live capture errors discovered just before an interrupted stop', async () => {
     const { recorder, context, browserContext, page } = await fixture();
+
     page.screenshot.mockRejectedValue(new Error('live capture failed'));
     await vi.advanceTimersByTimeAsync(1000);
     await expect(recorder.stop(browserContext, true)).rejects.toMatchObject({

@@ -8,6 +8,7 @@ function deferred() {
     resolve = done;
     reject = fail;
   });
+
   return { promise, resolve, reject };
 }
 
@@ -17,6 +18,7 @@ describe('refresh coordination', () => {
     const load = vi.fn<(signal: AbortSignal) => Promise<void>>(() => response.promise);
     const task = createRefreshTask(load);
     const pending = task.refresh();
+
     await Promise.resolve();
     expect(task.refresh()).toBe(pending);
     expect(task.refresh()).toBe(pending);
@@ -35,6 +37,7 @@ describe('refresh coordination', () => {
       .mockResolvedValue(undefined);
     const task = createRefreshTask(load);
     const pending = task.refresh();
+
     await Promise.resolve();
     expect(task.refresh(true)).toBe(pending);
     expect(task.refresh(true)).toBe(pending);
@@ -48,6 +51,7 @@ describe('refresh coordination', () => {
     const load = vi.fn<(signal: AbortSignal) => Promise<void>>(() => response.promise);
     const task = createRefreshTask(load);
     const pending = task.refresh();
+
     await Promise.resolve();
     void task.refresh(true);
     task.dispose();
@@ -62,6 +66,7 @@ describe('refresh coordination', () => {
     const load = vi.fn(async () => {});
     const task = createRefreshTask(load);
     const pending = task.refresh();
+
     task.dispose();
     await pending;
     expect(load).not.toHaveBeenCalled();
@@ -70,6 +75,7 @@ describe('refresh coordination', () => {
   it('allows retrying after a failed request', async () => {
     const load = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(undefined);
     const task = createRefreshTask(load);
+
     await expect(task.refresh()).rejects.toThrow('offline');
     await task.refresh();
     expect(load).toHaveBeenCalledTimes(2);
@@ -82,8 +88,10 @@ describe('refresh coordination', () => {
       .mockResolvedValue(undefined);
     const task = createRefreshTask(load);
     const pending = task.refresh();
+
     await Promise.resolve();
     const updated = task.refresh(true);
+
     response.reject(new Error('Old read failed'));
     await expect(updated).resolves.toBeUndefined();
     await pending;
@@ -99,6 +107,7 @@ describe('refresh coordination', () => {
       .mockResolvedValue(undefined);
     const task = createRefreshTask(load);
     const pending = task.refresh();
+
     await Promise.resolve();
     void task.refresh(true);
     response.reject(new Error('Old read failed'));
@@ -112,6 +121,7 @@ describe('refresh coordination', () => {
     const load = vi.fn(() => response.promise);
     const task = createRefreshTask(load);
     const pending = task.refresh();
+
     await Promise.resolve();
     void task.refresh(true);
     task.dispose();

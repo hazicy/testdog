@@ -1,4 +1,5 @@
 import type { RunArtifact, TestRun } from './types';
+
 type FramePositions = { first: number; before?: number; after?: number };
 
 export function indexRun(run?: Pick<TestRun, 'steps' | 'artifacts'>) {
@@ -11,6 +12,7 @@ export function indexRun(run?: Pick<TestRun, 'steps' | 'artifacts'>) {
     else if (artifact.kind === 'trace') trace ??= artifact;
     else {
       const index = frames.length;
+
       frames.push(artifact);
       if (!artifact.stepId) continue;
       const positions: FramePositions = stepFrames.get(artifact.stepId) || { first: index };
@@ -20,5 +22,6 @@ export function indexRun(run?: Pick<TestRun, 'steps' | 'artifacts'>) {
     }
   }
   const steps = new Map((run?.steps || []).map((step) => [step.id, step]));
+
   return { frames, videos, trace, stepFrames, steps };
 }

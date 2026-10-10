@@ -12,6 +12,7 @@ import { DeviceRecorder } from '@/workspace/server/deviceRecorder';
 import { RunRecorder } from '@/workspace/server/recorder';
 import type { TestRun } from '@/workspace/types';
 import type { AutomationSession, ActionPlanner, PlatformAction } from './contracts';
+
 export interface PlatformRuntime {
   session: AutomationSession;
   planner: ActionPlanner;
@@ -20,6 +21,7 @@ export interface PlatformRuntime {
   finalize(interrupted: boolean): Promise<void>;
   healthy: boolean;
 }
+
 export async function openPlatformRuntime(input: {
   run: TestRun;
   plan: Plan;
@@ -90,6 +92,7 @@ export async function openPlatformRuntime(input: {
       }
       runtime.environment.viewport = observation.viewport;
       if (!secrets.enabled) live = setInterval(() => recorder.sample(session), 2000);
+
       return runtime;
     } catch (error) {
       await runtime.finalize(true).catch(() => {});
@@ -105,6 +108,7 @@ export async function openPlatformRuntime(input: {
   const stop = () => {
     void browser?.close().catch(() => {});
   };
+
   signal.addEventListener('abort', stop, { once: true });
   try {
     browser = await launchWebBrowser(target);
@@ -123,6 +127,7 @@ export async function openPlatformRuntime(input: {
     });
     context.setDefaultTimeout(15000);
     const page = await context.newPage();
+
     await recorder.start(context);
     recorder.onPage(page);
     const hooks = { signal, onPage: recorder.onPage, onStep: recorder.onStep };
@@ -176,6 +181,7 @@ export async function openPlatformRuntime(input: {
         evidence.assertComplete();
       },
     };
+
     return runtime;
   } catch (error) {
     signal.removeEventListener('abort', stop);

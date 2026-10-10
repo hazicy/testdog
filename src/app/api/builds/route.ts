@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { automationBuilds } from '@/db/schema';
 import { apiError } from '@/workspace/server/http';
+
 export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     const builds = await db
@@ -14,6 +16,7 @@ export async function GET() {
         createdAt: automationBuilds.createdAt,
       })
       .from(automationBuilds);
+
     return NextResponse.json({ builds });
   } catch (error) {
     return apiError(error);

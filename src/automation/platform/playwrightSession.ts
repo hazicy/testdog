@@ -76,7 +76,9 @@ export class PlaywrightSession implements AutomationSession {
   async observe(signal: AbortSignal): Promise<Observation> {
     signal.throwIfAborted();
     const observation = await this.session.observe(this.observer);
+
     signal.throwIfAborted();
+
     return (this.observation = {
       ...observation,
       tree: this.secrets.redactData(observation.tree),
@@ -117,6 +119,7 @@ export class PlaywrightSession implements AutomationSession {
   async wait(action: PlatformAction, signal: AbortSignal) {
     if (action.action.type !== 'wait') throw new Error('Expected wait action');
     await this.perform(action, signal);
+
     return this.observe(signal);
   }
   async check(assertion: PlatformAssertion, signal: AbortSignal) {
@@ -125,6 +128,7 @@ export class PlaywrightSession implements AutomationSession {
     try {
       if (assertion.type === 'url') {
         const check = playwrightExpect(this.session.page);
+
         await (assertion.negate ? check.not : check).toHaveURL(assertion.value!, { timeout: 5000 });
       } else {
         if (!assertion.target) throw new Error('Assertion target required');
@@ -138,9 +142,11 @@ export class PlaywrightSession implements AutomationSession {
         else await check.toHaveValue(assertion.value!, { timeout: 5000 });
       }
       signal.throwIfAborted();
+
       return { passed: true, evidence: `Playwright ${assertion.type} passed` };
     } catch (error) {
       signal.throwIfAborted();
+
       return { passed: false, evidence: error instanceof Error ? error.message : String(error) };
     }
   }
@@ -152,6 +158,7 @@ export class PlaywrightSession implements AutomationSession {
     )
       throw new Error('Recording observation mismatch');
     const result = await recordAction(this.session.page, action.action);
+
     return {
       action: { platform: 'web' as const, action: result.action },
       replayable: result.replayable,
@@ -171,6 +178,7 @@ export class PlaywrightSession implements AutomationSession {
       ];
     if (request.kind !== 'screenshot')
       throw new Error('Web video/trace are exported during context finalization');
+
     return [
       {
         kind: 'screenshot',
@@ -200,6 +208,7 @@ export class PlaywrightSession implements AutomationSession {
       ...(event.evidence ? { evidence: this.secrets.redact(event.evidence) } : {}),
     };
     const page = this.session.page;
+
     this.hooks.onPage?.(page);
     await this.hooks.onStep?.(
       { ...event, action: event.action?.platform === 'web' ? event.action.action : undefined },
@@ -226,6 +235,7 @@ export class WebActionPlanner implements ActionPlanner {
         step.platform === 'web' ? [step.action] : [],
       ),
     });
+
     return {
       done: result.done,
       steps: result.steps.map((action): PlatformAction => ({ platform: 'web', action })),

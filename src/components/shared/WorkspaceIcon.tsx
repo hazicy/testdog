@@ -1,4 +1,5 @@
 import type { SVGProps } from 'react';
+
 const paths = {
   pause: 'M8 4v16M16 4v16',
   maximize: 'M9 3H3v6m12-6h6v6M3 15v6h6m6 0h6v-6',
@@ -17,6 +18,7 @@ const paths = {
   trash: 'M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7',
   download: 'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
 };
+
 export function WorkspaceIcon({
   name,
   ...props

@@ -18,16 +18,19 @@ const recordingVersionFields = {
   targetSnapshot: recordingVersions.targetSnapshot,
   schemaVersion: recordingVersions.schemaVersion,
 };
+
 export async function listRecordingVersions(runId: string) {
   await recoverExpiredRuns();
   const [run] = await db.select({ id: testRuns.id }).from(testRuns).where(eq(testRuns.id, runId));
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
+
   return db
     .select(recordingVersionFields)
     .from(recordingVersions)
     .where(eq(recordingVersions.runId, runId))
     .orderBy(desc(recordingVersions.createdAt), desc(recordingVersions.id));
 }
+
 export async function saveRecordingVersion(runId: string, code: string) {
   const parsed = recordingCodeSchema.safeParse(code);
   if (!parsed.success) throw new WorkspaceError(recordingInputMessage);
@@ -69,5 +72,6 @@ export async function saveRecordingVersion(runId: string, code: string) {
       targetSnapshot: run.targetSnapshot,
     })
     .returning(recordingVersionFields);
+
   return version;
 }

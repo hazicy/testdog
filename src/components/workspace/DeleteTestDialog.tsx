@@ -16,6 +16,7 @@ export function DeleteTestDialog({
 }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+
   async function remove() {
     setSaving(true);
     setFormError('');
@@ -28,6 +29,7 @@ export function DeleteTestDialog({
       setSaving(false);
     }
   }
+
   return (
     <Dialog titleId="delete-title" busy={saving} onDismiss={onClose} className="max-w-md">
       <div className="p-6">

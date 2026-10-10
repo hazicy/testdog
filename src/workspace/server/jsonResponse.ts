@@ -14,7 +14,9 @@ export function jsonResponse(request: Request, data: unknown) {
     ?.split(',')
     .some((tag) => {
       const value = tag.trim().replace(/^W\//, '');
+
       return value === etag || value === '*';
     });
+
   return matches ? new Response(null, { status: 304, headers }) : new Response(body, { headers });
 }

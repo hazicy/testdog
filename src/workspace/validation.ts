@@ -1,5 +1,6 @@
 import { TestTargetSchema } from '@/automation/platform/target';
 import { z } from 'zod';
+
 export const websiteSchema = z
   .url()
   .refine(

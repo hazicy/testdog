@@ -25,10 +25,12 @@ it('renders saved console and network records with expandable details', () => {
     },
   ];
   const console = renderToStaticMarkup(createElement(BrowserLogPanel, { logs, kind: 'console' }));
+
   expect(console).toContain('Page crashed &lt;script&gt;');
   expect(console).toContain('page-2');
   expect(console).not.toContain('https://example.com/api');
   const network = renderToStaticMarkup(createElement(BrowserLogPanel, { logs, kind: 'network' }));
+
   expect(network).toContain('503');
   expect(network).toContain('https://example.com/api');
   expect(network).toContain('connection closed');

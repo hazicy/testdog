@@ -7,6 +7,7 @@ import { Observer } from './observer';
 import { Executor } from './executor';
 
 const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
+
 vi.mock('./deepseek', () => ({ generateWithOpenAI: generate }));
 
 const task = (
@@ -66,6 +67,7 @@ function fixture(nodes: PlanNode[] = [group('root', [])], startUrl?: string) {
   const page = mockPage(context);
   const executor = new Executor(observer, plan, startUrl);
   const execute = vi.spyOn(executor, 'execute').mockResolvedValue(undefined);
+
   return { executor, observe, observation, page, execute };
 }
 
@@ -81,11 +83,13 @@ beforeEach(() => {
 describe('Executor Plan recording', () => {
   it('sends a plain string URL schema without the unsupported uri format', async () => {
     const { executor, page } = fixture([task('act')]);
+
     generate.mockResolvedValueOnce(done);
     await executor.record(page);
     const tool = generate.mock.calls[0][0].tools.find(
       (tool: { name: string }) => tool.name === 'navigate',
     );
+
     expect(tool.parameters.properties.url.type).toBe('string');
     expect(tool.parameters.properties.url).not.toHaveProperty('format');
   });
@@ -94,6 +98,7 @@ describe('Executor Plan recording', () => {
     'rejects invalid navigation URL %s before execution',
     async (url) => {
       const { executor, page, execute } = fixture([task('act')]);
+
       generate.mockResolvedValueOnce(action('navigate', { url }));
       await expect(executor.record(page)).rejects.toThrow('Step act');
       expect(execute).not.toHaveBeenCalled();
@@ -120,6 +125,7 @@ describe('Executor Plan recording', () => {
     'executes %s then observes and plans without an acknowledgement turn',
     async (name, args, step) => {
       const { executor, page, execute, observe } = fixture([task('act')]);
+
       generate.mockResolvedValueOnce(action(name as string, args)).mockResolvedValueOnce(done);
       await executor.record(page);
       expect(execute).toHaveBeenCalledExactlyOnceWith(page, expect.objectContaining(step));
@@ -130,6 +136,7 @@ describe('Executor Plan recording', () => {
       expect(generate).toHaveBeenCalledTimes(2);
       expect(payload(1).completedSteps).toEqual([expect.objectContaining(step)]);
       const request = generate.mock.calls[0][0];
+
       expect(request.tools.map((tool: { name: string }) => tool.name)).toEqual([
         'navigate',
         'click',
@@ -151,6 +158,7 @@ describe('Executor Plan recording', () => {
     ['unknown', {}],
   ])('rejects invalid %s arguments before execution', async (name, args) => {
     const { executor, page, execute } = fixture([task('bad')]);
+
     generate.mockResolvedValueOnce(action(name, args));
     await expect(executor.record(page)).rejects.toThrow('Step bad');
     expect(execute).not.toHaveBeenCalled();
@@ -160,6 +168,7 @@ describe('Executor Plan recording', () => {
     'limits execution to 20 actions with a final completion check: %s',
     async (complete) => {
       const { executor, page, execute, observe } = fixture([task('bounded')]);
+
       generate.mockResolvedValue(action('click', { ref: 'e1' }));
       for (let i = 0; i < 20; i++) generate.mockResolvedValueOnce(action('click', { ref: 'e1' }));
       generate.mockResolvedValueOnce(complete ? done : action('click', { ref: 'e1' }));
@@ -176,6 +185,7 @@ describe('Executor Plan recording', () => {
     const { executor, page, execute, observe } = fixture([task('batch')]);
     const first = action('fill', { ref: 'e1', value: 'account' });
     const second = action('fill', { ref: 'e2', value: 'password' });
+
     generate
       .mockResolvedValueOnce({
         content: { text: '' },
@@ -200,6 +210,7 @@ describe('Executor Plan recording', () => {
       task('after'),
     ]);
     const newPage = mockPage(page.context());
+
     execute.mockImplementationOnce(async () => {
       (page.context() as unknown as EventEmitter).emit('page', newPage);
     });
@@ -234,6 +245,7 @@ describe('Executor Plan recording', () => {
       task('open'),
     ]);
     const newPage = mockPage(page.context());
+
     execute.mockImplementationOnce(async () => {
       (page.context() as unknown as EventEmitter).emit('page', newPage);
     });
@@ -250,6 +262,7 @@ describe('Executor Plan recording', () => {
   it('waits and reobserves loading results without repeating the click', async () => {
     const { executor, page, execute, observe } = fixture([task('video')]);
     const wait = vi.spyOn(BrowserSession.prototype, 'wait').mockResolvedValue(undefined);
+
     generate
       .mockResolvedValueOnce(action('click', { ref: 'e1' }))
       .mockResolvedValueOnce(
@@ -277,6 +290,7 @@ describe('Executor Plan recording', () => {
   it('bounds repeated waits separately from browser actions', async () => {
     const { executor, page, execute } = fixture([task('loading')]);
     const wait = vi.spyOn(BrowserSession.prototype, 'wait').mockResolvedValue(undefined);
+
     generate.mockResolvedValue(
       action('wait', { condition: 'observe', value: '', timeoutMs: 5000 }),
     );
@@ -299,6 +313,7 @@ describe('Executor Plan recording', () => {
     { condition: 'observe', value: '', timeoutMs: 5001 },
   ])('rejects invalid waits before executing: %j', async (args) => {
     const { executor, page, execute } = fixture([task('invalid_wait')]);
+
     generate.mockResolvedValueOnce(action('wait', args));
     await expect(executor.record(page)).rejects.toThrow('Step invalid_wait');
     expect(execute).not.toHaveBeenCalled();
@@ -306,6 +321,7 @@ describe('Executor Plan recording', () => {
 
   it('rejects batched wait and action calls before dispatch', async () => {
     const { executor, page, execute } = fixture([task('batch_wait')]);
+
     generate.mockResolvedValueOnce({
       content: { text: '' },
       toolCalls: [
@@ -320,6 +336,7 @@ describe('Executor Plan recording', () => {
   it('reobserves before using further batched refs when a tab opens unexpectedly', async () => {
     const { executor, page, execute, observe } = fixture([task('new_tab')]);
     const popup = mockPage(page.context());
+
     execute.mockImplementationOnce(async () => {
       (page.context() as unknown as EventEmitter).emit('page', popup);
     });
@@ -343,9 +360,11 @@ describe('Executor Plan recording', () => {
   it('discards a plan if a delayed popup opens while the model is responding', async () => {
     const { executor, page, execute, observe } = fixture([task('delayed_tab')]);
     const popup = mockPage(page.context());
+
     generate
       .mockImplementationOnce(async () => {
         (page.context() as unknown as EventEmitter).emit('page', popup);
+
         return action('click', { ref: 'e1' });
       })
       .mockResolvedValueOnce(done);
@@ -360,6 +379,7 @@ describe('Executor Plan recording', () => {
   it('rejects malformed JSON without executing', async () => {
     const { executor, page, execute } = fixture([task('bad')]);
     const call = action('click', { ref: 'e1' });
+
     generate.mockResolvedValueOnce({
       ...call,
       toolCalls: [{ ...call.toolCalls[0], arguments: '{' }],
@@ -380,6 +400,7 @@ describe('Executor Plan recording', () => {
       ],
       'https://example.com/start',
     );
+
     generate
       .mockResolvedValueOnce(done)
       .mockResolvedValueOnce(done)
@@ -415,6 +436,7 @@ describe('Executor Plan recording', () => {
       task('b', { dependsOn: ['shared'] }),
       task('shared', { assertions: [{ description: 'Shared check' }] }),
     ]);
+
     generate.mockResolvedValue(done).mockResolvedValueOnce(done).mockResolvedValueOnce(passed);
     await executor.record(page);
     expect(
@@ -434,6 +456,7 @@ describe('Executor Plan recording', () => {
       target: { kind: 'ariaRef', value: 'e1', name: '' },
       value: 'secret',
     };
+
     generate
       .mockResolvedValueOnce(action('fill', { ref: 'e1', value: 'secret' }))
       .mockResolvedValueOnce(done);
@@ -454,11 +477,13 @@ describe('Executor Plan recording', () => {
       target: { kind: 'ariaRef', value: 'f1e297' },
       value: '',
     };
+
     generate.mockResolvedValueOnce(action('click', { ref: 'f1e297' })).mockResolvedValueOnce(done);
 
     await executor.record(page);
 
     const normalized = { ...step, target: { ...step.target, name: '' } };
+
     expect(execute).toHaveBeenCalledExactlyOnceWith(page, normalized);
     expect(payload(1).completedSteps).toEqual([normalized]);
   });
@@ -467,6 +492,7 @@ describe('Executor Plan recording', () => {
     'selects exactly one branch using read-only observation: %s',
     async (matches) => {
       const decision = branch('no');
+
       decision.dependsOn = ['setup'];
       const { executor, page, observation, execute } = fixture([
         group('root', ['branch', 'after']),
@@ -476,6 +502,7 @@ describe('Executor Plan recording', () => {
         task('no'),
         task('after'),
       ]);
+
       generate
         .mockResolvedValueOnce(done)
         .mockResolvedValueOnce({
@@ -498,6 +525,7 @@ describe('Executor Plan recording', () => {
 
   it('skips a false branch without otherwise', async () => {
     const { executor, page } = fixture([branch(), task('yes')]);
+
     generate.mockResolvedValueOnce({
       structuredContent: { passed: false, evidence: 'Not visible' },
     });
@@ -507,6 +535,7 @@ describe('Executor Plan recording', () => {
 
   it('stops on an invalid branch decision without executing either alternative', async () => {
     const { executor, page, execute } = fixture([branch('no'), task('yes'), task('no')]);
+
     generate.mockResolvedValueOnce({ structuredContent: { passed: true, evidence: '' } });
     await expect(executor.record(page)).rejects.toThrow('Branch branch failed: Account exists');
     expect(generate).toHaveBeenCalledTimes(1);
@@ -525,6 +554,7 @@ describe('Executor Plan recording', () => {
       }),
       task('later'),
     ]);
+
     generate.mockResolvedValueOnce(done).mockResolvedValueOnce({ structuredContent: result });
     await expect(executor.record(page)).rejects.toThrow(
       'Assertion check-assertion-1 failed: Final state',
@@ -541,6 +571,7 @@ describe('Executor Plan recording', () => {
 
   it('includes the task id and goal when planning fails', async () => {
     const { executor, page } = fixture([task('broken')]);
+
     generate.mockResolvedValueOnce({ content: { text: 'Cannot act' }, toolCalls: [] });
     await expect(executor.record(page)).rejects.toThrow('Step broken (goal broken) failed');
   });
@@ -549,6 +580,7 @@ describe('Executor Plan recording', () => {
     const { executor, page, observe, observation } = fixture([
       task('check', { assertions: [{ description: 'Visible result' }] }),
     ]);
+
     generate.mockResolvedValueOnce(done);
     observe
       .mockResolvedValueOnce(observation)
@@ -561,6 +593,7 @@ describe('Executor Plan recording', () => {
 
   it('reports missing nodes', async () => {
     const { executor, page } = fixture([group('root', ['missing'])]);
+
     await expect(executor.record(page)).rejects.toThrow('Unknown plan node: missing');
     expect(generate).not.toHaveBeenCalled();
   });
@@ -570,6 +603,7 @@ describe('Executor Plan recording', () => {
     [task('a', { dependsOn: ['b'] }), task('b', { dependsOn: ['a'] })],
   ])('reports cycles without executing actions', async (...nodes) => {
     const { executor, page } = fixture(nodes);
+
     await expect(executor.record(page)).rejects.toThrow('Cycle detected');
     expect(generate).not.toHaveBeenCalled();
   });

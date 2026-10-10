@@ -7,11 +7,14 @@ import { homedir } from 'node:os';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { automationBuilds } from '@/db/schema';
+
 const exec = promisify(execFile);
+
 export async function hashBuild(path: string): Promise<string> {
   const hash = createHash('sha256');
   const visit = async (file: string, relative: string): Promise<void> => {
     const info = await lstat(file);
+
     hash.update(relative + '\0');
     if (info.isSymbolicLink()) hash.update('link\0' + (await readlink(file)));
     else if (info.isDirectory()) {
@@ -20,9 +23,12 @@ export async function hashBuild(path: string): Promise<string> {
     } else if (info.isFile()) hash.update(await readFile(file));
     else throw new Error('Unsupported build file');
   };
+
   await visit(path, '');
+
   return hash.digest('hex');
 }
+
 export async function registerBuild(platform: 'android' | 'ios', inputPath: string) {
   const source = await realpath(inputPath);
   if (extname(source) !== (platform === 'android' ? '.apk' : '.app'))
@@ -50,23 +56,29 @@ export async function registerBuild(platform: 'android' | 'ios', inputPath: stri
   }
   const id = randomUUID();
   const root = join(process.env.CASEFORGE_DATA_DIR || join(process.cwd(), '.automation'), 'builds');
+
   await mkdir(root, { recursive: true });
   const path = join(root, `${id}${platform === 'ios' ? '.app' : '.apk'}`);
+
   await cp(source, path, { recursive: platform === 'ios' });
   const sha256 = await hashBuild(path);
   const [build] = await db
     .insert(automationBuilds)
     .values({ id, platform, appId, sha256, path })
     .returning();
+
   return build;
 }
+
 export async function getBuild(id: string, platform: 'android' | 'ios', appId: string) {
   const [build] = await db.select().from(automationBuilds).where(eq(automationBuilds.id, id));
   if (!build || build.platform !== platform || build.appId !== appId)
     throw new Error('构建不存在或与应用/平台不兼容');
   if ((await hashBuild(build.path)) !== build.sha256) throw new Error('构建附件摘要不匹配');
+
   return build;
 }
+
 export async function clearAndroidData(deviceId: string, appId: string, signal: AbortSignal) {
   const sdk = process.env.ANDROID_SDK_ROOT || join(homedir(), 'Library/Android/sdk');
   const result = await exec(
@@ -90,6 +102,7 @@ export async function installedBuildHash(
         timeout: 15000,
       })
     ).stdout.trim();
+
     return hashBuild(path);
   }
   const { mkdtemp, rm } = await import('node:fs/promises');
@@ -120,6 +133,7 @@ export async function installedBuildHash(
         signal,
         timeout: 30000,
       });
+
     return await hashBuild(directory);
   } finally {
     await rm(directory, { recursive: true, force: true });

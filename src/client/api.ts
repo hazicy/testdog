@@ -5,6 +5,7 @@ export async function requestJson<T>(url: string, init?: RequestInit): Promise<T
 
 export function createJsonReader<T>(url: string) {
   const cache: { etag?: string; value?: T } = {};
+
   return (init?: Omit<RequestInit, 'method' | 'body'>) =>
     readJson(url, { ...init, method: 'GET' }, cache);
 }
@@ -23,6 +24,7 @@ async function readJson<T>(
     408,
   );
   const timer = setTimeout(() => controller.abort(timeout), 15000);
+
   init?.signal?.addEventListener('abort', cancel, { once: true });
   if (init?.signal?.aborted) cancel();
   try {
@@ -56,6 +58,7 @@ async function readJson<T>(
       cache.value = data as T;
       cache.etag = response.headers.get('etag') || undefined;
     }
+
     return data as T;
   } catch (error) {
     if (controller.signal.reason === timeout) throw timeout;
@@ -65,6 +68,7 @@ async function readJson<T>(
     init?.signal?.removeEventListener('abort', cancel);
   }
 }
+
 export class HttpError extends Error {
   constructor(
     message: string,

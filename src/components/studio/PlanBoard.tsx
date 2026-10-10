@@ -7,6 +7,7 @@ import { planForest } from '@/workspace/planTree';
 import { PlanNodes } from './PlanNodes';
 
 type Edge = { key: string; x1: number; y1: number; x2: number; y2: number };
+
 export function PlanBoard({
   plan,
   steps,
@@ -32,6 +33,7 @@ export function PlanBoard({
       if (recorded) recorded.push(step);
       else index.set(step.planNodeId, [step]);
     }
+
     return index;
   }, [steps]);
   const node = plan?.nodes[selected || ''];
@@ -49,8 +51,10 @@ export function PlanBoard({
       (viewport.current.clientWidth - 48) / stage.current.offsetWidth,
       (viewport.current.clientHeight - 48) / stage.current.offsetHeight,
     );
+
     setView({ x: 24, y: 24, scale: Math.max(0.15, scale) });
   }, []);
+
   useEffect(() => {
     const surface = viewport.current;
     const content = stage.current;
@@ -61,9 +65,11 @@ export function PlanBoard({
       frame = requestAnimationFrame(fit);
     };
     const observer = new ResizeObserver(update);
+
     observer.observe(surface);
     observer.observe(content);
     update();
+
     return () => {
       observer.disconnect();
       cancelAnimationFrame(frame);
@@ -75,21 +81,26 @@ export function PlanBoard({
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
       const rect = surface.getBoundingClientRect();
+
       setView((v) => {
         if (event.ctrlKey || event.metaKey) {
           const scale = Math.max(0.15, Math.min(2, v.scale * Math.exp(-event.deltaY * 0.005)));
           const px = event.clientX - rect.left,
             py = event.clientY - rect.top;
+
           return {
             scale,
             x: px - ((px - v.x) * scale) / v.scale,
             y: py - ((py - v.y) * scale) / v.scale,
           };
         }
+
         return { ...v, x: v.x - event.deltaX, y: v.y - event.deltaY };
       });
     };
+
     surface.addEventListener('wheel', wheel, { passive: false });
+
     return () => surface.removeEventListener('wheel', wheel);
   }, [plan]);
   useEffect(() => {
@@ -99,10 +110,12 @@ export function PlanBoard({
       const root = element.getBoundingClientRect();
       const scale = root.width / element.offsetWidth;
       const positions = new Map<string, DOMRect>();
+
       element
         .querySelectorAll<HTMLElement>('[data-plan-node]')
         .forEach((el) => positions.set(el.dataset.planNode!, el.getBoundingClientRect()));
       const result: Edge[] = [];
+
       Object.values(plan.nodes).forEach((n) =>
         n.dependsOn.forEach((dep) => {
           const a = positions.get(dep),
@@ -120,8 +133,10 @@ export function PlanBoard({
       setEdges(result);
     };
     const observer = new ResizeObserver(update);
+
     observer.observe(element);
     update();
+
     return () => observer.disconnect();
   }, [plan, forest]);
   if (!plan)
@@ -190,6 +205,7 @@ export function PlanBoard({
             if (delta[e.key]) {
               e.preventDefault();
               const [x, y] = delta[e.key];
+
               setView((v) => ({ ...v, x: v.x + x, y: v.y + y }));
             }
           }}

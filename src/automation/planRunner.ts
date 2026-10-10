@@ -11,6 +11,7 @@ import {
   type RunnerOptions,
   type SessionEvent,
 } from './platform/contracts';
+
 const decisionSchema = z.strictObject({ passed: z.boolean(), evidence: z.string().trim().min(1) });
 
 // Owns business sequencing only. Driver objects and evidence capture belong to sessions.
@@ -28,6 +29,7 @@ export class PlanRunner {
       observation.revision !== session.revision
     )
       throw new Error('Observation session/revision mismatch');
+
     return observation;
   }
   async record(initial?: PlatformAction) {
@@ -96,6 +98,7 @@ export class PlanRunner {
           async () => {
             const result = await this.options.session.check(assertion, this.options.signal);
             if (!result.passed) throw new Error(result.evidence);
+
             return result;
           },
         );
@@ -114,6 +117,7 @@ export class PlanRunner {
             );
             if (step.assertion ? !result.passed : result.passed !== step.decision)
               throw new Error(result.evidence);
+
             return result;
           },
         );
@@ -148,6 +152,7 @@ export class PlanRunner {
             async () => {
               const result = await this.evaluate({ assertion }, 'assertion_result');
               if (!result.passed) throw new Error(result.evidence);
+
               return result;
             },
           );
@@ -174,6 +179,7 @@ export class PlanRunner {
         completedSteps,
         remainingWaitMs,
       });
+
       signal.throwIfAborted();
       if (revision !== session.revision) continue;
       if (decision.done) return;
@@ -183,6 +189,7 @@ export class PlanRunner {
         if (step.action.type === 'wait') {
           if (remainingWaitMs <= 0) throw new Error(`Wait budget exceeded: ${node.goal}`);
           const budget = Math.min(step.action.timeoutMs, remainingWaitMs);
+
           remainingWaitMs -= budget;
           step.action.timeoutMs = budget;
         } else if (++count > 20) throw new Error(`Exceeded 20 actions: ${node.goal}`);
@@ -201,6 +208,7 @@ export class PlanRunner {
       !session.capabilities.actions.includes(action.action.type)
     )
       throw new Error(`Unsupported ${action.platform} action: ${action.action.type}`);
+
     return this.traced(
       {
         kind:
@@ -234,6 +242,7 @@ export class PlanRunner {
         schema: z.toJSONSchema(decisionSchema) as JSONType,
       },
     });
+
     return decisionSchema.parse(response.structuredContent);
   }
   private async traced<T>(
@@ -241,19 +250,24 @@ export class PlanRunner {
     operation: () => Promise<T>,
   ): Promise<T> {
     const { session, signal } = this.options;
+
     signal.throwIfAborted();
     const base = { ...entry, planNodeId: this.nodeId, id: randomUUID() };
+
     await session.emit({ ...base, phase: 'start' });
     try {
       const result = await operation();
+
       signal.throwIfAborted();
       const detail = result && typeof result === 'object' ? result : {};
+
       await session.emit({
         ...base,
         phase: 'finish',
         ...('evidence' in detail ? { evidence: String(detail.evidence) } : {}),
         ...('passed' in detail ? { decision: Boolean(detail.passed) } : {}),
       });
+
       return result;
     } catch (error) {
       try {

@@ -2,7 +2,9 @@ import type { Page } from 'playwright';
 import type { Target, Step } from '@/automation/compiler/schema';
 import type { RecordedAction } from '../types';
 import { Executor } from '@/automation/executor';
+
 const locator = new Executor(undefined, { rootId: '', nodes: {} });
+
 export async function recordAction(
   page: Page,
   action: Step,
@@ -45,6 +47,7 @@ export async function recordAction(
         if (value)
           candidates.push({ kind: 'css', value: `${tag}[${attribute}="${CSS.escape(value)}"]` });
       }
+
       return {
         candidates,
         sensitive: element instanceof HTMLInputElement && element.type === 'password',
@@ -64,6 +67,7 @@ export async function recordAction(
         /* Try another stable descriptor. */
       }
     }
+
     return { action: { ...action, sensitive }, replayable: false };
   } finally {
     await handle.dispose();

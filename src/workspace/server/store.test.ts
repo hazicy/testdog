@@ -1,11 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
 const isolated = vi.hoisted(() => ({
   client: undefined as import('@electric-sql/pglite').PGlite | undefined,
 }));
+
 vi.mock('@/db', async () => {
   const result = await (await import('./testDatabase')).createTestDatabase();
+
   isolated.client = result.client;
+
   return { db: result.db };
 });
 import {
@@ -28,17 +32,23 @@ import type { RunRequest } from '../validation';
 
 import { claimRun, registerWorker, withLease } from './scheduler';
 import { setRunPhase, type RunLease } from './lease';
+
 const testLeases = new Map<string, RunLease>();
+
 async function createRun(...args: Parameters<typeof createQueuedRun>) {
   const run = await createQueuedRun(...args);
+
   await registerWorker('repository-test', 'test', [
     { id: `test:${run.id}`, hostId: 'test', platform: 'web', profileId: 'mobile' },
   ]);
   const claim = (await claimRun('repository-test', 'test', run.id))!;
+
   testLeases.set(run.id, claim.lease);
   await withLease(claim.lease, () => setRunPhase(run.id, 'running'));
+
   return getRun(run.id);
 }
+
 async function finishRun(id: string, status: import('../types').RunStatus, error?: string) {
   return withLease(testLeases.get(id)!, () => finishClaimedRun(id, status, error));
 }
@@ -46,9 +56,11 @@ async function finishRun(id: string, status: import('../types').RunStatus, error
 async function insertStep(...args: Parameters<typeof insertClaimedStep>) {
   return withLease(testLeases.get(args[0].runId)!, () => insertClaimedStep(...args));
 }
+
 async function appendEvent(...args: Parameters<typeof appendClaimedEvent>) {
   return withLease(testLeases.get(args[0])!, () => appendClaimedEvent(...args));
 }
+
 async function insertArtifact(...args: Parameters<typeof insertClaimedArtifact>) {
   return withLease(testLeases.get(args[0].runId)!, () => insertClaimedArtifact(...args));
 }
@@ -60,6 +72,7 @@ beforeEach(async () => {
 });
 afterAll(() => isolated.client!.close());
 const input = { name: 'Login', url: 'https://example.com', goal: 'Verify login', tags: ['smoke'] };
+
 function pendingStep(runId: string) {
   return {
     id: randomUUID(),
@@ -74,6 +87,7 @@ function pendingStep(runId: string) {
     replayable: true,
   };
 }
+
 describe('PostgreSQL workspace repository', () => {
   it('normalizes case writes and excludes protected fields at the repository boundary', async () => {
     const requestedId = randomUUID();
@@ -85,6 +99,7 @@ describe('PostgreSQL workspace repository', () => {
       goal: '  Verify login  ',
       tags: [' smoke '],
     } as typeof input);
+
     expect(saved.id).not.toBe(requestedId);
     expect(saved.name).toBe('Login');
     expect(saved.goal).toBe('Verify login');
@@ -116,12 +131,14 @@ describe('PostgreSQL workspace repository', () => {
     await expect(createRun(request as RunRequest)).rejects.toMatchObject({ status: 400 });
     expect(await listRuns()).toHaveLength(0);
     const valid = await createRun({ case: '  Check title  ', url: input.url });
+
     expect(valid.goal).toBe('Check title');
     expect(valid.mode).toBe('record');
   });
   it('lists lightweight summaries while retaining full detail for reports and replay', async () => {
     const test = await saveTest(input);
     const run = await createRun({ testId: test.id });
+
     await insertStep(pendingStep(run.id));
     await appendEvent(run.id, 'Detailed evidence '.repeat(10000));
     await isolated.client!.query(
@@ -129,6 +146,7 @@ describe('PostgreSQL workspace repository', () => {
       [JSON.stringify([pendingStep(run.id)]), run.id],
     );
     const [summary] = await listRuns();
+
     expect(summary).toMatchObject({
       id: run.id,
       testId: test.id,
@@ -148,6 +166,7 @@ describe('PostgreSQL workspace repository', () => {
       expect(summary).not.toHaveProperty(field);
     expect(JSON.stringify(summary).length).toBeLessThan(1000);
     const detail = await getRun(run.id);
+
     expect(detail.events[0].message).toHaveLength(180000);
     expect(detail.steps).toHaveLength(1);
     expect(detail.recordingSteps).toHaveLength(1);
@@ -178,6 +197,7 @@ describe('PostgreSQL workspace repository', () => {
         `/private/timeline-${id}.jpg`,
       );
     const expected = [ids[2], ids[1], ids[0]];
+
     expect((await getRun(run.id)).artifacts.map((artifact) => artifact.id)).toEqual(expected);
     expect((await getRun(run.id)).artifacts.map((artifact) => artifact.id)).toEqual(expected);
   });
@@ -186,6 +206,7 @@ describe('PostgreSQL workspace repository', () => {
     async (status) => {
       const run = await createRun({ case: 'Ownership', url: input.url });
       const step = pendingStep(run.id);
+
       await insertStep(step);
       await isolated.client!.query('UPDATE test_runs SET "workerId" = $1 WHERE id = $2', [
         'replacement-worker',
@@ -193,6 +214,7 @@ describe('PostgreSQL workspace repository', () => {
       ]);
       await expect(finishRun(run.id, status, 'Old worker result')).rejects.toThrow('lease lost');
       const current = await getRun(run.id);
+
       expect(current.status).toBe('running');
       expect(current.finishedAt).toBeUndefined();
       expect(current.error).toBeUndefined();
@@ -204,6 +226,7 @@ describe('PostgreSQL workspace repository', () => {
     'rolls back %s when saving step state fails',
     async (operation) => {
       const run = await createRun({ case: 'Atomic execution', url: input.url });
+
       await insertStep(pendingStep(run.id));
       if (operation === 'recover')
         await isolated.client!.query(
@@ -226,6 +249,7 @@ describe('PostgreSQL workspace repository', () => {
           'SELECT status, "finishedAt" FROM test_runs WHERE id = $1',
           [run.id],
         );
+
         expect(result.rows[0]).toEqual({ status: 'running', finishedAt: null });
         expect(
           (
@@ -245,9 +269,11 @@ describe('PostgreSQL workspace repository', () => {
 
   it('finalizes pending steps with the run and preserves the first terminal result on retry', async () => {
     const run = await createRun({ case: 'Interrupted run', url: input.url });
+
     await insertStep(pendingStep(run.id));
     await finishRun(run.id, 'failed', 'Browser closed');
     const finished = await getRun(run.id);
+
     expect(finished.status).toBe('failed');
     expect(finished.steps[0].status).toBe('failed');
     expect(finished.steps[0].finishedAt).toBe(finished.finishedAt);
@@ -258,6 +284,7 @@ describe('PostgreSQL workspace repository', () => {
 
   it('keeps live runs and their pending steps untouched while recovering an expired run', async () => {
     const expired = await createRun({ case: 'Expired worker', url: input.url });
+
     await insertStep(pendingStep(expired.id));
     await isolated.client!.query(
       'UPDATE test_runs SET "leaseUntil" = now() - interval \'2 minutes\' WHERE id = $1',
@@ -265,9 +292,11 @@ describe('PostgreSQL workspace repository', () => {
     );
     const live = await createRun({ case: 'Live worker', url: input.url });
     const step = pendingStep(live.id);
+
     await insertStep(step);
     await recoverExpiredRuns();
     const current = await getRun(live.id);
+
     expect(current.status).toBe('running');
     expect(current.steps[0].status).toBe('running');
     expect(current.steps[0].finishedAt).toBeUndefined();
@@ -280,21 +309,25 @@ describe('PostgreSQL workspace repository', () => {
       createRun({ testId: test.id }),
       createRun({ testId: test.id }),
     ]);
+
     expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(2);
     const run = (
       results.find((result) => result.status === 'fulfilled') as PromiseFulfilledResult<
         Awaited<ReturnType<typeof createRun>>
       >
     ).value;
+
     await saveTest({ ...input, goal: 'Changed test' }, test.id);
     await deleteTest(test.id);
     const saved = await getRun(run.id);
+
     expect(saved.goal).toBe('Verify login');
     expect(saved.testId).toBeUndefined();
   });
   it('recovers an expired lease, but leaves live workers running', async () => {
     const test = await saveTest(input);
     const run = await createRun({ testId: test.id });
+
     await recoverExpiredRuns();
     expect((await getRun(run.id)).status).toBe('running');
     await insertStep({
@@ -314,6 +347,7 @@ describe('PostgreSQL workspace repository', () => {
       [run.id],
     );
     const recovered = await getRun(run.id);
+
     expect(recovered.status).toBe('failed');
     expect(recovered.error).toContain('连接中断');
     expect(recovered.durationMs).toBeGreaterThanOrEqual(120000);
@@ -324,6 +358,7 @@ describe('PostgreSQL workspace repository', () => {
   });
   it('stores cancellation intent and rejects replay of an incomplete recording', async () => {
     const run = await createRun({ case: 'Check title', url: input.url });
+
     await requestCancellation(run.id);
     expect((await getRun(run.id)).cancelRequested).toBe(true);
     await finishRun(run.id, 'cancelled');

@@ -8,6 +8,7 @@ import { insertArtifact, insertStep, finishStep } from './store';
 import { BrowserLogs } from './browserLogs';
 import { recordAction } from './locator';
 import { artifactRoot } from './artifactStorage';
+
 export class RunRecorder {
   private page?: Page;
   private secrets: SecretInputs;
@@ -37,6 +38,7 @@ export class RunRecorder {
   }
   pageId = (page: Page) => {
     if (!this.pages.has(page)) this.pages.set(page, `page-${this.pages.size + 1}`);
+
     return this.pages.get(page)!;
   };
   onPage = (page: Page) => {
@@ -46,6 +48,7 @@ export class RunRecorder {
   private activePage() {
     if (this.page && !this.page.isClosed()) return this.page;
     this.page = [...this.pages.keys()].reverse().find((page) => !page.isClosed());
+
     return this.page;
   }
   async prepare() {
@@ -104,6 +107,7 @@ export class RunRecorder {
         playwrightAssertion: event.playwrightAssertion,
         condition: event.condition,
       };
+
       this.steps.set(event.id, step);
       await insertStep(step);
       await this.capture(page, 'before', event.id);
@@ -111,6 +115,7 @@ export class RunRecorder {
       const step = this.steps.get(event.id);
       if (!step) return;
       const finishedAt = new Date().toISOString();
+
       await finishStep(step.id, {
         status: event.phase === 'error' ? 'failed' : 'passed',
         finishedAt,
@@ -148,6 +153,7 @@ export class RunRecorder {
         throw error;
       }
       const path = join(this.directory, `${id}.jpg`);
+
       await writeFile(path, bytes, { mode: 0o600 });
       await insertArtifact(
         {
@@ -166,9 +172,11 @@ export class RunRecorder {
         path,
       );
     });
+
     this.queue = operation.catch((error) => {
       this.captureError ??= error;
     });
+
     return operation;
   }
   stop(context: BrowserContext, interrupted = false) {
@@ -187,6 +195,7 @@ export class RunRecorder {
         errors.push(error);
       }
     };
+
     await this.queue;
     if (this.captureError) errors.push(this.captureError);
     const page = this.activePage();
@@ -209,6 +218,7 @@ export class RunRecorder {
       id,
       url: page.url(),
     }));
+
     await attempt(() => context.close());
     for (const { video, id, url } of videos)
       if (video)
@@ -223,6 +233,7 @@ export class RunRecorder {
     pageUrl: string,
   ) {
     const capturedAt = new Date().toISOString();
+
     await chmod(path, 0o600);
     await insertArtifact(
       {

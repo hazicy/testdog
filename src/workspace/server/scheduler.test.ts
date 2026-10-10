@@ -1,11 +1,15 @@
 import { afterAll, beforeEach, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
+
 const isolated = vi.hoisted(() => ({
   client: undefined as import('@electric-sql/pglite').PGlite | undefined,
 }));
+
 vi.mock('@/db', async () => {
   const result = await (await import('./testDatabase')).createTestDatabase();
+
   isolated.client = result.client;
+
   return { db: result.db };
 });
 import {
@@ -25,6 +29,7 @@ import {
   finishRun,
   requestCancellation,
 } from './store';
+
 afterAll(() => isolated.client!.close());
 beforeEach(async () => {
   await isolated.client!.exec(
@@ -38,26 +43,32 @@ const target = {
   deviceProfileId: 'iphone',
   resetPolicy: 'preserve',
 } as const;
+
 async function setup() {
   await registerWorker('worker-a', 'host', [
     { id: 'host:iphone', hostId: 'host', platform: 'ios', profileId: 'iphone', deviceId: 'udid' },
   ]);
   await registerWorker('worker-b', 'host', []);
 }
+
 it('persists queued work and grants only one worker a device; completed release allows the next run', async () => {
   await setup();
   const first = await createRun({ case: 'Check', target });
   const second = await createRun({ case: 'Check', target });
+
   expect((await getRun(first.id)).status).toBe('queued');
   const claims = await Promise.all([claimRun('worker-a', 'host'), claimRun('worker-b', 'host')]);
+
   expect(claims.filter(Boolean)).toHaveLength(1);
   const claim = claims.find(Boolean)!;
+
   await withLease(claim.lease, async () => {
     await appendEvent(claim.run.id, 'started');
     await finishRun(claim.run.id, 'passed', claim.run.startedAt);
   });
   await releaseLease(claim.lease, true);
   const next = await claimRun('worker-b', 'host');
+
   expect(next?.run.id).toBe(second.id);
   expect(next?.lease.fencingToken).toBeGreaterThan(claim.lease.fencingToken);
 });
@@ -65,6 +76,7 @@ it('quarantines expired devices even while the old owner lives; rejects stale an
   await setup();
   await createRun({ case: 'Check', target });
   const claim = (await claimRun('worker-a', 'host'))!;
+
   await expect(appendEvent(claim.run.id, 'unowned')).rejects.toThrow('lease lost');
   await isolated.client!.query(
     'UPDATE test_runs SET "leaseUntil" = now() - interval \'1 second\' WHERE id = $1',
@@ -106,6 +118,7 @@ it('quarantines expired devices even while the old owner lives; rejects stale an
 it('cancels queued work without dispatch and runs different devices independently', async () => {
   await setup();
   const queued = await createRun({ case: 'Check', target });
+
   await requestCancellation(queued.id);
   expect((await getRun(queued.id)).status).toBe('cancelled');
   expect(await claimRun('worker-a', 'host')).toBeUndefined();

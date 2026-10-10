@@ -26,6 +26,7 @@ export class ScriptError extends Error {
 }
 const quote = JSON.stringify;
 const pageName = (id: string) => `page${id.replace('page-', '')}`;
+
 function locator(page: string, target: Target) {
   const methods = {
     role: 'getByRole',
@@ -43,8 +44,10 @@ function locator(page: string, target: Target) {
       : ['label', 'placeholder', 'text'].includes(target.kind)
         ? ', { exact: true }'
         : '';
+
   return `${page}.${methods[target.kind]}(${quote(value)}${options})${target.index === undefined ? '' : `.nth(${target.index})`}`;
 }
+
 export function recordingScript(steps: ExecutionStep[]) {
   const lines = [
     '// page1 = 初始页面；page2、page3 = 按打开顺序编号的新标签页',
@@ -53,11 +56,13 @@ export function recordingScript(steps: ExecutionStep[]) {
   ];
   for (const step of steps) {
     const page = pageName(step.pageId);
+
     lines.push(`// ${step.title.replace(/[\r\n]/g, ' ')}`);
     if (step.planNodeId) lines.push(`// @node ${step.planNodeId}`);
     const action = step.action;
     if (step.playwrightAssertion) {
       const a = step.playwrightAssertion;
+
       lines.push(
         `await expect(${a.target ? locator(page, a.target) : page}).${a.negate ? 'not.' : ''}${a.type}(${a.type === 'toBeVisible' ? '' : quote(a.value)});`,
       );
@@ -82,8 +87,10 @@ export function recordingScript(steps: ExecutionStep[]) {
     else lines.push('// 本步骤没有录制内容，请补充操作后保存。');
     lines.push('');
   }
+
   return lines.join('\n');
 }
+
 export function parseRecordingScript(code: string): ExecutionStep[] {
   if (code.length > 100000) throw new ScriptError('脚本最多 100,000 个字符');
   let program: Ast;
@@ -110,18 +117,22 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
         if (Object.hasOwn(result, key)) fail('选项属性不能重复');
         result[key] = literal(p.value);
       }
+
       return result;
     }
+
     return fail('参数须为字符串、数字、布尔值或字面量选项');
   };
   const action = (value: unknown) => {
     const result = StepSchema.safeParse(value);
     if (!result.success)
       return fail('操作参数无效；等待条件支持 observe/newPage/url/text，时间为 1000–5000 毫秒');
+
     return result.data;
   };
   const str = (node?: Ast) => {
     const value = literal(node);
+
     return typeof value === 'string' ? value : fail('此参数必须是字符串');
   };
   const pageId = (node?: Ast) =>
@@ -131,6 +142,7 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
   const member = (node?: Ast) => {
     if (node?.type !== 'MemberExpression' || node.computed || node.property?.type !== 'Identifier')
       return fail('只支持明确的方法调用');
+
     return { object: node.object!, method: node.property.name! };
   };
   const readLocator = (node: Ast): { page: string; target: Target } => {
@@ -142,6 +154,7 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
       const index = literal(args[0]);
       if (args.length !== 1 || typeof index !== 'number' || !Number.isInteger(index) || index < 0)
         fail('nth 需要非负整数');
+
       return { ...result, target: { ...result.target, index: index as number } };
     }
     const kinds: Record<string, Target['kind']> = {
@@ -172,6 +185,7 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
       (method === 'locator' && /aria-ref=|xpath=|^\/|nth-child|nth-of-type/.test(value))
     )
       fail('请使用稳定的语义定位器或 CSS；录制 aria-ref 需要替换');
+
     return {
       page: pageId(object),
       target: { kind: kinds[method], value, name: String(options.name || '') },
@@ -191,6 +205,7 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
     const call = expr!.argument!;
     const args = call.arguments || [];
     const nodeMatch = code.slice(previousEnd, statement.start).match(/\/\/ @node ([^\r\n]+)\s*$/);
+
     previousEnd = statement.end;
     const step: ExecutionStep = {
       id: `edited-${steps.length + 1}`,
@@ -207,6 +222,7 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
     };
     if (call.callee?.type === 'Identifier') {
       const name = call.callee.name;
+
       step.pageId = pageId(args[0]);
       if (name === 'expectPage' && args.length === 2) {
         step.kind = 'assertion';
@@ -256,6 +272,7 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
         if (args.length !== (method === 'toBeVisible' ? 0 : 1)) fail('断言参数数量错误');
         const subject = expected.arguments![0];
         const target = method === 'toHaveURL' ? undefined : readLocator(subject);
+
         step.pageId = target ? target.page : pageId(subject);
         step.kind = 'assertion';
         step.playwrightAssertion = {
@@ -293,6 +310,7 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
         args.length === (method === 'click' ? 0 : 1)
       ) {
         const result = readLocator(object);
+
         step.pageId = result.page;
         step.action = action({
           type: method,
@@ -310,5 +328,6 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
     if (steps.length > 500) fail('脚本最多 500 个步骤');
   }
   if (!steps.length) fail('至少需要一个操作或预期');
+
   return steps;
 }

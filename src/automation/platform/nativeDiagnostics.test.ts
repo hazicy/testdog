@@ -4,14 +4,17 @@ import { join } from 'node:path';
 import type { AgentDeviceClient } from 'agent-device';
 import { expect, it, vi } from 'vitest';
 import { NativeDiagnostics } from './nativeDiagnostics';
+
 it('retains quarantine when native recorder termination is unconfirmed', async () => {
   let path = '';
   const record = vi.fn(async (options: { action: string; path?: string }) => {
     if (options.action === 'start') {
       path = options.path!;
       await writeFile(path, 'pending video');
+
       return { recording: 'started', outPath: path };
     }
+
     return {
       recording: 'stopped',
       outPath: path,
@@ -37,6 +40,7 @@ it('retains quarantine when native recorder termination is unconfirmed', async (
 it('rejects an exported file outside the exact capture directory', async () => {
   const outside = await mkdtemp(join(tmpdir(), 'caseforge-foreign-'));
   const file = join(outside, 'foreign.mp4');
+
   await writeFile(file, 'foreign');
   let requested = '';
   const client = {
@@ -44,8 +48,10 @@ it('rejects an exported file outside the exact capture directory', async () => {
       record: vi.fn(async (options: { action: string; path?: string }) => {
         if (options.action === 'start') {
           requested = options.path!;
+
           return { recording: 'started', outPath: requested };
         }
+
         return { recording: 'stopped', recorder: 'confirmed', outPath: file };
       }),
     },

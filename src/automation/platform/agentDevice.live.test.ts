@@ -6,21 +6,28 @@ import { cp, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it, afterAll, vi } from 'vitest';
+
 const isolated = vi.hoisted(() => ({
   client: undefined as import('@electric-sql/pglite').PGlite | undefined,
 }));
+
 vi.mock('@/db', async (original) => {
   if (process.env.RUN_DEVICE_LIVE_TESTS !== 'true') return original<typeof import('@/db')>();
   const result = await (await import('@/workspace/server/testDatabase')).createTestDatabase();
+
   isolated.client = result.client;
+
   return { db: result.db };
 });
 import { registerBuild } from './builds';
+
 afterAll(() => isolated.client?.close());
 import { AgentDeviceSession } from './agentDeviceSession';
 import type { NativeAction, PlatformAction } from './contracts';
+
 const exec = promisify(execFile);
 const live = process.env.RUN_DEVICE_LIVE_TESTS === 'true';
+
 async function replayThroughRunner(
   session: AgentDeviceSession,
   bindings: PlatformAction[],
@@ -39,6 +46,7 @@ async function replayThroughRunner(
     platformAction: action,
     replayable: true,
   }));
+
   steps.push({
     id: 'check',
     runId: '',
@@ -73,6 +81,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
   'runs an installed UIKit fixture through agent-device and replays stable bindings',
   async () => {
     const directory = await mkdtemp(join(tmpdir(), 'caseforge-ios-'));
+
     vi.stubEnv('CASEFORGE_DATA_DIR', directory);
     let udid: string | undefined;
     let session: AgentDeviceSession | undefined;
@@ -84,6 +93,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
       const sdk = (
         await exec('xcrun', ['--sdk', 'iphonesimulator', '--show-sdk-path'])
       ).stdout.trim();
+
       await exec(
         'xcrun',
         [
@@ -129,6 +139,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
         deviceProfileId: 'fixture',
         resetPolicy: 'preserve',
       } as const;
+
       session = await AgentDeviceSession.open(
         `caseforge-fixture-${Date.now()}`,
         target,
@@ -145,13 +156,16 @@ it.skipIf(!live || process.platform !== 'darwin')(
       for (const action of commands) {
         await session.observe(signal);
         const binding = session.binding(action);
+
         expect(binding.replayable).toBe(true);
         bindings.push({ platform: 'ios', action: binding.action });
         await session.perform({ platform: 'ios', action }, signal);
       }
       const observed = await session.observe(signal);
+
       expect(JSON.stringify(observed)).toContain('Welcome Ada');
       const path = join(directory, 'result.png');
+
       await session.screenshot(path, signal);
       expect((await readFile(path)).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       await session.close();
@@ -184,6 +198,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
   'runs an Android fixture through agent-device and replays stable bindings',
   async () => {
     const directory = await mkdtemp(join(tmpdir(), 'caseforge-android-'));
+
     vi.stubEnv('CASEFORGE_DATA_DIR', directory);
     const sdk = process.env.ANDROID_SDK_ROOT || join(process.env.HOME!, 'Library/Android/sdk');
     const java =
@@ -197,6 +212,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
     let session: AgentDeviceSession | undefined;
     try {
       const classes = join(directory, 'classes');
+
       await mkdir(classes);
       const apk = join(directory, 'fixture.apk');
       const resources = join(directory, 'resources.zip');
@@ -205,6 +221,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         JAVA_HOME: java,
         PATH: `${join(java, 'bin')}:${process.env.PATH}`,
       };
+
       await exec(join(tools, 'aapt2'), [
         'compile',
         '--dir',
@@ -246,6 +263,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       );
       await exec(join(tools, 'aapt'), ['add', apk, 'classes.dex'], { cwd: directory });
       const key = join(directory, 'fixture.keystore');
+
       await exec(join(java, 'bin', 'keytool'), [
         '-genkeypair',
         '-keystore',
@@ -277,6 +295,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         deviceProfileId: 'fixture',
         resetPolicy: 'preserve',
       } as const;
+
       session = await AgentDeviceSession.open(
         `caseforge-android-${Date.now()}`,
         target,
@@ -300,12 +319,14 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       for (const action of commands) {
         await session.observe(signal);
         const binding = session.binding(action);
+
         expect(binding.replayable).toBe(true);
         bindings.push({ platform: 'android', action: binding.action });
         await session.perform({ platform: 'android', action }, signal);
       }
       expect(JSON.stringify(await session.observe(signal))).toContain('Welcome Ada');
       const path = join(directory, 'result.png');
+
       await session.screenshot(path, signal);
       expect((await readFile(path)).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       await session.close();
@@ -325,6 +346,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         trace: supported.includes('trace'),
         logs: supported.includes('logs'),
       };
+
       await session.close();
       session = await AgentDeviceSession.open(
         `caseforge-android-reinstall-${Date.now()}`,
@@ -337,6 +359,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       for (const kind of ['video', 'device-trace', 'log'] as const) {
         if (!session.capabilities.artifacts.includes(kind)) continue;
         const artifacts = await session.capture({ kind }, signal);
+
         expect(artifacts).toHaveLength(1);
         expect(artifacts[0].producer).toContain('agent-device');
         if (kind === 'video')

@@ -54,6 +54,7 @@ export function TestEditor({
   const [tags, setTags] = useState(test?.tags.join(', ') || '');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+
   useEffect(() => {
     void api<{ builds: typeof builds }>('/api/builds')
       .then((data) => setBuilds(data.builds))
@@ -62,12 +63,14 @@ export function TestEditor({
       .then((data) => setDeviceResources(data.resources))
       .catch(() => {});
   }, []);
+
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
     setFormError('');
     try {
       const editing = test && !duplicate;
+
       await api(editing ? `/api/tests/${test.id}` : '/api/tests', {
         method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,6 +116,7 @@ export function TestEditor({
       setSaving(false);
     }
   }
+
   return (
     <Dialog
       titleId="editor-title"

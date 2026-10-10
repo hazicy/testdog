@@ -75,7 +75,9 @@ function parseStructuredContent(outputText: string): JSONType {
 
   if (isJSONObject(content) && '$schema' in content) {
     const result = { ...content };
+
     delete result.$schema;
+
     return result;
   }
 

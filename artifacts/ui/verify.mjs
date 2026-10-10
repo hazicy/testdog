@@ -1,8 +1,10 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
+
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 const errors = [];
+
 page.on('pageerror', (e) => errors.push(e.message));
 const test = {
   id: '62534c46-a8eb-4991-993e-af6df14bece5',
@@ -29,6 +31,7 @@ const run = {
   steps: [],
   artifacts: [],
 };
+
 run.steps = [
   {
     id: 'step-login',
@@ -102,6 +105,7 @@ await page.route('**/api/**', (route) => {
       : path === '/api/runs'
         ? { runs: [run] }
         : { run };
+
   return route.fulfill({ json: body });
 });
 for (const width of [1440, 390]) {

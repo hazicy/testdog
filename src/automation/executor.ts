@@ -30,6 +30,7 @@ export class Executor {
 
   async record(page: Page) {
     const session = new BrowserSession(page);
+
     this.hooks.onPage?.(page);
     try {
       const startUrl = this.startUrl;
@@ -104,6 +105,7 @@ export class Executor {
         { kind: 'branch', title: `判断条件：${node.condition}`, condition: node.condition },
         () => this.evaluate(session, { condition: node.condition }, 'branch_result'),
       );
+
       return decision.passed ? node.then : node.otherwise;
     } catch (cause) {
       throw new Error(`Branch ${node.id} failed: ${node.condition}`, { cause });
@@ -153,9 +155,11 @@ export class Executor {
             );
           }
           const timeoutMs = Math.min(step.timeoutMs, remainingWaitMs);
+
           // Reserve each wait's budget even if its condition is already met, bounding reobservations.
           remainingWaitMs -= timeoutMs;
           const wait = { ...step, timeoutMs };
+
           await this.traced(
             session,
             {
@@ -176,6 +180,7 @@ export class Executor {
             },
             () => session.perform((current) => this.execute(current, step)),
           );
+
           actions++;
           completedSteps.push(step);
           if (changedPage) break;
@@ -197,6 +202,7 @@ export class Executor {
         async () => {
           const decision = await this.evaluate(session, { assertion }, 'assertion_result');
           if (!decision.passed) throw new Error(decision.evidence);
+
           return decision;
         },
       );
@@ -232,6 +238,7 @@ export class Executor {
         schema: z.toJSONSchema(AssertionDecisionSchema) as JSONType,
       },
     });
+
     return AssertionDecisionSchema.parse(response.structuredContent);
   }
 
@@ -244,6 +251,7 @@ export class Executor {
     entry = { planNodeId: this.planNodeId, ...entry };
     const id = randomUUID();
     const original = session.page;
+
     this.hooks.onPage?.(original);
     await this.hooks.onStep?.({ ...entry, id, phase: 'start' }, original);
     const current = () => {
@@ -255,6 +263,7 @@ export class Executor {
     };
     try {
       const result = await operation();
+
       this.hooks.signal?.throwIfAborted();
       const evidence =
         result && typeof result === 'object' && 'evidence' in result
@@ -264,8 +273,10 @@ export class Executor {
         result && typeof result === 'object' && 'passed' in result
           ? Boolean(result.passed)
           : undefined;
+
       this.hooks.onPage?.(current());
       await this.hooks.onStep?.({ ...entry, id, phase: 'finish', evidence, decision }, current());
+
       return result;
     } catch (error) {
       await this.hooks.onStep?.(
@@ -284,6 +295,7 @@ export class Executor {
   async replay(page: Page, steps: ExecutionStep[]) {
     const pages = new Map<string, Page>();
     const register = (tab: Page) => pages.set(`page-${pages.size + 1}`, tab);
+
     page.context().pages().forEach(register);
     page.context().on('page', register);
     const session = new BrowserSession(page);
@@ -306,12 +318,14 @@ export class Executor {
         this.hooks.onPage?.(session.page);
         if (recorded.kind === 'assertion' && recorded.playwrightAssertion) {
           const assertion = recorded.playwrightAssertion;
+
           await this.traced(
             session,
             { kind: 'assertion', title: recorded.title, playwrightAssertion: assertion },
             async () => {
               if (assertion.type === 'toHaveURL') {
                 const check = playwrightExpect(session.page);
+
                 await (assertion.negate ? check.not : check).toHaveURL(assertion.value!, {
                   timeout: 5000,
                 });
@@ -326,6 +340,7 @@ export class Executor {
                   await expectation.toContainText(assertion.value!, { timeout: 5000 });
                 else await expectation.toHaveValue(assertion.value!, { timeout: 5000 });
               }
+
               return {
                 evidence: `Playwright ${assertion.negate ? 'not.' : ''}${assertion.type} 通过`,
               };
@@ -345,6 +360,7 @@ export class Executor {
               );
               if (result.passed !== recorded.decision)
                 throw new Error(`条件分支与记录不一致：${result.evidence}`);
+
               return result;
             },
           );
@@ -382,11 +398,13 @@ export class Executor {
       else await target.click();
     } else if (step.type === 'fill') {
       const target = this.locate(page, step.target);
+
       await target.fill(step.value);
     } else if (step.type === 'press') {
       const target = this.locate(page, step.target);
       // Playwright 的 press 值支持大写
       const key = step.value.charAt(0).toUpperCase() + step.value.slice(1);
+
       await target.press(key);
     }
   }
@@ -423,6 +441,7 @@ export class Executor {
         result = page.locator(`aria-ref=${target.value}`);
         break;
     }
+
     return target.index === undefined ? result : result.nth(target.index);
   }
 }

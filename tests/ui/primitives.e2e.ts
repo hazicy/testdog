@@ -20,6 +20,7 @@ test('select keyboard navigation and Escape stay within the editor dialog', asyn
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
   const dialog = page.getByRole('dialog');
   const platform = dialog.getByRole('combobox', { name: '平台', exact: true });
+
   await platform.focus();
   await platform.press('ArrowDown');
   await expect(page.getByRole('listbox')).toBeVisible();
@@ -46,6 +47,7 @@ test('native setup validates required selection and submits custom checkbox valu
   const pending = new Promise<void>((resolve) => {
     release = resolve;
   });
+
   await page.route('**/api/tests', async (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { tests: [] } });
     submitted = route.request().postDataJSON();
@@ -55,6 +57,7 @@ test('native setup validates required selection and submits custom checkbox valu
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
   const dialog = page.getByRole('dialog');
+
   await dialog.getByLabel('测试名称', { exact: true }).fill('Native setup');
   await dialog.getByLabel('平台', { exact: true }).click();
   await page.getByRole('option', { name: 'iOS · 原生应用', exact: true }).click();
@@ -66,6 +69,7 @@ test('native setup validates required selection and submits custom checkbox valu
   await dialog.getByLabel('设备配置', { exact: true }).click();
   await page.getByRole('option', { name: 'iphone-fixture · 可用', exact: true }).click();
   const video = dialog.getByRole('checkbox', { name: '视频', exact: true });
+
   await video.focus();
   await video.press('Space');
   await expect(video).toBeChecked();
@@ -89,6 +93,7 @@ test('native setup validates required selection and submits custom checkbox valu
 test('example tabs navigate with arrow keys and expose the matching panel', async ({ page }) => {
   await page.goto('/');
   const tabs = page.getByRole('tablist', { name: '用例示例' });
+
   await tabs.getByRole('tab', { name: '登录验证', exact: true }).focus();
   await page.keyboard.press('ArrowRight');
   await expect(tabs.getByRole('tab', { name: '表单提交', exact: true })).toHaveAttribute(

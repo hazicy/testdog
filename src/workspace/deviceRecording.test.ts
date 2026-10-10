@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { parseDeviceRecordingScript, deviceRecordingScript } from './deviceRecording';
+
 it('round-trips stable native actions and semantic expectations and refuses refs or platform changes', () => {
   const code = JSON.stringify({
     schemaVersion: 1,
@@ -13,6 +14,7 @@ it('round-trips stable native actions and semantic expectations and refuses refs
     ],
   });
   const steps = parseDeviceRecordingScript(code, 'android');
+
   expect(parseDeviceRecordingScript(deviceRecordingScript('android', steps), 'android')).toEqual(
     steps,
   );
@@ -41,6 +43,7 @@ it('round-trips deterministic checks and rejects missing expected values and cro
     ],
   };
   const steps = parseDeviceRecordingScript(JSON.stringify(recording), 'ios');
+
   expect(steps[0].platformAssertion).toEqual(recording.steps[0].check);
   expect(parseDeviceRecordingScript(deviceRecordingScript('ios', steps), 'ios')).toEqual(steps);
   expect(() =>

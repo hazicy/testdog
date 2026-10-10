@@ -47,6 +47,7 @@ export function MarketingMotion({
           fill: 'backwards',
         },
       );
+
       animations.add(animation);
       animation.onfinish = () => animations.delete(animation);
     }
@@ -60,6 +61,7 @@ export function MarketingMotion({
         if (!hadSmoothScroll) document.documentElement.classList.remove('scroll-smooth');
         tilt?.style.removeProperty('--forge-rx');
         tilt?.style.removeProperty('--forge-ry');
+
         return;
       }
 
@@ -77,6 +79,7 @@ export function MarketingMotion({
           for (const entry of entries) {
             if (!entry.isIntersecting) continue;
             const element = entry.target as HTMLElement;
+
             element.removeAttribute('data-motion');
             play(element, Number(element.dataset.reveal) || 0);
             observer?.unobserve(element);
@@ -99,6 +102,7 @@ export function MarketingMotion({
       const bounds = hero.getBoundingClientRect();
       const x = (event.clientX - bounds.left) / bounds.width - 0.5;
       const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+
       frame = requestAnimationFrame(() => {
         tilt?.style.setProperty('--forge-rx', `${-y * 14}deg`);
         tilt?.style.setProperty('--forge-ry', `${x * 18}deg`);

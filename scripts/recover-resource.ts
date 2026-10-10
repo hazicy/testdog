@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { hostname } from 'node:os';
 import { recoverLocalResource } from '../src/workspace/server/resourceRecovery';
 import { pool } from '../src/db';
+
 const id = process.argv[2];
 if (!id) throw new Error('Usage: pnpm recover:resource <resource-id> (run on the resource host)');
 try {

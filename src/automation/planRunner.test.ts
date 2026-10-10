@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest';
 import type { AutomationSession, Observation, SessionEvent } from './platform/contracts';
 import type { ExecutionStep } from '@/workspace/types';
 import { PlanRunner } from './planRunner';
+
 const signal = new AbortController().signal;
 const plan = {
   rootId: 'task',
@@ -16,8 +17,10 @@ const plan = {
     },
   },
 };
+
 function session() {
   let revision = 0;
+
   return {
     id: 'device',
     platform: 'ios' as const,
@@ -41,6 +44,7 @@ function session() {
     resolveForRecording: vi.fn(),
   } satisfies AutomationSession;
 }
+
 it('never invokes action planning when replaying a deterministic platform check', async () => {
   const driver = session();
   const planner = {
@@ -60,6 +64,7 @@ it('never invokes action planning when replaying a deterministic platform check'
       value: 'Welcome Ada',
     },
   } as ExecutionStep;
+
   await runner.replay([step]);
   expect(planner.plan).not.toHaveBeenCalled();
   expect(driver.check).toHaveBeenCalledOnce();
@@ -68,6 +73,7 @@ it('never invokes action planning when replaying a deterministic platform check'
 });
 it('retains the command failure and evidence failure when error capture also fails', async () => {
   const driver = session();
+
   driver.perform.mockRejectedValue(new Error('device disconnected'));
   driver.emit.mockImplementation(async (event) => {
     if (event.phase === 'error') throw new Error('snapshot unavailable');
@@ -79,6 +85,7 @@ it('retains the command failure and evidence failure when error capture also fai
       action: { type: 'tap', target: { kind: 'identifier', value: 'submit' } },
     })
     .catch((error) => error);
+
   expect(error).toBeInstanceOf(AggregateError);
   expect(error.errors.map((error: Error) => error.message)).toEqual([
     'device disconnected',
@@ -103,6 +110,7 @@ it('limits native actions per task even when a planner never reports completion'
       }),
     },
   });
+
   await expect(runner.record()).rejects.toThrow('Exceeded 20 actions');
   expect(driver.perform).toHaveBeenCalledTimes(20);
 });

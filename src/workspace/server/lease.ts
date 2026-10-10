@@ -3,9 +3,11 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { testRuns } from '@/db/schema';
 import { activeRunStatuses } from '../types';
+
 export type RunLease = { runId: string; workerId: string; fencingToken: number };
 export const leaseScope = new AsyncLocalStorage<RunLease>();
 export class LostLeaseError extends Error {}
+
 // Lock run while checking ownership and committing evidence: reclamation cannot race the write.
 export async function runWrite<T>(
   runId: string,
@@ -28,9 +30,11 @@ export async function runWrite<T>(
       )
         throw new LostLeaseError('Execution lease lost');
     }
+
     return operation(tx);
   });
 }
+
 export async function setRunPhase(
   runId: string,
   phase: 'running' | 'finalizing',

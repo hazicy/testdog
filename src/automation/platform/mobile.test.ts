@@ -21,6 +21,7 @@ describe('mobile browser environments', () => {
       try {
         const context = await instance.newContext(profile);
         const page = await context.newPage();
+
         await page.setContent(
           '<meta name="viewport" content="width=device-width,initial-scale=1"><button>Tap</button><output></output><script>document.querySelector("button").addEventListener("touchstart",()=>document.querySelector("output").textContent="touched")</script>',
         );
@@ -32,6 +33,7 @@ describe('mobile browser environments', () => {
           touch: navigator.maxTouchPoints,
           scale: devicePixelRatio,
         }));
+
         expect(environment.width).toBe(profile.viewport!.width);
         expect(environment.ua).toBe(profile.userAgent);
         expect(environment.scale).toBe(profile.deviceScaleFactor);

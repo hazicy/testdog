@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { createRun, listRuns } from '@/workspace/server/store';
 import { apiError } from '@/workspace/server/http';
 import { runRequestSchema } from '@/workspace/validation';
+
 export const runtime = 'nodejs';
 export const maxDuration = 300;
+
 export async function GET() {
   try {
     return NextResponse.json({ runs: await listRuns() });
@@ -11,6 +13,7 @@ export async function GET() {
     return apiError(error);
   }
 }
+
 export async function POST(request: Request) {
   const parsed = runRequestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
@@ -20,6 +23,7 @@ export async function POST(request: Request) {
     );
   try {
     const run = await createRun(parsed.data);
+
     return NextResponse.json({ success: true, run }, { status: 202 });
   } catch (error) {
     return apiError(error);

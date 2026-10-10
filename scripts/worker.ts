@@ -11,6 +11,7 @@ import {
 } from '../src/workspace/server/scheduler';
 import { pool } from '../src/db';
 import { cancelRun } from '../src/workspace/server/run';
+
 const configSchema = z
   .array(
     z.strictObject({
@@ -52,6 +53,7 @@ process.stdout.write(`Worker ${workerId} ready with ${configs.length} resources\
 const concurrency = Number(process.env.CASEFORGE_WORKER_CONCURRENCY || configs.length);
 if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > configs.length)
   throw new Error('Worker concurrency must be between 1 and the number of resources');
+
 async function consume() {
   while (!stopping) {
     await recoverLeases();
@@ -71,6 +73,7 @@ async function consume() {
     }
   }
 }
+
 try {
   await Promise.all(Array.from({ length: concurrency }, () => consume()));
 } finally {

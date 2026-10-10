@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentDeviceClient } from 'agent-device';
+
 vi.mock('./builds', () => ({ installedBuildHash: vi.fn().mockResolvedValue('fixture-hash') }));
 import { AgentDeviceSession } from './agentDeviceSession';
+
 const target = {
   schemaVersion: 1,
   platform: 'ios',
@@ -10,6 +12,7 @@ const target = {
   resetPolicy: 'preserve',
 } as const;
 const signal = new AbortController().signal;
+
 function client(
   nodes = [{ index: 0, ref: 'e1', role: 'button', identifier: 'submit', label: 'Submit' }],
 ) {
@@ -38,6 +41,7 @@ function client(
     sessions: { close: vi.fn().mockResolvedValue({}) },
   };
 }
+
 describe('native session invariants', () => {
   it('invalidates refs after a device command fails because the UI may have changed', async () => {
     const sdk = client();
@@ -55,6 +59,7 @@ describe('native session invariants', () => {
         platform: 'ios',
         action: { type: 'tap', target: { kind: 'ref', value: 'e1', revision: observed.revision } },
       } as const;
+
       sdk.interactions.press.mockRejectedValueOnce(new Error('Device disconnected'));
       await expect(session.perform(action, signal)).rejects.toThrow('disconnected');
       expect(session.latestObservation).toBeUndefined();
@@ -96,6 +101,7 @@ describe('native session invariants', () => {
       async () => {},
       sdk as unknown as AgentDeviceClient,
     );
+
     expect(sdk.apps.open).toHaveBeenCalledWith(
       expect.objectContaining({ udid: 'udid', app: target.appId }),
     );
@@ -104,6 +110,7 @@ describe('native session invariants', () => {
       type: 'tap',
       target: { kind: 'ref', value: 'e1', revision: observed.revision },
     } as const;
+
     expect(session.binding(action)).toMatchObject({
       replayable: true,
       action: { target: { kind: 'identifier', value: 'submit' } },
@@ -128,6 +135,7 @@ describe('native session invariants', () => {
       async () => {},
       sdk as unknown as AgentDeviceClient,
     );
+
     await session.observe(signal);
     await expect(
       session.perform(
@@ -157,6 +165,7 @@ describe('native session invariants', () => {
 });
 it('closes the named SDK session when open partially succeeds then fails', async () => {
   const sdk = client();
+
   sdk.apps.open.mockRejectedValue(new Error('launch failed after claim'));
   await expect(
     AgentDeviceSession.open(
@@ -182,6 +191,7 @@ it('refuses secret input in a nonsecure field before issuing SDK fill', async ()
       async () => {},
       sdk as unknown as AgentDeviceClient,
     );
+
     await session.observe(signal);
     await expect(
       session.perform(
@@ -204,6 +214,7 @@ it('refuses secret input in a nonsecure field before issuing SDK fill', async ()
 });
 it('rejects an incompatible OS before installing or opening the app', async () => {
   const sdk = client();
+
   await expect(
     AgentDeviceSession.open(
       'mismatch',
@@ -231,6 +242,7 @@ it('redacts reflected secrets and withholds a screenshot if the app shows them i
       async () => {},
       sdk as unknown as AgentDeviceClient,
     );
+
     expect(JSON.stringify(await session.observe(signal))).not.toContain('private-password');
     await expect(session.screenshot('/unused.png', signal)).rejects.toThrow('screenshot withheld');
     expect(sdk.capture.screenshot).not.toHaveBeenCalled();

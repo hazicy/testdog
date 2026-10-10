@@ -29,6 +29,7 @@ it('preserves frame order and chooses the first evidence of each stage per step'
     frame('failed-before', 'before', 'failed-step'),
   ];
   const indexed = indexRun({ steps: [], artifacts });
+
   expect(indexed.frames.map((artifact) => artifact.id)).toEqual([
     'live',
     'before',

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateWithOpenAI } from './deepseek';
 
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
+
 vi.mock('openai', () => ({
   default: class {
     responses = { create };
@@ -20,6 +21,7 @@ describe('generateWithOpenAI', () => {
       { type: 'function' as const, name: 'click', parameters: { type: 'object' }, strict: true },
     ];
     const result = await generateWithOpenAI({ messages, tools });
+
     expect(result.toolCalls).toEqual([{ id: 'c1', name: 'click', arguments: '{"ref":"e1"}' }]);
     expect(result.structuredContent).toBeUndefined();
     expect(create.mock.calls[0][0]).toMatchObject({ tools, parallel_tool_calls: false });
@@ -31,6 +33,7 @@ describe('generateWithOpenAI', () => {
       messages,
       responseFormat: { type: 'json_schema', name: 'assertion', schema: { type: 'object' } },
     });
+
     expect(result.structuredContent).toEqual({ passed: true, evidence: 'visible' });
     expect(create.mock.calls[0][0]).not.toHaveProperty('tools');
     expect(create.mock.calls[0][0]).not.toHaveProperty('tool_choice');

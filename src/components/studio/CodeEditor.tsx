@@ -11,6 +11,7 @@ import {
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { javascript } from '@codemirror/lang-javascript';
 import { defaultHighlightStyle, syntaxHighlighting, bracketMatching } from '@codemirror/language';
+
 export function CodeEditor({
   value,
   onChange,
@@ -26,6 +27,7 @@ export function CodeEditor({
   const editor = useRef<EditorView>(null);
   const changed = useRef(onChange);
   const editing = useMemo(() => new Compartment(), []);
+
   useEffect(() => {
     changed.current = onChange;
   }, [onChange]);
@@ -73,7 +75,9 @@ export function CodeEditor({
         ],
       }),
     });
+
     editor.current = view;
+
     return () => {
       editor.current = null;
       view.destroy();
@@ -94,5 +98,6 @@ export function CodeEditor({
     if (view && value !== view.state.doc.toString())
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
   }, [value]);
+
   return <div ref={parent} className="min-w-0 border border-page-line" />;
 }

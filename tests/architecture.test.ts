@@ -2,13 +2,16 @@ import { ESLint } from 'eslint';
 import { beforeAll, expect, it } from 'vitest';
 
 const eslint = new ESLint();
+
 beforeAll(async () => {
   await eslint.lintText('export const probe = 1;', {
     filePath: 'src/components/BoundaryProbe.tsx',
   });
 }, 30000);
+
 async function violations(source: string) {
   const [result] = await eslint.lintText(source, { filePath: 'src/components/BoundaryProbe.tsx' });
+
   return result.messages.filter((message) => message.ruleId === 'no-restricted-imports');
 }
 

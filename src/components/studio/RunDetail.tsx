@@ -17,6 +17,7 @@ import { downloadRunReport } from '@/client/download';
 import { WorkspaceIcon as Icon } from '../shared/WorkspaceIcon';
 import { StepList } from './StepList';
 import { indexRun } from '@/workspace/runIndex';
+
 const statuses = {
   queued: '排队中',
   preparing: '准备中',
@@ -105,6 +106,7 @@ export function RunDetail({ id }: { id: string }) {
   const selectedStep =
     steps.get(stepId || '') || (follow ? run?.steps.at(-1) : steps.get(currentFrame?.stepId || ''));
   const video = videos.find((item) => item.id === videoId) || videos[0];
+
   useEffect(() => {
     if (!playing || mode !== 'frames' || view !== 'execution') return;
     const current = frames[currentIndex];
@@ -114,6 +116,7 @@ export function RunDetail({ id }: { id: string }) {
       () => setFrameIndex(currentIndex + 1),
       Math.max(100, Math.min(3000, next.elapsedMs - current.elapsedMs)) / speed,
     );
+
     return () => clearTimeout(timer);
   }, [playing, frames, currentIndex, speed, mode, view]);
   useEffect(() => {
@@ -132,6 +135,7 @@ export function RunDetail({ id }: { id: string }) {
     },
     [stepFrames],
   );
+
   async function start(mode: 'record' | 'replay') {
     if (!run) return;
     setBusy(true);
@@ -143,6 +147,7 @@ export function RunDetail({ id }: { id: string }) {
           mode === 'replay' ? { mode, sourceRunId: id } : { testId: run.testId },
         ),
       });
+
       router.push(`/runs/${data.run.id}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '启动失败');
@@ -150,6 +155,7 @@ export function RunDetail({ id }: { id: string }) {
       setBusy(false);
     }
   }
+
   async function cancel() {
     setBusy(true);
     try {
@@ -161,6 +167,7 @@ export function RunDetail({ id }: { id: string }) {
       setBusy(false);
     }
   }
+
   async function exportReport() {
     setExporting(true);
     try {
@@ -171,6 +178,7 @@ export function RunDetail({ id }: { id: string }) {
       setExporting(false);
     }
   }
+
   if (unavailable || (!run && error))
     return (
       <ErrorState
@@ -181,6 +189,7 @@ export function RunDetail({ id }: { id: string }) {
         linkLabel="返回执行记录"
       />
     );
+
   return (
     <div className="mx-auto max-w-[1500px]">
       <Link
@@ -589,6 +598,7 @@ export function RunDetail({ id }: { id: string }) {
                   <div className="mt-4 flex gap-2">
                     {(['before', 'after'] as const).map((stage) => {
                       const index = stepFrames.get(selectedStep.id)?.[stage] ?? -1;
+
                       return (
                         <Button
                           key={stage}

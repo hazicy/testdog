@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { expect, it } from 'vitest';
+
 it('backfills existing desktop recordings and terminates only unfinished legacy workers', async () => {
   const client = new PGlite();
   const directory = join(process.cwd(), 'drizzle');
@@ -67,6 +68,7 @@ it('backfills existing desktop recordings and terminates only unfinished legacy 
         replayable: boolean;
       }>('SELECT * FROM test_runs WHERE id=$1', [finishedId])
     ).rows[0];
+
     expect(finished).toMatchObject({
       status: 'passed',
       goal: 'Legacy goal',
@@ -81,6 +83,7 @@ it('backfills existing desktop recordings and terminates only unfinished legacy 
         durationMs: number;
       }>('SELECT * FROM test_runs WHERE id=$1', [activeId])
     ).rows[0];
+
     expect(active).toMatchObject({
       status: 'failed',
       evidenceComplete: false,

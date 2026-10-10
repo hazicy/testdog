@@ -79,6 +79,7 @@ test('frame playback and step selection keep the matching evidence visible', asy
       size: 100,
     })),
   );
+
   await page.route(`**/api/runs/${run.id}`, (route) =>
     route.fulfill({ json: { run: { ...run, steps: [...run.steps, secondStep], artifacts } } }),
   );
@@ -90,6 +91,7 @@ test('frame playback and step selection keep the matching evidence visible', asy
   );
   await page.goto(`/runs/${run.id}`);
   const image = page.getByRole('img', { name: /^执行画面/ });
+
   await expect(image).toHaveAttribute('src', /frame-1-after$/);
   await page
     .getByRole('region', { name: '执行步骤' })
@@ -119,6 +121,7 @@ test('stops frame playback in video mode and pauses video when leaving execution
     contentType: 'image/jpeg',
     size: 1,
   }));
+
   await page.route(`**/api/runs/${run.id}`, (route) =>
     route.fulfill({
       json: {
@@ -141,6 +144,7 @@ test('stops frame playback in video mode and pauses video when leaving execution
   await expect(page.getByRole('slider', { name: '画面时间轴' })).toHaveValue('0');
   await page.getByRole('button', { name: '完整录像', exact: true }).click();
   const video = page.getByLabel('执行录像');
+
   await video.evaluate((element) => {
     (element as HTMLVideoElement).pause = () => {
       element.dataset.pausedByView = 'true';
@@ -161,11 +165,14 @@ test('conditional polling keeps unchanged details and receives the completed exe
 }) => {
   let completed = false;
   const conditions: (string | undefined)[] = [];
+
   await page.route(`**/api/runs/${run.id}`, (route) => {
     const condition = route.request().headers()['if-none-match'];
+
     conditions.push(condition);
     if (condition === '"running"' && !completed)
       return route.fulfill({ status: 304, headers: { ETag: '"running"' } });
+
     return route.fulfill({
       json: { run: { ...run, status: completed ? 'passed' : 'running' } },
       headers: { ETag: completed ? '"done"' : '"running"' },
@@ -186,9 +193,11 @@ test('conditional polling keeps unchanged details and receives the completed exe
 test('missing execution stops polling and can recover through explicit retry', async ({ page }) => {
   let reads = 0;
   let missing = true;
+
   await page.clock.install();
   await page.route(`**/api/runs/${run.id}`, (route) => {
     reads++;
+
     return missing
       ? route.fulfill({ status: 404, json: { message: '执行记录不存在。' } })
       : route.fulfill({ json: { run } });
@@ -198,6 +207,7 @@ test('missing execution stops polling and can recover through explicit retry', a
   await expect(page.getByRole('link', { name: '返回执行记录', exact: true })).toBeVisible();
   await page.clock.fastForward(100);
   const stoppedAt = reads;
+
   expect(stoppedAt).toBe(1);
   await page.clock.fastForward(6000);
   expect(reads).toBe(stoppedAt);
@@ -208,6 +218,7 @@ test('missing execution stops polling and can recover through explicit retry', a
 
 test('invalid execution addresses render the custom 404 page', async ({ page }) => {
   const response = await page.goto('/runs/invalid-id');
+
   expect(response?.status()).toBe(404);
   await expect(page.getByRole('heading', { name: '页面不存在', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: '返回测试工作台', exact: true })).toHaveAttribute(
@@ -230,6 +241,7 @@ test('case search combines tags and latest status while history uses each execut
     id: '62534c46-a8eb-4991-993e-af6df14bece9',
     status: 'failed' as const,
   };
+
   await page.route('**/api/tests', (route) =>
     route.fulfill({ json: { tests: [saved, untouched] } }),
   );
@@ -237,6 +249,7 @@ test('case search combines tags and latest status while history uses each execut
   await page.goto('/cases');
   const search = page.getByRole('textbox', { name: '搜索测试', exact: true });
   const filter = page.getByLabel('状态筛选');
+
   await search.fill('smoke');
   await expect(page.getByRole('button', { name: '未运行用例', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: saved.name, exact: true })).toHaveCount(0);
@@ -255,6 +268,7 @@ test('case search combines tags and latest status while history uses each execut
   await page.getByLabel('状态筛选').click();
   await page.getByRole('option', { name: '失败', exact: true }).click();
   const result = page.getByRole('table').getByRole('link', { name: saved.name, exact: true });
+
   await expect(result).toHaveCount(1);
   await expect(result).toHaveAttribute('href', `/runs/${older.id}`);
 });
@@ -262,12 +276,15 @@ test('case search combines tags and latest status while history uses each execut
 test('history loads and refreshes without depending on the case library', async ({ page }) => {
   let caseReads = 0;
   let runReads = 0;
+
   await page.route('**/api/tests', (route) => {
     caseReads++;
+
     return route.fulfill({ status: 503, json: { message: '用例库暂时不可用' } });
   });
   await page.route('**/api/runs', (route) => {
     runReads++;
+
     return route.fulfill({ json: { runs: [summary] } });
   });
   await page.goto('/runs');
@@ -286,26 +303,33 @@ test('exports complete reports from both history and detail, and allows retry af
   page,
 }) => {
   let rejectExport = true;
+
   await page.route('**/api/tests', (route) => route.fulfill({ json: { tests: [saved] } }));
   await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [summary] } }));
   await page.route(`**/api/runs/${run.id}`, (route) => {
     if (rejectExport) {
       rejectExport = false;
+
       return route.fulfill({ status: 503, json: { message: '报告暂时不可用' } });
     }
+
     return route.fulfill({ json: { run } });
   });
   await page.goto('/runs');
   const exportButton = page.getByRole('button', { name: `导出 ${run.name} 的结果`, exact: true });
+
   await exportButton.click();
   await expect(page.getByRole('alert').filter({ hasText: '报告暂时不可用' })).toBeVisible();
   const listDownload = page.waitForEvent('download');
+
   await exportButton.click();
   const report = await listDownload;
+
   expect(report.suggestedFilename()).toBe(`caseforge-${run.id}.json`);
   expect(JSON.parse(await readFile((await report.path())!, 'utf8'))).toEqual(run);
   await page.goto(`/runs/${run.id}`);
   const detailDownload = page.waitForEvent('download');
+
   await page.getByRole('button', { name: '导出执行报告', exact: true }).click();
   expect(JSON.parse(await readFile((await (await detailDownload).path())!, 'utf8'))).toEqual(run);
 });
@@ -315,6 +339,7 @@ test('dialogs support keyboard entry, Escape dismissal and focus restoration', a
   await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [summary] } }));
   await page.goto('/cases');
   const create = page.getByRole('button', { name: '新建测试', exact: true });
+
   await create.focus();
   await create.press('Enter');
   await expect(page.getByRole('dialog').getByLabel('测试名称')).toBeFocused();
@@ -322,9 +347,11 @@ test('dialogs support keyboard entry, Escape dismissal and focus restoration', a
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(create).toBeFocused();
   const remove = page.getByRole('button', { name: `删除 ${saved.name}`, exact: true });
+
   await remove.focus();
   await remove.press('Enter');
   const dialog = page.getByRole('dialog');
+
   await expect(dialog.getByRole('button', { name: '取消', exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
@@ -338,32 +365,39 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   let rejectSave = true;
   let rejectDelete = true;
   const writes: { method: string; body: Record<string, unknown> }[] = [];
+
   await page.route('**/api/tests**', async (route) => {
     const request = route.request();
     if (request.method() === 'GET') return route.fulfill({ json: { tests } });
     if (request.method() === 'DELETE') {
       if (rejectDelete) {
         rejectDelete = false;
+
         return route.fulfill({ status: 503, json: { message: '删除暂时失败' } });
       }
       tests = tests.filter((item) => !request.url().endsWith(item.id));
+
       return route.fulfill({ json: { success: true } });
     }
     if (rejectSave) {
       rejectSave = false;
+
       return route.fulfill({ status: 503, json: { message: '保存暂时失败' } });
     }
     const body = request.postDataJSON();
+
     writes.push({ method: request.method(), body });
     if (request.method() === 'POST')
       tests = [{ ...saved, ...body, id: `${saved.id.slice(0, -1)}${writes.length}` }, ...tests];
     else tests = tests.map((item) => (item.id === saved.id ? { ...item, ...body } : item));
+
     return route.fulfill({ json: { test: tests[0] } });
   });
   await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [summary] } }));
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).click();
   const dialog = page.getByRole('dialog');
+
   await dialog.getByLabel('测试名称').fill('新用例');
   await dialog.getByLabel('网站地址').fill('https://example.com');
   await dialog.getByLabel('测试步骤与预期结果').fill('验证首页');
@@ -428,6 +462,7 @@ test('nested plans keep node evidence and dependency navigation through zoom and
       },
     },
   };
+
   await page.route(`**/api/runs/${run.id}`, (route) =>
     route.fulfill({
       json: {
@@ -439,9 +474,11 @@ test('nested plans keep node evidence and dependency navigation through zoom and
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
   await page.getByRole('button', { name: '查看节点 check', exact: true }).click();
   const detail = page.getByRole('complementary', { name: '计划节点详情' });
+
   await expect(detail).toContainText('预期：登录入口可见');
   await page.getByRole('button', { name: '放大画板', exact: true }).click();
   const viewport = page.getByLabel('计划画板', { exact: true });
+
   await viewport.focus();
   await viewport.press('ArrowRight');
   await expect(detail).toContainText('预期：登录入口可见');
@@ -461,6 +498,7 @@ test('validates the current draft and locks editing while saving a version', asy
     release = resolve;
   });
   let submitted = '';
+
   await page.route(`**/api/runs/${run.id}`, (route) => route.fulfill({ json: { run } }));
   await page.route(`**/api/runs/${run.id}/recording`, async (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { versions: [] } });
@@ -482,14 +520,17 @@ test('validates the current draft and locks editing while saving a version', asy
   await page.getByRole('button', { name: '编辑录制', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'Playwright 录制脚本' });
   const save = page.getByRole('button', { name: '保存版本', exact: true });
+
   await expect(save).toBeEnabled();
   await page.clock.pauseAt(new Date(Date.now() + 3600000));
   await editor.fill('invalid script');
   await expect(save).toBeDisabled();
   await page.clock.fastForward(300);
   const editorRegion = page.getByRole('region', { name: '录制编辑器' });
+
   await expect(editorRegion.getByRole('alert')).toBeVisible();
   const draft = 'await page1.goto("https://example.com/changed");';
+
   await editor.fill(draft);
   await expect(save).toBeDisabled();
   await expect(editorRegion.getByRole('alert')).toHaveCount(0);
@@ -510,9 +551,11 @@ test('loads recording versions only when opened and keeps the draft across view 
   page,
 }) => {
   let versionReads = 0;
+
   await page.route(`**/api/runs/${run.id}`, (route) => route.fulfill({ json: { run } }));
   await page.route(`**/api/runs/${run.id}/recording`, (route) => {
     versionReads++;
+
     return route.fulfill({ json: { versions: [] } });
   });
   await page.goto(`/runs/${run.id}`);
@@ -520,8 +563,10 @@ test('loads recording versions only when opened and keeps the draft across view 
   expect(versionReads).toBe(0);
   await page.getByRole('button', { name: '编辑录制', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'Playwright 录制脚本' });
+
   await expect(editor).toBeVisible();
   const draft = 'await page1.goto("https://example.com/changed");';
+
   await editor.fill(draft);
   await page.getByRole('button', { name: '执行回放', exact: true }).click();
   await expect(editor).toBeHidden();

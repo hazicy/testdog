@@ -9,6 +9,7 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
     const browser = await chromium.launch();
     const page = await browser.newPage();
     const errors: string[] = [];
+
     page.on('pageerror', (error) => errors.push(error.message));
     const tests: TestCase[] = [];
     const buildId = randomUUID();
@@ -17,6 +18,7 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
     const runId = randomUUID();
     const artifactId = randomUUID();
     let run: TestRun | undefined;
+
     await page.route('**/api/**', async (route) => {
       const url = new URL(route.request().url());
       const method = route.request().method();
@@ -29,6 +31,7 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
           updatedAt: now,
           url: '',
         } as TestCase;
+
         tests.push(test);
         body = { test };
       } else if (url.pathname === '/api/tests') body = { tests };
@@ -58,6 +61,7 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
       await page.goto(`${process.env.CASEFORGE_UI_URL}/cases`);
       await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
       const dialog = page.getByRole('dialog');
+
       await dialog.getByLabel('测试名称', { exact: true }).fill('Native fixture');
       await dialog.getByLabel('平台', { exact: true }).click();
       await page.getByRole('option', { name: 'iOS · 原生应用' }).click();
@@ -97,6 +101,7 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
           goal: 'Web welcome',
         },
       ];
+
       await page.getByLabel('运行配置（JSON）', { exact: true }).fill(JSON.stringify(variants));
       await page.getByRole('button', { name: '运行矩阵', exact: true }).click();
       await browserExpect(page).toHaveURL(/\/runs$/);

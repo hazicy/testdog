@@ -1,6 +1,7 @@
 'use client';
 import { Select as BaseSelect } from '@base-ui/react/select';
 import type { ReactNode } from 'react';
+
 type Item = { value: string | number; label: ReactNode; disabled?: boolean };
 type Props = {
   items: (Item | Item[] | false | null | undefined)[];
@@ -12,11 +13,13 @@ type Props = {
   name?: string;
   'aria-label'?: string;
 };
+
 export function Select({ items, value, onValueChange, className = 'ws-input', ...props }: Props) {
   const options = items
     .flat()
     .filter((item): item is Item => !!item)
     .map((item) => ({ ...item, value: String(item.value) }));
+
   return (
     <BaseSelect.Root
       items={options}
