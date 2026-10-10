@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 import { artifactRoot, readArtifactFile, storeArtifactFile } from './artifactStorage';
+import { serveArtifact } from './artifactResponse';
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -68,10 +69,25 @@ test('private S3 upload, retrieval and rollback use the exact owned object key',
     await expect(readArtifactFile('another-run', 'artifact', stored.path)).rejects.toThrow(
       'Invalid artifact object reference',
     );
+    const served = await serveArtifact(
+      new Request('http://localhost/artifact', { headers: { Range: 'bytes=1-2' } }),
+      {
+        runId: 'run',
+        id: 'artifact',
+        path: stored.path,
+        kind: 'screenshot',
+        contentType: 'image/png',
+      },
+    );
+
+    expect(served.status).toBe(206);
+    expect(served.headers.get('content-range')).toBe('bytes 1-2/4');
+    expect(Buffer.from(await served.arrayBuffer())).toEqual(Buffer.from([80, 78]));
     await stored.rollback();
     expect(objects.size).toBe(0);
     expect(requests).toEqual([
       'PUT /private-evidence/tests/run/artifact',
+      'GET /private-evidence/tests/run/artifact',
       'GET /private-evidence/tests/run/artifact',
       'DELETE /private-evidence/tests/run/artifact',
     ]);

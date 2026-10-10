@@ -217,7 +217,7 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
   it('preserves failed assertion evidence and its after screenshot', async () => {
     const implementation = mocks.generate.getMockImplementation()!;
 
-    mocks.generate.mockImplementation((input) =>
+    mocks.generate.mockImplementation(async (input) =>
       input.responseFormat?.name === 'assertion_result'
         ? { structuredContent: { passed: false, evidence: 'Expected welcome message is missing' } }
         : implementation(input),

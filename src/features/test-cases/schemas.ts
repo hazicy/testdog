@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const websiteSchema = z
   .url()
   .refine((value) => /^https?:\/\//i.test(value), '网站地址必须使用 http 或 https');
+export const testInputMessage = '请填写名称、有效的网站地址和测试步骤。';
 export const testSchema = z
   .object({
     name: z.string().trim().min(1).max(120),

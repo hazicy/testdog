@@ -92,7 +92,8 @@ describe('PostgreSQL workspace repository', () => {
       'UPDATE test_runs SET "leaseUntil" = now() - interval \'2 minutes\' , "heartbeatAt" = now() - interval \'2 minutes\'  , "startedAt" = now() - interval \'2 minutes\' WHERE id = $1',
       [run.id],
     );
-    expect((await getRun(run.id)).status).toBe('running');
+    // claimRun moves the run to preparing; the in-flight step marks active work.
+    expect((await getRun(run.id)).status).toBe('preparing');
     await recoverExpiredRuns();
     const recovered = await getRun(run.id);
 

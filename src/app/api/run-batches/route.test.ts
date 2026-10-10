@@ -81,8 +81,13 @@ it('freezes independent platform goals under one batch identity', async () => {
 
   expect(runs).toHaveLength(2);
   expect(runs.every((run) => run.batchId === body.batchId && run.status === 'queued')).toBe(true);
-  expect(runs.map((run) => run.goal)).toEqual(['shared goal', 'native expected']);
-  expect(runs.map((run) => run.targetSnapshot?.platform)).toEqual(['web', 'ios']);
+  // Query order is not guaranteed; the response preserves variant order.
+  expect(body.runs.map((run: { goal: string }) => run.goal)).toEqual([
+    'shared goal',
+    'native expected',
+  ]);
+  expect(runs.map((run) => run.goal).sort()).toEqual(['native expected', 'shared goal']);
+  expect(runs.map((run) => run.targetSnapshot?.platform).sort()).toEqual(['ios', 'web']);
 });
 it('rolls back the entire batch if a later variant cannot be created', async () => {
   const { test, response } = await submit(true);
