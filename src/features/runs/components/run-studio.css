@@ -97,9 +97,6 @@
   border-top: 1px solid var(--page-line);
   border-bottom: 0;
 }
-.run-studio .plan-viewport {
-  height: calc(100dvh - 190px);
-}
 @media (max-width: 640px) {
   .studio-content,
   .studio-panel-toolbar {

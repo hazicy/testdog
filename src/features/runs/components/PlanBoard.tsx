@@ -163,6 +163,7 @@ function PlanBoardContent({
             maxZoom={1.5}
             fitView
             fitViewOptions={{ padding: viewPadding, maxZoom: 1 }}
+            proOptions={{ hideAttribution: true }}
           >
             <Background color="#edf0f3" gap={24} size={1} />
           </ReactFlow>

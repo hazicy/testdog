@@ -369,6 +369,7 @@ export function RunDetail({ id }: { id: string }) {
       case 'plan':
         return (
           <PlanBoard
+            fullHeight
             plan={run?.plan}
             steps={run?.steps || emptySteps}
             artifacts={run?.artifacts}
