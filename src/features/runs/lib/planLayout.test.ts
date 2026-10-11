@@ -165,6 +165,20 @@ it('places consecutive groups in columns and reserves the full subtree width and
   expect(row('left').position.y).toBe(row('right').position.y);
   expect(row('right').position.x).toBeGreaterThan(row('no').position.x + row('no').width);
   expect(row('after').position.y).toBeGreaterThan(row('no').position.y + row('no').height);
+  expect(row('root').position.x + row('root').width / 2).toBe(
+    (row('right').position.x + row('right').width) / 2,
+  );
+  expect(
+    layout.edges
+      .filter((edge) => edge.kind === 'sequence' && edge.target === 'plan:after')
+      .map((edge) => edge.source),
+  ).toEqual(['plan:yes', 'plan:no', 'plan:short']);
+  expect(
+    layout.insertions.find((slot) => slot.groupId === 'root' && slot.index === 0),
+  ).toMatchObject({
+    anchorId: 'plan:root',
+    position: { x: row('root').position.x + row('root').width / 2 - 18 },
+  });
   expect(layout.edges).toContainEqual(
     expect.objectContaining({
       source: row('root').id,
@@ -294,4 +308,33 @@ it('does not duplicate insertion points at hidden sequence boundaries', () => {
   const positions = layout.insertions.map((slot) => JSON.stringify(slot.position));
 
   expect(new Set(positions).size).toBe(positions.length);
+});
+
+it('reserves space for multiline Chinese content and long shared references', () => {
+  const plan = PlanSchema.parse({
+    rootId: 'root',
+    nodes: {
+      root: group('root', ['long', 'branch', 'after']),
+      long: {
+        ...task('long'),
+        goal: '检查页面上的订单信息与用户信息是否正确'.repeat(8) + '\n第二行\n第三行',
+      },
+      branch: {
+        id: 'branch',
+        kind: 'branch',
+        condition: '是否重试？',
+        then: 'long',
+        dependsOn: [],
+      },
+      after: task('after'),
+    },
+  });
+  const layout = layoutPlan(plan);
+  const long = layout.nodes.find((node) => node.id === 'plan:long')!;
+  const reference = layout.nodes.find((node) => node.reference)!;
+  const after = layout.nodes.find((node) => node.id === 'plan:after')!;
+
+  expect(long.height).toBeGreaterThan(160);
+  expect(reference.height).toBeGreaterThanOrEqual(long.height);
+  expect(after.position.y).toBeGreaterThan(reference.position.y + reference.height);
 });

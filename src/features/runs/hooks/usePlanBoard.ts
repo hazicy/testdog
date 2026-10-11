@@ -29,6 +29,7 @@ type Options = {
   currentStepId?: string;
   onFrame?: (frame: RunArtifact) => void;
   onIssue?: (step: ExecutionStep) => void;
+  hoveredId?: string;
 };
 
 export function usePlanBoard({
@@ -42,6 +43,7 @@ export function usePlanBoard({
   currentStepId,
   onFrame,
   onIssue,
+  hoveredId,
 }: Options) {
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -211,6 +213,8 @@ export function usePlanBoard({
         height: 36,
         zIndex: 10,
         data: {
+          persistent: item.index === group.children.length,
+          revealed: !!item.anchorId && item.anchorId === hoveredId,
           label: `在 ${item.groupId} 的第 ${item.index + 1} 个位置添加节点`,
           index: item.index,
           positions,
@@ -228,10 +232,8 @@ export function usePlanBoard({
         ...edge,
         selectable: false,
         type: 'smoothstep',
-        sourceHandle:
-          edge.kind === 'dependency' || edge.kind === 'reference' ? 'node-out' : 'sequence-out',
-        targetHandle:
-          edge.kind === 'dependency' || edge.kind === 'reference' ? 'node-in' : 'sequence-in',
+        sourceHandle: edge.kind === 'reference' ? 'node-out' : 'sequence-out',
+        targetHandle: edge.kind === 'reference' ? 'node-in' : 'sequence-in',
         style: {
           stroke: edge.kind === 'sequence' ? '#e5e7eb' : 'var(--plan-edge)',
           strokeWidth: 1.2,

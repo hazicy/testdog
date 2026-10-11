@@ -23,6 +23,8 @@ describe('canvas operations', () => {
     });
     expect(() => moveNode(plan, 'group', { groupId: 'group', index: 0 })).toThrow();
     expect(plan.nodes.root).toMatchObject({ children: ['a', 'b', 'group'] });
+    expect(moveNode(plan, 'a', { groupId: 'root', index: 0 })).toBe(plan);
+    expect(moveNode(plan, 'a', { groupId: 'root', index: 1 })).toBe(plan);
   });
 
   it('duplicates complete branch subtrees with independent IDs and internal dependencies', () => {

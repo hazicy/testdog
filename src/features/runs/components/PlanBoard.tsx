@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './plan-board.css';
@@ -10,6 +10,7 @@ import type { ExecutionStep, RunArtifact } from '@/features/runs/types';
 import { InsertStepMenu } from '@/features/test-cases/components/InsertStepMenu';
 import { usePlanBoard, type BoardNode } from '../hooks/usePlanBoard';
 import { PlanNodes, type NodeReview } from './PlanNodes';
+import { usePlanHistory } from '../hooks/usePlanHistory';
 
 const nodeTypes = { plan: PlanNodes, insert: InsertStepMenu };
 
@@ -62,11 +63,14 @@ function PlanBoardContent({
   onFrame,
   onIssue,
 }: BoardProps & { plan: Plan }) {
+  const [hoveredId, setHoveredId] = useState<string>();
+  const history = usePlanHistory(plan, onChange);
   const { nodes, edges, error, onNodesChange } = usePlanBoard({
     plan,
     steps,
     onStep,
-    onChange,
+    onChange: history.change,
+    hoveredId,
     review,
     artifacts,
     results,
@@ -77,6 +81,7 @@ function PlanBoardContent({
   const flow = useReactFlow<BoardNode>();
   const viewportWidth = useStore((state) => state.width);
   const viewportHeight = useStore((state) => state.height);
+  const zoom = useStore((state) => state.transform[2]);
   const hasViewportOverlay = !!viewportOverlay || !!floatingPanel;
   const viewPadding = useMemo(
     () =>
@@ -90,16 +95,47 @@ function PlanBoardContent({
         : 0.1,
     [hasViewportOverlay, viewportHeight, overlayExpanded],
   );
+  const fittedStructure = useRef<string | undefined>(undefined);
   const structureKey = nodes.map((node) => node.id).join(',');
 
   useEffect(() => {
-    if (!structureKey) return;
+    if (
+      !structureKey ||
+      !viewportWidth ||
+      !viewportHeight ||
+      fittedStructure.current === structureKey
+    )
+      return;
     const frame = requestAnimationFrame(() => {
-      void flow.fitView({ padding: viewPadding, maxZoom: 1 });
+      const viewport = flow.getViewport();
+      const bottomPadding = hasViewportOverlay ? (overlayExpanded ? 280 : 140) : 32;
+      const fits = nodes.every(
+        (node) =>
+          node.position.x * viewport.zoom + viewport.x >= 16 &&
+          node.position.y * viewport.zoom + viewport.y >= 16 &&
+          (node.position.x + (node.width ?? 36)) * viewport.zoom + viewport.x <=
+            viewportWidth - 16 &&
+          (node.position.y + (node.height ?? 36)) * viewport.zoom + viewport.y <=
+            viewportHeight - bottomPadding,
+      );
+
+      // Preserve the user's view when possible; reveal newly added columns/rows.
+      if (!fittedStructure.current || !fits)
+        void flow.fitView({ padding: viewPadding, maxZoom: 1 });
+      fittedStructure.current = structureKey;
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [structureKey, flow, viewportWidth, viewPadding]);
+  }, [
+    structureKey,
+    nodes,
+    flow,
+    viewportWidth,
+    viewportHeight,
+    viewPadding,
+    hasViewportOverlay,
+    overlayExpanded,
+  ]);
 
   return (
     <div className={`plan-board ${fullHeight ? 'plan-board-full' : ''}`}>
@@ -118,8 +154,37 @@ function PlanBoardContent({
           className={`plan-viewport ${viewportOverlay ? 'has-composer' : ''}`}
           aria-label="计划画板"
           tabIndex={0}
+          onMouseLeave={() => setHoveredId(undefined)}
+          onMouseMove={(event) => {
+            if (hoveredId && !(event.target as Element).closest('.react-flow__node'))
+              setHoveredId(undefined);
+          }}
           onKeyDown={(event) => {
+            if (
+              event.target instanceof HTMLElement &&
+              event.target.closest('input, textarea, select, [contenteditable="true"]')
+            )
+              return;
+            if (onChange && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+              event.preventDefault();
+              if (event.shiftKey) history.redo();
+              else history.undo();
+
+              return;
+            }
+
             if (event.target !== event.currentTarget) return;
+            if (event.key === '+' || event.key === '=') {
+              event.preventDefault();
+              void flow.zoomIn();
+            } else if (event.key === '-') {
+              event.preventDefault();
+              void flow.zoomOut();
+            } else if (event.key === '0') {
+              event.preventDefault();
+              void flow.fitView({ padding: viewPadding, maxZoom: 1 });
+            }
+
             const movements: Record<string, [number, number]> = {
               ArrowLeft: [40, 0],
               ArrowRight: [-40, 0],
@@ -143,6 +208,8 @@ function PlanBoardContent({
           <ReactFlow<BoardNode>
             nodes={nodes}
             onNodesChange={onNodesChange}
+            onNodeMouseEnter={(_, node) => setHoveredId(node.id)}
+            onNodeMouseLeave={() => setHoveredId(undefined)}
             edges={edges}
             nodeTypes={nodeTypes}
             nodesDraggable={false}
@@ -152,7 +219,7 @@ function PlanBoardContent({
             autoPanOnSelection={false}
             selectionKeyCode={null}
             panOnDrag={[1]}
-            panActivationKeyCode={null}
+            panActivationKeyCode="Space"
             nodesFocusable
             edgesFocusable={false}
             deleteKeyCode={null}
@@ -169,9 +236,40 @@ function PlanBoardContent({
           </ReactFlow>
           {viewportOverlay}
           <div className="plan-canvas-tools">
+            <span className="plan-canvas-hint">滚动平移 · 空格拖动画板 · Ctrl / ⌘ + 滚轮缩放</span>
             <div className="plan-viewport-controls" role="group" aria-label="画板视图">
+              {onChange && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="撤销画板操作"
+                    title="撤销（Ctrl / ⌘ Z）"
+                    disabled={!history.canUndo}
+                    onClick={history.undo}
+                  >
+                    ↶
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="重做画板操作"
+                    title="重做（Ctrl / ⌘ Shift Z）"
+                    disabled={!history.canRedo}
+                    onClick={history.redo}
+                  >
+                    ↷
+                  </button>
+                </>
+              )}
               <button type="button" aria-label="缩小画板" onClick={() => void flow.zoomOut()}>
                 −
+              </button>
+              <button
+                type="button"
+                aria-label="画板恢复原始比例"
+                title="恢复 100%"
+                onClick={() => void flow.zoomTo(1)}
+              >
+                {Math.round(zoom * 100)}%
               </button>
               <button
                 type="button"

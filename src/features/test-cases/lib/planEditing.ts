@@ -63,8 +63,11 @@ export function moveNode(plan: Plan, id: string, position: Insertion): Plan {
   const target = plan.nodes[position.groupId];
 
   if (!parent || target?.kind !== 'group') return plan;
-  const nodes = structuredClone(plan.nodes);
   const oldIndex = parent.children.indexOf(id);
+
+  if (parent.id === target.id && (position.index === oldIndex || position.index === oldIndex + 1))
+    return plan;
+  const nodes = structuredClone(plan.nodes);
 
   (nodes[parent.id] as typeof parent).children.splice(oldIndex, 1);
   (nodes[target.id] as typeof target).children.splice(

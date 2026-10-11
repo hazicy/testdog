@@ -38,6 +38,10 @@
 }
 
 @media (max-width: 640px) {
+  .plan-canvas-hint {
+    display: none;
+  }
+
   .plan-viewport {
     height: 440px;
   }
@@ -382,6 +386,38 @@
   place-items: center;
   font-size: 24px;
   line-height: 1;
+}
+
+.step-insert-area {
+  display: grid;
+  place-items: center;
+  width: 160px;
+  height: 56px;
+  margin: -10px -62px;
+}
+
+.step-insert-area .step-insert-trigger {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.step-insert-area[data-persistent='true'] .step-insert-trigger,
+.step-insert-area[data-revealed='true'] .step-insert-trigger,
+.step-insert-area:hover .step-insert-trigger,
+.step-insert-area:focus-within .step-insert-trigger,
+.step-insert-trigger[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.plan-viewport-controls button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+@media (hover: none) {
+  .step-insert-area .step-insert-trigger {
+    opacity: 1;
+  }
 }
 
 .step-insert-trigger:hover,

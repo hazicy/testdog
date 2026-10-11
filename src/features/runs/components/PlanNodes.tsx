@@ -182,7 +182,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
               onKeyDown={(event) => {
                 event.stopPropagation();
                 if (event.key === 'Escape') setEditing(false);
-                if (event.key === 'Enter' && !event.shiftKey) {
+                if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                   event.preventDefault();
                   finish();
                 }

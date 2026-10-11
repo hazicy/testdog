@@ -984,13 +984,26 @@ test('nested plans keep node evidence and dependency navigation through zoom and
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
   const dependency = page.locator('.react-flow__edge[aria-label="依赖：open → check"]');
 
-  await expect(dependency).toBeVisible();
+  // A straight vertical SVG path has zero bounding-box width. Verify the drawn
+  // path instead of Playwright's box-based visibility check on its <g> wrapper.
+  const expectDependency = async () => {
+    await expect(dependency).toHaveCSS('visibility', 'visible');
+    await expect
+      .poll(() =>
+        dependency
+          .locator('.react-flow__edge-path')
+          .evaluate((element) => (element as SVGPathElement).getTotalLength()),
+      )
+      .toBeGreaterThan(0);
+  };
+
+  await expectDependency();
   for (let attempt = 0; attempt < 2; attempt++) {
     await page.getByRole('button', { name: '执行步骤', exact: true }).click();
     await expect(page.locator('.react-flow__node').first()).toBeHidden();
     await expect(page.locator('.plan-viewport')).toBeHidden();
     await page.getByRole('button', { name: '计划画板', exact: true }).click();
-    await expect(dependency).toBeVisible();
+    await expectDependency();
   }
 
   await expect(page.getByRole('button', { name: '依赖连线', exact: true })).toHaveCount(0);
@@ -1155,6 +1168,36 @@ test('plan subflows retain both branch paths, shared references and external dep
   await expect(page.getByText('YES / 条件成立', { exact: true })).toBeVisible();
   await expect(page.getByText('NO / 条件不成立', { exact: true })).toBeVisible();
   await expect(page.locator('.react-flow__edge[aria-label="依赖：external → root"]')).toBeVisible();
+  const dependency = page.locator(
+    '.react-flow__edge[aria-label="依赖：external → root"] .react-flow__edge-path',
+  );
+  const ends = await dependency.evaluate((element) => {
+    const path = element as SVGPathElement;
+    const start = path.getPointAtLength(0);
+    const end = path.getPointAtLength(path.getTotalLength());
+
+    return { start: { x: start.x, y: start.y }, end: { x: end.x, y: end.y } };
+  });
+  const source = page.locator('[data-testid="rf__node-plan:external"]');
+  const target = page.locator('[data-testid="rf__node-plan:root"]');
+  const position = async (node: Locator) =>
+    node.evaluate((element) => {
+      const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/)!;
+
+      return {
+        x: Number(match[1]),
+        y: Number(match[2]),
+        width: (element as HTMLElement).offsetWidth,
+        height: (element as HTMLElement).offsetHeight,
+      };
+    });
+  const from = await position(source);
+  const to = await position(target);
+
+  expect(ends.start.x).toBeCloseTo(from.x + from.width / 2, 0);
+  expect(Math.abs(ends.start.y - from.y - from.height)).toBeLessThanOrEqual(4);
+  expect(ends.end.x).toBeCloseTo(to.x + to.width / 2, 0);
+  expect(Math.abs(ends.end.y - to.y)).toBeLessThanOrEqual(4);
   await expect(
     page.locator('[data-plan-node="shared"] [data-slot="status"][data-status="failed"]'),
   ).toHaveCount(2);
@@ -1757,6 +1800,14 @@ test('adds adjacent groups as columns with independent insertion points', async 
     .toBe(true);
   const leftId = (await groups.nth(0).getAttribute('data-plan-node'))!;
   const rightId = (await groups.nth(1).getAttribute('data-plan-node'))!;
+  const rootBounds = (await canvas.locator('[data-plan-node=root]').boundingBox())!;
+  const leftBounds = (await groups.nth(0).boundingBox())!;
+  const rightBounds = (await groups.nth(1).boundingBox())!;
+
+  expect(rootBounds.x + rootBounds.width / 2).toBeCloseTo(
+    (leftBounds.x + rightBounds.x + rightBounds.width) / 2,
+    0,
+  );
 
   for (const index of [0, 1])
     await expect(
@@ -1871,6 +1922,17 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
   await page.mouse.move(badge.x + badge.width / 2 - 30, badge.y + badge.height / 2, { steps: 5 });
   await page.mouse.up({ button: 'middle' });
   await expect.poll(() => flowViewport.getAttribute('style')).not.toBe(panned);
+
+  const beforeSpace = await flowViewport.getAttribute('style');
+
+  await board.focus();
+  await page.keyboard.down('Space');
+  await page.mouse.move(bounds.x + 20, bounds.y + 20);
+  await page.mouse.down({ button: 'left' });
+  await page.mouse.move(bounds.x + 60, bounds.y + 60, { steps: 5 });
+  await page.mouse.up({ button: 'left' });
+  await page.keyboard.up('Space');
+  await expect.poll(() => flowViewport.getAttribute('style')).not.toBe(beforeSpace);
 
   await page.getByRole('button', { name: '全览画板', exact: true }).click();
   await expect.poll(() => flowViewport.getAttribute('style')).toBe(transform);

@@ -18,7 +18,11 @@ export type LayoutEdge = {
   kind: 'dependency' | 'branch' | 'reference' | 'sequence' | 'containment';
   label?: string;
 };
-export type LayoutInsertion = Insertion & { id: string; position: { x: number; y: number } };
+export type LayoutInsertion = Insertion & {
+  id: string;
+  anchorId?: string;
+  position: { x: number; y: number };
+};
 export type PlanLayout = {
   nodes: LayoutNode[];
   edges: LayoutEdge[];
@@ -29,7 +33,20 @@ const WIDTH = PLAN_ROW_WIDTH,
   GAP = 56,
   COLUMN_GAP = 64;
 const text = (node: PlanNode) => (node.kind === 'branch' ? node.condition : node.goal);
-const height = (value: string) => Math.max(72, 40 + Math.ceil(value.length / 58) * 28);
+const height = (value: string) =>
+  Math.max(
+    72,
+    40 +
+      value.split('\n').reduce((lines, line) => {
+        const width = Array.from(line).reduce(
+          (width, character) => width + (character.charCodeAt(0) > 255 ? 20 : 11),
+          0,
+        );
+
+        return lines + Math.max(1, Math.ceil(width / (WIDTH - 300)));
+      }, 0) *
+        28,
+  );
 
 // Consecutive visible groups use columns; tasks and hidden sequences use rows.
 // Visible group columns connect to their parent rather than to each other.
@@ -61,17 +78,22 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
     return node.kind === 'group' && !node.presentation;
   };
 
-  function slot(groupId: string, index: number, x: number, y: number) {
+  function slot(groupId: string, index: number, x: number, y: number, anchorId?: string) {
     insertions.push({
       id: `insert:${groupId}:${index}`,
       groupId,
       index,
+      anchorId,
       position: { x: x + WIDTH / 2 - 18, y: y - 18 },
     });
   }
 
   function visit(id: string, x: number, y: number, pathLabel?: string): Subtree {
     const node = plan.nodes[id];
+    const contentHeight =
+      height(text(node)) +
+      (pathLabel ? 16 : 0) +
+      (node.kind === 'branch' && !node.otherwise ? 16 : 0);
 
     if (seen.has(id)) {
       const refId = `reference:${reference++}`;
@@ -83,7 +105,7 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
         pathLabel,
         position: { x, y },
         width: WIDTH,
-        height: 72,
+        height: contentHeight,
       });
       edges.push({
         id: `ref:${refId}`,
@@ -93,14 +115,14 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
         label: '引用',
       });
 
-      return { first: refId, exits: [refId], bottom: y + 72, right: x + WIDTH };
+      return { first: refId, exits: [refId], bottom: y + contentHeight, right: x + WIDTH };
     }
 
     seen.add(id);
     const hidden =
       node.kind === 'group' && node.presentation === 'sequence' && node.children.length > 0;
     const rowId = `plan:${id}`;
-    const rowHeight = height(text(node)) + (results && node.kind !== 'group' ? 190 : 0);
+    const rowHeight = contentHeight + (results && node.kind !== 'group' ? 190 : 0);
     let first: string | undefined = hidden ? undefined : rowId;
     let exits = first ? [first] : [];
     let bottom = hidden ? y : y + rowHeight;
@@ -118,13 +140,14 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
         height: rowHeight,
       });
     if (node.kind === 'group') {
-      if (!hidden) slot(id, 0, x, bottom + GAP / 2);
+      if (!hidden) slot(id, 0, x, bottom + GAP / 2, rowId);
       for (let index = 0; index < node.children.length;) {
         const rowTop = hidden && index === 0 ? y : bottom + GAP;
         let rowRight = x;
         let rowBottom = rowTop;
         const columns = column(node.children[index]);
         const rowEntry = exits;
+        const columnExits: string[] = [];
 
         do {
           const subtree = visit(
@@ -144,6 +167,7 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
           else connect(exits, subtree.first, 'sequence', `sequence:${id}:${index}`);
           first ??= subtree.first;
           exits = subtree.exits.length ? subtree.exits : exits;
+          if (columns) columnExits.push(...subtree.exits);
           rowBottom = Math.max(rowBottom, subtree.bottom);
           right = Math.max(right, subtree.right);
           rowRight = subtree.right + COLUMN_GAP;
@@ -155,12 +179,23 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
             // Visible groups own their header insertion. Hidden groups delegate
             // to their visible children. Neither needs a second parent slot.
             if (plan.nodes[node.children[index - 1]].kind !== 'group')
-              slot(id, index, x, rowBottom + GAP / 2);
+              slot(id, index, x, rowBottom + GAP / 2, subtree.exits[0]);
             break;
           }
         } while (index < node.children.length);
 
         bottom = rowBottom;
+        if (columns) exits = columnExits;
+      }
+
+      // Center the header and its insertion over the entire group subtree.
+      if (!hidden) {
+        const header = nodes.find((item) => item.id === rowId)!;
+
+        header.position.x = x + (right - x - WIDTH) / 2;
+        const insertion = insertions.find((item) => item.id === `insert:${id}:0`)!;
+
+        insertion.position.x = header.position.x + WIDTH / 2 - 18;
       }
 
       if (!node.children.length) bottom += GAP;
