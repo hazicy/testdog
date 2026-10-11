@@ -168,13 +168,6 @@ function PlanBoardContent({
           </ReactFlow>
           {viewportOverlay}
           <div className="plan-canvas-tools">
-            {onChange && (
-              <p className="plan-canvas-hint">
-                {Object.values(plan.nodes).some((node) => node.kind === 'task')
-                  ? '左键选择 / 框选 · 中键拖动画布 · 点击 ＋ 添加'
-                  : '点击画板上的 ＋，添加第一步'}
-              </p>
-            )}
             <div className="plan-viewport-controls" role="group" aria-label="画板视图">
               <button type="button" aria-label="缩小画板" onClick={() => void flow.zoomOut()}>
                 −
