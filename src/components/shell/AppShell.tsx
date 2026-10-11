@@ -10,8 +10,7 @@ import { useState, type ReactNode } from 'react';
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import menuIcon from '@iconify-icons/lucide/panel-left';
-import resultsIcon from '@iconify-icons/lucide/play';
-import testsIcon from '@iconify-icons/lucide/flask-conical';
+import { activeWorkspaceNavigation, workspaceNavigation } from './navigation';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -32,7 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  const results = pathname.startsWith('/runs');
+  const activeItem = activeWorkspaceNavigation(pathname);
   const canvas = pathname.startsWith('/cases/editor/');
 
   return (
@@ -60,21 +59,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <div className="px-3 pt-6">
           <nav aria-label="工作区导航" className="space-y-1">
-            {[
-              { href: '/cases', name: '测试用例', icon: testsIcon, active: !results },
-              { href: '/runs', name: '执行记录', icon: resultsIcon, active: results },
-              { href: '/issues', name: '问题追踪', icon: resultsIcon, active: results },
-              { href: '/integrations', name: '集成', icon: resultsIcon, active: results },
-              { href: '/test-account', name: '测试账号', icon: resultsIcon, active: results },
-              { href: '/settings', name: '设置', icon: resultsIcon, active: results },
-            ].map((item) => (
+            {workspaceNavigation.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 title={item.name}
                 aria-label={item.name}
-                aria-current={item.active ? 'page' : undefined}
-                className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm hover:bg-sidebar-hover ${item.active ? 'bg-surface-raised font-medium text-brand-active shadow-sm' : ''}`}
+                aria-current={item === activeItem ? 'page' : undefined}
+                className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm hover:bg-sidebar-hover ${item === activeItem ? 'bg-surface-raised font-medium text-brand-active shadow-sm' : ''}`}
               >
                 <Icon icon={item.icon} width="18" aria-hidden="true" />
                 {!collapsed && <span className="hidden md:block">{item.name}</span>}
@@ -97,7 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Icon icon={menuIcon} width="18" aria-hidden="true" />
           </Button>
           <nav aria-label="面包屑" className="flex min-w-0 items-center gap-3 text-sm">
-            <Link href="/" className="text-page-muted">
+            <Link href="/cases" className="text-page-muted">
               工作区
             </Link>
             <Icon icon={chevronIcon} className="text-text-subtle" width="14" aria-hidden="true" />
@@ -118,7 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </>
             ) : (
               <span aria-current="page" className="truncate">
-                浏览器测试
+                {activeItem?.name ?? '页面不存在'}
               </span>
             )}
           </nav>

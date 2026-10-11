@@ -1,10 +1,11 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
 
 const authorized = vi.hoisted(() => vi.fn());
 
 vi.mock('./server/shared/auth', () => ({ workspaceAuthorized: authorized }));
-import { proxy } from './proxy';
+import { config, proxy } from './proxy';
 
 beforeEach(() => {
   authorized.mockReset();
@@ -44,3 +45,16 @@ test('allows authenticated access', async () => {
   authorized.mockResolvedValue(true);
   expect((await proxy(new NextRequest('http://localhost/cases'))).status).toBe(200);
 });
+
+test.each(['/issues', '/integrations', '/test-account', '/settings'])(
+  'protects workspace destination %s and its descendants',
+  async (path) => {
+    for (const url of [path, `${path}/detail`]) {
+      expect(unstable_doesMiddlewareMatch({ config, url })).toBe(true);
+      const response = await proxy(new NextRequest(`http://localhost${url}`));
+
+      expect(response.status).toBe(307);
+      expect(new URL(response.headers.get('location')!).searchParams.get('callbackURL')).toBe(url);
+    }
+  },
+);
