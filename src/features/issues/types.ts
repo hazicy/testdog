@@ -36,6 +36,7 @@ export type Issue = {
   lastSeen?: string;
   firstSeen?: string;
   latestOccurrence?: IssueOccurrence | null;
+  runOccurrences?: IssueOccurrence[];
 };
 export type OccurrenceSnapshot = {
   name: string;

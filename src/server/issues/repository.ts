@@ -185,6 +185,9 @@ export async function listIssues(
         lastSeen: occurrences[0]?.createdAt ?? issue.createdAt,
         firstSeen: occurrences.at(-1)?.createdAt ?? issue.createdAt,
         latestOccurrence: occurrences[0] ?? null,
+        ...(filters.runId
+          ? { runOccurrences: occurrences.filter((item) => item.runId === filters.runId) }
+          : {}),
       };
     }),
     nextCursor: rows.length > page.limit && last ? pageCursor(last.sortDate, last.issue.id) : null,

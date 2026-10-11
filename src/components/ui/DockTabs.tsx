@@ -20,6 +20,7 @@ import expandIcon from '@iconify-icons/lucide/chevron-up';
 export type DockTab = {
   id: string;
   label: string;
+  badge?: number;
   reference?: string;
   direction?: 'right' | 'below' | 'within';
   initialWidth?: number;
@@ -31,12 +32,14 @@ export type DockTab = {
 const ContentContext = createContext<{
   render: (id: string) => ReactNode;
   visited: Set<string>;
+  badges: Record<string, number>;
   collapsedGroups: Set<string>;
   select: (id: string) => void;
   collapse: (api: DockviewGroupPanelApi, collapsed: boolean) => void;
 }>({
   render: () => null,
   visited: new Set(),
+  badges: {},
   collapsedGroups: new Set(),
   select: () => {},
   collapse: () => {},
@@ -60,7 +63,7 @@ function Content({ api }: IDockviewPanelProps) {
 }
 
 function Header({ api }: IDockviewPanelHeaderProps) {
-  const { select, collapsedGroups } = useContext(ContentContext);
+  const { select, collapsedGroups, badges } = useContext(ContentContext);
   const [active, setActive] = useState(api.isVisible);
 
   useEffect(() => {
@@ -78,6 +81,14 @@ function Header({ api }: IDockviewPanelHeaderProps) {
       onClick={() => select(api.id)}
     >
       {api.title}
+      {!!badges[api.id] && (
+        <span
+          aria-hidden="true"
+          className="ml-2 rounded bg-error-soft px-1.5 py-0.5 font-mono text-xs text-error-ink"
+        >
+          {badges[api.id]}
+        </span>
+      )}
     </button>
   );
 }
@@ -234,7 +245,14 @@ export function DockTabs<T extends string>({
 
   return (
     <ContentContext.Provider
-      value={{ render: (id) => children(id as T), visited, collapsedGroups, select, collapse }}
+      value={{
+        render: (id) => children(id as T),
+        visited,
+        badges: Object.fromEntries(tabs.map((tab) => [tab.id, tab.badge ?? 0])),
+        collapsedGroups,
+        select,
+        collapse,
+      }}
     >
       <div aria-label={label} className={`caseforge-dock dockview-theme-light ${className}`}>
         <DockviewReact

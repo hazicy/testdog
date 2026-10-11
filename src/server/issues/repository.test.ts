@@ -357,6 +357,15 @@ it('automatically creates an issue with evidence, deduplicates repeated calls an
   });
 
   expect(page.issues[0]).toMatchObject({ runCount: 2, latestOccurrence: { runId: repeat.id } });
+  const originalRunPage = await listIssues(
+    { limit: 50, q: '', status: 'all', cursor: undefined },
+    'alice',
+    { runId: source.run.id },
+  );
+
+  expect(originalRunPage.issues[0].latestOccurrence?.runId).toBe(repeat.id);
+  expect(originalRunPage.issues[0].runOccurrences).toHaveLength(1);
+  expect(originalRunPage.issues[0].runOccurrences?.[0].runId).toBe(source.run.id);
   expect(
     (
       await listIssues({ limit: 50, q: '', status: 'all', cursor: undefined }, 'alice', {

@@ -186,3 +186,32 @@
 .caseforge-dock .dock-panel[hidden] {
   display: none;
 }
+
+.run-issues-view,
+.run-issue-card {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+.run-issue-card {
+  flex: 1;
+}
+.run-issue-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+}
+.run-issue-header,
+.run-issue-actions {
+  flex-shrink: 0;
+  padding: 16px 20px;
+  background: var(--surface-raised);
+}
+.run-issue-header {
+  border-bottom: 1px solid var(--page-line);
+}
+.run-issue-actions {
+  border-top: 1px solid var(--page-line);
+}

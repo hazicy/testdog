@@ -367,3 +367,144 @@ test('shows expected, actual and reproduction, copies a fix prompt and resolves 
   await page.getByRole('button', { name: '重新打开', exact: true }).click();
   await expect(page.getByText('关闭原因：已修复')).toHaveCount(0);
 });
+
+test('opens an issue tab from the transcript and synchronizes it with replay', async ({
+  page,
+  context,
+}, testInfo) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const frame = {
+    id: '62534c46-a8eb-4991-993e-af6df14bece9',
+    runId,
+    stepId,
+    kind: 'screenshot' as const,
+    stage: 'after' as const,
+    pageId: 'page',
+    pageUrl: run.url,
+    capturedAt: timestamp,
+    elapsedMs: 26000,
+    contentType: 'image/png',
+    size: 68,
+  };
+  const failedStep = {
+    ...run.steps[0],
+    startedAt: '2026-10-01T00:00:20Z',
+    finishedAt: '2026-10-01T00:00:26Z',
+  };
+  const currentRun = { ...run, durationMs: 32000, steps: [failedStep], artifacts: [frame] };
+  const currentOccurrence = {
+    ...occurrence,
+    snapshot: {
+      ...occurrence.snapshot,
+      step: failedStep,
+      reproduction: ['打开订单页', '查看订单', '确认支付金额'],
+      artifacts: [frame],
+    },
+  };
+  let issue = {
+    ...initial,
+    latestOccurrence: {
+      ...occurrence,
+      runId: 'another-run',
+      snapshot: { ...occurrence.snapshot, error: '其他执行实际为999' },
+    },
+    runOccurrences: [currentOccurrence],
+  };
+
+  await page.route(`**/api/runs/${runId}{,?*}`, (route) =>
+    route.fulfill({ json: { run: currentRun } }),
+  );
+  await page.route('**/api/issues?*', (route) =>
+    route.fulfill({ json: { issues: [issue], nextCursor: null } }),
+  );
+  await page.route(`**/api/issues/${issueId}`, (route) => {
+    const patch = route.request().postDataJSON();
+
+    expect(patch.version).toBe(issue.version);
+    issue = { ...issue, ...patch, version: patch.version + 1 };
+
+    return route.fulfill({ json: { issue } });
+  });
+  await page.route(`**/api/runs/${runId}/artifacts/${frame.id}`, (route) =>
+    route.fulfill({
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jF1sAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    }),
+  );
+  await page.goto(`/runs/${runId}`);
+  const transcript = page.locator('section[aria-label="执行步骤"]');
+  const panel = page.getByRole('region', { name: '执行关联问题', exact: true });
+
+  await expect(transcript.getByRole('button', { name: '查看问题：订单金额错误' })).toBeVisible();
+  await expect(panel).toBeHidden();
+  await transcript.getByRole('button', { name: '查看问题：订单金额错误' }).click();
+  await expect(page.getByRole('button', { name: '问题', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(transcript).toBeHidden();
+  await expect(panel.getByText('预期 EXPECTED')).toBeVisible();
+  await expect(panel.getByText('实际为120', { exact: true })).toBeVisible();
+  await expect(page.getByText('其他执行实际为999')).toHaveCount(0);
+  await expect(page.locator('.run-studio > [aria-label="执行关联问题"]')).toHaveCount(0);
+  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:26 / 00:32');
+  await page.screenshot({ path: testInfo.outputPath('run-issues-default.png'), fullPage: true });
+  await expect(panel.getByText('查看订单', { exact: true })).toBeVisible();
+  await panel.getByText('截图证据 · 1', { exact: true }).click();
+  await panel.getByRole('button', { name: '回放证据 00:26' }).click();
+  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:26 / 00:32');
+  await panel.getByRole('button', { name: '复制修复提示词', exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('实际为120');
+  await panel.getByRole('combobox', { name: '问题状态：订单金额错误' }).click();
+  await page.getByRole('option', { name: '已关闭', exact: true }).click();
+  await expect(panel.getByRole('combobox', { name: '问题状态：订单金额错误' })).toContainText(
+    '已关闭',
+  );
+  await panel.locator('.run-issue-body').evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect(panel.getByRole('button', { name: '已复制修复提示词', exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('run-issues.png'), fullPage: true });
+  await page.getByRole('button', { name: '执行步骤', exact: true }).click();
+  await expect(transcript).toBeVisible();
+  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:26 / 00:32');
+});
+
+test('selects among issues in the issue tab and shows a clear empty state', async ({ page }) => {
+  const secondId = '62534c46-a8eb-4991-993e-af6df14bece5';
+  const secondOccurrence = {
+    ...occurrence,
+    id: secondId,
+    snapshot: { ...occurrence.snapshot, error: '优惠金额为10' },
+  };
+  let entries = [
+    { ...initial, runOccurrences: [occurrence] },
+    { ...initial, id: secondId, title: '优惠金额错误', runOccurrences: [secondOccurrence] },
+  ];
+
+  await page.route(`**/api/runs/${runId}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await page.route('**/api/issues?*', (route) =>
+    route.fulfill({ json: { issues: entries, nextCursor: null } }),
+  );
+  await page.goto(`/runs/${runId}`);
+  await page.getByRole('button', { name: '问题', exact: true }).click();
+  const panel = page.getByRole('region', { name: '执行关联问题', exact: true });
+
+  await expect(panel.getByText('本次执行 · 2 个问题')).toBeVisible();
+  await panel.getByRole('combobox', { name: '选择执行问题' }).click();
+  await page.getByRole('option', { name: '02 · 优惠金额错误', exact: true }).click();
+  await expect(panel.getByRole('heading', { name: '优惠金额错误', exact: true })).toBeVisible();
+  await expect(panel.getByText('优惠金额为10', { exact: true })).toBeVisible();
+  await expect(panel.getByText('实际为120', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '执行回放', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  entries = [];
+  await page.reload();
+  await page.getByRole('button', { name: '问题', exact: true }).click();
+  await expect(panel.getByRole('heading', { name: '本次执行暂无关联问题' })).toBeVisible();
+});

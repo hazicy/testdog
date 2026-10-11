@@ -18,12 +18,14 @@ export const StepList = memo(function StepList({
   running,
   onSelect,
   renderDetails,
+  renderIssue,
 }: {
   steps: ExecutionStep[];
   selectedId?: string;
   running: boolean;
   onSelect: (step: ExecutionStep) => void;
   renderDetails: (step: ExecutionStep) => ReactNode;
+  renderIssue?: (step: ExecutionStep) => ReactNode;
 }) {
   const detailsId = useId();
   const [collapsedId, setCollapsedId] = useState<string>();
@@ -73,6 +75,7 @@ export const StepList = memo(function StepList({
                   {selectedId === step.id && collapsedId !== step.id ? '⌃' : '⌄'}
                 </span>
               </Button>
+              {renderIssue?.(step)}
               <div
                 id={`${detailsId}-${step.id}`}
                 hidden={selectedId !== step.id || collapsedId === step.id}

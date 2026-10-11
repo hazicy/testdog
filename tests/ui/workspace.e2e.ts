@@ -995,7 +995,7 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
   await page.goto(`/runs/${run.id}`);
   const dock = page.getByLabel('执行工作台', { exact: true });
 
-  await expect(dock.locator('.dv-tabs-container').first().locator('.dv-tab')).toHaveCount(2);
+  await expect(dock.locator('.dv-tabs-container').first().locator('.dv-tab')).toHaveCount(3);
   expect(logReads).toEqual([]);
   const tabs = dock.locator('.dv-tabs-container').first();
   const plan = tabs.locator('.dv-tab').filter({ hasText: '计划画板' });

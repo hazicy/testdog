@@ -9,7 +9,9 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ExecutionStep, RunArtifact, TestRun } from '@/features/runs/types';
-import { api } from '@/client/api';
+import { api, fetchJson } from '@/client/api';
+import useSWRInfinite from 'swr/infinite';
+import type { IssuePage } from '@/features/issues/types';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { downloadRunReport } from '@/client/download';
 import { StepList } from './StepList';
@@ -23,13 +25,19 @@ import { BrowserLogPanel } from './BrowserLogPanel';
 import { RunLogs } from './RunLogs';
 import { StepDetails } from './StepDetails';
 import { RunSnapshot } from './RunSnapshot';
-import { RunIssues } from '@/features/issues/components/RunIssues';
+import {
+  RunIssues,
+  issuePosition,
+  type RunIssueEntry,
+} from '@/features/issues/components/RunIssues';
+import { time } from '../presentation';
 import { IssueEditor } from '@/features/issues/components/IssueEditor';
 
 import './run-studio.css';
 
 const workspaceTabs = [
   { id: 'steps', label: '执行步骤', initiallyVisible: true, initialWidthRatio: 0.382 },
+  { id: 'issues', label: '问题', reference: 'steps' },
   { id: 'plan', label: '计划画板', reference: 'steps' },
   {
     id: 'execution',
@@ -52,7 +60,7 @@ const workspaceTabs = [
 ] as const satisfies readonly DockTab[];
 
 type PanelId = (typeof workspaceTabs)[number]['id'];
-type View = Exclude<PanelId, 'steps' | 'logs' | 'console' | 'network'>;
+type View = Exclude<PanelId, 'steps' | 'issues' | 'logs' | 'console' | 'network'>;
 
 const emptySteps: ExecutionStep[] = [];
 
@@ -91,6 +99,7 @@ export function RunDetail({ id }: { id: string }) {
     elapsedMs,
     setPlaying,
     showFrame,
+    seek,
     selectStep: selectPlaybackStep,
   } = playback;
   const [inspectedStepId, setInspectedStepId] = useState<string>();
@@ -100,6 +109,38 @@ export function RunDetail({ id }: { id: string }) {
   const { run, error, setError, unavailable, now, previewUrl, clearPreview, refresh } = useRunData(
     id,
     follow && view === 'execution',
+  );
+  const [selectedIssueId, setSelectedIssueId] = useState<string>();
+  const {
+    data: issuePages,
+    error: issuesError,
+    isLoading: issuesLoading,
+    mutate: refreshIssues,
+    size: issuePageCount,
+    setSize: setIssuePageCount,
+  } = useSWRInfinite<IssuePage>(
+    (index, previous) => {
+      if (!run || (index && !previous?.nextCursor)) return null;
+      const params = new URLSearchParams({ runId: id });
+
+      if (index) params.set('cursor', previous!.nextCursor!);
+
+      return `/api/issues?${params}`;
+    },
+    fetchJson,
+    { refreshInterval: 5000 },
+  );
+  const runIssues = useMemo(
+    () =>
+      issuePages?.flatMap((page) =>
+        page.issues.flatMap((issue) =>
+          (
+            issue.runOccurrences ??
+            (issue.latestOccurrence?.runId === id ? [issue.latestOccurrence] : [])
+          ).map((occurrence) => ({ issue, occurrence })),
+        ),
+      ) ?? [],
+    [issuePages, id],
   );
   const { frames, videos, trace, stepFrames, steps } = useMemo(() => indexRun(run), [run]);
   const diagnostics =
@@ -134,6 +175,9 @@ export function RunDetail({ id }: { id: string }) {
   const selectStep = useCallback(
     (step: ExecutionStep) => {
       setInspectedStepId(step.id);
+      setSelectedIssueId(
+        runIssues.find((entry) => entry.occurrence.stepId === step.id)?.occurrence.id,
+      );
       setView('execution');
       setRevealPanels(['execution', 'steps']);
       const positions = stepFrames.get(step.id);
@@ -148,7 +192,62 @@ export function RunDetail({ id }: { id: string }) {
         index,
       );
     },
-    [stepFrames, selectPlaybackStep, frames, run?.startedAt],
+    [stepFrames, selectPlaybackStep, frames, run?.startedAt, runIssues],
+  );
+
+  const selectRunIssue = useCallback(
+    (entry: RunIssueEntry) => {
+      if (!run) return;
+      setSelectedIssueId(entry.occurrence.id);
+      const step = run.steps.find((item) => item.id === entry.occurrence.stepId);
+
+      if (step) setInspectedStepId(step.id);
+      setView('execution');
+      setRevealPanels(['execution', 'issues']);
+      seek(issuePosition(run, entry.occurrence));
+    },
+    [run, seek],
+  );
+
+  const showIssueFrame = useCallback(
+    (frame: RunArtifact) => {
+      const index = frames.findIndex((item) => item.id === frame.id);
+
+      if (index < 0) return;
+      setInspectedStepId(frame.stepId);
+      setView('execution');
+      setRevealPanels(['execution', 'issues']);
+      showFrame(index, frame.elapsedMs);
+    },
+    [frames, showFrame],
+  );
+
+  const renderStepIssue = useCallback(
+    (step: ExecutionStep) =>
+      run
+        ? runIssues
+            .filter((entry) => entry.occurrence.stepId === step.id)
+            .map((entry) => (
+              <div key={entry.occurrence.id} className="border-b border-page-line px-5 py-2">
+                <Button
+                  className="flex w-full items-start gap-2 text-left text-xs"
+                  aria-label={`查看问题：${entry.issue.title}`}
+                  onClick={() => selectRunIssue(entry)}
+                >
+                  <span className="shrink-0 border border-error-line bg-error-soft px-2 py-1 text-error-ink">
+                    问题
+                  </span>
+                  <span className="min-w-0 flex-1 pt-1 font-medium break-words">
+                    {entry.issue.title}
+                  </span>
+                  <span className="shrink-0 pt-1 font-mono text-page-muted">
+                    ▶ {time(issuePosition(run, entry.occurrence))}
+                  </span>
+                </Button>
+              </div>
+            ))
+        : null,
+    [run, runIssues, selectRunIssue],
   );
 
   const selectBoardStep = useCallback(
@@ -245,9 +344,28 @@ export function RunDetail({ id }: { id: string }) {
               running={run?.status === 'running'}
               onSelect={selectStep}
               renderDetails={renderStepDetails}
+              renderIssue={renderStepIssue}
             />
           </div>
         );
+      case 'issues':
+        return run ? (
+          <RunIssues
+            entries={runIssues}
+            run={run}
+            selectedId={
+              selectedIssueId ??
+              runIssues.find((entry) => entry.occurrence.stepId === selectedStep?.id)?.occurrence.id
+            }
+            onSelect={selectRunIssue}
+            onFrame={showIssueFrame}
+            onUpdated={refreshIssues}
+            error={issuesError?.message}
+            loading={issuesLoading}
+            hasMore={!!issuePages?.at(-1)?.nextCursor}
+            onLoadMore={() => void setIssuePageCount(issuePageCount + 1)}
+          />
+        ) : null;
       case 'plan':
         return (
           <PlanBoard
@@ -300,6 +418,7 @@ export function RunDetail({ id }: { id: string }) {
   function changePanel(panel: PanelId) {
     switch (panel) {
       case 'steps':
+      case 'issues':
         return;
       case 'logs':
       case 'console':
@@ -340,7 +459,6 @@ export function RunDetail({ id }: { id: string }) {
           setIssueOpen(true);
         }}
       />
-      {run?.status === 'failed' && <RunIssues runId={id} />}
       {run?.evidenceComplete === false && (
         <p role="alert" className="studio-alert">
           本次执行的证据归档不完整，请查看执行错误。
@@ -366,7 +484,9 @@ export function RunDetail({ id }: { id: string }) {
         key={id}
         label="执行工作台"
         className="run-studio-dock"
-        tabs={workspaceTabs}
+        tabs={workspaceTabs.map((tab) =>
+          tab.id === 'issues' ? { ...tab, badge: runIssues.length } : tab,
+        )}
         revealPanels={revealPanels}
         value={view}
         onChange={changePanel}
