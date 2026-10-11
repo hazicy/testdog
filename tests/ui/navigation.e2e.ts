@@ -30,7 +30,6 @@ test('sidebar destinations open with one selected item and matching breadcrumbs'
     ['/runs', '执行记录'],
     ['/issues', '问题追踪'],
     ['/integrations', '集成'],
-    ['/test-account', '测试账号'],
     ['/settings', '设置'],
     ['/cases', '测试用例'],
   ]) {
@@ -46,21 +45,7 @@ test('sidebar destinations open with one selected item and matching breadcrumbs'
   }
 });
 
-test('feature destinations support direct visits, refresh and collapsed navigation', async ({
-  page,
-}) => {
-  for (const [href, name, destination] of [['/test-account', '测试账号', '/cases']]) {
-    const response = await page.goto(href);
-
-    expect(response?.status()).toBe(200);
-    await page.reload();
-    await expect(page.getByRole('heading', { name, level: 1, exact: true })).toBeVisible();
-    const status = page.getByRole('region', { name: `${name}功能状态` });
-
-    await expect(status.getByText('尚未开放', { exact: true })).toBeVisible();
-    await expect(status.getByRole('link')).toHaveAttribute('href', destination);
-  }
-
+test('settings supports direct visits, refresh and collapsed navigation', async ({ page }) => {
   await page.goto('/settings');
   await page.reload();
   await expect(page.getByRole('heading', { name: '设置', level: 1, exact: true })).toBeVisible();

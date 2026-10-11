@@ -38,7 +38,6 @@ export const config = {
     '/runs/:path*',
     '/issues/:path*',
     '/integrations/:path*',
-    '/test-account/:path*',
     '/settings/:path*',
     '/api/:path*',
   ],

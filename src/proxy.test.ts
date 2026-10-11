@@ -46,7 +46,7 @@ test('allows authenticated access', async () => {
   expect((await proxy(new NextRequest('http://localhost/cases'))).status).toBe(200);
 });
 
-test.each(['/issues', '/integrations', '/test-account', '/settings'])(
+test.each(['/issues', '/integrations', '/settings'])(
   'protects workspace destination %s and its descendants',
   async (path) => {
     for (const url of [path, `${path}/detail`]) {

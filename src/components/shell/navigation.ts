@@ -2,7 +2,6 @@ import testsIcon from '@iconify-icons/lucide/flask-conical';
 import runsIcon from '@iconify-icons/lucide/play';
 import issuesIcon from '@iconify-icons/lucide/bug';
 import integrationsIcon from '@iconify-icons/lucide/plug';
-import accountsIcon from '@iconify-icons/lucide/users';
 import settingsIcon from '@iconify-icons/lucide/settings';
 
 export const workspaceNavigation = [
@@ -10,7 +9,6 @@ export const workspaceNavigation = [
   { href: '/runs', name: '执行记录', icon: runsIcon },
   { href: '/issues', name: '问题追踪', icon: issuesIcon },
   { href: '/integrations', name: '集成', icon: integrationsIcon },
-  { href: '/test-account', name: '测试账号', icon: accountsIcon },
   { href: '/settings', name: '设置', icon: settingsIcon },
 ] as const;
 
