@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/auth/get-session', (route) => route.fulfill({ json: null }));
+  await page.route('**/api/integrations', (route) =>
+    route.fulfill({ json: { integrations: [], deliveries: [] } }),
+  );
   await page.route('**/api/issues*', (route) =>
     route.fulfill({ json: { issues: [], nextCursor: null } }),
   );
@@ -47,7 +50,6 @@ test('feature destinations support direct visits, refresh and collapsed navigati
   page,
 }) => {
   for (const [href, name, destination] of [
-    ['/integrations', '集成', '/runs'],
     ['/test-account', '测试账号', '/cases'],
     ['/settings', '设置', '/cases'],
   ]) {

@@ -27,6 +27,7 @@ pnpm maintenance
 
 - `/cases`（Tests）：创建、编辑、复制与删除用例，搜索名称、地址和标签，按最近执行状态筛选，发起录制。
 - `/runs`（Results）：查看历史执行、状态和耗时。
+- `/integrations`（集成）：配置飞书机器人和 Email 通知、选择事件、发送测试通知和查看投递记录。
 - `/issues`（问题追踪）：从执行步骤或画板节点创建、关联问题，按状态搜索筛选，记录处理说明、关闭原因和回归结果。
 - `/runs/:id`（Execution Studio）：观察持续更新的浏览器画面，查看每个步骤的前后截图、稳定定位器、断言证据和错误；拖动时间轴回看，播放完整录像，下载录像、Playwright Trace 或 JSON 报告；在计划画板中查看分组、分支和依赖，在 CodeMirror 中编辑录制操作与预期，保存版本后重放。
 
@@ -55,6 +56,10 @@ pnpm maintenance
 Web 使用 Playwright mobile、Android/iOS 使用 agent-device 的架构见 [多平台自动化架构](docs/automation-architecture.md)，包含会话接口、设备调度、数据迁移、重放规则与实施验收。实现与验收证据、部署切换见 [实施记录](docs/automation-implementation.md)。
 
 API 将任务持久化入队，独立常驻 Node worker 通过 PostgreSQL 行锁领取任务，每个浏览器 slot 或设备同一时间只执行一条测试。每 5 秒更新租约；60 秒未续约的执行标记为中断。每次执行最多 5 分钟，超时关闭浏览器并保存失败结果。当前部署适用于有本地持久磁盘的 Node 服务器；不适用于会冻结后台任务或没有持久磁盘的短生命周期函数。
+
+## 飞书与 Email 通知
+
+运行 `pnpm db:migrate` 后重启 worker 或 maintenance；也可用 `pnpm notifications` 独立启动发送服务。进入 `/integrations` 配置飞书 Webhook（可选签名）或 SMTP 邮件，选择执行失败、问题创建、问题状态变化及回归完成事件。支持测试通知、失败重试和发送记录。API 与发送服务使用相同的 `CASEFORGE_INTEGRATION_SECRET`，未设置时使用 `BETTER_AUTH_SECRET`。配置密钥加密保存，通知按当前用户隔离，不自动补发历史事件。详细配置、接口和重试规则见 [通知文档](docs/notifications.md)。
 
 ## 实时更新与 Redis
 

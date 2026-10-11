@@ -1,0 +1,47 @@
+# 飞书与 Email 通知
+
+在 `/integrations` 分别保存飞书和 Email 配置，勾选事件后启用。渠道默认关闭；保存配置不会发送消息。点击“发送测试通知”会向当前保存的目标发送测试消息，并在发送记录中显示结果。测试通知不要求启用自动事件。
+
+## 渠道配置
+
+飞书使用群自定义机器人 Webhook，支持可选签名密钥。通知文字包含 `[testdog]`，若机器人限制关键词，可使用 `testdog`。地址仅接受 `https://open.feishu.cn/open-apis/bot/v2/hook/...`，不跟随重定向。配置参考[飞书自定义机器人文档](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)。
+
+Email 使用 SMTP 服务器、账号、密码或授权码、发件邮箱和最多 10 个收件邮箱。支持 465 TLS 和 587 STARTTLS，并验证服务器证书；多个收件人通过 BCC 收件。实现参考 [Nodemailer SMTP 文档](https://nodemailer.com/smtp)。
+
+Webhook、飞书签名和 SMTP 密码不会通过读取接口返回。表单中的空密钥字段表示保留原配置；可明确清除飞书签名密钥。完整配置使用 AES-256-GCM 加密，并绑定用户和渠道。使用 `CASEFORGE_INTEGRATION_SECRET`（至少 32 字符），未配置时使用 `BETTER_AUTH_SECRET`；API 与发送服务需要相同密钥。变更密钥后需重新配置通知渠道。
+
+SMTP 解析后固定连接目标 IP，默认禁止私网、回环和链路本地地址。管理员可以通过 `CASEFORGE_ALLOW_PRIVATE_SMTP=true` 允许可信内网 SMTP；TLS 验证仍然开启。通知仅包含标题、状态摘要与工作台链接，不发送原始日志、密钥、截图附件或错误堆栈。
+
+## 通知事件
+
+- `run.failed`：执行进入失败终态，包括租约恢复等失败路径。
+- `issue.created`：创建问题。
+- `issue.status_changed`：问题状态改变，不包含普通评论和描述修改。
+- `verification.completed`：关联的回归执行完成。消息提醒查看问题详情确认目标结论，不把完整执行通过直接解释为问题已修复。
+
+数据库触发器在业务事务中创建通知事件与投递记录，事务回滚不会留下通知。仅对当时启用且订阅事件的同用户渠道入队，不补发历史事件。源事件及渠道投递都有唯一键，重复更新不重复入队。通知不依赖 Redis 或界面 SSE。
+
+## 后台发送
+
+先执行 `pnpm db:migrate`，然后重启 `pnpm worker` 或 `pnpm maintenance`。这两个进程均消费通知队列，也可单独运行：
+
+```bash
+pnpm notifications
+```
+
+多个进程通过行锁和 `SKIP LOCKED` 领取任务。网络发送在数据库事务外进行，不阻塞测试执行。领取租约为两分钟，进程异常后可重新领取；自动最多尝试三次，失败后可在集成页面手动重试。更改配置会取消旧配置下的待发通知，已开始发送的请求可能已经到达原目标。
+
+外部渠道不提供统一的端到端幂等承诺：进程在外部服务接受消息后、数据库确认前中断时，恢复可能重复发送。Email 使用固定的投递 Message-ID，飞书签名使用当前时间戳。邮件发送成功表示 SMTP 服务接受请求，最终收件状态依赖邮件服务。
+
+发送记录展示最近 50 条记录。页面有待发送消息时每 3 秒刷新，空闲时每 30 秒刷新。保存配置采用版本检查，冲突需刷新页面后重新编辑；测试接口接受 `Idempotency-Key`，每个渠道最多每 30 秒提交一次新测试。
+
+## API
+
+| 接口                                                 | 功能                                               |
+| ---------------------------------------------------- | -------------------------------------------------- |
+| GET /api/integrations                                | 当前用户的两个渠道安全配置和最近投递记录           |
+| PUT /api/integrations/:channel                       | 保存配置，包含 version、enabled、events 及渠道参数 |
+| POST /api/integrations/:channel/test                 | 排队发送已保存配置的测试消息，HTTP 202             |
+| POST /api/integrations/:channel/deliveries/:id/retry | 重试当前用户的失败投递，HTTP 202                   |
+
+所有接口限制为当前用户；本地显式免登录模式仅访问无归属配置。工作区数据不会跨用户通知。

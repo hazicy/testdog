@@ -511,3 +511,66 @@ export const issueVerifications = pgTable(
   },
   (table) => [index('issue_verifications_issue_idx').on(table.issueId, table.createdAt)],
 );
+
+export const notificationIntegrations = pgTable(
+  'notification_integrations',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: text().references(() => authUsers.id),
+    channel: text({ enum: ['feishu', 'email'] }).notNull(),
+    enabled: boolean().notNull().default(false),
+    events: jsonb()
+      .$type<import('@/features/integrations/types').NotificationEvent[]>()
+      .notNull()
+      .default([]),
+    encryptedConfig: text().notNull(),
+    version: integer().notNull().default(1),
+    updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('notification_integrations_owner_idx').on(table.userId, table.channel),
+    uniqueIndex('notification_integrations_legacy_idx')
+      .on(table.channel)
+      .where(sql`${table.userId} is null`),
+    check('notification_integrations_channel_check', sql`${table.channel} in ('feishu','email')`),
+  ],
+);
+export const notificationEventRecords = pgTable('notification_events', {
+  id: uuid().primaryKey().defaultRandom(),
+  userId: text().references(() => authUsers.id),
+  sourceKey: text().notNull().unique(),
+  eventType: text().notNull(),
+  payload: jsonb().$type<import('@/features/integrations/types').NotificationPayload>().notNull(),
+  createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+});
+export const notificationDeliveries = pgTable(
+  'notification_deliveries',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    integrationId: uuid()
+      .notNull()
+      .references(() => notificationIntegrations.id, { onDelete: 'cascade' }),
+    integrationVersion: integer().notNull(),
+    eventId: uuid()
+      .notNull()
+      .references(() => notificationEventRecords.id, { onDelete: 'cascade' }),
+    status: text({ enum: ['pending', 'sending', 'sent', 'failed', 'skipped'] })
+      .notNull()
+      .default('pending'),
+    attempts: integer().notNull().default(0),
+    lastError: text(),
+    leaseToken: uuid(),
+    leaseUntil: timestamp({ withTimezone: true, mode: 'string' }),
+    nextAttemptAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    sentAt: timestamp({ withTimezone: true, mode: 'string' }),
+  },
+  (table) => [
+    uniqueIndex('notification_deliveries_event_idx').on(table.integrationId, table.eventId),
+    index('notification_deliveries_due_idx').on(table.status, table.nextAttemptAt),
+    check(
+      'notification_deliveries_status_check',
+      sql`${table.status} in ('pending','sending','sent','failed','skipped')`,
+    ),
+  ],
+);

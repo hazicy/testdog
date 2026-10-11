@@ -1,8 +1,10 @@
+import { startNotificationDispatcher } from '../src/server/integrations/dispatcher';
 import 'dotenv/config';
 import { pool } from '../src/db';
 import { startLeaseMaintenance } from '../src/server/scheduling/maintenance';
 
 const stop = startLeaseMaintenance();
+const stopNotifications = startNotificationDispatcher();
 
 await new Promise<void>((resolve) => {
   process.once('SIGINT', resolve);
@@ -13,5 +15,6 @@ await new Promise<void>((resolve) => {
   process.once('SIGINT', () => clearInterval(keepAlive));
   process.once('SIGTERM', () => clearInterval(keepAlive));
 });
+await stopNotifications();
 await stop();
 await pool.end();

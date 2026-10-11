@@ -1,3 +1,4 @@
+import { startNotificationDispatcher } from '../src/server/integrations/dispatcher';
 import { startLeaseMaintenance } from '../src/server/scheduling/maintenance';
 import 'dotenv/config';
 import { startOutboxPublisher, stopOutboxPublisher } from '../src/server/realtime/realtime';
@@ -39,6 +40,7 @@ for (const resource of configs) {
 
 startOutboxPublisher();
 const stopMaintenance = startLeaseMaintenance();
+const stopNotifications = startNotificationDispatcher();
 let stopping = false;
 const activeIds = new Set<string>();
 
@@ -81,6 +83,7 @@ async function consume() {
 try {
   await Promise.all(Array.from({ length: concurrency }, () => consume()));
 } finally {
+  await stopNotifications();
   await stopMaintenance();
   stopOutboxPublisher();
   await closeRedis();
