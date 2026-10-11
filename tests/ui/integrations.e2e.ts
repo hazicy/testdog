@@ -91,9 +91,12 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
   await feishu.getByRole('button', { name: '关闭配置' }).click();
   await expect(feishu).toHaveCount(0);
   await expect(configure).toBeFocused();
-  await expect(
-    page.getByRole('region', { name: '发送记录' }).getByText('已发送 · 1 次尝试'),
-  ).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '发送记录', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '发送记录', exact: true }).click();
+  const history = page.getByRole('dialog', { name: '发送记录', exact: true });
+
+  await expect(history.getByText('已发送 · 1 次尝试')).toBeVisible();
+  await history.getByRole('button', { name: '关闭发送记录' }).click();
   await page.reload();
   await configure.click();
   await expect(feishu.getByLabel('Webhook 地址', { exact: true })).toHaveAttribute(
@@ -179,11 +182,17 @@ test('configures email recipients without SMTP fields and retries failed deliver
   await page.keyboard.press('Escape');
   await expect(email).toHaveCount(0);
   await expect(configure).toBeFocused();
-  const history = page.getByRole('region', { name: '发送记录' });
+  const historyButton = page.getByRole('button', { name: '发送记录', exact: true });
+
+  await historyButton.click();
+  const history = page.getByRole('dialog', { name: '发送记录', exact: true });
 
   await expect(history.getByText('邮件发送失败，请检查收件邮箱或稍后重试。')).toBeVisible();
   await history.getByRole('button', { name: '重试', exact: true }).click();
   await expect(history.getByText('待发送 · 0 次尝试')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(history).toHaveCount(0);
+  await expect(historyButton).toBeFocused();
   await configure.click();
   await email.getByLabel('收件邮箱', { exact: true }).fill('three@example.com');
   await email.getByRole('button', { name: '保存配置', exact: true }).click();
@@ -215,7 +224,18 @@ test('saves email preferences while platform mail is unavailable and disables te
 
     return route.fulfill({ json: { integration: data.integrations[1] } });
   });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/integrations');
+  await expect(page.getByRole('button', { name: '刷新', exact: true })).toHaveCount(0);
+  await expect(page.getByText('将执行结果和问题动态发送到团队的沟通渠道。')).toHaveCount(0);
+  const historyButton = page.getByRole('button', { name: '发送记录', exact: true });
+
+  await historyButton.click();
+  const history = page.getByRole('dialog', { name: '发送记录', exact: true });
+
+  await expect(history.getByText('暂无发送记录。')).toBeVisible();
+  await history.getByRole('button', { name: '关闭发送记录' }).click();
+  await expect(historyButton).toBeFocused();
   await page.getByRole('button', { name: '配置Email 邮件', exact: true }).click();
   const email = page.getByRole('dialog', { name: 'Email 邮件', exact: true });
 

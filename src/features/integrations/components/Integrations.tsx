@@ -8,6 +8,7 @@ import settingsIcon from '@iconify-icons/lucide/settings';
 import chevronRightIcon from '@iconify-icons/lucide/chevron-right';
 import circleCheckIcon from '@iconify-icons/lucide/circle-check';
 import closeIcon from '@iconify-icons/lucide/x';
+import historyIcon from '@iconify-icons/lucide/history';
 import { Dialog } from '@/components/ui/Dialog';
 import useSWR from 'swr';
 import { api, fetchJson } from '@/client/api';
@@ -262,6 +263,8 @@ function ChannelForm({
 }
 
 export function Integrations() {
+  const historyTitleId = useId();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { data, error, mutate } = useSWR<IntegrationsResponse>('/api/integrations', fetchJson, {
     refreshInterval: (current) =>
       current?.deliveries.some((item) => item.status === 'pending' || item.status === 'sending')
@@ -288,17 +291,10 @@ export function Integrations() {
 
   return (
     <div className="mx-auto w-full max-w-7xl p-6 md:p-10">
-      <div className="mb-7 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">集成</h1>
-        </div>
-        <Button className="ws-button" onClick={() => void mutate()}>
-          刷新
-        </Button>
-      </div>
-      {(error || actionError) && (
+      <h1 className="mb-7 text-2xl font-semibold">集成</h1>
+      {error && (
         <p className="mb-4 text-error-ink" role="alert">
-          {actionError || error?.message}
+          {error.message}
         </p>
       )}
       {!data ? (
@@ -306,12 +302,22 @@ export function Integrations() {
       ) : (
         <>
           <section aria-labelledby="communication-title">
-            <h2 id="communication-title" className="text-base font-semibold">
-              消息通知
-            </h2>
-            <p className="mt-1 text-sm text-page-muted">
-              将执行结果和问题动态发送到团队的沟通渠道。
-            </p>
+            <div className="flex items-center justify-between gap-4">
+              <h2 id="communication-title" className="text-base font-semibold">
+                消息通知
+              </h2>
+              <Button
+                className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-xs text-page-muted hover:bg-surface hover:text-ink"
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setActionError('');
+                  setHistoryOpen(true);
+                }}
+              >
+                <Icon icon={historyIcon} width="14" aria-hidden="true" />
+                发送记录
+              </Button>
+            </div>
             <div className="mt-4 divide-y divide-page-line border border-page-line bg-surface">
               {data.integrations.map((integration) => (
                 <div
@@ -370,60 +376,88 @@ export function Integrations() {
               onDismiss={() => setConfiguring(undefined)}
             />
           )}
-          <section className="mt-8" aria-label="发送记录">
-            <h2 className="mb-4 text-lg font-semibold">最近发送记录</h2>
-            {!data.deliveries.length ? (
-              <p className="text-sm text-page-muted">尚无发送记录。保存配置后可发送测试通知。</p>
-            ) : (
-              <div className="overflow-x-auto rounded-lg border border-page-line">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-page">
-                    <tr>
-                      <th className="p-4">渠道 / 通知</th>
-                      <th className="p-4">状态</th>
-                      <th className="p-4">发送时间</th>
-                      <th className="p-4">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.deliveries.map((item) => (
-                      <tr key={item.id} className="border-t border-page-line">
-                        <td className="p-4">
-                          <p>{notificationKinds[item.channel]}</p>
-                          <p className="mt-1 text-page-muted">{item.title}</p>
-                        </td>
-                        <td className="p-4">
-                          <p>
-                            {deliveryStatuses[item.status]} · {item.attempts} 次尝试
-                          </p>
-                          {item.lastError && (
-                            <p className="mt-1 max-w-sm text-xs text-error-ink">{item.lastError}</p>
-                          )}
-                        </td>
-                        <td className="p-4 whitespace-nowrap">
-                          {new Date(item.sentAt ?? item.createdAt).toLocaleString('zh-CN')}
-                        </td>
-                        <td className="p-4">
-                          {item.status === 'failed' && (
-                            <Button
-                              className="ws-button"
-                              disabled={
-                                retrying === item.id ||
-                                (item.channel === 'email' && !data.emailAvailable)
-                              }
-                              onClick={() => void retry(item.channel, item.id)}
-                            >
-                              重试
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {historyOpen && (
+            <Dialog
+              titleId={historyTitleId}
+              busy={!!retrying}
+              onDismiss={() => setHistoryOpen(false)}
+              className="max-w-3xl"
+            >
+              <div className="ws-dialog-header">
+                <h2 id={historyTitleId} className="text-base font-semibold">
+                  发送记录
+                </h2>
+                <Button
+                  className="ws-icon-button"
+                  aria-label="关闭发送记录"
+                  disabled={!!retrying}
+                  onClick={() => setHistoryOpen(false)}
+                >
+                  <Icon icon={closeIcon} width="18" aria-hidden="true" />
+                </Button>
               </div>
-            )}
-          </section>
+              <section className="p-6" aria-label="发送记录">
+                {actionError && (
+                  <p role="alert" className="mb-4 text-sm text-error-ink">
+                    {actionError}
+                  </p>
+                )}
+                {!data.deliveries.length ? (
+                  <p className="text-sm text-page-muted">暂无发送记录。</p>
+                ) : (
+                  <div className="overflow-x-auto rounded-lg border border-page-line">
+                    <table className="w-full min-w-[560px] text-left text-sm">
+                      <thead className="bg-page">
+                        <tr>
+                          <th className="p-4">渠道 / 通知</th>
+                          <th className="p-4">状态</th>
+                          <th className="p-4">发送时间</th>
+                          <th className="p-4">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.deliveries.map((item) => (
+                          <tr key={item.id} className="border-t border-page-line">
+                            <td className="p-4">
+                              <p>{notificationKinds[item.channel]}</p>
+                              <p className="mt-1 text-page-muted">{item.title}</p>
+                            </td>
+                            <td className="p-4">
+                              <p>
+                                {deliveryStatuses[item.status]} · {item.attempts} 次尝试
+                              </p>
+                              {item.lastError && (
+                                <p className="mt-1 max-w-sm text-xs text-error-ink">
+                                  {item.lastError}
+                                </p>
+                              )}
+                            </td>
+                            <td className="p-4 whitespace-nowrap">
+                              {new Date(item.sentAt ?? item.createdAt).toLocaleString('zh-CN')}
+                            </td>
+                            <td className="p-4">
+                              {item.status === 'failed' && (
+                                <Button
+                                  className="ws-button"
+                                  disabled={
+                                    retrying === item.id ||
+                                    (item.channel === 'email' && !data.emailAvailable)
+                                  }
+                                  onClick={() => void retry(item.channel, item.id)}
+                                >
+                                  重试
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </Dialog>
+          )}
         </>
       )}
     </div>
