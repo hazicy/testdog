@@ -35,6 +35,71 @@ const request = (body: unknown) =>
   new Request('http://localhost/api/runs', { method: 'POST', body: JSON.stringify(body) });
 
 describe('execution API with PostgreSQL persistence', () => {
+  it('persists a draft plan and target as an independent run without modifying cases', async () => {
+    const saved = await saveTest({
+      name: 'Saved',
+      goal: 'Original',
+      url: 'https://example.com',
+      tags: [],
+    });
+    const draft = {
+      name: 'Edited draft',
+      goal: 'Check the draft',
+      target: {
+        schemaVersion: 1,
+        platform: 'web',
+        url: 'https://example.com/draft',
+        browser: 'chromium',
+        deviceProfile: 'legacy-desktop',
+      },
+      plan: {
+        rootId: 'check',
+        nodes: {
+          check: {
+            id: 'check',
+            kind: 'task',
+            actionType: 'assert',
+            goal: 'Check draft',
+            dependsOn: [],
+            requirementIds: [],
+            assertions: [{ description: 'Draft appears' }],
+          },
+        },
+      },
+    };
+    const response = await POST(request({ draft }));
+
+    expect(response.status).toBe(202);
+    const { run } = await response.json();
+    const persisted = await getRun(run.id);
+
+    expect(persisted.testId).toBeUndefined();
+    expect(persisted.name).toBe('Edited draft · 草稿试跑');
+    expect(persisted.plan).toEqual(draft.plan);
+    expect(persisted.targetSnapshot).toEqual(draft.target);
+    const cases = await mocks.client!.query<{ id: string; name: string; goal: string }>(
+      'SELECT id, name, goal FROM test_cases',
+    );
+
+    expect(cases.rows).toEqual([{ id: saved.id, name: 'Saved', goal: 'Original' }]);
+    expect(
+      (
+        await POST(
+          request({
+            draft: {
+              ...draft,
+              plan: {
+                rootId: 'empty',
+                nodes: {
+                  empty: { id: 'empty', kind: 'group', goal: 'Empty', children: [], dependsOn: [] },
+                },
+              },
+            },
+          }),
+        )
+      ).status,
+    ).toBe(400);
+  });
   it('returns 202 only after persisting a run and schedules its background job', async () => {
     const test = await saveTest({
       name: 'Login',

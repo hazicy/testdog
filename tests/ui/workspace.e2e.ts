@@ -592,6 +592,136 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   expect(payload).toEqual({ goal, url: 'https://example.com/' });
 });
 
+test('canvas trials run the draft without saving and reopen an active run', async ({ page }) => {
+  const draftId = 'trial-draft';
+  const plan: NonNullable<TestRun['plan']> = {
+    rootId: 'root',
+    nodes: {
+      root: { id: 'root', kind: 'group', goal: '未保存修改', children: ['step'], dependsOn: [] },
+      step: {
+        id: 'step',
+        kind: 'task',
+        actionType: 'assert',
+        goal: '验证未保存的修改',
+        dependsOn: [],
+        requirementIds: [],
+        assertions: [{ description: '修改生效' }],
+      },
+    },
+  };
+  const draft = {
+    test: saved,
+    name: '未保存修改',
+    url: 'https://example.com/draft',
+    goal: '验证草稿',
+    plan,
+  };
+
+  await page.addInitScript(
+    ({ draftId, draft }) =>
+      sessionStorage.setItem(`caseforge:case-draft:${draftId}`, JSON.stringify(draft)),
+    { draftId, draft },
+  );
+  let submissions = 0;
+  let testWrites = 0;
+  let failed = true;
+  let trial: TestRun = {
+    ...run,
+    status: 'queued',
+    testId: undefined,
+    steps: [],
+    plan,
+    name: '未保存修改 · 草稿试跑',
+  };
+
+  await page.route(/\/api\/tests(?:\/[^/?]+)?(?:\?.*)?$/, (route) => {
+    if (route.request().method() !== 'GET') testWrites++;
+
+    return route.fulfill({ json: { tests: [saved], test: saved } });
+  });
+  await page.route('**/api/runs', (route) => {
+    if (route.request().method() !== 'POST') return route.fulfill({ json: { runs: [] } });
+    const payload = route.request().postDataJSON();
+
+    expect(payload).toMatchObject({
+      draft: {
+        name: draft.name,
+        plan,
+        target: { platform: 'web', url: draft.url, deviceProfile: 'legacy-desktop' },
+      },
+    });
+    expect(payload.testId).toBeUndefined();
+    if (failed) return route.fulfill({ status: 503, json: { message: '试跑暂时失败' } });
+    submissions++;
+    trial = {
+      ...trial,
+      id: submissions === 1 ? run.id : '62534c46-a8eb-4991-993e-af6df14bece9',
+      status: 'queued',
+      cancelRequested: false,
+    };
+
+    return route.fulfill({ status: 202, json: { run: trial } });
+  });
+  await page.route('**/api/runs/*/events?*', (route) => route.fulfill({ status: 503 }));
+  await page.route(/\/api\/runs\/[^/?]+(?:\?.*)?$/, (route) => {
+    if (route.request().method() === 'DELETE')
+      trial = { ...trial, status: 'cancelled', cancelRequested: true };
+
+    return route.fulfill({ json: { run: trial } });
+  });
+  await page.goto(`/cases/editor/${draftId}`);
+  const canvas = page.getByRole('region', { name: '测试画板' });
+  const start = canvas.getByRole('button', { name: 'Run', exact: true });
+
+  await start.click();
+  await expect(canvas.getByRole('alert')).toHaveText('试跑暂时失败');
+  expect(testWrites).toBe(0);
+  failed = false;
+  await start.click();
+  const dialog = page.getByRole('dialog', { name: /草稿试跑/ });
+
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel('执行工作台', { exact: true })).toBeVisible();
+  for (const name of [
+    '执行步骤',
+    '执行回放',
+    '问题',
+    '计划画板',
+    '编辑录制',
+    '执行日志',
+    'Console',
+    'Network',
+    '布局',
+  ]) {
+    await expect(dialog.getByRole('button', { name, exact: true })).toBeVisible();
+  }
+
+  await expect(dialog.getByRole('link', { name: '返回执行记录' })).toHaveCount(0);
+  await expect(page).toHaveURL(`/cases/editor/${draftId}`);
+  await expect(dialog.getByRole('button', { name: '停止执行' })).toBeVisible();
+  await dialog.getByRole('button', { name: '关闭试跑' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(canvas.locator('[data-step-type=assert]')).toContainText('验证未保存的修改');
+  await start.click();
+  await expect(dialog).toBeVisible();
+  expect(submissions).toBe(1);
+  await dialog.getByRole('button', { name: '停止执行' }).click();
+  await expect(dialog.getByRole('heading', { name: /已停止/ })).toBeVisible();
+  await dialog.getByRole('button', { name: '关闭试跑' }).click();
+  await start.click();
+  await expect(dialog).toBeVisible();
+  expect(submissions).toBe(2);
+  expect(testWrites).toBe(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (id) => JSON.parse(sessionStorage.getItem(`caseforge:case-draft:${id}`)!).name,
+        draftId,
+      ),
+    )
+    .toBe('未保存修改');
+});
+
 test('web settings toggle mobile emulation without changing platform', async ({ page }) => {
   await page.route(/\/api\/tests(?:\?.*)?$/, (route) => route.fulfill({ json: { tests: [] } }));
   await page.goto('/cases');

@@ -19,13 +19,13 @@ import {
 import type { Plan } from '@/automation/compiler/schema';
 import { testSchema } from '@/features/test-cases/schemas';
 import { caseName, goalUrl, editablePlan, emptyPlan, planText } from '../lib/authoring';
-import { clearCaseDraft, writeCaseDraft, type CaseDraft } from '../lib/caseDraft';
+import { writeCaseDraft, type CaseDraft } from '../lib/caseDraft';
 import { CaseSettings } from './CaseSettings';
 import { CasePrompt } from './CasePrompt';
+import { TrialRunDialog } from './TrialRunDialog';
 import { initialCaseSettings, caseTarget, type CaseSettingsValue } from '../lib/caseSettings';
 import playIcon from '@iconify-icons/lucide/play';
 import saveIcon from '@iconify-icons/lucide/save';
-import { useRouter } from 'next/navigation';
 import { useRunSubmission } from '@/client/useRunSubmission';
 import undoIcon from '@iconify-icons/lucide/undo-2';
 import collapseIcon from '@iconify-icons/lucide/chevron-up';
@@ -45,9 +45,8 @@ export function TestEditor({
   initialDraft?: CaseDraft;
   draftId?: string;
 }) {
-  const router = useRouter();
   const submitRun = useRunSubmission();
-  const [savedCase, setSavedCase] = useState<TestCase | undefined>(duplicate ? undefined : test);
+  const [savedCase] = useState<TestCase | undefined>(duplicate ? undefined : test);
   const [name, setName] = useState(
     initialDraft?.name ?? (test ? `${test.name}${duplicate ? '（副本）' : ''}` : caseName('')),
   );
@@ -82,6 +81,9 @@ export function TestEditor({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [compiling, setCompiling] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [trialId, setTrialId] = useState<string>();
+  const [trialOpen, setTrialOpen] = useState(false);
+  const [trialActive, setTrialActive] = useState(false);
   const [formError, setFormError] = useState('');
   const busy = saving || compiling;
   const editingLocked = busy || !!candidate;
@@ -214,8 +216,14 @@ export function TestEditor({
     setPrevious(undefined);
   }
 
-  async function save(runAfterSave = false) {
+  async function save(trial = false) {
     if (editingLocked) return;
+    if (trial && trialId && trialActive) {
+      setTrialOpen(true);
+
+      return;
+    }
+
     setFormError('');
     if (!hasSteps) {
       setFormError('请点击画板上的 ＋ 添加至少一个步骤。');
@@ -268,24 +276,27 @@ export function TestEditor({
 
     setSaving(true);
     try {
-      const request = savedCase
-        ? api.patch(`/api/tests/${savedCase.id}`, { json: parsed.data })
-        : api.post('/api/tests', { json: parsed.data });
+      if (trial) {
+        const { run } = await submitRun<{ run: { id: string } }>('/api/runs', {
+          draft: {
+            name: parsed.data.name,
+            goal: parsed.data.goal,
+            target: parsed.data.target,
+            plan: parsed.data.plan,
+          },
+        });
 
-      if (runAfterSave) {
-        const { test: saved } = await request.json<{ test: TestCase }>();
-
-        setSavedCase(saved);
-        const { run } = await submitRun<{ run: { id: string } }>('/api/runs', { testId: saved.id });
-
-        if (draftId) clearCaseDraft(draftId);
-        router.push(`/runs/${run.id}`);
+        setTrialId(run.id);
+        setTrialActive(true);
+        setTrialOpen(true);
       } else {
-        await request;
+        await (savedCase
+          ? api.patch(`/api/tests/${savedCase.id}`, { json: parsed.data })
+          : api.post('/api/tests', { json: parsed.data }));
         await onSaved();
       }
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : '保存失败');
+      setFormError(error instanceof Error ? error.message : trial ? '试跑失败' : '保存失败');
     } finally {
       setSaving(false);
     }
@@ -338,6 +349,7 @@ export function TestEditor({
                     variant="primary"
                     size="xs"
                     aria-label="Run"
+                    title={trialActive ? '查看正在进行的试跑' : '试跑当前草稿，不保存用例'}
                     disabled={editingLocked}
                     onClick={() => void save(true)}
                   >
@@ -427,6 +439,15 @@ export function TestEditor({
   return (
     <section ref={canvasRef} className="case-canvas-page" aria-label="测试画板" aria-busy={busy}>
       {content}
+      {trialId && (
+        <TrialRunDialog
+          key={trialId}
+          id={trialId}
+          open={trialOpen}
+          onClose={() => setTrialOpen(false)}
+          onActiveChange={setTrialActive}
+        />
+      )}
       {candidate && (
         <div className="case-canvas-preview" role="status">
           <span>{pendingChanges.length} 项变更待审阅</span>

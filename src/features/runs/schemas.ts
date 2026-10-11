@@ -1,8 +1,20 @@
 import { TestTargetSchema } from '@/automation/platform/target';
 import { z } from 'zod';
 import { websiteSchema } from '@/features/test-cases/schemas';
+import { PlanSchema } from '@/automation/compiler/schema';
 
 export const runRequestSchema = z.union([
+  z.strictObject({
+    draft: z.strictObject({
+      name: z.string().trim().min(1).max(120),
+      goal: z.string().trim().min(1).max(20000),
+      target: TestTargetSchema,
+      plan: PlanSchema.refine(
+        (plan) => Object.values(plan.nodes).some((node) => node.kind === 'task'),
+        '请添加至少一个步骤',
+      ),
+    }),
+  }),
   z.strictObject({
     testId: z.uuid(),
     mode: z.literal('record').optional(),

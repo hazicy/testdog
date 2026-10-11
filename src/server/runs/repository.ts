@@ -180,6 +180,7 @@ export async function createRun(
     sourceRunId?: string;
     recordingVersionId?: string;
     mode?: 'record' | 'replay';
+    draft?: { name: string; goal: string; target: TestTarget; plan: Plan };
   } = { ...parsed.data, batchId: request.batchId, goalOverride: request.goalOverride };
   const persist = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => {
     let snapshot: {
@@ -195,7 +196,16 @@ export async function createRun(
       mode: 'record' | 'replay';
     };
 
-    if (input.mode === 'replay') {
+    if (input.draft) {
+      snapshot = {
+        name: `${input.draft.name} · 草稿试跑`,
+        goal: input.draft.goal,
+        plan: input.draft.plan,
+        targetSnapshot: input.draft.target,
+        url: input.draft.target.platform === 'web' ? input.draft.target.url : '',
+        mode: 'record',
+      };
+    } else if (input.mode === 'replay') {
       const [source] = await tx
         .select()
         .from(testRuns)

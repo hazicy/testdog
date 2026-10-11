@@ -14,6 +14,7 @@ import { statuses } from '../presentation';
 
 type Props = {
   id: string;
+  embedded?: boolean;
   run?: TestRun;
   layout: RunLayout;
   changeLayout: (layout: RunLayout) => void;
@@ -26,6 +27,7 @@ type Props = {
 
 export function RunHeader({
   id,
+  embedded = false,
   run,
   layout,
   changeLayout,
@@ -38,14 +40,16 @@ export function RunHeader({
   return (
     <header className="run-studio-toolbar grid min-h-14 shrink-0 grid-cols-1 items-center gap-x-4 gap-y-2 bg-page px-3 py-2 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
       <div className="flex min-w-0 items-center gap-3">
-        <Link
-          href="/runs"
-          className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
-          aria-label="返回执行记录"
-          title="返回执行记录"
-        >
-          <Icon icon={backIcon} width="16" aria-hidden="true" />
-        </Link>
+        {!embedded && (
+          <Link
+            href="/runs"
+            className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
+            aria-label="返回执行记录"
+            title="返回执行记录"
+          >
+            <Icon icon={backIcon} width="16" aria-hidden="true" />
+          </Link>
+        )}
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <p className="sr-only">执行记录 / {id.slice(0, 8)}</p>
           <h1 className="min-w-0 truncate text-[13px] leading-5 font-medium" title={run?.name}>

@@ -82,7 +82,17 @@ const RecordingEditor = dynamic(
   },
 );
 
-export function RunDetail({ id }: { id: string }) {
+export function RunDetail({
+  id,
+  embedded = false,
+  onRunChange,
+  onRunCreated,
+}: {
+  id: string;
+  embedded?: boolean;
+  onRunChange?: (run: TestRun) => void;
+  onRunCreated?: (run: TestRun) => void;
+}) {
   const router = useRouter();
   const submit = useRunSubmission();
   const [issueOpen, setIssueOpen] = useState(false);
@@ -112,6 +122,10 @@ export function RunDetail({ id }: { id: string }) {
     id,
     follow && view === 'execution',
   );
+
+  useEffect(() => {
+    if (run) onRunChange?.(run);
+  }, [run, onRunChange]);
   const [selectedIssueId, setSelectedIssueId] = useState<string>();
   const {
     data: issuePages,
@@ -304,7 +318,8 @@ export function RunDetail({ id }: { id: string }) {
         mode === 'replay' ? { mode, sourceRunId: id } : { testId: run.testId },
       );
 
-      router.push(`/runs/${data.run.id}`);
+      if (onRunCreated) onRunCreated(data.run);
+      else router.push(`/runs/${data.run.id}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '启动失败');
     } finally {
@@ -451,6 +466,7 @@ export function RunDetail({ id }: { id: string }) {
     <div className="run-studio">
       <RunHeader
         id={id}
+        embedded={embedded}
         run={run}
         layout={layout}
         changeLayout={(next) => {
@@ -484,7 +500,12 @@ export function RunDetail({ id }: { id: string }) {
           run={run}
           step={issueStep}
           onDismiss={() => setIssueOpen(false)}
-          onSaved={(issue) => router.push(`/issues/${issue.id}`)}
+          onSaved={(issue) => {
+            if (embedded) {
+              setIssueOpen(false);
+              window.open(`/issues/${issue.id}`, '_blank', 'noopener,noreferrer');
+            } else router.push(`/issues/${issue.id}`);
+          }}
         />
       )}
       <DockTabs
