@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
+
 import { useEffect, useMemo, type ReactNode } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -192,14 +194,15 @@ function PlanBoardContent({
           <aside className="plan-inspector" aria-label="画板设置">
             <div className="flex items-center justify-between gap-2 mb-5">
               <h3 className="text-sm font-semibold">测试设置</h3>
-              <button
+              <Button
                 type="button"
-                className="ws-icon-button"
+                variant="ghost"
+                size="icon"
                 aria-label="关闭设置"
                 onClick={onSettingsClose}
               >
                 ×
-              </button>
+              </Button>
             </div>
             {settings}
           </aside>

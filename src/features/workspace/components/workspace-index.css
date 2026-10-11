@@ -19,33 +19,6 @@
 .workspace-index-shell header {
   background: var(--surface);
 }
-.workspace-index .ws-button {
-  min-height: 34px;
-  padding: 6px 12px;
-  gap: 6px;
-  border-radius: 5px;
-  background: transparent;
-  box-shadow: none;
-  font-size: 12px;
-  transition:
-    background 150ms ease,
-    color 150ms ease;
-}
-.workspace-index .ws-button:hover {
-  background: var(--surface-muted);
-}
-.workspace-index .ws-button:active:not(:disabled) {
-  background: var(--control-hover);
-}
-.workspace-index .ws-button.primary {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--surface-raised);
-}
-.workspace-index .ws-button.primary:hover,
-.workspace-index .ws-button.primary:active:not(:disabled) {
-  background: var(--control-ink);
-}
 .workspace-index-toolbar {
   display: flex;
   align-items: center;
@@ -90,10 +63,6 @@
   align-items: center;
   gap: 8px;
   margin-left: auto;
-}
-.workspace-index .workspace-index-refresh {
-  border-color: transparent;
-  color: var(--text-secondary);
 }
 .workspace-index-table {
   table-layout: fixed;
@@ -189,29 +158,6 @@
   font-size: 10px;
   line-height: 1.5;
 }
-.workspace-index-table .ws-button {
-  min-height: 28px;
-  padding: 4px 7px;
-  gap: 5px;
-  font-size: 11px;
-}
-.workspace-index-table .workspace-index-run,
-.workspace-index-table .workspace-index-action {
-  border-color: transparent;
-  color: var(--text-secondary);
-}
-.workspace-index-table .workspace-index-run {
-  color: var(--ink);
-}
-.workspace-index-table .workspace-index-run:hover {
-  background: var(--surface-raised);
-  border-color: var(--control-line);
-}
-.workspace-index-table .ws-icon-button {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-}
 .workspace-index-table .ws-status {
   font-size: 11px;
 }
@@ -296,10 +242,6 @@
   gap: 6px;
   margin-left: auto;
 }
-.workspace-index-pagination .ws-icon-button {
-  width: 26px;
-  height: 26px;
-}
 .workspace-index-empty {
   display: flex;
   min-height: 360px;
@@ -328,8 +270,7 @@
   .workspace-index-search {
     flex: 1 0 100%;
   }
-  .workspace-index .ws-input,
-  .workspace-index .ws-button {
+  .workspace-index .ws-input {
     min-height: 36px;
   }
   .workspace-index-table {

@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
+import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
@@ -363,26 +364,24 @@ export function TestEditor({
                 <div className="case-panel-primary-actions">
                   <Button
                     type="button"
-                    className="case-panel-action primary"
+                    variant="primary"
+                    size="xs"
                     aria-label="Run"
                     disabled={editingLocked}
                     onClick={() => void save(true)}
                   >
                     <Icon icon={playIcon} width="13" aria-hidden="true" /> Run
                   </Button>
-                  <Button
-                    type="submit"
-                    className="case-panel-action"
-                    aria-label="Save"
-                    disabled={editingLocked}
-                  >
+                  <Button type="submit" size="xs" aria-label="Save" disabled={editingLocked}>
                     <Icon icon={saveIcon} width="13" aria-hidden="true" /> Save
                   </Button>
                 </div>
                 <Button
                   type="button"
                   ref={generateRef}
-                  className="case-panel-action case-panel-generate"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="case-panel-generate"
                   aria-label={hasSteps ? '描述调整' : '描述生成'}
                   title={hasSteps ? '描述调整' : '描述生成'}
                   aria-expanded={composerOpen}
@@ -396,7 +395,8 @@ export function TestEditor({
                 {previous && !candidate && (
                   <Button
                     type="button"
-                    className="case-panel-action"
+                    variant="ghost"
+                    size="icon-xs"
                     aria-label="撤销生成"
                     title="撤销生成"
                     disabled={busy}
@@ -407,7 +407,8 @@ export function TestEditor({
                 )}
                 <Button
                   type="button"
-                  className="ws-icon-button"
+                  variant="ghost"
+                  size="icon"
                   aria-label={settingsOpen ? '收起面板' : '展开面板'}
                   aria-expanded={settingsOpen}
                   aria-controls="case-panel-settings"
@@ -455,14 +456,10 @@ export function TestEditor({
       {candidate && (
         <div className="case-canvas-preview" role="status">
           <span>{pendingChanges.length} 项变更待审阅</span>
-          <Button type="button" className="case-panel-action" onClick={() => decideAll(false)}>
+          <Button type="button" size="xs" onClick={() => decideAll(false)}>
             全部拒绝
           </Button>
-          <Button
-            type="button"
-            className="case-panel-action primary"
-            onClick={() => decideAll(true)}
-          >
+          <Button type="button" variant="primary" size="xs" onClick={() => decideAll(true)}>
             全部接受
           </Button>
         </div>
@@ -487,7 +484,10 @@ export function TestEditor({
                 <BaseDialog.Title className="sr-only">
                   {hasSteps ? '调整步骤' : '描述测试'}
                 </BaseDialog.Title>
-                <BaseDialog.Close className="ws-icon-button" aria-label="关闭描述输入">
+                <BaseDialog.Close
+                  className={buttonStyles({ variant: 'ghost', size: 'icon' })}
+                  aria-label="关闭描述输入"
+                >
                   ×
                 </BaseDialog.Close>
               </div>
@@ -517,7 +517,7 @@ export function TestEditor({
               <div className="case-prompt-footer">
                 <Button
                   type="submit"
-                  className="ws-button primary"
+                  variant="primary"
                   title="⌘ / Ctrl + Enter"
                   disabled={busy || !goal.trim()}
                 >

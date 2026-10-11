@@ -125,7 +125,7 @@ export function IssueEditor({
           <div className="flex gap-2" role="group" aria-label="问题操作">
             <Button
               type="button"
-              className="ws-button"
+
               aria-pressed={mode === 'create'}
               onClick={() => setMode('create')}
             >
@@ -133,7 +133,7 @@ export function IssueEditor({
             </Button>
             <Button
               type="button"
-              className="ws-button"
+
               aria-pressed={mode === 'link'}
               onClick={() => setMode('link')}
             >
@@ -230,14 +230,10 @@ export function IssueEditor({
           </p>
         )}
         <div className="flex justify-end gap-2">
-          <Button type="button" className="ws-button" disabled={busy} onClick={onDismiss}>
+          <Button type="button" disabled={busy} onClick={onDismiss}>
             取消
           </Button>
-          <Button
-            type="submit"
-            className="ws-button primary"
-            disabled={busy || (mode === 'link' && !chosen)}
-          >
+          <Button type="submit" variant="primary" disabled={busy || (mode === 'link' && !chosen)}>
             {busy ? '保存中…' : mode === 'link' ? '关联问题' : '保存问题'}
           </Button>
         </div>

@@ -84,7 +84,7 @@ function RunIssueCard({
           <span className="border border-error-line bg-error-soft px-2 py-1 font-mono text-error-ink">
             ISSUE {String(index + 1).padStart(2, '0')}
           </span>
-          <Button className="ws-button" onClick={() => onSelect(entry)}>
+          <Button onClick={() => onSelect(entry)}>
             ▶ 回放问题 {time(issuePosition(run, occurrence))}
           </Button>
         </div>
@@ -146,7 +146,8 @@ function RunIssueCard({
               {screenshots.map((frame) => (
                 <Button
                   key={frame.id}
-                  className="border border-page-line"
+                  variant="ghost"
+                  className="border border-page-line min-h-0 rounded-none p-0 whitespace-normal"
                   aria-label={`回放证据 ${time(frame.elapsedMs)}`}
                   onClick={() => onFrame(frame)}
                 >
@@ -181,7 +182,8 @@ function RunIssueCard({
           items={Object.entries(issueStatuses).map(([value, label]) => ({ value, label }))}
         />
         <Button
-          className="ws-button primary flex-1"
+          variant="primary"
+          className="flex-1"
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(
@@ -260,7 +262,7 @@ export function RunIssues({
           />
         )}
         {hasMore && (
-          <Button className="ws-button mt-3" disabled={loading} onClick={onLoadMore}>
+          <Button className="mt-3" disabled={loading} onClick={onLoadMore}>
             加载更多问题
           </Button>
         )}
@@ -273,7 +275,12 @@ export function RunIssues({
       {error && (
         <p role="alert" className="p-5 text-sm text-error-ink">
           无法加载关联问题：{error}
-          <Button className="ml-2 underline" onClick={() => void onUpdated()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-2 underline"
+            onClick={() => void onUpdated()}
+          >
             重试
           </Button>
         </p>

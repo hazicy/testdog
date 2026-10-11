@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { type ComponentProps, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
+import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Icon } from '@iconify/react/offline';
@@ -16,7 +17,7 @@ import { WorkspaceRows } from './WorkspaceRows';
 type Props = Omit<ComponentProps<typeof WorkspaceRows>, 'visibleTests' | 'visibleRuns'> & {
   tests: ComponentProps<typeof WorkspaceRows>['visibleTests'];
   runs: ComponentProps<typeof WorkspaceRows>['visibleRuns'];
-  actions: ReactNode;
+  actions?: ReactNode;
   loading: boolean;
   connected: boolean;
   query: string;
@@ -129,7 +130,7 @@ export function WorkspaceList({
           </p>
           {query || filter !== 'all' ? (
             <Button
-              className="ws-button mt-6"
+              className="mt-6"
               onClick={() => {
                 setQuery('');
                 setFilter('all');
@@ -138,11 +139,11 @@ export function WorkspaceList({
               清除筛选
             </Button>
           ) : isTests ? (
-            <Button className="ws-button primary mt-6" onClick={() => openEditor()}>
+            <Button size="sm" variant="primary" className="mt-6" onClick={() => openEditor()}>
               <Icon icon={plusIcon} width="18" aria-hidden="true" /> 新建测试
             </Button>
           ) : (
-            <Link href="/cases" className="ws-button mt-6">
+            <Link href="/cases" className={buttonStyles({ size: 'sm', className: 'mt-6' })}>
               浏览测试 <Icon icon={chevronIcon} width="14" aria-hidden="true" />
             </Link>
           )}
@@ -201,7 +202,8 @@ export function WorkspaceList({
         {(hasPrevious || hasNext) && (
           <div className="workspace-index-pagination">
             <Button
-              className="ws-icon-button"
+              variant="ghost"
+              size="icon-xs"
               aria-label="上一页"
               disabled={!hasPrevious || loading}
               onClick={previousPage}
@@ -210,7 +212,8 @@ export function WorkspaceList({
             </Button>
             <span>第 {page} 页</span>
             <Button
-              className="ws-icon-button"
+              variant="ghost"
+              size="icon-xs"
               aria-label="下一页"
               disabled={!hasNext || loading}
               onClick={nextPage}

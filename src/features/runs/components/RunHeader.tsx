@@ -61,17 +61,9 @@ export function RunHeader({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {run && onIssue && (
-            <Button className="ws-button" onClick={onIssue}>
-              报告执行问题
-            </Button>
-          )}
+          {run && onIssue && <Button onClick={onIssue}>报告执行问题</Button>}
           {run && isActiveRun(run.status) ? (
-            <Button
-              disabled={busy || run.cancelRequested}
-              onClick={() => void cancel()}
-              className="ws-button"
-            >
+            <Button disabled={busy || run.cancelRequested} onClick={() => void cancel()}>
               {run.cancelRequested ? '正在停止…' : '停止执行'}
             </Button>
           ) : (
@@ -84,7 +76,7 @@ export function RunHeader({
                       ? '按记录的动作顺序重新执行，重新验证断言'
                       : '需要成功执行且每个操作都有稳定定位器'
                   }
-                  className="ws-button primary"
+                  variant="primary"
                   onClick={() => void start('replay')}
                 >
                   <Icon icon={resultsIcon} width="14" aria-hidden="true" /> 重放操作
@@ -92,7 +84,7 @@ export function RunHeader({
                 {run.testId && (
                   <Button
                     disabled={busy}
-                    className="ws-button"
+
                     onClick={() => void start('record')}
                   >
                     重新录制
@@ -103,7 +95,8 @@ export function RunHeader({
           )}
           <Button
             disabled={!run || exporting}
-            className="ws-icon-button"
+            variant="ghost"
+            size="icon"
             aria-label="导出执行报告"
             title="导出执行报告"
             onClick={() => void exportReport()}

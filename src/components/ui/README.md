@@ -2,7 +2,10 @@
 
 使用 [Base UI](https://base-ui.com/react/overview/quick-start) 提供无头交互，在 `src/app/globals.css` 中沿用 testdog 的颜色、边框、尺寸和焦点样式。
 
-- `Button`、`Input`：保留 Base UI 属性，默认使用 `ws-button`、`ws-input`，可用 `className` 定制。
+- `Button`：默认 `variant="outline"`、`size="md"`。通过 `variant` 选择 `outline`、`primary`、`ghost` 或 `danger`；通过 `size` 选择 `md`、`sm`、`xs` 或 `icon`、`icon-sm`、`icon-xs`。内部通过 Tailwind 类组合边框、颜色、尺寸、悬停、禁用和焦点样式，颜色使用已有主题变量。`className` 通过 `tailwind-merge` 与基础样式合并，主要用于布局。
+- 图标按钮使用 `<Button variant="ghost" size="icon" aria-label="关闭">…</Button>`；主要操作使用 `variant="primary"`。保留 Base UI 的 `ref`、`render` 和其他属性，支持函数形式的 `className`。
+- 链接及第三方交互组件使用 `buttonStyles({ variant, size, className })` 复用按钮外观，并保留各自的原生语义。业务调用不再手写 `ws-button`、`primary`、`ghost` 等样式类。
+- `Input`：保留 Base UI 属性，默认使用 `ws-input`，可用 `className` 定制。
 - `Checkbox`：用 `checked` 和 `onCheckedChange` 控制状态，配合外层 `label` 提供名称。
 - `Select`：用 `value`、`onValueChange` 和 `items` 控制选择；选项支持 `disabled`，组件支持 `required`、`name` 和 `aria-label`。弹出列表通过 Portal 渲染。数值选项统一转成字符串，调用方按需转换。
 - `Dialog`：由挂载控制打开状态，`onDismiss` 处理 Escape；`busy` 时阻止关闭。`titleId` 指向可见标题，`initialFocus` 可指定初始焦点；关闭后恢复触发元素焦点，元素被删除时回到主内容。

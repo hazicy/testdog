@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import copyIcon from '@iconify-icons/lucide/copy';
@@ -117,7 +118,8 @@ export function WorkspaceRows({
                   <div className="workspace-index-title">
                     <Button
                       onClick={() => openEditor(test)}
-                      className="workspace-index-name text-left font-medium hover:text-brand-link"
+                      variant="ghost"
+                      className="workspace-index-name text-left font-medium hover:text-brand-link min-h-0 rounded-none p-0 whitespace-normal"
                     >
                       {test.name}
                     </Button>
@@ -160,7 +162,7 @@ export function WorkspaceRows({
                 <td>
                   <div className="flex justify-end gap-1">
                     <Button
-                      className="ws-button workspace-index-run"
+                      size="xs"
                       title={running ? '请等待当前测试完成后再运行' : '运行测试'}
                       disabled={starting}
                       onClick={() => void start(test.id)}
@@ -234,7 +236,13 @@ export function WorkspaceRows({
               <td className="font-mono text-xs text-page-muted">{duration(run)}</td>
               <td>
                 <div className="flex justify-end gap-2">
-                  <Link href={`/runs/${run.id}`} className="ws-button workspace-index-action">
+                  <Link
+                    href={`/runs/${run.id}`}
+                    className={buttonStyles({
+                      size: 'xs',
+                      variant: 'ghost',
+                    })}
+                  >
                     详情 <Icon icon={chevronIcon} width="13" aria-hidden="true" />
                   </Link>
                   <WorkspaceRowMenu

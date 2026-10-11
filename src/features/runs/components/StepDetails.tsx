@@ -68,11 +68,7 @@ export function StepDetails({
         </pre>
       )}
       <div className="mt-4 flex flex-wrap gap-2">
-        {onIssue && (
-          <Button className="ws-button" onClick={() => onIssue(step)}>
-            创建或关联问题
-          </Button>
-        )}
+        {onIssue && <Button onClick={() => onIssue(step)}>创建或关联问题</Button>}
         {(['before', 'after'] as const).map((stage) => {
           const index = stepFrames.get(step.id)?.[stage] ?? -1;
 
@@ -80,7 +76,7 @@ export function StepDetails({
             <Button
               key={stage}
               disabled={index < 0}
-              className="ws-button"
+
               onClick={() => {
                 onShowFrame(index);
               }}

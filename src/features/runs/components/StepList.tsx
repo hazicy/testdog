@@ -43,6 +43,7 @@ export const StepList = memo(function StepList({
           {steps.map((step) => (
             <li key={step.id}>
               <Button
+                variant="ghost"
                 aria-expanded={selectedId === step.id && collapsedId !== step.id}
                 aria-controls={`${detailsId}-${step.id}`}
                 onClick={() => {
@@ -51,7 +52,7 @@ export const StepList = memo(function StepList({
                   );
                   onSelect(step);
                 }}
-                className={`flex w-full items-start gap-3 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-step-hover ${selectedId === step.id ? 'bg-step-selected' : ''}`}
+                className={`min-h-0 rounded-none whitespace-normal flex w-full items-start gap-3 border-0 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-step-hover ${selectedId === step.id ? 'bg-step-selected' : ''}`}
               >
                 <span
                   title={statuses[step.status]}

@@ -3,14 +3,10 @@
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import type { TestRun, RunSummary } from '@/features/runs/types';
-import { Icon } from '@iconify/react/offline';
-import plusIcon from '@iconify-icons/lucide/plus';
-import testsIcon from '@iconify-icons/lucide/flask-conical';
 import { downloadRunReport } from '@/client/download';
 import { writeCaseDraft } from '@/features/test-cases/lib/caseDraft';
 import { editablePlan, emptyPlan, caseName } from '@/features/test-cases/lib/authoring';
@@ -111,30 +107,17 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
           className="mt-5 flex items-center justify-between gap-4 border border-error-line bg-error-soft p-3 text-sm text-error-ink"
         >
           <span>{error}</span>
-          <Button onClick={() => void refresh()} className="shrink-0 underline">
+          <Button
+            onClick={() => void refresh()}
+            variant="ghost"
+            size="sm"
+            className="shrink-0 underline"
+          >
             重试
           </Button>
         </div>
       )}
       <WorkspaceList
-        actions={
-          <>
-            {!isTests && (
-              <Button className="ws-button workspace-index-refresh" onClick={() => void refresh()}>
-                刷新
-              </Button>
-            )}
-            {isTests ? (
-              <Button className="ws-button primary" onClick={() => openEditor()}>
-                <Icon icon={plusIcon} width="16" aria-hidden="true" /> 新建测试
-              </Button>
-            ) : (
-              <Link href="/cases" className="ws-button">
-                <Icon icon={testsIcon} width="16" aria-hidden="true" /> 前往测试
-              </Link>
-            )}
-          </>
-        }
         query={data.query}
         setQuery={data.setQuery}
         filter={data.filter}

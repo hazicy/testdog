@@ -1,7 +1,24 @@
 'use client';
 
 import { Button as BaseButton } from '@base-ui/react/button';
+import { buttonStyles, type ButtonVariant, type ButtonSize } from './buttonStyles';
 
-export function Button({ className = 'ws-button', ...props }: BaseButton.Props) {
-  return <BaseButton className={className} {...props} />;
+export { buttonStyles } from './buttonStyles';
+export type { ButtonVariant, ButtonSize } from './buttonStyles';
+export type ButtonProps = BaseButton.Props & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+};
+
+export function Button({ variant = 'outline', size = 'md', className, ...props }: ButtonProps) {
+  return (
+    <BaseButton
+      {...props}
+      className={
+        typeof className === 'function'
+          ? (state) => buttonStyles({ variant, size, className: className(state) })
+          : buttonStyles({ variant, size, className })
+      }
+    />
+  );
 }

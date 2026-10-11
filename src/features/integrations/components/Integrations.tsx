@@ -144,7 +144,8 @@ function ChannelForm({
           </p>
         </div>
         <Button
-          className="ws-icon-button"
+          variant="ghost"
+          size="icon"
           aria-label="关闭配置"
           disabled={busy}
           onClick={onDismiss}
@@ -242,12 +243,12 @@ function ChannelForm({
           </p>
         )}
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" className="ws-button primary" disabled={busy}>
+          <Button type="submit" variant="primary" disabled={busy}>
             {busy ? '处理中…' : '保存配置'}
           </Button>
           <Button
             type="button"
-            className="ws-button"
+
             disabled={busy || !configured || dirty || (channel === 'email' && !emailAvailable)}
             onClick={() => void test()}
           >
@@ -307,7 +308,7 @@ export function Integrations() {
                 消息通知
               </h2>
               <Button
-                className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-xs text-page-muted hover:bg-surface hover:text-ink"
+                variant="ghost"
                 aria-haspopup="dialog"
                 onClick={() => {
                   setActionError('');
@@ -354,7 +355,7 @@ export function Integrations() {
                     </p>
                   </div>
                   <Button
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded px-2 py-2 text-xs text-page-muted hover:bg-page hover:text-ink"
+                    variant="ghost"
                     aria-label={`配置${notificationKinds[integration.channel]}`}
                     aria-haspopup="dialog"
                     onClick={() => setConfiguring(integration.channel)}
@@ -388,7 +389,8 @@ export function Integrations() {
                   发送记录
                 </h2>
                 <Button
-                  className="ws-icon-button"
+                  variant="ghost"
+                  size="icon"
                   aria-label="关闭发送记录"
                   disabled={!!retrying}
                   onClick={() => setHistoryOpen(false)}
@@ -438,7 +440,6 @@ export function Integrations() {
                             <td className="p-4">
                               {item.status === 'failed' && (
                                 <Button
-                                  className="ws-button"
                                   disabled={
                                     retrying === item.id ||
                                     (item.channel === 'email' && !data.emailAvailable)

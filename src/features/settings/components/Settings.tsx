@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { authClient } from '@/client/auth';
 import { fetchJson } from '@/client/api';
 import { Button } from '@/components/ui/Button';
+import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Input } from '@/components/ui/Input';
 
 function ProfileForm({ name, email }: { name: string; email: string }) {
@@ -80,11 +81,7 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
           {message}
         </p>
       )}
-      <Button
-        type="submit"
-        className="ws-button primary"
-        disabled={pending || draft.trim() === savedName}
-      >
+      <Button type="submit" variant="primary" disabled={pending || draft.trim() === savedName}>
         {pending ? '保存中…' : '保存资料'}
       </Button>
     </form>
@@ -198,7 +195,7 @@ function PasswordForm() {
           {message}
         </p>
       )}
-      <Button type="submit" className="ws-button primary" disabled={pending}>
+      <Button type="submit" variant="primary" disabled={pending}>
         {pending ? '修改中…' : '修改密码'}
       </Button>
     </form>
@@ -236,7 +233,10 @@ export function Settings() {
         >
           <h2 className="text-lg font-medium">登录后管理账户</h2>
           <p className="text-sm text-page-muted">登录后可以修改姓名和密码。</p>
-          <Link href="/login?callbackURL=%2Fsettings" className="ws-button inline-flex">
+          <Link
+            href="/login?callbackURL=%2Fsettings"
+            className={buttonStyles({ className: 'inline-flex' })}
+          >
             登录
           </Link>
         </section>

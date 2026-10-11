@@ -167,7 +167,8 @@ export function RunPlayer({
         </div>
         <div className="studio-panel-toolbar run-replay-controls">
           <Button
-            className="ws-icon-button primary"
+            variant="primary"
+            size="icon"
             disabled={!useVideo && frames.length < 2}
             aria-label={playing ? '暂停回看' : '播放回看'}
             onClick={toggle}
@@ -212,11 +213,12 @@ export function RunPlayer({
             <div className="absolute inset-x-0 top-1/2 mt-2 h-5" aria-label="回放动作标记">
               {marks.map(({ step, elapsed, percent }) => (
                 <Button
+                  variant="ghost"
                   key={step.id}
                   aria-label={`跳转动作：${step.title}`}
                   title={`${time(elapsed)} · ${step.title}`}
                   onClick={() => seek(elapsed)}
-                  className={`absolute top-0 grid h-5 w-5 -translate-x-1/2 place-items-center rounded bg-surface hover:bg-page focus-visible:outline-2 focus-visible:outline-brand ${step.status === 'failed' ? 'text-error-ink' : 'text-page-muted hover:text-brand'}`}
+                  className={`min-h-0 p-0 absolute top-0 grid h-5 w-5 -translate-x-1/2 place-items-center rounded bg-surface hover:bg-page focus-visible:outline-2 focus-visible:outline-brand ${step.status === 'failed' ? 'text-error-ink' : 'text-page-muted hover:text-brand'}`}
                   style={{ left: `${percent}%` }}
                 >
                   <Icon icon={actionIcon(step)} aria-hidden="true" width="12" height="12" />
@@ -249,10 +251,7 @@ export function RunPlayer({
             />
           )}
           {active && (
-            <Button
-              className={`ws-button ${follow ? 'selected' : ''}`}
-              onClick={playback.followLive}
-            >
+            <Button aria-pressed={follow} onClick={playback.followLive}>
               跟随实时画面
             </Button>
           )}

@@ -101,10 +101,10 @@ export function RunMatrixDialog({
           )}
         </div>
         <div className="ws-dialog-footer">
-          <Button type="button" className="ws-button" disabled={busy} onClick={() => onClose()}>
+          <Button type="button" disabled={busy} onClick={() => onClose()}>
             取消
           </Button>
-          <Button type="submit" className="ws-button primary" disabled={busy}>
+          <Button type="submit" variant="primary" disabled={busy}>
             {busy ? '创建中…' : '运行矩阵'}
           </Button>
         </div>

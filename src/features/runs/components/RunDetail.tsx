@@ -230,7 +230,8 @@ export function RunDetail({ id }: { id: string }) {
             .map((entry) => (
               <div key={entry.occurrence.id} className="border-b border-page-line px-5 py-2">
                 <Button
-                  className="flex w-full items-start gap-2 text-left text-xs"
+                  variant="ghost"
+                  className="flex w-full items-start gap-2 text-left text-xs min-h-0 rounded-none p-0 whitespace-normal"
                   aria-label={`查看问题：${entry.issue.title}`}
                   onClick={() => selectRunIssue(entry)}
                 >
@@ -467,7 +468,7 @@ export function RunDetail({ id }: { id: string }) {
       {error && (
         <div role="alert" className="studio-alert flex justify-between gap-3">
           <span>{error}</span>
-          <Button onClick={() => void refresh()} className="underline">
+          <Button onClick={() => void refresh()} variant="ghost" size="sm" className="underline">
             刷新
           </Button>
         </div>

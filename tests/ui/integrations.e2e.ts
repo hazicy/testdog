@@ -248,3 +248,27 @@ test('saves email preferences while platform mail is unavailable and disables te
   await page.getByRole('button', { name: '配置Email 邮件', exact: true }).click();
   await expect(email.getByLabel('收件邮箱', { exact: true })).toHaveValue('recipient@example.com');
 });
+
+test('outline buttons use the theme border without a persistent outline', async ({ page }) => {
+  await page.route('**/api/integrations', (route) =>
+    route.fulfill({
+      json: { integrations: structuredClone(defaults), deliveries: [], emailAvailable: true },
+    }),
+  );
+  await page.goto('/integrations');
+  await page.getByRole('button', { name: '配置飞书群机器人', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '飞书群机器人', exact: true });
+  const button = dialog.getByRole('button', { name: '发送测试通知', exact: true });
+  const border = await button.evaluate((element) => {
+    const token = getComputedStyle(element).getPropertyValue('--control-line');
+    const probe = document.createElement('span');
+
+    probe.style.borderColor = token;
+
+    return probe.style.borderColor;
+  });
+
+  await expect(button).toHaveCSS('border-color', border);
+  await expect(button).toHaveCSS('border-width', '1px');
+  await expect(button).toHaveCSS('outline-style', 'none');
+});

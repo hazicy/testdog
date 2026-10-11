@@ -166,7 +166,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         </div>
         <div className="recording-editor-actions">
           <Button
-            className="ws-icon-button"
+            variant="ghost"
+            size="icon-sm"
             aria-label="还原当前版本"
             title="还原当前版本"
             disabled={busy || !dirty}
@@ -175,7 +176,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             <Icon icon={undoIcon} width="16" aria-hidden="true" />
           </Button>
           <Button
-            className="ws-icon-button"
+            variant="ghost"
+            size="icon-sm"
             aria-label="下载脚本"
             title="下载脚本"
             onClick={download}
@@ -183,7 +185,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             <Icon icon={downloadIcon} width="16" aria-hidden="true" />
           </Button>
           <Button
-            className="ws-icon-button"
+            variant="ghost"
+            size="icon-sm"
             aria-label="保存版本"
             title="保存版本"
             disabled={!canSave}
@@ -192,7 +195,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             <Icon icon={saveIcon} width="16" aria-hidden="true" />
           </Button>
           <Button
-            className="ws-icon-button recording-editor-run"
+            variant="primary"
+            size="icon-sm"
             aria-label="重放"
             title="重放"
             disabled={!canSave}

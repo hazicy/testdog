@@ -45,7 +45,7 @@ export function IssueList() {
             自动收集测试发现的问题，跟进处理并验证修复。
           </p>
         </div>
-        <Button className="ws-button primary" onClick={() => setCreating(true)}>
+        <Button variant="primary" onClick={() => setCreating(true)}>
           新建问题
         </Button>
       </div>
@@ -99,9 +99,7 @@ export function IssueList() {
             { value: '30', label: '最近 30 天' },
           ]}
         />
-        <Button className="ws-button" onClick={() => void mutate()}>
-          刷新
-        </Button>
+        <Button onClick={() => void mutate()}>刷新</Button>
       </div>
       {error && (
         <p role="alert" className="mb-4 text-error-ink">
@@ -177,11 +175,7 @@ export function IssueList() {
         </div>
       )}
       {data?.at(-1)?.nextCursor && (
-        <Button
-          className="ws-button mt-4"
-          disabled={isValidating}
-          onClick={() => void setSize(size + 1)}
-        >
+        <Button className="mt-4" disabled={isValidating} onClick={() => void setSize(size + 1)}>
           加载更多
         </Button>
       )}

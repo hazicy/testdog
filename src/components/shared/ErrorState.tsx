@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { EmptyIllustration } from '@/components/brand/EmptyIllustration';
 import { Button } from '@/components/ui/Button';
+import { buttonStyles } from '@/components/ui/buttonStyles';
 
 export function ErrorState({
   title,
@@ -29,11 +30,11 @@ export function ErrorState({
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         {retry && (
-          <Button className="ws-button primary" onClick={retry}>
+          <Button variant="primary" onClick={retry}>
             重试
           </Button>
         )}
-        <Link className="ws-button" href={href}>
+        <Link className={buttonStyles()} href={href}>
           {linkLabel}
         </Link>
       </div>

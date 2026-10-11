@@ -53,11 +53,7 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
           </div>
         )}
       </div>
-      <Button
-        className="ws-button w-full justify-center text-xs"
-        disabled={signingOut}
-        onClick={signOut}
-      >
+      <Button className="w-full justify-center text-xs" disabled={signingOut} onClick={signOut}>
         {signingOut ? '退出中…' : '退出'}
       </Button>
       {error && (

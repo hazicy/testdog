@@ -47,14 +47,10 @@ export function DeleteTestDialog({
         )}
       </div>
       <div className="ws-dialog-footer">
-        <Button disabled={saving} className="ws-button" onClick={() => onClose()}>
+        <Button disabled={saving} onClick={() => onClose()}>
           取消
         </Button>
-        <Button
-          disabled={saving}
-          className="ws-button border-error-line text-error-ink"
-          onClick={() => void remove()}
-        >
+        <Button disabled={saving} variant="danger" onClick={() => void remove()}>
           {saving ? '删除中…' : '删除测试'}
         </Button>
       </div>

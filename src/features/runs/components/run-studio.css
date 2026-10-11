@@ -105,13 +105,6 @@
   border-top: 1px solid var(--page-line);
   border-bottom: 0;
 }
-.run-studio .ws-icon-button.primary {
-  background: var(--brand);
-  color: var(--brand-foreground);
-}
-.run-studio .ws-icon-button.primary:hover {
-  background: var(--brand-hover);
-}
 .run-studio .plan-viewport {
   height: calc(100dvh - 190px);
 }
@@ -253,14 +246,6 @@
 }
 .recording-editor-actions {
   flex-shrink: 0;
-}
-.recording-editor-actions .ws-icon-button {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-}
-.recording-editor-actions .recording-editor-run {
-  color: var(--step-success);
 }
 .recording-code-editor {
   flex: 1;

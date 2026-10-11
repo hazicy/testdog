@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
+
 import Image from 'next/image';
 import { asset, statuses } from '../presentation';
 import type { boardResult } from '../lib/boardResults';
@@ -244,22 +246,22 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             {!steps.length && <p>尚无执行结果</p>}
             {steps.length > 0 && !data.result.frame && <p>暂无已归档截图</p>}
             {data.result.primary && (
-              <button
+              <Button
                 type="button"
-                className="ws-button"
+
                 onClick={() => data.onStep(data.result!.primary!)}
               >
                 查看过程
-              </button>
+              </Button>
             )}
             {data.result.primary && data.onIssue && (
-              <button
+              <Button
                 type="button"
-                className="ws-button ml-2"
+                className="ml-2"
                 onClick={() => data.onIssue?.(data.result!.primary!)}
               >
                 创建或关联问题
-              </button>
+              </Button>
             )}
           </div>
           {data.result.frame && (
@@ -286,14 +288,9 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       {!data.editable && expanded && (
         <div className="plan-inline-evidence nodrag nopan">
           {steps.map((step) => (
-            <button
-              type="button"
-              key={step.id}
-              onClick={() => data.onStep(step)}
-              className="ws-button"
-            >
+            <Button type="button" key={step.id} onClick={() => data.onStep(step)}>
               #{step.sequence} {step.title}
-            </button>
+            </Button>
           ))}
           {!steps.length && <p>尚无关联步骤。分组的步骤位于子节点。</p>}
         </div>

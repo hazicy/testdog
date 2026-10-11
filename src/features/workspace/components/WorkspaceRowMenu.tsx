@@ -1,5 +1,7 @@
 'use client';
 
+import { buttonStyles } from '@/components/ui/buttonStyles';
+
 import { Menu } from '@base-ui/react/menu';
 import { Icon } from '@iconify/react/offline';
 import moreIcon from '@iconify-icons/lucide/ellipsis';
@@ -34,7 +36,11 @@ export function WorkspaceRowMenu({ label, actions }: { label: string; actions: A
     >
       <Menu.Trigger
         ref={trigger}
-        className="ws-icon-button workspace-row-menu-trigger"
+        className={buttonStyles({
+          variant: 'ghost',
+          size: 'icon-xs',
+          className: 'workspace-row-menu-trigger',
+        })}
         aria-label={label}
       >
         <Icon icon={moreIcon} width="17" aria-hidden="true" />

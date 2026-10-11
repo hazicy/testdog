@@ -98,7 +98,7 @@ export function AuthForm({
             {providers.map((provider) => (
               <Button
                 key={provider}
-                className="ws-button w-full justify-center"
+                className="w-full justify-center"
                 disabled={pending}
                 onClick={() => social(provider)}
               >
@@ -145,7 +145,8 @@ export function AuthForm({
           )}
           <Button
             type="submit"
-            className="ws-button primary w-full justify-center"
+            variant="primary"
+            className="w-full justify-center"
             disabled={pending}
           >
             {pending ? '请稍候…' : register ? '注册' : '登录'}

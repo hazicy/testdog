@@ -84,7 +84,6 @@ function VerificationAction({
         ]}
       />
       <Button
-        className="ws-button"
         onClick={() => {
           if (loadVersions) void refreshVersions();
           else setLoadVersions(true);
@@ -99,7 +98,7 @@ function VerificationAction({
         </p>
       )}
       <Button
-        className="ws-button primary"
+        variant="primary"
         onClick={() => void start()}
         disabled={busy || active || (version === 'current' && !occurrence.snapshot.testId)}
       >
@@ -179,7 +178,6 @@ export function IssueDetail({ id }: { id: string }) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
-            className="ws-button"
             disabled={busy}
             onClick={async () => {
               setBusy(true);
@@ -203,7 +201,6 @@ export function IssueDetail({ id }: { id: string }) {
             {issue.status === 'closed' ? '重新打开' : '标记已解决'}
           </Button>
           <Button
-            className="ws-button"
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(
@@ -227,7 +224,7 @@ export function IssueDetail({ id }: { id: string }) {
           >
             {copied ? '已复制修复提示词' : '复制修复提示词'}
           </Button>
-          <Button className="ws-button shrink-0" onClick={() => setEditing(true)}>
+          <Button className="shrink-0" onClick={() => setEditing(true)}>
             编辑问题
           </Button>
         </div>
@@ -451,7 +448,7 @@ export function IssueDetail({ id }: { id: string }) {
               maxLength={10000}
             />
           </label>
-          <Button className="ws-button mt-3" type="submit" disabled={busy || !comment.trim()}>
+          <Button className="mt-3" type="submit" disabled={busy || !comment.trim()}>
             添加说明
           </Button>
         </form>

@@ -82,7 +82,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="min-w-0">
         <header className="flex h-14 items-center gap-3 border-b border-page-line bg-page px-5 md:px-7">
           <Button
-            className="ws-icon-button hidden md:flex"
+            variant="ghost"
+            size="icon"
+            className="hidden md:flex"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
             aria-expanded={!collapsed}
