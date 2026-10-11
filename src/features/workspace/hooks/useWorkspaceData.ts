@@ -83,14 +83,17 @@ export function useWorkspaceData(isTests: boolean) {
     [page],
   );
   const running = counts.running + counts.queued + counts.preparing + counts.finalizing > 0;
-  const refresh = useCallback(async () => {
+  const revalidate = useCallback(async () => {
     await Promise.all([mutateList(), mutateStats()]);
-    setError('');
   }, [mutateList, mutateStats]);
+  const refresh = useCallback(async () => {
+    await revalidate();
+    setError('');
+  }, [revalidate]);
 
   useEffect(() => {
-    realtimeRefresh.current = refresh;
-  }, [refresh]);
+    realtimeRefresh.current = revalidate;
+  }, [revalidate]);
   useEffect(() => {
     connection.current = connected;
   }, [connected]);

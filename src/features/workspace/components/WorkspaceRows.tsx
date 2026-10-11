@@ -7,6 +7,12 @@ import downloadIcon from '@iconify-icons/lucide/download';
 import editIcon from '@iconify-icons/lucide/pencil';
 import resultsIcon from '@iconify-icons/lucide/play';
 import trashIcon from '@iconify-icons/lucide/trash-2';
+import matrixIcon from '@iconify-icons/lucide/grid-2x2';
+import checkIcon from '@iconify-icons/lucide/circle-check';
+import failIcon from '@iconify-icons/lucide/circle-x';
+import pendingIcon from '@iconify-icons/lucide/circle-dashed';
+import stoppedIcon from '@iconify-icons/lucide/circle-minus';
+import { WorkspaceRowMenu } from './WorkspaceRowMenu';
 import type { TestCase } from '@/features/test-cases/types';
 import type { RunSummary } from '@/features/runs/types';
 
@@ -23,10 +29,32 @@ const statusLabels = {
 function Status({ status }: { status?: RunSummary['status'] }) {
   return (
     <span className={`ws-status ${status || 'none'}`}>
-      <span />
+      <Icon
+        icon={
+          status === 'passed'
+            ? checkIcon
+            : status === 'failed'
+              ? failIcon
+              : status === 'cancelled'
+                ? stoppedIcon
+                : pendingIcon
+        }
+        width="14"
+        aria-hidden="true"
+      />
       {status ? statusLabels[status] : '未运行'}
     </span>
   );
+}
+
+function address(value: string) {
+  try {
+    const url = new URL(value);
+
+    return `${url.host}${url.pathname === '/' ? '' : url.pathname}`;
+  } catch {
+    return value;
+  }
 }
 
 function date(value: string) {
@@ -86,41 +114,44 @@ export function WorkspaceRows({
             return (
               <tr key={test.id}>
                 <td>
-                  <Button
-                    onClick={() => openEditor(test)}
-                    className="text-left font-medium hover:text-brand-link"
-                  >
-                    {test.name}
-                  </Button>
-                  <p className="mt-1 max-w-96 truncate text-xs text-text-subtle">
+                  <div className="workspace-index-title">
+                    <Button
+                      onClick={() => openEditor(test)}
+                      className="workspace-index-name text-left font-medium hover:text-brand-link"
+                    >
+                      {test.name}
+                    </Button>
+                    {test.tags.length > 0 && (
+                      <div className="workspace-index-tags">
+                        {test.tags.map((tag, index) => (
+                          <span key={`${tag}-${index}`} className="workspace-index-tag">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="workspace-index-description">
                     {test.target && test.target.platform !== 'web'
                       ? `${test.target.platform} · ${test.target.appId}`
-                      : test.url}
+                      : address(test.url)}
                   </p>
-                  {test.tags.length > 0 && (
-                    <div className="mt-2 flex gap-1">
-                      {test.tags.map((tag, index) => (
-                        <span
-                          key={`${tag}-${index}`}
-                          className="border border-page-line px-1.5 py-0.5 text-xs text-page-muted"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </td>
                 <td>
                   <Status status={run?.status} />
                 </td>
-                <td className="text-xs text-page-muted">{date(test.updatedAt)}</td>
                 <td>
                   {run ? (
                     <Link
                       href={`/runs/${run.id}`}
                       className="text-xs text-page-muted hover:underline"
                     >
-                      {date(run.startedAt)} ↗
+                      <time
+                        dateTime={run.startedAt}
+                        title={new Date(run.startedAt).toLocaleString('zh-CN')}
+                      >
+                        {date(run.startedAt)}
+                      </time>
                     </Link>
                   ) : (
                     <span className="text-text-faint">—</span>
@@ -129,46 +160,44 @@ export function WorkspaceRows({
                 <td>
                   <div className="flex justify-end gap-1">
                     <Button
-                      className="ws-button mr-2"
+                      className="ws-button workspace-index-run"
                       title={running ? '请等待当前测试完成后再运行' : '运行测试'}
                       disabled={starting}
                       onClick={() => void start(test.id)}
                     >
                       <Icon icon={resultsIcon} width="14" aria-hidden="true" /> 运行
                     </Button>
-                    <Button
-                      className="ws-button"
-                      disabled={starting}
-                      onClick={() => openMatrix(test)}
-                    >
-                      矩阵运行
-                    </Button>
-                    <Button
-                      className="ws-icon-button"
-                      aria-label={`编辑 ${test.name}`}
-                      title="编辑"
-                      onClick={() => openEditor(test)}
-                    >
-                      <Icon icon={editIcon} width="16" aria-hidden="true" />
-                    </Button>
-                    <Button
-                      className="ws-icon-button"
-                      aria-label={`复制 ${test.name}`}
-                      title="复制"
-                      onClick={() => openEditor(test, true)}
-                    >
-                      <Icon icon={copyIcon} width="16" aria-hidden="true" />
-                    </Button>
-                    <Button
-                      className="ws-icon-button"
-                      aria-label={`删除 ${test.name}`}
-                      title="删除"
-                      onClick={() => {
-                        setDeleting(test);
-                      }}
-                    >
-                      <Icon icon={trashIcon} width="16" aria-hidden="true" />
-                    </Button>
+                    <WorkspaceRowMenu
+                      label={`更多操作：${test.name}`}
+                      actions={[
+                        {
+                          label: '编辑用例',
+                          accessibleLabel: `编辑 ${test.name}`,
+                          icon: editIcon,
+                          onSelect: () => openEditor(test),
+                        },
+                        {
+                          label: '复制用例',
+                          accessibleLabel: `复制 ${test.name}`,
+                          icon: copyIcon,
+                          onSelect: () => openEditor(test, true),
+                        },
+                        {
+                          label: '矩阵运行',
+                          accessibleLabel: `矩阵运行 ${test.name}`,
+                          icon: matrixIcon,
+                          disabled: starting,
+                          onSelect: () => openMatrix(test),
+                        },
+                        {
+                          label: '删除用例',
+                          accessibleLabel: `删除 ${test.name}`,
+                          icon: trashIcon,
+                          danger: true,
+                          onSelect: () => setDeleting(test),
+                        },
+                      ]}
+                    />
                   </div>
                 </td>
               </tr>
@@ -177,32 +206,49 @@ export function WorkspaceRows({
         : visibleRuns.map((run) => (
             <tr key={run.id}>
               <td>
-                <Link href={`/runs/${run.id}`} className="font-medium hover:text-brand-link">
+                <Link
+                  href={`/runs/${run.id}`}
+                  className="workspace-index-name font-medium hover:text-brand-link"
+                >
                   {run.name}
                 </Link>
-                <p className="mt-1 font-mono text-xs text-text-subtle">
-                  #{run.id.slice(0, 8)} · {run.url}
+                <p className="workspace-index-description">
+                  <span className="workspace-index-id">#{run.id.slice(0, 8)}</span>
+                  <span className="workspace-index-meta-separator" aria-hidden="true">
+                    ·
+                  </span>
+                  {address(run.url)}
                 </p>
               </td>
               <td>
                 <Status status={run.status} />
               </td>
-              <td className="text-xs text-page-muted">{date(run.startedAt)}</td>
+              <td className="workspace-index-time">
+                <time
+                  dateTime={run.startedAt}
+                  title={new Date(run.startedAt).toLocaleString('zh-CN')}
+                >
+                  {date(run.startedAt)}
+                </time>
+              </td>
               <td className="font-mono text-xs text-page-muted">{duration(run)}</td>
               <td>
                 <div className="flex justify-end gap-2">
-                  <Link href={`/runs/${run.id}`} className="ws-button">
-                    查看详情 <Icon icon={chevronIcon} width="13" aria-hidden="true" />
+                  <Link href={`/runs/${run.id}`} className="ws-button workspace-index-action">
+                    详情 <Icon icon={chevronIcon} width="13" aria-hidden="true" />
                   </Link>
-                  <Button
-                    className="ws-icon-button"
-                    title="导出结果"
-                    aria-label={`导出 ${run.name} 的结果`}
-                    disabled={exporting}
-                    onClick={() => void exportRun(run)}
-                  >
-                    <Icon icon={downloadIcon} width="16" aria-hidden="true" />
-                  </Button>
+                  <WorkspaceRowMenu
+                    label={`更多操作：${run.name}`}
+                    actions={[
+                      {
+                        label: '导出结果',
+                        accessibleLabel: `导出 ${run.name} 的结果`,
+                        icon: downloadIcon,
+                        disabled: exporting,
+                        onSelect: () => void exportRun(run),
+                      },
+                    ]}
+                  />
                 </div>
               </td>
             </tr>

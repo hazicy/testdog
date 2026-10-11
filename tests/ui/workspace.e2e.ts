@@ -482,7 +482,10 @@ test('exports complete reports from both history and detail, and allows retry af
     return route.fulfill({ json: { run } });
   });
   await page.goto('/runs');
-  const exportButton = page.getByRole('button', { name: `导出 ${run.name} 的结果`, exact: true });
+  const exportMenu = page.getByRole('button', { name: `更多操作：${run.name}`, exact: true });
+  const exportButton = page.getByRole('menuitem', { name: `导出 ${run.name} 的结果`, exact: true });
+
+  await exportMenu.click();
 
   await exportButton.click();
   await expect(page.getByRole('alert').filter({ hasText: '报告暂时不可用' })).toBeVisible();
@@ -493,10 +496,11 @@ test('exports complete reports from both history and detail, and allows retry af
 
   await page.getByRole('textbox', { name: '搜索结果', exact: true }).fill(run.name);
   await searchResponse;
-  await expect(exportButton).toBeVisible();
+  await expect(exportMenu).toBeVisible();
   await expect(page.getByRole('alert').filter({ hasText: '报告暂时不可用' })).toBeVisible();
   const listDownload = page.waitForEvent('download');
 
+  await exportMenu.click();
   await exportButton.click();
   const report = await listDownload;
 
@@ -524,7 +528,15 @@ test('dialogs support keyboard entry, Escape dismissal and focus restoration', a
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('.case-canvas-page')).toBeVisible();
   await page.getByRole('link', { name: '测试用例', exact: true }).first().click();
-  const remove = page.getByRole('button', { name: `删除 ${saved.name}`, exact: true });
+  const more = page.getByRole('button', { name: `更多操作：${saved.name}`, exact: true });
+
+  await more.focus();
+  await more.press('Enter');
+  await expect(page.getByRole('menu')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(more).toBeFocused();
+  await more.press('Enter');
+  const remove = page.getByRole('menuitem', { name: `删除 ${saved.name}`, exact: true });
 
   await remove.focus();
   await remove.press('Enter');
@@ -533,7 +545,7 @@ test('dialogs support keyboard entry, Escape dismissal and focus restoration', a
   await expect(dialog.getByRole('button', { name: '取消', exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
-  await expect(remove).toBeFocused();
+  await expect(more).toBeFocused();
 });
 
 test('create, edit, duplicate and delete use independent dialogs and preserve history', async ({
@@ -616,7 +628,8 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await expect(dialog.getByLabel('测试名称')).toHaveValue('新用例');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await page.getByRole('button', { name: '编辑 验证登录', exact: true }).click();
+  await page.getByRole('button', { name: '更多操作：验证登录', exact: true }).click();
+  await page.getByRole('menuitem', { name: '编辑 验证登录', exact: true }).click();
   await dialog.getByRole('button', { name: '描述生成', exact: true }).click();
   await dialog.getByRole('button', { name: '生成', exact: true }).click();
   await dialog.getByRole('button', { name: '全部接受' }).click();
@@ -624,7 +637,8 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await dialog.getByLabel('测试名称').fill('更新登录');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await page.getByRole('button', { name: '复制 更新登录', exact: true }).click();
+  await page.getByRole('button', { name: '更多操作：更新登录', exact: true }).click();
+  await page.getByRole('menuitem', { name: '复制 更新登录', exact: true }).click();
   await openSettings(dialog);
   await expect(dialog.getByLabel('测试名称')).toHaveValue('更新登录（副本）');
   await expect(dialog.getByRole('alert')).toHaveCount(0);
@@ -632,13 +646,14 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await expect(dialog).toHaveCount(0);
   expect(writes.map((item) => item.method)).toEqual(['POST', 'PATCH', 'POST']);
   expect(writes[2].body.tags).toEqual(['登录']);
-  await page.getByRole('button', { name: '删除 更新登录', exact: true }).click();
+  await page.getByRole('button', { name: '更多操作：更新登录', exact: true }).click();
+  await page.getByRole('menuitem', { name: '删除 更新登录', exact: true }).click();
   await expect(dialog.getByRole('alert')).toHaveCount(0);
   await dialog.getByRole('button', { name: '删除测试', exact: true }).click();
   await expect(dialog.getByRole('alert')).toHaveText('删除暂时失败');
   await dialog.getByRole('button', { name: '删除测试', exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '编辑 更新登录', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '更新登录', exact: true })).toHaveCount(0);
   await expect(page.getByRole('main')).toBeFocused();
   await page.goto('/runs');
   await expect(
@@ -1287,9 +1302,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
         : '',
     ),
   ).toEqual(['act', 'act', 'assert', 'login', 'files', 'screenshot']);
-  await page
-    .getByRole('button', { name: '编辑 GitHub repository smoke test', exact: true })
-    .click();
+  await page.getByRole('button', { name: 'GitHub repository smoke test', exact: true }).click();
   await dialog.getByRole('button', { name: `编辑节点 ${root.children[2]}`, exact: true }).click();
   await expect(dialog.getByRole('textbox', { name: /^节点内容/ })).toHaveValue(content[1][1]);
   await expect(dialog.locator('[data-step-type=assert]')).toContainText('Assert');

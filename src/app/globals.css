@@ -536,19 +536,6 @@ body {
 }
 
 @layer components {
-  .ws-stats {
-    overflow: hidden;
-    border: 1px solid var(--page-line);
-    border-radius: 8px;
-    background: var(--surface);
-  }
-  .ws-stats > div + div {
-    border-left: 1px solid var(--page-line);
-  }
-  .ws-list {
-    overflow: hidden;
-    border-radius: 8px;
-  }
   .ws-table th:first-child {
     width: 40%;
   }
@@ -563,14 +550,6 @@ body {
     max-width: 360px;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-}
-@media (max-width: 1023px) {
-  .ws-stats > div:nth-child(3) {
-    border-left: 0;
-  }
-  .ws-stats > div:nth-child(n + 3) {
-    border-top: 1px solid var(--page-line);
   }
 }
 @media (prefers-reduced-motion: reduce) {

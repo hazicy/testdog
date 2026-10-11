@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { EmptyIllustration } from '@/components/brand/EmptyIllustration';
-import { type ComponentProps } from 'react';
+import { type ComponentProps, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -10,11 +9,14 @@ import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import plusIcon from '@iconify-icons/lucide/plus';
 import searchIcon from '@iconify-icons/lucide/search';
+import filesIcon from '@iconify-icons/lucide/files';
+import historyIcon from '@iconify-icons/lucide/history';
 import { WorkspaceRows } from './WorkspaceRows';
 
 type Props = Omit<ComponentProps<typeof WorkspaceRows>, 'visibleTests' | 'visibleRuns'> & {
   tests: ComponentProps<typeof WorkspaceRows>['visibleTests'];
   runs: ComponentProps<typeof WorkspaceRows>['visibleRuns'];
+  actions: ReactNode;
   loading: boolean;
   connected: boolean;
   query: string;
@@ -29,6 +31,7 @@ type Props = Omit<ComponentProps<typeof WorkspaceRows>, 'visibleTests' | 'visibl
 };
 
 export function WorkspaceList({
+  actions,
   query,
   setQuery,
   filter,
@@ -58,11 +61,11 @@ export function WorkspaceList({
 
   return (
     <section
-      className="ws-list mt-6 border border-page-line bg-surface"
+      className="workspace-index-list"
       aria-label={isTests ? '测试用例列表' : '执行记录列表'}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-page-line p-4">
-        <div className="relative w-full sm:w-80">
+      <div className="workspace-index-toolbar">
+        <div className="workspace-index-search relative">
           <Icon
             icon={searchIcon}
             className="absolute top-2.5 left-3 text-text-subtle"
@@ -73,12 +76,11 @@ export function WorkspaceList({
             aria-label={isTests ? '搜索测试' : '搜索结果'}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={isTests ? '搜索名称、地址或标签…' : '搜索测试名称或地址…'}
+            placeholder={isTests ? '搜索用例…' : '搜索执行记录…'}
             className="ws-input pl-9"
           />
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-text-subtle">状态</span>
+        <div className="workspace-index-filter">
           <Select
             aria-label="状态筛选"
             value={filter}
@@ -97,15 +99,19 @@ export function WorkspaceList({
             ]}
           />
         </div>
+        <div className="workspace-index-toolbar-actions">{actions}</div>
       </div>
       {loading ? (
         <p role="status" className="p-16 text-center text-sm text-text-subtle">
           正在加载工作区…
         </p>
       ) : (isTests ? visibleTests.length === 0 : visibleRuns.length === 0) ? (
-        <div className="flex flex-col items-center px-5 py-14 text-center">
-          <EmptyIllustration
-            variant={query || filter !== 'all' ? 'search' : isTests ? 'tests' : 'runs'}
+        <div className="workspace-index-empty">
+          <Icon
+            icon={query || filter !== 'all' ? searchIcon : isTests ? filesIcon : historyIcon}
+            width="28"
+            className="mb-5 text-page-muted"
+            aria-hidden="true"
           />
           <h2 className="text-base font-medium">
             {query || filter !== 'all'
@@ -118,8 +124,8 @@ export function WorkspaceList({
             {query || filter !== 'all'
               ? '试试其他关键词，或清除状态筛选。'
               : isTests
-                ? '在画板上编排步骤，或用描述生成测试。'
-                : '运行一个测试用例，查看执行状态、耗时与详细日志。'}
+                ? '新建一个用例，开始编排测试步骤。'
+                : '运行用例后，在这里查看结果。'}
           </p>
           {query || filter !== 'all' ? (
             <Button
@@ -132,10 +138,7 @@ export function WorkspaceList({
               清除筛选
             </Button>
           ) : isTests ? (
-            <Button
-              className="ws-button primary case-create-trigger mt-6"
-              onClick={() => openEditor()}
-            >
+            <Button className="ws-button primary mt-6" onClick={() => openEditor()}>
               <Icon icon={plusIcon} width="18" aria-hidden="true" /> 新建测试
             </Button>
           ) : (
@@ -155,13 +158,15 @@ export function WorkspaceList({
             role="region"
             aria-label="可横向滚动的记录表格"
           >
-            <table className="ws-table">
+            <table
+              className={`ws-table workspace-index-table ${isTests ? 'is-tests' : 'is-results'}`}
+            >
               <thead>
                 <tr>
-                  <th>{isTests ? '测试名称' : '执行 / 测试名称'}</th>
+                  <th>{isTests ? '用例' : '测试'}</th>
                   <th>{isTests ? '最近状态' : '状态'}</th>
-                  <th>{isTests ? '更新时间' : '开始时间'}</th>
-                  <th>{isTests ? '最近执行' : '耗时'}</th>
+                  <th>{isTests ? '最近执行' : '开始时间'}</th>
+                  {!isTests && <th>耗时</th>}
                   <th className="text-right">操作</th>
                 </tr>
               </thead>
@@ -185,24 +190,35 @@ export function WorkspaceList({
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between border-t border-page-line px-4 py-3 text-xs text-text-subtle">
-        <span>
-          第 {page} 页 · {isTests ? visibleTests.length : visibleRuns.length} 条记录
-        </span>
-        <div className="flex gap-3">
-          <Button disabled={!hasPrevious || loading} onClick={previousPage}>
-            上一页
-          </Button>
-          <Button disabled={!hasNext || loading} onClick={nextPage}>
-            下一页
-          </Button>
-        </div>
-        <span className="flex items-center gap-1.5">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${running ? 'bg-activity-running' : 'bg-activity-idle'}`}
-          />
-          {running ? (connected ? '执行中 · 实时更新' : '执行中 · 自动刷新') : '执行记录持久保存'}
-        </span>
+      <div className="workspace-index-footer">
+        <span>{loading ? '—' : isTests ? visibleTests.length : visibleRuns.length} 条记录</span>
+        {running && (
+          <span className="workspace-index-live">
+            <span aria-hidden="true" />
+            {connected ? '实时更新' : '自动刷新'}
+          </span>
+        )}
+        {(hasPrevious || hasNext) && (
+          <div className="workspace-index-pagination">
+            <Button
+              className="ws-icon-button"
+              aria-label="上一页"
+              disabled={!hasPrevious || loading}
+              onClick={previousPage}
+            >
+              <Icon icon={chevronIcon} width="14" rotate={2} aria-hidden="true" />
+            </Button>
+            <span>第 {page} 页</span>
+            <Button
+              className="ws-icon-button"
+              aria-label="下一页"
+              disabled={!hasNext || loading}
+              onClick={nextPage}
+            >
+              <Icon icon={chevronIcon} width="14" aria-hidden="true" />
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );

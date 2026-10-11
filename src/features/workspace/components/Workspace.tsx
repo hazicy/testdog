@@ -17,26 +17,13 @@ import { editablePlan, emptyPlan, caseName } from '@/features/test-cases/lib/aut
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
 import { RunMatrixDialog } from '@/features/test-cases/components/RunMatrixDialog';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
-import { WorkspaceStats } from './WorkspaceStats';
 import { WorkspaceList } from './WorkspaceList';
+import './workspace-index.css';
 
 export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const isTests = view === 'tests';
   const data = useWorkspaceData(isTests);
-  const {
-    tests,
-    runs,
-    testCount,
-    runCount,
-    loading,
-    error,
-    setError,
-    counts,
-    latestRuns,
-    running,
-    connected,
-    refresh,
-  } = data;
+  const { tests, runs, loading, error, setError, latestRuns, running, connected, refresh } = data;
   const submit = useRunSubmission();
   const router = useRouter();
   const params = useSearchParams();
@@ -116,46 +103,8 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   }
 
   return (
-    <div className="mx-auto max-w-[1500px]">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {isTests ? '测试用例' : '执行记录'}
-            <span className="ml-3 rounded-md bg-badge-surface px-2 py-1 align-middle text-xs font-medium text-badge-ink">
-              {loading ? '—' : isTests ? testCount : runCount}
-            </span>
-          </h1>
-          <p className="mt-2 text-sm text-text-neutral">
-            {isTests
-              ? '把操作与预期编排成测试，让每次验证都有据可循。'
-              : '查看每次测试的真实结果，定位失败并验证修复。'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {!isTests && (
-            <Button className="ws-button" onClick={() => void refresh()}>
-              刷新
-            </Button>
-          )}
-          {isTests ? (
-            <Button className="ws-button primary case-create-trigger" onClick={() => openEditor()}>
-              <Icon icon={plusIcon} width="18" aria-hidden="true" /> 新建测试
-            </Button>
-          ) : (
-            <Link href="/cases" className="ws-button primary">
-              <Icon icon={testsIcon} width="18" aria-hidden="true" /> 前往测试
-            </Link>
-          )}
-        </div>
-      </div>
-      <WorkspaceStats
-        isTests={isTests}
-        testCount={testCount}
-        runCount={runCount}
-        counts={counts}
-        running={running}
-        loading={loading}
-      />
+    <div className="workspace-index mx-auto max-w-[1500px]">
+      <h1 className="sr-only">{isTests ? '测试用例' : '执行记录'}</h1>
       {error && (
         <div
           role="alert"
@@ -168,6 +117,24 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         </div>
       )}
       <WorkspaceList
+        actions={
+          <>
+            {!isTests && (
+              <Button className="ws-button workspace-index-refresh" onClick={() => void refresh()}>
+                刷新
+              </Button>
+            )}
+            {isTests ? (
+              <Button className="ws-button primary" onClick={() => openEditor()}>
+                <Icon icon={plusIcon} width="16" aria-hidden="true" /> 新建测试
+              </Button>
+            ) : (
+              <Link href="/cases" className="ws-button">
+                <Icon icon={testsIcon} width="16" aria-hidden="true" /> 前往测试
+              </Link>
+            )}
+          </>
+        }
         query={data.query}
         setQuery={data.setQuery}
         filter={data.filter}

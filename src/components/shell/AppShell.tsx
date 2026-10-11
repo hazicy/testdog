@@ -33,10 +33,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const activeItem = activeWorkspaceNavigation(pathname);
   const canvas = pathname.startsWith('/cases/editor/');
+  const workspaceIndex = pathname === '/cases' || pathname === '/runs';
 
   return (
     <div
-      className={`workspace-shell grid min-h-dvh grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
+      className={`workspace-shell ${workspaceIndex ? 'workspace-index-shell ' : ''}grid min-h-dvh grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
     >
       <a
         href="#main-content"
@@ -118,7 +119,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main
           id="main-content"
           tabIndex={-1}
-          className={canvas ? 'case-workspace-main' : 'px-4 py-7 sm:px-6 md:px-8 md:py-9'}
+          className={
+            canvas
+              ? 'case-workspace-main'
+              : workspaceIndex
+                ? 'workspace-index-main'
+                : 'px-4 py-7 sm:px-6 md:px-8 md:py-9'
+          }
         >
           {children}
         </main>
