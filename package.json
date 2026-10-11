@@ -28,7 +28,8 @@
     "maintenance": "tsx scripts/maintenance.ts",
     "register:build": "tsx scripts/register-build.ts",
     "recover:resource": "tsx scripts/recover-resource.ts",
-    "notifications": "tsx scripts/notifications.ts"
+    "notifications": "tsx scripts/notifications.ts",
+    "issues:backfill": "node --import tsx scripts/backfill-issues.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1148.0",

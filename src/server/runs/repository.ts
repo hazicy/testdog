@@ -1,3 +1,4 @@
+import { createIssuesForFailedRun } from '@/server/issues/repository';
 import type { Plan } from '@/automation/compiler/schema';
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { storeArtifactFile } from './artifactStorage';
@@ -395,6 +396,7 @@ export async function finishRun(
         durationMs: sql`greatest(0, round(extract(epoch from (${finishedAt}::timestamptz - ${runSteps.startedAt})) * 1000))::integer`,
       })
       .where(and(eq(runSteps.runId, id), eq(runSteps.status, 'running')));
+    await createIssuesForFailedRun(id, tx);
   });
 }
 

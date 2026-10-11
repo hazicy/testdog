@@ -314,3 +314,109 @@ it('enforces authentication, ownership, input validation and idempotency through
   expect(two.run.id).toBe(one.run.id);
   expect(await db.select().from(issueVerifications)).toHaveLength(1);
 });
+
+it('automatically creates an issue with evidence, deduplicates repeated calls and shares repeat failures', async () => {
+  const { createIssuesForFailedRun } = await import('./repository');
+  const source = await fixture();
+
+  await db.transaction((tx) => createIssuesForFailedRun(source.run.id, tx));
+  await db.transaction((tx) => createIssuesForFailedRun(source.run.id, tx));
+  const [created] = await db.select().from(issues);
+
+  expect(created).toMatchObject({ userId: 'alice', category: 'product', status: 'open' });
+  expect(await db.select().from(issues)).toHaveLength(1);
+  const detail = await getIssue(created.id, 'alice');
+
+  expect(detail.occurrences).toHaveLength(1);
+  expect(detail.occurrences[0].snapshot).toMatchObject({
+    error: '实际为120',
+    reproduction: ['金额为100'],
+    runStatus: 'failed',
+  });
+  expect(detail.occurrences[0].snapshot.artifacts[0]).not.toHaveProperty('path');
+  const [repeat] = await db
+    .insert(testRuns)
+    .values({
+      userId: 'alice',
+      testId: source.test.id,
+      name: source.run.name,
+      goal: source.run.goal,
+      url: source.run.url,
+      status: 'failed',
+    })
+    .returning();
+
+  await db.insert(runSteps).values({ ...source.step, id: randomUUID(), runId: repeat.id });
+  await db.transaction((tx) => createIssuesForFailedRun(repeat.id, tx));
+  expect(await db.select().from(issues)).toHaveLength(1);
+  expect((await getIssue(created.id, 'alice')).occurrences).toHaveLength(2);
+  const page = await listIssues({ limit: 50, q: '', status: 'all', cursor: undefined }, 'alice', {
+    sort: 'last_seen',
+    platform: 'web',
+    days: 1,
+  });
+
+  expect(page.issues[0]).toMatchObject({ runCount: 2, latestOccurrence: { runId: repeat.id } });
+  expect(
+    (
+      await listIssues({ limit: 50, q: '', status: 'all', cursor: undefined }, 'alice', {
+        platform: 'android',
+      })
+    ).issues,
+  ).toHaveLength(0);
+});
+
+it('ignores successful and cancelled runs, creates execution failures, and respects ownership and closed issues', async () => {
+  const { createIssuesForFailedRun } = await import('./repository');
+  const source = await fixture();
+
+  for (const status of ['passed', 'cancelled'] as const) {
+    await db.update(testRuns).set({ status }).where(eq(testRuns.id, source.run.id));
+    await db.transaction((tx) => createIssuesForFailedRun(source.run.id, tx));
+  }
+
+  expect(await db.select().from(issues)).toHaveLength(0);
+  await db.update(testRuns).set({ status: 'failed' }).where(eq(testRuns.id, source.run.id));
+  await db.transaction((tx) => createIssuesForFailedRun(source.run.id, tx));
+  const [created] = await db.select().from(issues);
+
+  await updateIssue(created.id, { version: 1, status: 'closed', closeReason: 'fixed' }, 'alice');
+  const [repeat] = await db
+    .insert(testRuns)
+    .values({
+      userId: 'alice',
+      testId: source.test.id,
+      name: source.run.name,
+      goal: source.run.goal,
+      url: source.run.url,
+      status: 'failed',
+    })
+    .returning();
+
+  await db.insert(runSteps).values({ ...source.step, id: randomUUID(), runId: repeat.id });
+  await db.transaction((tx) => createIssuesForFailedRun(repeat.id, tx));
+  expect(await db.select().from(issues)).toHaveLength(2);
+  const foreign = await fixture('bob');
+
+  await db.transaction((tx) => createIssuesForFailedRun(foreign.run.id, tx));
+  expect(
+    (await listIssues({ limit: 50, q: '', status: 'all', cursor: undefined }, 'bob')).issues,
+  ).toHaveLength(1);
+  const [infra] = await db
+    .insert(testRuns)
+    .values({
+      userId: 'alice',
+      name: '设备启动',
+      goal: '启动应用',
+      url: '',
+      status: 'failed',
+      error: '设备不可用',
+    })
+    .returning();
+
+  await db.transaction((tx) => createIssuesForFailedRun(infra.id, tx));
+  const [infraIssue] = (await db.select().from(issues)).filter((item) => item.title === '设备启动');
+
+  expect(infraIssue.category).toBe('execution');
+  expect((await getIssue(infraIssue.id, 'alice')).occurrences[0].stepId).toBeNull();
+});

@@ -23,6 +23,7 @@ import { BrowserLogPanel } from './BrowserLogPanel';
 import { RunLogs } from './RunLogs';
 import { StepDetails } from './StepDetails';
 import { RunSnapshot } from './RunSnapshot';
+import { RunIssues } from '@/features/issues/components/RunIssues';
 import { IssueEditor } from '@/features/issues/components/IssueEditor';
 
 import './run-studio.css';
@@ -339,6 +340,7 @@ export function RunDetail({ id }: { id: string }) {
           setIssueOpen(true);
         }}
       />
+      {run?.status === 'failed' && <RunIssues runId={id} />}
       {run?.evidenceComplete === false && (
         <p role="alert" className="studio-alert">
           本次执行的证据归档不完整，请查看执行错误。

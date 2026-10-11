@@ -268,3 +268,102 @@ test('reports an execution failure before any step exists', async ({ page }) => 
   await page.getByRole('button', { name: '保存问题', exact: true }).click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
 });
+
+test('shows issue summaries and filters environment, date and ordering', async ({
+  page,
+}, testInfo) => {
+  const queries: URL[] = [];
+
+  await page.route('**/api/issues?*', (route) => {
+    queries.push(new URL(route.request().url()));
+
+    return route.fulfill({
+      json: {
+        issues: [
+          {
+            ...initial,
+            runCount: 2,
+            lastSeen: new Date().toISOString(),
+            latestOccurrence: occurrence,
+          },
+        ],
+        nextCursor: null,
+      },
+    });
+  });
+  await page.goto('/issues');
+  await expect(page.getByRole('link', { name: '订单金额错误', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '2', exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('issue-list.png'), fullPage: true });
+  await page.getByRole('combobox', { name: '筛选环境' }).click();
+  await page.getByRole('option', { name: 'Android', exact: true }).click();
+  await page.getByRole('combobox', { name: '筛选日期' }).click();
+  await page.getByRole('option', { name: '最近 7 天', exact: true }).click();
+  await page.getByRole('combobox', { name: '问题排序' }).click();
+  await page.getByRole('option', { name: '最近更新 ↓', exact: true }).click();
+  await expect
+    .poll(() =>
+      queries.some(
+        (url) =>
+          url.searchParams.get('platform') === 'android' &&
+          url.searchParams.get('days') === '7' &&
+          url.searchParams.get('sort') === 'updated',
+      ),
+    )
+    .toBe(true);
+});
+
+test('shows expected, actual and reproduction, copies a fix prompt and resolves the issue', async ({
+  page,
+  context,
+}, testInfo) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const detail: IssueDetail = {
+    issue: { ...initial },
+    occurrences: [
+      {
+        ...occurrence,
+        snapshot: {
+          ...occurrence.snapshot,
+          reproduction: ['打开订单页', '查看订单', '确认支付金额'],
+          durationMs: 32000,
+          runStatus: 'failed',
+        },
+      },
+    ],
+    events: [],
+    verifications: [],
+  };
+
+  await page.route(`**/api/issues/${issueId}`, (route) => {
+    if (route.request().method() === 'PATCH') {
+      const patch = route.request().postDataJSON();
+
+      detail.issue = {
+        ...detail.issue,
+        ...patch,
+        version: patch.version + 1,
+        closeReason:
+          patch.status === 'open' ? null : (patch.closeReason ?? detail.issue.closeReason),
+      };
+    }
+
+    return route.fulfill({
+      json: route.request().method() === 'PATCH' ? { issue: detail.issue } : detail,
+    });
+  });
+  await page.goto(`/issues/${issueId}`);
+  const latest = page.getByRole('region', { name: '最近出现' });
+
+  await expect(latest.getByText('订单金额为100', { exact: true })).toBeVisible();
+  await expect(latest.getByText('实际为120', { exact: true })).toBeVisible();
+  await expect(latest.getByText('查看订单', { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('issue-detail.png'), fullPage: true });
+  await page.getByRole('button', { name: '复制修复提示词', exact: true }).click();
+  await expect(page.getByRole('button', { name: '已复制修复提示词' })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('实际为120');
+  await page.getByRole('button', { name: '标记已解决', exact: true }).click();
+  await expect(page.getByText('关闭原因：已修复')).toBeVisible();
+  await page.getByRole('button', { name: '重新打开', exact: true }).click();
+  await expect(page.getByText('关闭原因：已修复')).toHaveCount(0);
+});

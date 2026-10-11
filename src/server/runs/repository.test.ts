@@ -469,3 +469,29 @@ it('snapshots an authored tree and clears it for a text goal override', async ()
 
   expect(overridden.plan).toBeUndefined();
 });
+
+it('commits an automatic issue when a failed run is finalized', async () => {
+  const { issues, issueOccurrences } = await import('@/db/schema');
+  const { db } = await import('@/db');
+  const { eq } = await import('drizzle-orm');
+  const run = await createRun({ case: '验证金额', url: input.url });
+
+  await insertStep({
+    ...pendingStep(run.id),
+    kind: 'assertion',
+    title: '金额为100',
+    assertion: { description: '金额为100' },
+    status: 'failed',
+    error: '实际为120',
+  });
+  await finishRun(run.id, 'failed', '实际为120');
+  const [occurrence] = await db
+    .select()
+    .from(issueOccurrences)
+    .where(eq(issueOccurrences.runId, run.id));
+
+  expect(occurrence).toBeDefined();
+  const [issue] = await db.select().from(issues).where(eq(issues.id, occurrence.issueId));
+
+  expect(issue).toMatchObject({ title: '金额为100', category: 'product', status: 'open' });
+});

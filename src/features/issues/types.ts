@@ -32,6 +32,10 @@ export type Issue = {
   version: number;
   createdAt: string;
   updatedAt: string;
+  runCount?: number;
+  lastSeen?: string;
+  firstSeen?: string;
+  latestOccurrence?: IssueOccurrence | null;
 };
 export type OccurrenceSnapshot = {
   name: string;
@@ -44,6 +48,11 @@ export type OccurrenceSnapshot = {
   artifacts: RunArtifact[];
   error?: string;
   nodeGoal?: string;
+  runStatus?: RunStatus;
+  startedAt?: string;
+  finishedAt?: string;
+  durationMs?: number;
+  reproduction?: string[];
 };
 export type IssueOccurrence = {
   id: string;

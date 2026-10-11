@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
-import { apiError } from '@/server/shared/http';
+import { apiError, validId } from '@/server/shared/http';
 import { readPage } from '@/server/shared/pagination';
 import { submitOnce } from '@/server/shared/idempotency';
 import { createIssue, listIssues } from '@/server/issues/repository';
@@ -10,7 +10,19 @@ export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   try {
-    return NextResponse.json(await listIssues(readPage(request), await requireUserId(request)));
+    const params = new URL(request.url).searchParams;
+    const runId = params.get('runId') ?? undefined;
+
+    if (runId) validId(runId);
+
+    return NextResponse.json(
+      await listIssues(readPage(request), await requireUserId(request), {
+        platform: params.get('platform') ?? 'all',
+        sort: params.get('sort') ?? 'last_seen',
+        runId,
+        days: params.has('days') ? Number(params.get('days')) : undefined,
+      }),
+    );
   } catch (error) {
     return apiError(error);
   }

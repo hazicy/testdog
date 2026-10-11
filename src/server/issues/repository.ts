@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   issues,
@@ -6,6 +6,7 @@ import {
   issueEvents,
   issueVerifications,
   testRuns,
+  testCases,
   runSteps,
   runArtifacts,
 } from '@/db/schema';
@@ -87,6 +88,22 @@ async function sourceSnapshot(tx: Tx, input: z.infer<typeof occurrenceInput>, us
           Object.entries(step).map(([key, value]) => [key, value ?? undefined]),
         ) as OccurrenceSnapshot['step'])
       : undefined,
+    runStatus: run.status,
+    startedAt: run.startedAt,
+    finishedAt: run.finishedAt ?? undefined,
+    durationMs: run.durationMs ?? undefined,
+    reproduction: (
+      await tx
+        .select({ title: runSteps.title })
+        .from(runSteps)
+        .where(
+          and(
+            eq(runSteps.runId, run.id),
+            step ? sql`${runSteps.sequence} <= ${step.sequence}` : undefined,
+          ),
+        )
+        .orderBy(runSteps.sequence)
+    ).map((item) => item.title),
     artifacts: artifacts.map((item) => ({ ...item, stepId: item.stepId ?? undefined })),
     error: (step ? step.error : run.error) ?? undefined,
     nodeGoal: planNode
@@ -99,11 +116,23 @@ async function sourceSnapshot(tx: Tx, input: z.infer<typeof occurrenceInput>, us
   return snapshot;
 }
 
-export async function listIssues(page: PageQuery, userId: UserScope) {
+export async function listIssues(
+  page: PageQuery,
+  userId: UserScope,
+  filters: { platform?: string; days?: number; sort?: string; runId?: string } = {},
+) {
+  if (filters.platform && !['all', 'web', 'android', 'ios'].includes(filters.platform))
+    throw new WorkspaceError('环境筛选无效。');
+  if (filters.days !== undefined && ![1, 7, 30].includes(filters.days))
+    throw new WorkspaceError('日期筛选无效。');
   if (page.status !== 'all' && !Object.hasOwn(issueStatuses, page.status))
     throw new WorkspaceError('问题状态无效。');
+  if (filters.sort && !['last_seen', 'updated'].includes(filters.sort))
+    throw new WorkspaceError('排序无效。');
+  const lastSeen = sql<string>`coalesce((select max(${issueOccurrences.createdAt}) from ${issueOccurrences} where ${issueOccurrences.issueId} = ${issues.id}), ${issues.createdAt})`;
+  const sortDate = filters.sort === 'last_seen' ? lastSeen : issues.updatedAt;
   const rows = await db
-    .select()
+    .select({ issue: issues, sortDate })
     .from(issues)
     .where(
       and(
@@ -111,22 +140,54 @@ export async function listIssues(page: PageQuery, userId: UserScope) {
         page.status !== 'all'
           ? eq(issues.status, page.status as keyof typeof issueStatuses)
           : undefined,
+        filters.runId
+          ? sql`exists (select 1 from ${issueOccurrences} where ${issueOccurrences.issueId} = ${issues.id} and ${issueOccurrences.runId} = ${filters.runId}::uuid)`
+          : undefined,
+        filters.platform && filters.platform !== 'all'
+          ? sql`exists (select 1 from ${issueOccurrences} where ${issueOccurrences.issueId} = ${issues.id} and coalesce(${issueOccurrences.snapshot}->'target'->>'platform', 'web') = ${filters.platform})`
+          : undefined,
+        filters.days
+          ? sql`coalesce((select max(${issueOccurrences.createdAt}) from ${issueOccurrences} where ${issueOccurrences.issueId} = ${issues.id}), ${issues.createdAt}) >= ${new Date(Date.now() - filters.days * 86400000).toISOString()}::timestamptz`
+          : undefined,
         page.q
           ? sql`concat_ws(' ', ${issues.title}, ${issues.description}) ilike ${searchPattern(page.q)}`
           : undefined,
         page.cursor
-          ? sql`(${issues.updatedAt}, ${issues.id}) < (${page.cursor.date}::timestamptz, ${page.cursor.id}::uuid)`
+          ? sql`(${sortDate}, ${issues.id}) < (${page.cursor.date}::timestamptz, ${page.cursor.id}::uuid)`
           : undefined,
       ),
     )
-    .orderBy(desc(issues.updatedAt), desc(issues.id))
+    .orderBy(desc(sortDate), desc(issues.id))
     .limit(page.limit + 1);
   const items = rows.slice(0, page.limit);
   const last = items.at(-1);
 
+  const allOccurrences = items.length
+    ? await db
+        .select()
+        .from(issueOccurrences)
+        .where(
+          inArray(
+            issueOccurrences.issueId,
+            items.map((row) => row.issue.id),
+          ),
+        )
+        .orderBy(desc(issueOccurrences.createdAt), desc(issueOccurrences.id))
+    : [];
+
   return {
-    issues: items,
-    nextCursor: rows.length > page.limit && last ? pageCursor(last.updatedAt, last.id) : null,
+    issues: items.map(({ issue }) => {
+      const occurrences = allOccurrences.filter((item) => item.issueId === issue.id);
+
+      return {
+        ...issue,
+        runCount: new Set(occurrences.map((item) => item.runId)).size,
+        lastSeen: occurrences[0]?.createdAt ?? issue.createdAt,
+        firstSeen: occurrences.at(-1)?.createdAt ?? issue.createdAt,
+        latestOccurrence: occurrences[0] ?? null,
+      };
+    }),
+    nextCursor: rows.length > page.limit && last ? pageCursor(last.sortDate, last.issue.id) : null,
   };
 }
 
@@ -139,9 +200,13 @@ export async function createIssue(input: z.infer<typeof issueInput>, userId: Use
     .returning();
 
   if (source && snapshot)
-    await tx
-      .insert(issueOccurrences)
-      .values({ issueId: issue.id, runId: source.runId, stepId: source.stepId, snapshot });
+    await tx.insert(issueOccurrences).values({
+      issueId: issue.id,
+      runId: source.runId,
+      stepId: source.stepId,
+      snapshot,
+      createdAt: snapshot.finishedAt ?? snapshot.startedAt,
+    });
   await tx.insert(issueEvents).values({
     issueId: issue.id,
     kind: 'created',
@@ -204,7 +269,12 @@ export async function linkOccurrence(
     const snapshot = await sourceSnapshot(tx, occurrenceInput.parse(input), userId);
     const [occurrence] = await tx
       .insert(issueOccurrences)
-      .values({ issueId: id, ...input, snapshot })
+      .values({
+        issueId: id,
+        ...input,
+        snapshot,
+        createdAt: snapshot.finishedAt ?? snapshot.startedAt,
+      })
       .onConflictDoNothing()
       .returning();
 
@@ -299,4 +369,107 @@ export async function getIssue(id: string, userId: UserScope) {
   );
 
   return { issue, occurrences, events, verifications };
+}
+
+// Called inside the run finalization transaction, after all evidence is saved.
+export async function createIssuesForFailedRun(runId: string, tx: Tx) {
+  const [run] = await tx.select().from(testRuns).where(eq(testRuns.id, runId)).for('update');
+
+  if (!run || run.status !== 'failed') return;
+  // Serialize repeat failures of a saved case so concurrent runs share one open issue.
+  if (run.testId)
+    await tx
+      .select({ id: testCases.id })
+      .from(testCases)
+      .where(eq(testCases.id, run.testId))
+      .for('update');
+  const failures = await tx
+    .select()
+    .from(runSteps)
+    .where(and(eq(runSteps.runId, runId), eq(runSteps.status, 'failed')))
+    .orderBy(runSteps.sequence);
+  const [verification] = await tx
+    .select({ issueId: issueVerifications.issueId, snapshot: issueOccurrences.snapshot })
+    .from(issueVerifications)
+    .innerJoin(issueOccurrences, eq(issueOccurrences.id, issueVerifications.occurrenceId))
+    .where(eq(issueVerifications.runId, runId));
+
+  for (const step of failures.length ? failures : [undefined]) {
+    const source = { runId, ...(step ? { stepId: step.id } : {}) };
+    const [existingSource] = await tx
+      .select({ id: issueOccurrences.id })
+      .from(issueOccurrences)
+      .where(
+        and(
+          eq(issueOccurrences.runId, runId),
+          step ? eq(issueOccurrences.stepId, step.id) : sql`${issueOccurrences.stepId} is null`,
+        ),
+      );
+
+    if (existingSource) continue;
+    const category = step?.kind === 'assertion' ? 'product' : 'execution';
+    const snapshot = await sourceSnapshot(tx, source, run.userId);
+    const [matching] = run.testId
+      ? await tx
+          .select({ id: issues.id })
+          .from(issues)
+          .innerJoin(issueOccurrences, eq(issueOccurrences.issueId, issues.id))
+          .where(
+            and(
+              ownedBy(issues.userId, run.userId),
+              inArray(issues.status, ['open', 'in_progress', 'pending_verification']),
+              eq(issues.category, category),
+              sql`${issueOccurrences.snapshot}->>'testId' = ${run.testId}`,
+              sql`coalesce(${issueOccurrences.snapshot}->'step'->>'title', '') = ${step?.title ?? ''}`,
+              sql`coalesce(${issueOccurrences.snapshot}->'step'->>'planNodeId', '') = ${step?.planNodeId ?? ''}`,
+              sql`coalesce(${issueOccurrences.snapshot}->'step'->'assertion'->>'description', '') = ${step?.assertion?.description ?? ''}`,
+              sql`coalesce(${issueOccurrences.snapshot}->'target', 'null'::jsonb) = ${JSON.stringify(snapshot.target ?? null)}::jsonb`,
+            ),
+          )
+          .orderBy(desc(issues.updatedAt))
+          .limit(1)
+      : [];
+    const verificationMatches =
+      verification &&
+      (!verification.snapshot.step ||
+        (verification.snapshot.step.planNodeId === step?.planNodeId &&
+          verification.snapshot.step.title === step?.title &&
+          verification.snapshot.step.assertion?.description === step?.assertion?.description));
+    const issueId = (verificationMatches ? verification.issueId : undefined) ?? matching?.id;
+
+    if (issueId) {
+      await tx.insert(issueOccurrences).values({
+        issueId,
+        ...source,
+        snapshot,
+        createdAt: snapshot.finishedAt ?? snapshot.startedAt,
+      });
+      await tx
+        .update(issues)
+        .set({ version: sql`${issues.version} + 1`, updatedAt: new Date().toISOString() })
+        .where(eq(issues.id, issueId));
+      await tx
+        .insert(issueEvents)
+        .values({ issueId, kind: 'occurrence', message: `自动关联失败执行：${run.name}` });
+    } else {
+      await createIssue(
+        issueInput.parse({
+          title: (step?.title || run.name || '测试执行失败').slice(0, 200),
+          description: [
+            step?.assertion?.description && `预期：${step.assertion.description}`,
+            step?.evidence && `实际：${step.evidence}`,
+            step?.error || run.error,
+          ]
+            .filter(Boolean)
+            .join('\n')
+            .slice(0, 20000),
+          category,
+          severity: 'medium',
+          source,
+        }),
+        run.userId,
+        tx,
+      );
+    }
+  }
 }
