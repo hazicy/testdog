@@ -122,7 +122,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           tabIndex={-1}
           className={
             canvas
-              ? 'case-workspace-main'
+              ? 'h-[calc(100dvh-56px)] overflow-hidden'
               : workspaceIndex
                 ? 'workspace-index-main'
                 : 'px-4 py-7 sm:px-6 md:px-8 md:py-9'

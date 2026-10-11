@@ -64,8 +64,10 @@ test('field overrides and focus styles survive the shared Tailwind controls', as
   );
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
   const editor = page.locator('.case-canvas-page');
+
   await openSettings(editor);
   const name = editor.getByRole('textbox', { name: '测试名称', exact: true });
+
   await expect(name).toHaveCSS('min-height', '38px');
   await expect(name).toHaveCSS('margin-top', '8px');
   await name.focus();
