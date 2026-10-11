@@ -76,3 +76,20 @@ describe('canvas operations', () => {
     expect(() => updateNodeContent(fixture(), 'b', '')).toThrow();
   });
 });
+
+it('edits an attached assertion without changing its action or sibling assertions', () => {
+  const plan = fixture();
+  const action = plan.nodes.a;
+
+  if (action.kind !== 'task') throw new Error('Missing task');
+  action.assertions = [{ description: 'first' }, { description: 'second' }];
+  const original = structuredClone(plan);
+  const edited = updateNodeContent(plan, 'a', 'updated', 1);
+
+  expect(edited.nodes.a).toMatchObject({
+    goal: '填写操作步骤',
+    assertions: [{ description: 'first' }, { description: 'updated' }],
+  });
+  expect(plan).toEqual(original);
+  expect(() => updateNodeContent(plan, 'a', 'updated', 2)).toThrow();
+});

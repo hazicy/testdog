@@ -16,7 +16,7 @@ export const stepTypes = [
   { value: 'login', label: 'Login', description: '使用输入引用登录' },
   { value: 'files', label: 'Files', description: '打开或下载页面文件' },
   { value: 'screenshot', label: 'Screenshot', description: '保存当前画面截图' },
-  { value: 'group', label: 'Group', description: '组织一组步骤' },
+  { value: 'group', label: 'Group', description: '分组并排展示，组内顺序执行' },
   { value: 'branch', label: 'Branch', description: '根据条件选择路径' },
 ] as const;
 export type BoardStepType = StepType | 'group' | 'branch';

@@ -68,3 +68,12 @@ it('inserts all step types at the requested position and preserves them in text 
     ],
   ).toMatchObject({ children: ['branch-check'] });
 });
+
+it('rejects invalid insertion positions and existing IDs without overwriting nodes', () => {
+  const plan = emptyPlan('Root');
+
+  for (const index of [-1, 1, 0.5])
+    expect(() => insertStep(plan, { groupId: 'root', index }, 'act', 'new')).toThrow();
+  expect(() => insertStep(plan, { groupId: 'root', index: 0 }, 'act', 'root')).toThrow();
+  expect(plan.nodes.root).toMatchObject({ children: [] });
+});

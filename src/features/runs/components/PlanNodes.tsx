@@ -70,7 +70,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       data-review={data.review?.kind}
       className={`plan-node ${type} ${data.reference ? 'reference' : ''} ${editing ? 'active' : ''}`}
       onDragOver={(event) => {
-        if (data.editable && event.dataTransfer.types.includes(nodeDragType)) {
+        if (data.editable && data.mutable && event.dataTransfer.types.includes(nodeDragType)) {
           event.preventDefault();
           event.dataTransfer.dropEffect = 'move';
         }
@@ -78,7 +78,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       onDrop={(event) => {
         const id = event.dataTransfer.getData(nodeDragType);
 
-        if (id && data.editable) {
+        if (id && data.editable && data.mutable) {
           event.preventDefault();
           data.onDrop(id);
         }
@@ -149,7 +149,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           </button>
         </div>
       )}
-      <div className="plan-node-row nodrag nopan">
+      <div className="plan-node-row nodrag">
         <StepBadge type={type} />
         <div className="plan-node-content">
           {data.review?.kind === 'modified' && data.review.before && (

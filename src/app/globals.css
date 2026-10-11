@@ -895,6 +895,11 @@ body {
 .plan-board .plan-node.reference {
   border-style: dashed;
 }
+.plan-board .react-flow__node.selected .plan-node {
+  outline: 2px solid var(--plan-edge);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px #b6d2ff33;
+}
 .plan-board .plan-node.active {
   outline: 2px solid #b7c7d9;
   outline-offset: 3px;

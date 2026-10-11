@@ -4,7 +4,6 @@ import type { Insertion } from '@/features/test-cases/lib/authoring';
 export type LayoutNode = {
   id: string;
   planNodeId: string;
-  parentId?: string;
   reference: boolean;
   assertionIndex?: number;
   pathLabel?: string;
@@ -16,7 +15,7 @@ export type LayoutEdge = {
   id: string;
   source: string;
   target: string;
-  kind: 'dependency' | 'branch' | 'reference' | 'sequence';
+  kind: 'dependency' | 'branch' | 'reference' | 'sequence' | 'containment';
   label?: string;
 };
 export type LayoutInsertion = Insertion & { id: string; position: { x: number; y: number } };
@@ -25,23 +24,42 @@ export type PlanLayout = {
   edges: LayoutEdge[];
   insertions: LayoutInsertion[];
 };
-const WIDTH = 880,
-  GAP = 56;
+export const PLAN_ROW_WIDTH = 880;
+const WIDTH = PLAN_ROW_WIDTH,
+  GAP = 56,
+  COLUMN_GAP = 64;
 const text = (node: PlanNode) => (node.kind === 'branch' ? node.condition : node.goal);
 const height = (value: string) => Math.max(72, 40 + Math.ceil(value.length / 58) * 28);
 
-// Rows share one visual language in creation and execution. Groups are headers,
-// not giant containers; branch paths remain side by side and merge before the
-// next sibling. Hidden sequence boundaries preserve authored dependency semantics.
-export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
+// Consecutive visible groups use columns; tasks and hidden sequences use rows.
+// Visible group columns connect to their parent rather than to each other.
+// Column placement does not change authored execution order. Branch exits both
+// connect to the following step. Layout is a synchronous, UI-independent function.
+export function layoutPlan(plan: Plan): PlanLayout {
   const nodes: LayoutNode[] = [],
     edges: LayoutEdge[] = [],
     insertions: LayoutInsertion[] = [];
   const seen = new Set<string>();
-  const actual = new Map<string, { first?: string; last?: string }>();
+  const actual = new Map<string, { first?: string; exits: string[] }>();
   let reference = 0;
 
-  type Subtree = { first?: string; last?: string; bottom: number; right: number };
+  type Subtree = { first?: string; exits: string[]; bottom: number; right: number };
+
+  function connect(
+    sources: string[],
+    target: string | undefined,
+    kind: LayoutEdge['kind'],
+    id: string,
+  ) {
+    if (!target) return;
+    for (const source of sources) edges.push({ id: `${id}:${source}`, source, target, kind });
+  }
+
+  const column = (id: string) => {
+    const node = plan.nodes[id];
+
+    return node.kind === 'group' && !node.presentation;
+  };
 
   function slot(groupId: string, index: number, x: number, y: number) {
     insertions.push({
@@ -75,7 +93,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
         label: '引用',
       });
 
-      return { first: refId, last: refId, bottom: y + 72, right: x + WIDTH };
+      return { first: refId, exits: [refId], bottom: y + 72, right: x + WIDTH };
     }
 
     seen.add(id);
@@ -84,11 +102,11 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
     const rowId = `plan:${id}`;
     const rowHeight = height(text(node));
     let first: string | undefined = hidden ? undefined : rowId;
-    let last = first;
+    let exits = first ? [first] : [];
     let bottom = hidden ? y : y + rowHeight;
     let right = x + WIDTH;
 
-    actual.set(id, { first, last });
+    actual.set(id, { first, exits });
     if (!hidden)
       nodes.push({
         id: rowId,
@@ -100,22 +118,49 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
         height: rowHeight,
       });
     if (node.kind === 'group') {
-      slot(id, 0, x, hidden ? y - GAP / 2 : bottom + GAP / 2);
-      for (const [index, child] of node.children.entries()) {
-        const subtree = visit(child, x, hidden && index === 0 ? y : bottom + GAP);
+      if (!hidden) slot(id, 0, x, bottom + GAP / 2);
+      for (let index = 0; index < node.children.length;) {
+        const rowTop = hidden && index === 0 ? y : bottom + GAP;
+        let rowRight = x;
+        let rowBottom = rowTop;
+        const columns = column(node.children[index]);
+        const rowEntry = exits;
 
-        if (last && subtree.first)
-          edges.push({
-            id: `sequence:${id}:${index}`,
-            source: last,
-            target: subtree.first,
-            kind: 'sequence',
-          });
-        first ??= subtree.first;
-        last = subtree.last ?? last;
-        bottom = subtree.bottom;
-        right = Math.max(right, subtree.right);
-        slot(id, index + 1, x, bottom + GAP / 2);
+        do {
+          const subtree = visit(
+            node.children[index],
+            rowRight,
+            rowTop,
+            hidden && index === 0 ? pathLabel : undefined,
+          );
+
+          if (columns)
+            connect(
+              hidden ? rowEntry : [rowId],
+              subtree.first,
+              'containment',
+              `containment:${id}:${index}`,
+            );
+          else connect(exits, subtree.first, 'sequence', `sequence:${id}:${index}`);
+          first ??= subtree.first;
+          exits = subtree.exits.length ? subtree.exits : exits;
+          rowBottom = Math.max(rowBottom, subtree.bottom);
+          right = Math.max(right, subtree.right);
+          rowRight = subtree.right + COLUMN_GAP;
+          index++;
+          const nextColumn =
+            columns && index < node.children.length && column(node.children[index]);
+
+          if (!nextColumn) {
+            // Visible groups own their header insertion. Hidden groups delegate
+            // to their visible children. Neither needs a second parent slot.
+            if (plan.nodes[node.children[index - 1]].kind !== 'group')
+              slot(id, index, x, rowBottom + GAP / 2);
+            break;
+          }
+        } while (index < node.children.length);
+
+        bottom = rowBottom;
       }
 
       if (!node.children.length) bottom += GAP;
@@ -133,7 +178,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
       let no: Subtree | undefined;
 
       if (node.otherwise) {
-        no = visit(node.otherwise, yes.right + 64, y + rowHeight + GAP, 'NO / 条件不成立');
+        no = visit(node.otherwise, yes.right + COLUMN_GAP, y + rowHeight + GAP, 'NO / 条件不成立');
         if (no.first)
           edges.push({
             id: `otherwise:${id}`,
@@ -146,7 +191,7 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
 
       bottom = Math.max(yes.bottom, no?.bottom ?? 0);
       right = Math.max(yes.right, no?.right ?? 0);
-      last = yes.last ?? rowId;
+      exits = [...yes.exits, ...(no?.exits ?? [rowId])];
     } else if (node.actionType !== 'assert') {
       for (const [index, assertion] of node.assertions.entries()) {
         const assertionId = `assertion:${id}:${index}`;
@@ -163,16 +208,16 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
         });
         edges.push({
           id: `assert:${id}:${index}`,
-          source: last!,
+          source: exits[0],
           target: assertionId,
           kind: 'sequence',
         });
         bottom += GAP + rowHeight;
-        last = assertionId;
+        exits = [assertionId];
       }
     }
 
-    const result = { first, last, bottom, right };
+    const result = { first, exits, bottom, right };
 
     actual.set(id, result);
 
@@ -194,16 +239,12 @@ export async function layoutPlan(plan: Plan): Promise<PlanLayout> {
     if (!seen.has(id)) bottom = visit(id, 0, bottom + GAP).bottom;
   for (const node of Object.values(plan.nodes)) {
     for (const dependency of node.dependsOn) {
-      const source = actual.get(dependency)?.last,
-        target = actual.get(node.id)?.first;
-
-      if (source && target)
-        edges.push({
-          id: `dep:${JSON.stringify([dependency, node.id])}`,
-          source,
-          target,
-          kind: 'dependency',
-        });
+      connect(
+        actual.get(dependency)?.exits ?? [],
+        actual.get(node.id)?.first,
+        'dependency',
+        `dep:${JSON.stringify([dependency, node.id])}`,
+      );
     }
   }
 

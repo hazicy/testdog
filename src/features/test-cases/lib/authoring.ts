@@ -118,7 +118,16 @@ export function insertStep(
 ): Plan {
   const group = plan.nodes[insertion.groupId];
 
-  if (group?.kind !== 'group') throw new Error('请选择有效的插入位置');
+  if (
+    group?.kind !== 'group' ||
+    !Number.isInteger(insertion.index) ||
+    insertion.index < 0 ||
+    insertion.index > group.children.length
+  )
+    throw new Error('请选择有效的插入位置');
+  const createdIds = type === 'branch' ? [id, `${id}:then`, `${id}:otherwise`] : [id];
+
+  if (createdIds.some((ref) => Object.hasOwn(plan.nodes, ref))) throw new Error('节点 ID 已存在');
   const nodes = { ...plan.nodes };
   const labels = {
     act: '填写操作步骤',

@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { PlanSchema } from '@/automation/compiler/schema';
 import { layoutPlan } from './planLayout';
+import { emptyPlan, insertStep } from '@/features/test-cases/lib/authoring';
 
 const task = (id: string, dependsOn: string[] = []) => ({
   id,
@@ -52,7 +53,7 @@ it('lays out nested groups, shared branch targets and cross-group dependencies w
   for (const node of nodes) {
     expect(Number.isFinite(node.position.x) && Number.isFinite(node.position.y)).toBe(true);
     for (const other of nodes) {
-      if (node === other || node.parentId !== other.parentId) continue;
+      if (node === other) continue;
       const separated =
         node.position.x + node.width <= other.position.x ||
         other.position.x + other.width <= node.position.x ||
@@ -126,4 +127,171 @@ it('connects group children vertically in authored execution order', async () =>
   expect(layout.edges).toContainEqual(
     expect.objectContaining({ source: b.id, target: a.id, kind: 'sequence' }),
   );
+});
+
+const group = (id: string, children: string[] = []) => ({
+  id,
+  kind: 'group',
+  goal: id,
+  children,
+  dependsOn: [],
+});
+
+it('places consecutive groups in columns and reserves the full subtree width and height', () => {
+  const plan = PlanSchema.parse({
+    rootId: 'root',
+    nodes: {
+      root: group('root', ['left', 'right', 'after']),
+      left: group('left', ['branch']),
+      right: group('right', ['short']),
+      branch: {
+        id: 'branch',
+        kind: 'branch',
+        condition: 'Ready?',
+        then: 'yes',
+        otherwise: 'no',
+        dependsOn: [],
+      },
+      yes: task('yes'),
+      no: task('no'),
+      short: task('short'),
+      after: task('after'),
+    },
+  });
+  const original = structuredClone(plan);
+  const layout = layoutPlan(plan);
+  const row = (id: string) => layout.nodes.find((node) => node.planNodeId === id)!;
+
+  expect(row('left').position.y).toBe(row('right').position.y);
+  expect(row('right').position.x).toBeGreaterThan(row('no').position.x + row('no').width);
+  expect(row('after').position.y).toBeGreaterThan(row('no').position.y + row('no').height);
+  expect(layout.edges).toContainEqual(
+    expect.objectContaining({
+      source: row('root').id,
+      target: row('right').id,
+      kind: 'containment',
+    }),
+  );
+  expect(
+    layout.insertions.filter((slot) => slot.groupId === 'root').map((slot) => slot.index),
+  ).toEqual([0, 3]);
+  expect(plan).toEqual(original);
+  expect(layoutPlan(plan)).toEqual(layout);
+});
+
+it('keeps hidden sequence groups vertical, including their following siblings', () => {
+  const layout = layoutPlan(
+    PlanSchema.parse({
+      rootId: 'root',
+      nodes: {
+        root: group('root', ['first', 'second']),
+        first: { ...group('first', ['a']), presentation: 'sequence' },
+        second: { ...group('second', ['b']), presentation: 'sequence' },
+        a: task('a'),
+        b: task('b'),
+      },
+    }),
+  );
+  const a = layout.nodes.find((node) => node.planNodeId === 'a')!;
+  const b = layout.nodes.find((node) => node.planNodeId === 'b')!;
+
+  expect(a.position.x).toBe(b.position.x);
+  expect(b.position.y).toBeGreaterThan(a.position.y + a.height);
+  expect(
+    layout.nodes.some((node) => node.planNodeId === 'first' || node.planNodeId === 'second'),
+  ).toBe(false);
+});
+
+it.each([true, false])(
+  'merges branch exits before subsequent steps (otherwise: %s)',
+  (otherwise) => {
+    const layout = layoutPlan(
+      PlanSchema.parse({
+        rootId: 'root',
+        nodes: {
+          root: group('root', ['branch', 'after']),
+          branch: {
+            id: 'branch',
+            kind: 'branch',
+            condition: 'Ready?',
+            then: 'yes',
+            ...(otherwise ? { otherwise: 'no' } : {}),
+            dependsOn: [],
+          },
+          yes: task('yes'),
+          ...(otherwise ? { no: task('no') } : {}),
+          after: task('after', ['branch']),
+        },
+      }),
+    );
+
+    for (const kind of ['sequence', 'dependency'])
+      expect(
+        layout.edges
+          .filter((edge) => edge.kind === kind && edge.target === 'plan:after')
+          .map((edge) => edge.source),
+      ).toEqual(['plan:yes', otherwise ? 'plan:no' : 'plan:branch']);
+  },
+);
+
+it('connects groups inserted at the parent first slot to that parent, not to their sibling', () => {
+  let plan = emptyPlan('Root');
+
+  plan = insertStep(plan, { groupId: 'root', index: 0 }, 'group', 'existing');
+  plan = insertStep(plan, { groupId: 'root', index: 0 }, 'group', 'new');
+  plan = insertStep(plan, { groupId: 'new', index: 0 }, 'act', 'child');
+  const layout = layoutPlan(plan);
+
+  for (const target of ['plan:new', 'plan:existing']) {
+    expect(layout.edges.filter((edge) => edge.target === target)).toEqual([
+      expect.objectContaining({ source: 'plan:root', target, kind: 'containment' }),
+    ]);
+  }
+
+  expect(layout.edges).toContainEqual(
+    expect.objectContaining({ source: 'plan:new', target: 'plan:child', kind: 'sequence' }),
+  );
+  expect(plan.nodes.root).toMatchObject({ children: ['new', 'existing'] });
+});
+
+it('shows exactly one insertion per visible group, with none between or after sibling groups', () => {
+  const layout = layoutPlan(
+    PlanSchema.parse({
+      rootId: 'root',
+      nodes: {
+        root: group('root', ['left', 'right']),
+        left: group('left'),
+        right: group('right'),
+      },
+    }),
+  );
+
+  expect(layout.insertions.map(({ groupId, index }) => ({ groupId, index }))).toEqual([
+    { groupId: 'root', index: 0 },
+    { groupId: 'left', index: 0 },
+    { groupId: 'right', index: 0 },
+  ]);
+});
+
+it('does not duplicate insertion points at hidden sequence boundaries', () => {
+  const layout = layoutPlan(
+    PlanSchema.parse({
+      rootId: 'root',
+      nodes: {
+        root: group('root', ['hidden']),
+        hidden: { ...group('hidden', ['a', 'b']), presentation: 'sequence' },
+        a: task('a'),
+        b: task('b'),
+      },
+    }),
+  );
+
+  expect(layout.insertions.map(({ groupId, index }) => ({ groupId, index }))).toEqual([
+    { groupId: 'root', index: 0 },
+    { groupId: 'hidden', index: 1 },
+    { groupId: 'hidden', index: 2 },
+  ]);
+  const positions = layout.insertions.map((slot) => JSON.stringify(slot.position));
+
+  expect(new Set(positions).size).toBe(positions.length);
 });

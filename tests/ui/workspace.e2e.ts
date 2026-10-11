@@ -1402,3 +1402,172 @@ test('converts text to independent action and assertion cards and preserves fail
   await expect(page.getByRole('menu')).toBeHidden();
   await expect(dialog).toBeVisible();
 });
+
+test('adds adjacent groups as columns with independent insertion points', async ({
+  page,
+}, testInfo) => {
+  await page.route('**/api/tests*', (route) =>
+    route.fulfill({ json: { tests: [], nextCursor: null } }),
+  );
+  const errors: string[] = [];
+
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  const canvas = page.locator('.case-canvas-page');
+
+  for (const index of [1, 1]) {
+    await canvas
+      .getByRole('button', { name: `在 root 的第 ${index} 个位置添加节点`, exact: true })
+      .click();
+    await page
+      .getByRole('menuitem')
+      .filter({ hasText: /^Group/ })
+      .click();
+  }
+
+  const groups = canvas.locator('[data-step-type=group]:not([data-plan-node=root])');
+
+  await expect(groups).toHaveCount(2);
+  await expect(canvas.locator('.step-insert-trigger')).toHaveCount(3);
+  await canvas.screenshot({ path: testInfo.outputPath('group-insertions.png') });
+  await expect
+    .poll(async () => {
+      const left = await groups.nth(0).boundingBox();
+      const right = await groups.nth(1).boundingBox();
+
+      return !!left && !!right && Math.abs(left.y - right.y) < 2 && right.x > left.x + left.width;
+    })
+    .toBe(true);
+  const leftId = (await groups.nth(0).getAttribute('data-plan-node'))!;
+  const rightId = (await groups.nth(1).getAttribute('data-plan-node'))!;
+
+  for (const index of [0, 1])
+    await expect(
+      canvas.locator(`[data-testid="rf__edge-containment:root:${index}:plan:root"]`),
+    ).toHaveCount(1);
+
+  await groups.nth(0).hover();
+  await groups
+    .nth(0)
+    .getByRole('button', { name: `复制节点 ${leftId}`, exact: true })
+    .click();
+  await expect(groups).toHaveCount(3);
+  await expect(canvas.locator('.step-insert-trigger')).toHaveCount(4);
+  const copyId = (await groups.nth(1).getAttribute('data-plan-node'))!;
+
+  await groups.nth(1).hover();
+  await groups
+    .nth(1)
+    .getByRole('button', { name: `删除节点 ${copyId}`, exact: true })
+    .click();
+  await expect(groups).toHaveCount(2);
+  await expect(canvas.locator('.step-insert-trigger')).toHaveCount(3);
+
+  for (const id of [leftId, rightId]) {
+    await canvas
+      .getByRole('button', { name: `在 ${id} 的第 1 个位置添加节点`, exact: true })
+      .click();
+    await page.getByRole('menuitem').filter({ hasText: /^Act/ }).click();
+  }
+
+  const tasks = canvas.locator('[data-step-type=act]');
+
+  await expect(tasks).toHaveCount(2);
+  await expect
+    .poll(async () => {
+      const left = await tasks.nth(0).boundingBox();
+      const right = await tasks.nth(1).boundingBox();
+
+      return !!left && !!right && Math.abs(left.y - right.y) < 2 && right.x > left.x + left.width;
+    })
+    .toBe(true);
+  // Inserting a task between the groups restores their sequential rows.
+  await canvas.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
+  await page.getByRole('combobox', { name: '插入位置', exact: true }).selectOption('1');
+  await page
+    .getByRole('menuitem')
+    .filter({ hasText: /^Assert/ })
+    .click();
+  await expect
+    .poll(async () => {
+      const left = await groups.nth(0).boundingBox();
+      const right = await groups.nth(1).boundingBox();
+
+      return !!left && !!right && right.y > left.y + left.height && Math.abs(left.x - right.x) < 2;
+    })
+    .toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('left mouse selects nodes and middle mouse pans the board', async ({ page }) => {
+  const task = (id: string) => ({
+    id,
+    kind: 'task' as const,
+    goal: id,
+    dependsOn: [],
+    requirementIds: [],
+    assertions: [],
+  });
+  const plan = {
+    rootId: 'root',
+    nodes: {
+      root: { id: 'root', kind: 'group', goal: '选择测试', children: ['a', 'b'], dependsOn: [] },
+      a: task('a'),
+      b: task('b'),
+    },
+  };
+
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
+    route.fulfill({
+      json: { run: { ...run, plan } },
+    }),
+  );
+  await page.goto(`/runs/${run.id}`);
+  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  const board = page.locator('.plan-viewport');
+  const flowViewport = board.locator('.react-flow__viewport');
+  const a = board.locator('[data-testid="rf__node-plan:a"]');
+  const b = board.locator('[data-testid="rf__node-plan:b"]');
+
+  await a.locator('.step-badge').click();
+  await expect(a).toHaveClass(/selected/);
+  const bounds = (await board.boundingBox())!;
+  const transform = await flowViewport.getAttribute('style');
+
+  await page.mouse.move(bounds.x + 20, bounds.y + 20);
+  await page.mouse.down({ button: 'left' });
+  await page.mouse.move(bounds.x + 90, bounds.y + 70, { steps: 5 });
+  await page.mouse.up({ button: 'left' });
+  expect(await flowViewport.getAttribute('style')).toBe(transform);
+
+  await page.mouse.move(bounds.x + 20, bounds.y + 20);
+  await page.mouse.down({ button: 'middle' });
+  await page.mouse.move(bounds.x + 90, bounds.y + 70, { steps: 5 });
+  await page.mouse.up({ button: 'middle' });
+  await expect.poll(() => flowViewport.getAttribute('style')).not.toBe(transform);
+
+  const badge = (await a.locator('.step-badge').boundingBox())!;
+  const panned = await flowViewport.getAttribute('style');
+
+  await page.mouse.move(badge.x + badge.width / 2, badge.y + badge.height / 2);
+  await page.mouse.down({ button: 'middle' });
+  await page.mouse.move(badge.x + badge.width / 2 - 30, badge.y + badge.height / 2, { steps: 5 });
+  await page.mouse.up({ button: 'middle' });
+  await expect.poll(() => flowViewport.getAttribute('style')).not.toBe(panned);
+
+  await page.getByRole('button', { name: '全览画板', exact: true }).click();
+  await expect.poll(() => flowViewport.getAttribute('style')).toBe(transform);
+  const aBounds = (await a.boundingBox())!;
+  const bBounds = (await b.boundingBox())!;
+
+  await page.mouse.move(aBounds.x - 10, aBounds.y - 10);
+  await page.mouse.down({ button: 'left' });
+  await page.mouse.move(bBounds.x + bBounds.width + 10, bBounds.y + bBounds.height + 10, {
+    steps: 8,
+  });
+  await page.mouse.up({ button: 'left' });
+  await expect(a).toHaveClass(/selected/);
+  await expect(b).toHaveClass(/selected/);
+});

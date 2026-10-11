@@ -27,8 +27,23 @@ const owner = (plan: Plan, id: string) =>
       node.kind === 'group' && node.children.includes(id),
   );
 
-export function updateNodeContent(plan: Plan, id: string, content: string): Plan {
+export function updateNodeContent(
+  plan: Plan,
+  id: string,
+  content: string,
+  assertionIndex?: number,
+): Plan {
   const node = plan.nodes[id];
+
+  if (assertionIndex !== undefined) {
+    if (node.kind !== 'task' || !node.assertions[assertionIndex]) throw new Error('无效的断言位置');
+    const assertions = node.assertions.map((assertion, index) =>
+      index === assertionIndex ? { ...assertion, description: content } : assertion,
+    );
+
+    return PlanSchema.parse({ ...plan, nodes: { ...plan.nodes, [id]: { ...node, assertions } } });
+  }
+
   const patch =
     node.kind === 'branch'
       ? { condition: content }
@@ -47,7 +62,7 @@ export function moveNode(plan: Plan, id: string, position: Insertion): Plan {
   const parent = owner(plan, id);
   const target = plan.nodes[position.groupId];
 
-  if (!parent || target.kind !== 'group') return plan;
+  if (!parent || target?.kind !== 'group') return plan;
   const nodes = structuredClone(plan.nodes);
   const oldIndex = parent.children.indexOf(id);
 
