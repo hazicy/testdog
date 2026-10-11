@@ -50,7 +50,7 @@ export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
     durationMs: optional(row.durationMs),
     error: optional(row.error),
     plan: optional(row.plan),
-    events: row.events,
+    events: [],
     browserLogs: [],
     replayable: row.replayable,
     cancelRequested: row.cancelRequested,
@@ -121,7 +121,7 @@ export async function getRun(
 
       if (!row) throw new WorkspaceError('执行记录不存在。', 404);
       const run = runRecord(row);
-      const [steps, artifacts, logs] = await Promise.all([
+      const [steps, artifacts, logs, events] = await Promise.all([
         tx.select().from(runSteps).where(eq(runSteps.runId, id)).orderBy(asc(runSteps.sequence)),
         tx
           .select()
@@ -135,10 +135,16 @@ export async function getRun(
               .from(runBrowserLogs)
               .where(eq(runBrowserLogs.runId, id))
               .orderBy(asc(runBrowserLogs.sequence)),
+        tx
+          .select({ at: automationRunEvents.at, message: automationRunEvents.message })
+          .from(automationRunEvents)
+          .where(eq(automationRunEvents.runId, id))
+          .orderBy(asc(automationRunEvents.sequence)),
       ]);
 
       return {
         ...run,
+        events: events.map((event) => ({ ...event, at: new Date(event.at).toISOString() })),
         steps: steps.map(stepRecord),
         artifacts: artifacts.map(artifactRecord),
         browserLogs: options.includeLogs === false ? undefined : logs.map((log) => log.data),
@@ -281,24 +287,23 @@ export async function createRun(
 
 export async function appendEvent(id: string, message: string) {
   return runWrite(id, async (tx) => {
-    const event = JSON.stringify([{ at: new Date().toISOString(), message }]);
-
-    await tx
-      .update(testRuns)
-      .set({ events: sql`${testRuns.events} || ${event}::jsonb` })
-      .where(eq(testRuns.id, id));
-
     const [run] = await tx
-      .select({
-        attempt: testRuns.attempt,
-        eventCount: sql<number>`jsonb_array_length(${testRuns.events})`,
-      })
+      .select({ attempt: testRuns.attempt })
       .from(testRuns)
       .where(eq(testRuns.id, id));
+    // runWrite holds the run lock, so concurrent appends cannot reuse a sequence.
+    const [last] = await tx
+      .select({ sequence: sql<number>`coalesce(max(${automationRunEvents.sequence}), 0)` })
+      .from(automationRunEvents)
+      .where(eq(automationRunEvents.runId, id));
 
-    await tx
-      .insert(automationRunEvents)
-      .values({ runId: id, attempt: run.attempt, sequence: run.eventCount, message });
+    await tx.insert(automationRunEvents).values({
+      runId: id,
+      attempt: run.attempt,
+      sequence: last.sequence + 1,
+      at: new Date().toISOString(),
+      message,
+    });
   });
 }
 

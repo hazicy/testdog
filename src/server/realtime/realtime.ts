@@ -123,15 +123,27 @@ export async function readRunUpdates(runId: string, revision: number): Promise<R
         steps: _steps,
         artifacts: _artifacts,
         browserLogs: _logs,
+        events: _events,
         ...data
       } = runRecord(row.data as typeof testRuns.$inferSelect);
 
       void _steps;
       void _artifacts;
       void _logs;
+      void _events;
 
       return { kind: 'run', revision, data };
     }
+
+    if (row.kind === 'event')
+      return {
+        kind: 'event',
+        revision,
+        data: {
+          at: new Date(row.data.at as string).toISOString(),
+          message: row.data.message as string,
+        },
+      };
 
     if (row.kind === 'step')
       return { kind: 'step', revision, data: stepRecord(row.data as typeof runSteps.$inferSelect) };

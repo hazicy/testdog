@@ -22,12 +22,7 @@ import {
 import { sql } from 'drizzle-orm';
 import type { RecordedAction } from '@/automation/platform/web/types';
 import type { Plan, Assertion } from '@/automation/compiler/schema';
-import type {
-  BrowserLog,
-  RunEvent,
-  ExecutionStep,
-  PlaywrightAssertion,
-} from '@/features/runs/types';
+import type { BrowserLog, ExecutionStep, PlaywrightAssertion } from '@/features/runs/types';
 
 export const authUsers = pgTable('auth_users', {
   id: text().primaryKey(),
@@ -139,7 +134,6 @@ export const testRuns = pgTable(
       enum: ['queued', 'preparing', 'running', 'finalizing', 'passed', 'failed', 'cancelled'],
     }).notNull(),
     plan: jsonb().$type<Plan>(),
-    events: jsonb().$type<RunEvent[]>().notNull().default([]),
     replayable: boolean().notNull().default(false),
     cancelRequested: boolean().notNull().default(false),
     workerId: text(),
@@ -337,7 +331,8 @@ export const automationRunEvents = pgTable(
     message: text().notNull(),
   },
   (table) => [
-    uniqueIndex('automation_event_sequence_unique').on(table.runId, table.attempt, table.sequence),
+    uniqueIndex('automation_event_sequence_unique').on(table.runId, table.sequence),
+    check('automation_event_sequence_check', sql`${table.sequence} > 0`),
   ],
 );
 

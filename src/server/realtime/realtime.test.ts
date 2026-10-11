@@ -99,3 +99,30 @@ it('retains pending notifications during a Redis outage and tolerates duplicate 
   ).toHaveLength(0);
   expect(await readRunUpdates(runId, 2)).toHaveLength(2);
 });
+
+it('publishes execution events once, preserves history on run deltas and rolls back event writes', async () => {
+  const at = '2026-10-11T00:00:00.123Z';
+
+  await database.client.query(
+    'INSERT INTO automation_run_events ("runId",attempt,sequence,at,message) VALUES ($1,1,1,$2,$3)',
+    [runId, at, 'Started'],
+  );
+  await database.client.query("UPDATE test_runs SET status = 'running' WHERE id = $1", [runId]);
+  await database.client.exec('BEGIN');
+  await database.client.query(
+    'INSERT INTO automation_run_events ("runId",attempt,sequence,message) VALUES ($1,1,2,$2)',
+    [runId, 'Rolled back'],
+  );
+  await database.client.exec('ROLLBACK');
+  const updates = await readRunUpdates(runId, 4);
+
+  expect(updates.map(({ kind, revision }) => [kind, revision])).toEqual([
+    ['event', 5],
+    ['run', 6],
+  ]);
+  expect(updates[0].data).toEqual({ at, message: 'Started' });
+  expect(updates[1].data).not.toHaveProperty('events');
+  expect(
+    (await database.client.query('SELECT summary FROM realtime_outbox WHERE revision > 4')).rows,
+  ).toEqual([{ summary: false }, { summary: true }]);
+});

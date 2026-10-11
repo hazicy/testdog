@@ -92,6 +92,38 @@ function pendingStep(runId: string) {
 }
 
 describe('PostgreSQL workspace repository', () => {
+  it('serializes concurrent events across attempts and rejects stale worker writes', async () => {
+    const run = await createRun({ case: 'Events', url: input.url });
+
+    await Promise.all([appendEvent(run.id, 'First'), appendEvent(run.id, 'Second')]);
+    await isolated.client!.query('UPDATE test_runs SET attempt = 2 WHERE id = $1', [run.id]);
+    await appendEvent(run.id, 'Retry');
+    const events = await isolated.client!.query<{
+      sequence: number;
+      attempt: number;
+      message: string;
+    }>(
+      'SELECT sequence,attempt,message FROM automation_run_events WHERE "runId"=$1 ORDER BY sequence',
+      [run.id],
+    );
+
+    expect(events.rows.map(({ sequence, attempt }) => [sequence, attempt])).toEqual([
+      [1, 1],
+      [2, 1],
+      [3, 2],
+    ]);
+    expect((await getRun(run.id)).events.map(({ message }) => message)).toEqual(
+      events.rows.map(({ message }) => message),
+    );
+    const lease = testLeases.get(run.id)!;
+
+    await expect(
+      withLease({ ...lease, fencingToken: lease.fencingToken + 1 }, () =>
+        appendClaimedEvent(run.id, 'Stale'),
+      ),
+    ).rejects.toThrow('Execution lease lost');
+    expect((await getRun(run.id)).events).toHaveLength(3);
+  });
   it('stores logs separately, tolerates retries, and rejects writes by stale workers', async () => {
     const run = await createRun({ case: 'Check', url: input.url });
     const log: import('@/features/runs/types').BrowserLog = {
