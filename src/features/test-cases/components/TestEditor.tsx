@@ -3,11 +3,10 @@
 import './test-editor.css';
 
 import { Button } from '@/components/ui/Button';
-import { buttonStyles } from '@/components/ui/buttonStyles';
-import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import { api } from '@/client/api';
+import { compilePlan } from '../lib/compilePlan';
 import { Icon } from '@iconify/react/offline';
 import { PlanBoard } from '@/features/runs/components/PlanBoard';
 import type { NodeReview } from '@/features/runs/components/PlanNodes';
@@ -22,6 +21,7 @@ import { testSchema } from '@/features/test-cases/schemas';
 import { caseName, goalUrl, editablePlan, emptyPlan, planText } from '../lib/authoring';
 import { clearCaseDraft, writeCaseDraft, type CaseDraft } from '../lib/caseDraft';
 import { CaseSettings } from './CaseSettings';
+import { CasePrompt } from './CasePrompt';
 import { initialCaseSettings, caseTarget, type CaseSettingsValue } from '../lib/caseSettings';
 import playIcon from '@iconify-icons/lucide/play';
 import saveIcon from '@iconify-icons/lucide/save';
@@ -31,7 +31,6 @@ import undoIcon from '@iconify-icons/lucide/undo-2';
 import collapseIcon from '@iconify-icons/lucide/chevron-up';
 import expandIcon from '@iconify-icons/lucide/chevron-down';
 import sparklesIcon from '@iconify-icons/lucide/sparkles';
-import arrowUpIcon from '@iconify-icons/lucide/arrow-up';
 
 export function TestEditor({
   test,
@@ -72,28 +71,8 @@ export function TestEditor({
   });
   const hasSteps = Object.values(plan.nodes).some((node) => node.kind === 'task');
   const [composerOpen, setComposerOpen] = useState(false);
-  const promptRef = useRef<HTMLTextAreaElement>(null);
   const canvasRef = useRef<HTMLElement>(null);
   const generateRef = useRef<HTMLButtonElement>(null);
-  const [promptHint, setPromptHint] = useState('');
-
-  useEffect(() => {
-    if (!composerOpen || goal) return;
-    const hint = hasSteps ? '补充登录后的验证' : '登录后，验证账号名称';
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let index = 0;
-    const timer = window.setInterval(
-      () => {
-        index = reduced ? hint.length : index + 1;
-        setPromptHint(hint.slice(0, index));
-        if (index >= hint.length) window.clearInterval(timer);
-      },
-      reduced ? 1 : 65,
-    );
-
-    return () => window.clearInterval(timer);
-  }, [composerOpen, goal, hasSteps]);
-
   const [candidate, setCandidate] = useState<{
     url: string;
     review: PlanReview;
@@ -139,17 +118,7 @@ export function TestEditor({
     setFormError('');
     try {
       const startUrl = platform === 'web' ? url.trim() || goalUrl(goal) : undefined;
-      const { plan: source } = await api
-        .post('/api/tests/compile', {
-          json: {
-            goal,
-            ...(startUrl ? { url: startUrl } : {}),
-            ...(hasSteps ? { currentPlan: plan } : {}),
-          },
-          timeout: 100000,
-          totalTimeout: 100000,
-        })
-        .json<{ plan: Plan }>();
+      const source = await compilePlan(goal, startUrl, hasSteps ? plan : undefined);
       const root = source.nodes[source.rootId];
       const title =
         !hasSteps && !nameChanged.current
@@ -469,71 +438,24 @@ export function TestEditor({
           </Button>
         </div>
       )}
-      <BaseDialog.Root open={composerOpen} onOpenChange={setComposerOpen}>
-        <BaseDialog.Portal container={canvasRef}>
-          <BaseDialog.Backdrop className="case-prompt-backdrop" />
-          <BaseDialog.Popup
-            id="case-prompt-section"
-            className="case-prompt-overlay"
-            initialFocus={promptRef}
-            finalFocus={generateRef}
-            aria-busy={compiling}
-          >
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                void compile();
-              }}
-            >
-              <div className="case-prompt-heading">
-                <BaseDialog.Title className="sr-only">
-                  {hasSteps ? '调整步骤' : '描述测试'}
-                </BaseDialog.Title>
-                <BaseDialog.Close
-                  className={buttonStyles({ variant: 'ghost', size: 'icon' })}
-                  aria-label="关闭描述输入"
-                >
-                  ×
-                </BaseDialog.Close>
-              </div>
-              <textarea
-                ref={promptRef}
-                id="case-prompt"
-                name="caseText"
-                aria-label="测试步骤与预期结果"
-                className="case-prompt-input"
-                maxLength={20000}
-                value={goal}
-                disabled={busy}
-                placeholder={promptHint}
-                onChange={(event) => setGoal(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                    event.preventDefault();
-                    void compile();
-                  }
-                }}
-              />
-              {formError && (
-                <p role="alert" className="case-prompt-error">
-                  {formError}
-                </p>
-              )}
-              <div className="case-prompt-footer">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  title="⌘ / Ctrl + Enter"
-                  disabled={busy || !goal.trim()}
-                >
-                  {compiling ? '生成中…' : hasSteps ? '预览' : '生成'}
-                  <Icon icon={arrowUpIcon} width="14" aria-hidden="true" />
-                </Button>
-              </div>
-            </form>
-          </BaseDialog.Popup>
-        </BaseDialog.Portal>
-      </BaseDialog.Root>
+      <CasePrompt
+        open={composerOpen}
+        onOpenChange={setComposerOpen}
+        container={canvasRef}
+        finalFocus={generateRef}
+        title={hasSteps ? '调整步骤' : '描述测试'}
+        value={goal}
+        onChange={setGoal}
+        placeholder={
+          hasSteps
+            ? '描述要新增或修改的步骤，以及预期结果…'
+            : '描述测试步骤和预期结果，可附上网站地址…'
+        }
+        busy={busy}
+        error={formError}
+        submitLabel={hasSteps ? '预览' : '生成'}
+        onSubmit={compile}
+      />
     </section>
   );
 }

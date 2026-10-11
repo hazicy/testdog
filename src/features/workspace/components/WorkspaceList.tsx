@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
-import plusIcon from '@iconify-icons/lucide/plus';
 import searchIcon from '@iconify-icons/lucide/search';
 import filesIcon from '@iconify-icons/lucide/files';
 import historyIcon from '@iconify-icons/lucide/history';
@@ -139,15 +138,11 @@ export function WorkspaceList({
             >
               清除筛选
             </Button>
-          ) : isTests ? (
-            <Button size="sm" variant="primary" className="mt-6" onClick={() => openEditor()}>
-              <Icon icon={plusIcon} width="18" aria-hidden="true" /> 新建测试
-            </Button>
-          ) : (
+          ) : !isTests ? (
             <Link href="/cases" className={buttonStyles({ size: 'sm', className: 'mt-6' })}>
               浏览测试 <Icon icon={chevronIcon} width="14" aria-hidden="true" />
             </Link>
-          )}
+          ) : null}
         </div>
       ) : (
         <div>

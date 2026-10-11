@@ -3,7 +3,7 @@
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import type { TestRun, RunSummary } from '@/features/runs/types';
 import { downloadRunReport } from '@/client/download';
@@ -11,11 +11,16 @@ import { writeCaseDraft } from '@/features/test-cases/lib/caseDraft';
 import { editablePlan, emptyPlan, caseName } from '@/features/test-cases/lib/authoring';
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
 import { RunMatrixDialog } from '@/features/test-cases/components/RunMatrixDialog';
+import { QuickCreateDialog } from '@/features/test-cases/components/QuickCreateDialog';
+import { Icon } from '@iconify/react/offline';
+import plusIcon from '@iconify-icons/lucide/plus';
+import sparklesIcon from '@iconify-icons/lucide/sparkles';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { WorkspaceList } from './WorkspaceList';
 import './workspace-index.css';
 
 export function Workspace({ view }: { view: 'tests' | 'results' }) {
+  const promptContainer = useRef<HTMLElement>(null);
   const isTests = view === 'tests';
   const data = useWorkspaceData(isTests);
   const { tests, runs, loading, error, setError, latestRuns, running, connected, refresh } = data;
@@ -27,6 +32,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const [deleting, setDeleting] = useState<TestCase | null>(null);
   const [matrixTest, setMatrixTest] = useState<TestCase | null>(null);
   const [matrixError, setMatrixError] = useState('');
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const selectedId = params.get('run');
 
   useEffect(() => {
@@ -98,7 +104,12 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   }
 
   return (
-    <div className="workspace-index mx-auto max-w-[1500px]">
+    <div
+      ref={(element) => {
+        promptContainer.current = element?.closest<HTMLElement>('#main-content') ?? null;
+      }}
+      className="workspace-index mx-auto max-w-[1500px]"
+    >
       <h1 className="sr-only">{isTests ? '测试用例' : '执行记录'}</h1>
       {error && (
         <div
@@ -117,6 +128,20 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         </div>
       )}
       <WorkspaceList
+        actions={
+          isTests ? (
+            <>
+              <Button size="sm" onClick={() => setQuickCreateOpen(true)}>
+                <Icon icon={sparklesIcon} width="16" aria-hidden="true" />
+                快速创建
+              </Button>
+              <Button size="sm" variant="primary" onClick={() => openEditor()}>
+                <Icon icon={plusIcon} width="16" aria-hidden="true" />
+                新建测试
+              </Button>
+            </>
+          ) : undefined
+        }
         query={data.query}
         setQuery={data.setQuery}
         filter={data.filter}
@@ -141,6 +166,9 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         start={start}
         exportRun={exportRun}
       />
+      {quickCreateOpen && (
+        <QuickCreateDialog container={promptContainer} onClose={() => setQuickCreateOpen(false)} />
+      )}
       {matrixTest && (
         <RunMatrixDialog
           test={matrixTest}

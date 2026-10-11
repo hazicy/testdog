@@ -102,7 +102,7 @@
   width: 100%;
   min-height: 0;
   max-height: none;
-  padding: 48px 56px 110px;
+  padding: 24px 40px 80px;
   border: 0;
   outline: none;
   resize: none;
@@ -180,15 +180,15 @@
 .case-prompt-error {
   position: absolute;
   bottom: 80px;
-  left: 56px;
-  right: 56px;
+  left: 24px;
+  right: 24px;
   color: var(--error-ink);
   font-size: 12px;
 }
 
 @media (max-width: 600px) {
   .case-prompt-input {
-    padding: 52px 24px 110px;
+    padding: 24px 40px 80px;
   }
   .case-prompt-error {
     left: 24px;

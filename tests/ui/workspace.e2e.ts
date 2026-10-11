@@ -513,6 +513,85 @@ test('exports complete reports from both history and detail, and allows retry af
   expect(JSON.parse(await readFile((await (await detailDownload).path())!, 'utf8'))).toEqual(run);
 });
 
+test('quick creation preserves failed prompts and opens generated nodes in the canvas', async ({
+  page,
+}) => {
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
+    route.fulfill({ json: { tests: [saved] } }),
+  );
+  let fail = true;
+  let payload: unknown;
+
+  await page.route('**/api/tests/compile', (route) => {
+    payload = route.request().postDataJSON();
+
+    return route.fulfill(
+      fail
+        ? { status: 502, json: { message: '步骤生成失败' } }
+        : {
+            json: {
+              plan: {
+                rootId: 'login',
+                nodes: {
+                  login: {
+                    id: 'login',
+                    kind: 'task',
+                    goal: '点击登录',
+                    dependsOn: [],
+                    requirementIds: [],
+                    assertions: [{ description: '显示邮箱表单' }],
+                  },
+                },
+              },
+            },
+          },
+    );
+  });
+  await page.goto('/cases');
+  await expect(page.getByRole('button', { name: '新建测试', exact: true })).toBeVisible();
+  const trigger = page.getByRole('button', { name: '快速创建', exact: true });
+
+  await trigger.click();
+  const dialog = page.getByRole('dialog', { name: '快速创建' });
+  const input = dialog.getByRole('textbox', { name: '测试步骤与预期结果' });
+  const generate = dialog.getByRole('button', { name: '生成', exact: true });
+
+  await expect(dialog).toHaveClass('case-prompt-overlay');
+  await expect(input).toHaveClass('case-prompt-input');
+  const popupBounds = await dialog.boundingBox();
+  const contentBounds = await page.locator('#main-content').boundingBox();
+
+  expect(popupBounds!.x).toBe(contentBounds!.x);
+  expect(popupBounds!.y).toBe(contentBounds!.y);
+  expect(popupBounds!.width).toBe(contentBounds!.width);
+  await expect(input).toHaveCSS('padding-left', '40px');
+
+  await expect(input).toBeFocused();
+  await expect(generate).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  const goal = '打开 https://example.com，点击登录，验证显示邮箱表单';
+
+  await input.fill(goal);
+  await generate.click();
+  await expect(dialog.getByRole('alert')).toHaveText('步骤生成失败');
+  await expect(input).toHaveValue(goal);
+  await expect(page).toHaveURL(/\/cases$/);
+  fail = false;
+  await input.press('Control+Enter');
+  await expect(page).toHaveURL(/\/cases\/editor\//);
+  const canvas = page.getByRole('region', { name: '测试画板' });
+
+  await expect(canvas.locator('[data-step-type=act]')).toContainText('点击登录');
+  await expect(canvas.locator('[data-step-type=assert]')).toContainText('显示邮箱表单');
+  await expect(page.getByText('项变更待审阅')).toHaveCount(0);
+  await openSettings(canvas);
+  await expect(canvas.getByLabel('网站地址', { exact: true })).toHaveValue('https://example.com/');
+  expect(payload).toEqual({ goal, url: 'https://example.com/' });
+});
+
 test('dialogs support keyboard entry, Escape dismissal and focus restoration', async ({ page }) => {
   await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
     route.fulfill({ json: { tests: [saved] } }),
