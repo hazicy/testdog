@@ -113,7 +113,45 @@ test('persists users, hashes passwords, validates sessions and revokes them on l
         headers: new Headers({ cookie: 'better-auth.session_token=forged' }),
       }),
     ).toBeNull();
-    expect((await post('sign-out', {}, cookie)).status).toBe(200);
+    expect((await post('update-user', { name: '更新姓名' }, cookie)).status).toBe(200);
+    expect((await auth.api.getSession({ headers: new Headers({ cookie }) }))?.user.name).toBe(
+      '更新姓名',
+    );
+    expect((await post('update-user', { name: '匿名修改' })).status).toBe(401);
+    expect(
+      (
+        await post(
+          'change-password',
+          { currentPassword: 'wrong-password', newPassword: 'new-password' },
+          cookie,
+        )
+      ).ok,
+    ).toBe(false);
+    const changed = await post(
+      'change-password',
+      {
+        currentPassword: 'correct-password',
+        newPassword: 'new-password',
+        revokeOtherSessions: true,
+      },
+      cookie,
+    );
+
+    expect(changed.status).toBe(200);
+    expect(await auth.api.getSession({ headers: new Headers({ cookie }) })).toBeNull();
+    expect(
+      (await post('sign-in/email', { email: 'user@example.com', password: 'correct-password' }))
+        .status,
+    ).toBe(401);
+    const newLogin = await post('sign-in/email', {
+      email: 'user@example.com',
+      password: 'new-password',
+    });
+
+    expect(newLogin.status).toBe(200);
+    const newCookie = newLogin.headers.get('set-cookie')!.split(';')[0];
+
+    expect((await post('sign-out', {}, newCookie)).status).toBe(200);
     expect(await auth.api.getSession({ headers: new Headers({ cookie }) })).toBeNull();
     expect(
       (await post('sign-up/email', { name: 'Weak', email: 'weak@example.com', password: 'short' }))
