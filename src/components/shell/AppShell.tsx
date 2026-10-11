@@ -32,7 +32,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const activeItem = activeWorkspaceNavigation(pathname);
   const canvas = pathname.startsWith('/cases/editor/');
-  const workspaceIndex = pathname === '/cases' || pathname === '/runs' || pathname === '/issues';
+  const workspaceIndex =
+    pathname === '/cases' ||
+    pathname === '/runs' ||
+    pathname === '/issues' ||
+    pathname === '/integrations' ||
+    pathname === '/settings';
 
   return (
     <div

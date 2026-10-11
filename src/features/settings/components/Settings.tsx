@@ -8,6 +8,11 @@ import { fetchJson } from '@/client/api';
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Input } from '@/components/ui/Input';
+import { Tabs } from '@/components/ui/Tabs';
+import { Icon } from '@iconify/react/offline';
+import userIcon from '@iconify-icons/lucide/user-round';
+import shieldIcon from '@iconify-icons/lucide/shield-check';
+import '@/features/workspace/components/workspace-index.css';
 
 function ProfileForm({ name, email }: { name: string; email: string }) {
   const [draft, setDraft] = useState(name);
@@ -210,9 +215,9 @@ export function Settings() {
   );
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-[1500px] space-y-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">设置</h1>
+        <h1 className="text-base font-semibold">设置</h1>
         <p className="text-sm text-page-muted">管理账户资料与登录安全。</p>
       </header>
       {isPending ? (
@@ -231,7 +236,7 @@ export function Settings() {
           aria-label="账户设置"
           className="space-y-4 rounded-xl border border-page-line bg-page p-6"
         >
-          <h2 className="text-lg font-medium">登录后管理账户</h2>
+          <h2 className="text-sm font-semibold">登录后管理账户</h2>
           <p className="text-sm text-page-muted">登录后可以修改姓名和密码。</p>
           <Link
             href="/login?callbackURL=%2Fsettings"
@@ -241,43 +246,67 @@ export function Settings() {
           </Link>
         </section>
       ) : (
-        <div key={session.user.id} className="space-y-6">
-          <section
-            aria-labelledby="profile-title"
-            className="space-y-6 rounded-xl border border-page-line bg-page p-6 sm:p-8"
+        <Tabs.Root
+          key={session.user.id}
+          defaultValue="profile"
+          orientation="vertical"
+          className="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)] md:gap-10"
+        >
+          <Tabs.List
+            aria-label="设置分类"
+            className="flex gap-1 border-b border-page-line pb-3 md:flex-col md:self-start md:border-b-0 md:border-r md:pr-4"
           >
-            <h2 id="profile-title" className="text-lg font-medium">
+            <Tabs.Tab
+              value="profile"
+              className="flex items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm text-page-muted hover:bg-surface-muted data-[active]:bg-surface-muted data-[active]:font-medium data-[active]:text-ink"
+            >
+              <Icon icon={userIcon} width="16" aria-hidden="true" />
               账户资料
-            </h2>
-            <ProfileForm name={session.user.name} email={session.user.email} />
-          </section>
-          <section
-            aria-labelledby="security-title"
-            className="space-y-6 rounded-xl border border-page-line bg-page p-6 sm:p-8"
-          >
-            <h2 id="security-title" className="text-lg font-medium">
+            </Tabs.Tab>
+            <Tabs.Tab
+              value="security"
+              className="flex items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm text-page-muted hover:bg-surface-muted data-[active]:bg-surface-muted data-[active]:font-medium data-[active]:text-ink"
+            >
+              <Icon icon={shieldIcon} width="16" aria-hidden="true" />
               登录安全
-            </h2>
-            {accounts.error ? (
-              <div className="space-y-3">
-                <p role="alert" className="text-sm text-red-600">
-                  登录方式加载失败，请重试。
-                </p>
-                <Button onClick={() => accounts.mutate()}>重新加载登录方式</Button>
-              </div>
-            ) : !accounts.data ? (
-              <p role="status" className="text-sm text-page-muted">
-                加载登录方式…
-              </p>
-            ) : accounts.data.some((account) => account.providerId === 'credential') ? (
-              <PasswordForm />
-            ) : (
-              <p className="text-sm leading-6 text-page-muted">
-                此账户使用第三方登录，请前往对应的 Google 或 GitHub 账户管理密码。
-              </p>
-            )}
-          </section>
-        </div>
+            </Tabs.Tab>
+          </Tabs.List>
+          <div className="min-w-0 max-w-xl">
+            <Tabs.Panel value="profile" keepMounted>
+              <section aria-labelledby="profile-title" className="space-y-6">
+                <h2 id="profile-title" className="text-sm font-semibold">
+                  账户资料
+                </h2>
+                <ProfileForm name={session.user.name} email={session.user.email} />
+              </section>
+            </Tabs.Panel>
+            <Tabs.Panel value="security" keepMounted>
+              <section aria-labelledby="security-title" className="space-y-6">
+                <h2 id="security-title" className="text-sm font-semibold">
+                  登录安全
+                </h2>
+                {accounts.error ? (
+                  <div className="space-y-3">
+                    <p role="alert" className="text-sm text-red-600">
+                      登录方式加载失败，请重试。
+                    </p>
+                    <Button onClick={() => accounts.mutate()}>重新加载登录方式</Button>
+                  </div>
+                ) : !accounts.data ? (
+                  <p role="status" className="text-sm text-page-muted">
+                    加载登录方式…
+                  </p>
+                ) : accounts.data.some((account) => account.providerId === 'credential') ? (
+                  <PasswordForm />
+                ) : (
+                  <p className="text-sm leading-6 text-page-muted">
+                    此账户使用第三方登录，请前往对应的 Google 或 GitHub 账户管理密码。
+                  </p>
+                )}
+              </section>
+            </Tabs.Panel>
+          </div>
+        </Tabs.Root>
       )}
     </div>
   );

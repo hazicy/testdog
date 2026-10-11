@@ -3,7 +3,9 @@
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { useId, useState } from 'react';
-import { Dialog } from '@/components/ui/Dialog';
+import { Dialog, DialogHeader, DialogFooter } from '@/components/ui/Dialog';
+import { Icon } from '@iconify/react/offline';
+import closeIcon from '@iconify-icons/lucide/x';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { api } from '@/client/api';
@@ -113,132 +115,140 @@ export function IssueEditor({
 
   return (
     <Dialog titleId={titleId} busy={busy} onDismiss={onDismiss} initialFocus="input">
-      <form onSubmit={save} className="space-y-4">
-        <h2 id={titleId} className="text-lg font-semibold">
-          {issue ? '编辑问题' : '创建或关联问题'}
-        </h2>
-        {run && (
-          <p className="text-sm text-page-muted">
-            来源：{run.name}
-            {step ? ` / ${step.title}` : ''}，提交后关联执行和已归档证据。
-          </p>
-        )}
-        {run && !issue && (
-          <div className="flex gap-2" role="group" aria-label="问题操作">
-            <Button
-              type="button"
-
-              aria-pressed={mode === 'create'}
-              onClick={() => setMode('create')}
-            >
-              创建新问题
-            </Button>
-            <Button
-              type="button"
-
-              aria-pressed={mode === 'link'}
-              onClick={() => setMode('link')}
-            >
-              关联已有问题
-            </Button>
-          </div>
-        )}
-        {mode === 'link' ? (
-          <>
-            <label className="block">
-              搜索问题
-              <Input
-                className="mt-2"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setChosen('');
-                }}
-                maxLength={200}
-              />
-            </label>
-            <Select
-              aria-label="选择已有问题"
-              value={chosen}
-              onValueChange={setChosen}
-              items={[
-                { value: '', label: '请选择问题' },
-                ...(page?.issues.map((item) => ({
-                  value: item.id,
-                  label: `${issueStatuses[item.status]} · ${item.title}`,
-                })) ?? []),
-              ]}
-            />
-          </>
-        ) : (
-          <>
-            <label className="block">
-              问题标题
-              <Input
-                className="mt-2"
-                required
-                maxLength={200}
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </label>
-            <div>
-              <label htmlFor={`${titleId}-description`} className="block">
-                问题描述
+      <form onSubmit={save}>
+        <DialogHeader>
+          <h2 id={titleId} className="text-base font-semibold">
+            {issue ? '编辑问题' : '创建或关联问题'}
+          </h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="关闭问题编辑"
+            disabled={busy}
+            onClick={onDismiss}
+          >
+            <Icon icon={closeIcon} width="18" aria-hidden="true" />
+          </Button>
+        </DialogHeader>
+        <div className="space-y-5 px-6 py-5">
+          {run && (
+            <p className="text-sm text-page-muted">
+              来源：{run.name}
+              {step ? ` / ${step.title}` : ''}，提交后关联执行和已归档证据。
+            </p>
+          )}
+          {run && !issue && (
+            <div className="flex gap-2" role="group" aria-label="问题操作">
+              <Button
+                type="button"
+                aria-pressed={mode === 'create'}
+                onClick={() => setMode('create')}
+              >
+                创建新问题
+              </Button>
+              <Button type="button" aria-pressed={mode === 'link'} onClick={() => setMode('link')}>
+                关联已有问题
+              </Button>
+            </div>
+          )}
+          {mode === 'link' ? (
+            <>
+              <label className="block">
+                搜索问题
+                <Input
+                  className="mt-2"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setChosen('');
+                  }}
+                  maxLength={200}
+                />
               </label>
-              <Textarea
-                id={`${titleId}-description`}
-                className="mt-2 min-h-32"
-                maxLength={20000}
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <Select
-                aria-label="问题分类"
-                value={category}
-                onValueChange={(value) => setCategory(value as typeof category)}
-                items={options(issueCategories)}
+                aria-label="选择已有问题"
+                value={chosen}
+                onValueChange={setChosen}
+                items={[
+                  { value: '', label: '请选择问题' },
+                  ...(page?.issues.map((item) => ({
+                    value: item.id,
+                    label: `${issueStatuses[item.status]} · ${item.title}`,
+                  })) ?? []),
+                ]}
               />
-              <Select
-                aria-label="严重程度"
-                value={severity}
-                onValueChange={(value) => setSeverity(value as typeof severity)}
-                items={options(issueSeverities)}
-              />
-            </div>
-            {issue && (
-              <Select
-                aria-label="问题状态"
-                value={status}
-                onValueChange={(value) => setStatus(value as typeof status)}
-                items={options(issueStatuses)}
-              />
-            )}
-            {issue && status === 'closed' && (
-              <Select
-                aria-label="关闭原因"
-                value={reason}
-                onValueChange={(value) => setReason(value as typeof reason)}
-                items={options(closeReasons)}
-              />
-            )}
-          </>
-        )}
-        {(error || (mode === 'link' && pageError)) && (
-          <p role="alert" className="text-error-ink">
-            {error || pageError?.message}
-          </p>
-        )}
-        <div className="flex justify-end gap-2">
+            </>
+          ) : (
+            <>
+              <label className="block">
+                问题标题
+                <Input
+                  className="mt-2"
+                  required
+                  maxLength={200}
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                />
+              </label>
+              <div>
+                <label htmlFor={`${titleId}-description`} className="block">
+                  问题描述
+                </label>
+                <Textarea
+                  id={`${titleId}-description`}
+                  className="mt-2 min-h-32"
+                  maxLength={20000}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Select
+                  aria-label="问题分类"
+                  value={category}
+                  onValueChange={(value) => setCategory(value as typeof category)}
+                  items={options(issueCategories)}
+                />
+                <Select
+                  aria-label="严重程度"
+                  value={severity}
+                  onValueChange={(value) => setSeverity(value as typeof severity)}
+                  items={options(issueSeverities)}
+                />
+              </div>
+              {issue && (
+                <Select
+                  aria-label="问题状态"
+                  value={status}
+                  onValueChange={(value) => setStatus(value as typeof status)}
+                  items={options(issueStatuses)}
+                />
+              )}
+              {issue && status === 'closed' && (
+                <Select
+                  aria-label="关闭原因"
+                  value={reason}
+                  onValueChange={(value) => setReason(value as typeof reason)}
+                  items={options(closeReasons)}
+                />
+              )}
+            </>
+          )}
+          {(error || (mode === 'link' && pageError)) && (
+            <p role="alert" className="text-error-ink">
+              {error || pageError?.message}
+            </p>
+          )}
+        </div>
+        <DialogFooter>
           <Button type="button" disabled={busy} onClick={onDismiss}>
             取消
           </Button>
           <Button type="submit" variant="primary" disabled={busy || (mode === 'link' && !chosen)}>
             {busy ? '保存中…' : mode === 'link' ? '关联问题' : '保存问题'}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

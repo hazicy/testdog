@@ -26,6 +26,7 @@ import { api, fetchJson } from '@/client/api';
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
+import '@/features/workspace/components/workspace-index.css';
 import {
   notificationKinds,
   notificationEvents,
@@ -258,7 +259,6 @@ function ChannelForm({
           </Button>
           <Button
             type="button"
-
             disabled={busy || !configured || dirty || (channel === 'email' && !emailAvailable)}
             onClick={() => void test()}
           >
@@ -301,8 +301,8 @@ export function Integrations() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-6 md:p-10">
-      <h1 className="mb-7 text-2xl font-semibold">集成</h1>
+    <div className="workspace-index mx-auto w-full max-w-[1500px]">
+      <h1 className="sr-only">集成</h1>
       {error && (
         <p className="mb-4 text-error-ink" role="alert">
           {error.message}
@@ -314,11 +314,12 @@ export function Integrations() {
         <>
           <section aria-labelledby="communication-title">
             <div className="flex items-center justify-between gap-4">
-              <h2 id="communication-title" className="text-base font-semibold">
+              <h2 id="communication-title" className="text-sm font-medium">
                 消息通知
               </h2>
               <Button
                 variant="ghost"
+                size="sm"
                 aria-haspopup="dialog"
                 onClick={() => {
                   setActionError('');
@@ -329,11 +330,11 @@ export function Integrations() {
                 发送记录
               </Button>
             </div>
-            <div className="mt-4 divide-y divide-page-line border border-page-line bg-surface">
+            <div className="mt-4 divide-y divide-page-line border-y border-page-line">
               {data.integrations.map((integration) => (
                 <div
                   key={integration.channel}
-                  className="flex items-center gap-3 px-4 py-4 sm:px-5"
+                  className="flex items-center gap-4 px-3 py-5 transition-colors hover:bg-surface-muted"
                 >
                   <Icon
                     icon={integration.channel === 'feishu' ? sendIcon : mailIcon}
@@ -349,7 +350,7 @@ export function Integrations() {
                       {integration.channel === 'email' && !data.emailAvailable ? (
                         <span className="text-xs text-page-muted">暂不可用</span>
                       ) : integration.configured && !integration.configurationError ? (
-                        <span className="inline-flex items-center gap-1 border border-step-success-line bg-success-soft px-1.5 py-0.5 text-[11px] text-step-success">
+                        <span className="inline-flex items-center gap-1 text-xs text-step-success">
                           <Icon icon={circleCheckIcon} width="12" aria-hidden="true" />
                           {integration.enabled ? '已启用' : '已配置'}
                         </span>
@@ -366,6 +367,7 @@ export function Integrations() {
                   </div>
                   <Button
                     variant="ghost"
+                    size="sm"
                     aria-label={`配置${notificationKinds[integration.channel]}`}
                     aria-haspopup="dialog"
                     onClick={() => setConfiguring(integration.channel)}
@@ -417,9 +419,9 @@ export function Integrations() {
                 {!data.deliveries.length ? (
                   <p className="text-sm text-page-muted">暂无发送记录。</p>
                 ) : (
-                  <div className="overflow-x-auto rounded-lg border border-page-line">
-                    <Table className="min-w-[560px]">
-                      <TableHeader className="bg-page">
+                  <div className="overflow-x-auto">
+                    <Table className="workspace-index-table is-results min-w-[560px]">
+                      <TableHeader className="bg-transparent">
                         <TableRow>
                           <TableHead className="p-4">渠道 / 通知</TableHead>
                           <TableHead className="p-4">状态</TableHead>

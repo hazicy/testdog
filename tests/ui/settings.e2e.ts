@@ -56,6 +56,7 @@ test('validates confirmation, handles incorrect passwords and clears fields on s
       : route.fulfill({ json: { token: 'new-token', user: { id: 'user-1' } } });
   });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: '登录安全' }).click();
   await page.getByLabel('当前密码', { exact: true }).fill('old-password');
   await page.getByLabel('新密码', { exact: true }).fill('new-password');
   await page.getByLabel('确认新密码', { exact: true }).fill('different-password');
@@ -77,6 +78,7 @@ test('validates confirmation, handles incorrect passwords and clears fields on s
 test('guides third-party accounts to their login provider', async ({ page }) => {
   await mockAccount(page, 'github');
   await page.goto('/settings');
+  await page.getByRole('tab', { name: '登录安全' }).click();
   await expect(page.getByText('此账户使用第三方登录', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: '修改密码', exact: true })).toHaveCount(0);
 });
