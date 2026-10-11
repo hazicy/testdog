@@ -454,10 +454,6 @@ export function RunDetail({ id }: { id: string }) {
         start={start}
         cancel={cancel}
         exportReport={exportReport}
-        onIssue={() => {
-          setIssueStep(undefined);
-          setIssueOpen(true);
-        }}
       />
       {run?.evidenceComplete === false && (
         <p role="alert" className="studio-alert">

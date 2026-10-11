@@ -250,25 +250,6 @@ test('links a failed step to an existing issue and filters the issue list', asyn
     .toBe(true);
 });
 
-test('reports an execution failure before any step exists', async ({ page }) => {
-  await page.route(`**/api/runs/${runId}{,?*}`, (route) =>
-    route.fulfill({ json: { run: { ...run, steps: [], error: '设备准备失败' } } }),
-  );
-  await page.route('**/api/issues', (route) => {
-    expect(route.request().postDataJSON().source).toEqual({ runId });
-
-    return route.fulfill({ json: { issue: initial } });
-  });
-  await page.route(`**/api/issues/${issueId}`, (route) =>
-    route.fulfill({ json: { issue: initial, occurrences: [], events: [], verifications: [] } }),
-  );
-  await page.goto(`/runs/${runId}`);
-  await page.getByRole('button', { name: '报告执行问题', exact: true }).click();
-  await expect(page.getByLabel('问题描述', { exact: true })).toHaveValue('设备准备失败');
-  await page.getByRole('button', { name: '保存问题', exact: true }).click();
-  await expect(page).toHaveURL(`/issues/${issueId}`);
-});
-
 test('shows issue summaries and filters environment, date and ordering', async ({
   page,
 }, testInfo) => {
