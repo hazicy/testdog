@@ -4,6 +4,8 @@ import { Select as BaseSelect } from '@base-ui/react/select';
 import type { ReactNode } from 'react';
 import { inputStyles } from './inputStyles';
 import { twMerge } from 'tailwind-merge';
+import { Icon } from '@iconify/react/offline';
+import chevronDownIcon from '@iconify-icons/lucide/chevron-down';
 
 type Item = { value: string | number; label: ReactNode; disabled?: boolean };
 type Props = {
@@ -44,8 +46,11 @@ export function Select({ items, value, onValueChange, className = '', ...props }
         aria-label={props['aria-label']}
       >
         <BaseSelect.Value />
-        <BaseSelect.Icon aria-hidden="true" className="ml-auto text-page-muted">
-          ⌄
+        <BaseSelect.Icon
+          aria-hidden="true"
+          className="ml-auto inline-flex shrink-0 items-center justify-center text-page-muted"
+        >
+          <Icon icon={chevronDownIcon} width="16" height="16" />
         </BaseSelect.Icon>
       </BaseSelect.Trigger>
       <BaseSelect.Portal>

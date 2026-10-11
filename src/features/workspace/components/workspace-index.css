@@ -125,6 +125,31 @@
 .workspace-index-table.is-results th:last-child {
   width: 16%;
 }
+.workspace-index-table.is-issues {
+  min-width: 900px;
+}
+.workspace-index-table.is-issues th:nth-child(1) {
+  width: 12%;
+}
+.workspace-index-table.is-issues th:nth-child(2) {
+  width: 34%;
+}
+.workspace-index-table.is-issues th:nth-child(3) {
+  width: 20%;
+}
+.workspace-index-table.is-issues th:nth-child(4) {
+  width: 10%;
+}
+.workspace-index-table.is-issues th:nth-child(5),
+.workspace-index-table.is-issues th:nth-child(6) {
+  width: 12%;
+}
+.workspace-index-table.is-issues td:nth-child(2) {
+  white-space: normal;
+}
+.issue-index-toolbar {
+  flex-wrap: wrap;
+}
 .workspace-index-table td {
   font-size: 13px;
   height: 62px;
