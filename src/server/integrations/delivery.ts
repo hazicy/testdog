@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import { isIP, BlockList } from 'node:net';
 import nodemailer from 'nodemailer';
+import { requirePlatformSmtp, emailUnavailableMessage } from './smtp';
 import { feishuWebhook } from '@/features/integrations/schemas';
 import type {
   EmailConfig,
@@ -100,7 +101,8 @@ export async function sendNotification(
     return;
   }
 
-  const value = config as EmailConfig;
+  const recipients = (config as EmailConfig).recipients;
+  const value = requirePlatformSmtp();
   let address: string;
   let dnsTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -114,13 +116,13 @@ export async function sendNotification(
 
     address = resolved.address;
   } catch {
-    throw new Error('SMTP 服务器地址无法解析。');
+    throw new Error(emailUnavailableMessage);
   } finally {
     clearTimeout(dnsTimer);
   }
 
   if (!publicAddress(address) && process.env.CASEFORGE_ALLOW_PRIVATE_SMTP !== 'true')
-    throw new Error('SMTP 地址指向内部网络，请使用公网邮件服务或由管理员配置内网 SMTP 许可。');
+    throw new Error(emailUnavailableMessage);
   const transport = nodemailer.createTransport({
     host: address,
     port: value.port,
@@ -143,7 +145,7 @@ export async function sendNotification(
     const result = await Promise.race([
       transport.sendMail({
         from: value.from,
-        bcc: value.recipients,
+        bcc: recipients,
         subject: `[testdog] ${payload.title}`,
         text: messageText(payload),
         messageId: `<${deliveryId}@testdog.invalid>`,
@@ -156,15 +158,13 @@ export async function sendNotification(
       }),
     ]);
 
-    if (result.rejected?.length || result.accepted?.length !== value.recipients.length)
+    if (result.rejected?.length || result.accepted?.length !== recipients.length)
       throw new Error('SMTP_RECIPIENT_REJECTED');
   } catch (error) {
     const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
 
     throw new Error(
-      code === 'EAUTH'
-        ? 'SMTP 认证失败，请检查账号和授权码。'
-        : 'Email 发送失败，请检查 SMTP、发件人和收件人配置。',
+      code === 'EAUTH' ? emailUnavailableMessage : '邮件发送失败，请检查收件邮箱或稍后重试。',
     );
   } finally {
     clearTimeout(sendTimer);

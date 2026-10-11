@@ -8,14 +8,7 @@ export const notificationEvents = {
 };
 export type NotificationEvent = keyof typeof notificationEvents;
 export type FeishuConfig = { webhookUrl: string; signingSecret?: string };
-export type EmailConfig = {
-  host: string;
-  port: 465 | 587;
-  username: string;
-  password: string;
-  from: string;
-  recipients: string[];
-};
+export type EmailConfig = { recipients: string[] };
 export type NotificationConfig = FeishuConfig | EmailConfig;
 export type Integration = {
   channel: NotificationChannel;
@@ -25,8 +18,7 @@ export type Integration = {
   configured: boolean;
   configurationError?: string;
   hasSigningSecret: boolean;
-  hasPassword: boolean;
-  email?: Omit<EmailConfig, 'password'>;
+  email?: EmailConfig;
 };
 export type NotificationPayload = { title: string; body: string; path: string };
 export type Delivery = {
@@ -40,7 +32,11 @@ export type Delivery = {
   createdAt: string;
   sentAt: string | null;
 };
-export type IntegrationsResponse = { integrations: Integration[]; deliveries: Delivery[] };
+export type IntegrationsResponse = {
+  integrations: Integration[];
+  deliveries: Delivery[];
+  emailAvailable: boolean;
+};
 export const deliveryStatuses = {
   pending: '待发送',
   sending: '发送中',

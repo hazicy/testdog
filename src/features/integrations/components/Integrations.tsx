@@ -1,12 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { Icon } from '@iconify/react/offline';
+import sendIcon from '@iconify-icons/lucide/send';
+import mailIcon from '@iconify-icons/lucide/mail';
+import settingsIcon from '@iconify-icons/lucide/settings';
+import chevronRightIcon from '@iconify-icons/lucide/chevron-right';
+import circleCheckIcon from '@iconify-icons/lucide/circle-check';
+import closeIcon from '@iconify-icons/lucide/x';
+import { Dialog } from '@/components/ui/Dialog';
 import useSWR from 'swr';
 import { api, fetchJson } from '@/client/api';
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
-import { Select } from '@/components/ui/Select';
 import {
   notificationKinds,
   notificationEvents,
@@ -14,15 +21,21 @@ import {
   type Integration,
   type IntegrationsResponse,
   type NotificationEvent,
+  type NotificationChannel,
 } from '../types';
 
 function ChannelForm({
   integration,
+  emailAvailable,
   onSaved,
+  onDismiss,
 }: {
   integration: Integration;
+  emailAvailable: boolean;
   onSaved: () => Promise<unknown>;
+  onDismiss: () => void;
 }) {
+  const titleId = useId();
   const submit = useRunSubmission();
   const [enabled, setEnabled] = useState(integration.enabled);
   const [events, setEvents] = useState<NotificationEvent[]>(
@@ -31,11 +44,6 @@ function ChannelForm({
   const [webhook, setWebhook] = useState('');
   const [signingSecret, setSigningSecret] = useState('');
   const [clearSigningSecret, setClearSigningSecret] = useState(false);
-  const [host, setHost] = useState(integration.email?.host ?? '');
-  const [port, setPort] = useState(integration.email?.port ?? 465);
-  const [username, setUsername] = useState(integration.email?.username ?? '');
-  const [password, setPassword] = useState('');
-  const [from, setFrom] = useState(integration.email?.from ?? '');
   const [recipients, setRecipients] = useState(integration.email?.recipients.join(', ') ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -62,11 +70,6 @@ function ChannelForm({
               clearSigningSecret,
             }
           : {
-              host,
-              port,
-              username,
-              ...(password ? { password } : {}),
-              from,
               recipients: recipients.split(/[,;\s]+/).filter(Boolean),
             }),
       };
@@ -78,7 +81,6 @@ function ChannelForm({
       setConfigured(true);
       setWebhook('');
       setSigningSecret('');
-      setPassword('');
       setClearSigningSecret(false);
       setDirty(false);
       setMessage('配置已保存。');
@@ -96,7 +98,7 @@ function ChannelForm({
     setMessage('');
     try {
       await submit(`/api/integrations/${channel}/test`, {});
-      setMessage('测试通知已提交，请在下方发送记录查看结果。');
+      setMessage('测试通知已提交，可在发送记录查看结果。');
       await onSaved();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '测试通知提交失败');
@@ -130,22 +132,31 @@ function ChannelForm({
   );
 
   return (
-    <section
-      className="rounded-xl border border-page-line bg-surface p-6"
-      aria-label={notificationKinds[channel]}
-    >
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">{notificationKinds[channel]}</h2>
-        <span className="text-sm text-page-muted">
-          {configured ? (integration.enabled ? '已启用' : '已配置 · 未启用') : '未配置'}
-        </span>
+    <Dialog titleId={titleId} busy={busy} onDismiss={onDismiss} initialFocus="input">
+      <div className="ws-dialog-header">
+        <div>
+          <h2 id={titleId} className="text-base font-semibold">
+            {notificationKinds[channel]}
+          </h2>
+          <p className="mt-1 text-xs text-page-muted">
+            {configured ? (integration.enabled ? '已启用' : '已配置 · 未启用') : '未配置'}
+          </p>
+        </div>
+        <Button
+          className="ws-icon-button"
+          aria-label="关闭配置"
+          disabled={busy}
+          onClick={onDismiss}
+        >
+          <Icon icon={closeIcon} width="18" aria-hidden="true" />
+        </Button>
       </div>
       {integration.configurationError && (
-        <p className="mb-4 text-sm text-red-500" role="alert">
+        <p className="px-6 pt-4 text-sm text-error-ink" role="alert">
           {integration.configurationError}
         </p>
       )}
-      <form onSubmit={save} onChange={() => setDirty(true)} className="space-y-4">
+      <form onSubmit={save} onChange={() => setDirty(true)} className="space-y-4 p-6">
         {channel === 'feishu' ? (
           <>
             <p className="text-sm text-page-muted">
@@ -182,31 +193,11 @@ function ChannelForm({
           </>
         ) : (
           <>
-            <p className="text-sm text-page-muted">
-              通过 SMTP 发送邮件，可使用邮箱服务提供的授权码。
-            </p>
-            {field('SMTP 服务器', host, setHost, 'text', 'smtp.example.com')}
-            <Select
-              aria-label="SMTP 端口与加密"
-              value={port}
-              onValueChange={(value) => {
-                setPort(Number(value) as 465 | 587);
-                setDirty(true);
-              }}
-              items={[
-                { value: 465, label: '465 · TLS' },
-                { value: 587, label: '587 · STARTTLS' },
-              ]}
-            />
-            {field('SMTP 账号', username, setUsername)}
-            {field(
-              'SMTP 密码或授权码',
-              password,
-              setPassword,
-              'password',
-              integration.hasPassword ? '已保存，留空保留原授权码' : '填写邮箱授权码',
+            {!emailAvailable && (
+              <p role="status" className="text-sm text-page-muted">
+                邮件通知暂不可用，请联系管理员。
+              </p>
             )}
-            {field('发件邮箱', from, setFrom, 'email')}
             {field('收件邮箱', recipients, setRecipients, 'text', '多个邮箱用逗号分隔，最多10个')}
           </>
         )}
@@ -256,7 +247,7 @@ function ChannelForm({
           <Button
             type="button"
             className="ws-button"
-            disabled={busy || !configured || dirty}
+            disabled={busy || !configured || dirty || (channel === 'email' && !emailAvailable)}
             onClick={() => void test()}
           >
             发送测试通知
@@ -266,7 +257,7 @@ function ChannelForm({
           <p className="text-xs text-page-muted">先保存修改，再发送测试通知。</p>
         )}
       </form>
-    </section>
+    </Dialog>
   );
 }
 
@@ -277,6 +268,8 @@ export function Integrations() {
         ? 3000
         : 30000,
   });
+  const [configuring, setConfiguring] = useState<NotificationChannel>();
+  const selectedIntegration = data?.integrations.find((item) => item.channel === configuring);
   const [retrying, setRetrying] = useState<string>();
   const [actionError, setActionError] = useState('');
 
@@ -294,11 +287,10 @@ export function Integrations() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-6 md:p-10">
+    <div className="mx-auto w-full max-w-7xl p-6 md:p-10">
       <div className="mb-7 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">集成</h1>
-          <p className="mt-2 text-sm text-page-muted">将测试与问题处理结果发送到飞书或邮箱。</p>
         </div>
         <Button className="ws-button" onClick={() => void mutate()}>
           刷新
@@ -313,11 +305,71 @@ export function Integrations() {
         <p role="status">正在加载通知配置…</p>
       ) : (
         <>
-          <div className="grid items-start gap-6 lg:grid-cols-2">
-            {data.integrations.map((integration) => (
-              <ChannelForm key={integration.channel} integration={integration} onSaved={mutate} />
-            ))}
-          </div>
+          <section aria-labelledby="communication-title">
+            <h2 id="communication-title" className="text-base font-semibold">
+              消息通知
+            </h2>
+            <p className="mt-1 text-sm text-page-muted">
+              将执行结果和问题动态发送到团队的沟通渠道。
+            </p>
+            <div className="mt-4 divide-y divide-page-line border border-page-line bg-surface">
+              {data.integrations.map((integration) => (
+                <div
+                  key={integration.channel}
+                  className="flex items-center gap-3 px-4 py-4 sm:px-5"
+                >
+                  <Icon
+                    icon={integration.channel === 'feishu' ? sendIcon : mailIcon}
+                    width="22"
+                    className="shrink-0"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-medium">
+                        {notificationKinds[integration.channel]}
+                      </h3>
+                      {integration.channel === 'email' && !data.emailAvailable ? (
+                        <span className="text-xs text-page-muted">暂不可用</span>
+                      ) : integration.configured && !integration.configurationError ? (
+                        <span className="inline-flex items-center gap-1 border border-step-success-line bg-success-soft px-1.5 py-0.5 text-[11px] text-step-success">
+                          <Icon icon={circleCheckIcon} width="12" aria-hidden="true" />
+                          {integration.enabled ? '已启用' : '已配置'}
+                        </span>
+                      ) : null}
+                      {integration.configurationError && (
+                        <span className="text-xs text-error-ink">配置异常</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-page-muted">
+                      {integration.channel === 'feishu'
+                        ? '在飞书群接收测试结果和问题通知。'
+                        : '通过邮件向团队发送测试结果和问题通知。'}
+                    </p>
+                  </div>
+                  <Button
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded px-2 py-2 text-xs text-page-muted hover:bg-page hover:text-ink"
+                    aria-label={`配置${notificationKinds[integration.channel]}`}
+                    aria-haspopup="dialog"
+                    onClick={() => setConfiguring(integration.channel)}
+                  >
+                    <Icon icon={settingsIcon} width="14" aria-hidden="true" />
+                    配置
+                    <Icon icon={chevronRightIcon} width="14" aria-hidden="true" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </section>
+          {selectedIntegration && (
+            <ChannelForm
+              key={selectedIntegration.channel}
+              integration={selectedIntegration}
+              emailAvailable={data.emailAvailable}
+              onSaved={mutate}
+              onDismiss={() => setConfiguring(undefined)}
+            />
+          )}
           <section className="mt-8" aria-label="发送记录">
             <h2 className="mb-4 text-lg font-semibold">最近发送记录</h2>
             {!data.deliveries.length ? (
@@ -355,7 +407,10 @@ export function Integrations() {
                           {item.status === 'failed' && (
                             <Button
                               className="ws-button"
-                              disabled={retrying === item.id}
+                              disabled={
+                                retrying === item.id ||
+                                (item.channel === 'email' && !data.emailAvailable)
+                              }
                               onClick={() => void retry(item.channel, item.id)}
                             >
                               重试

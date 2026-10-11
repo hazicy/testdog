@@ -77,35 +77,88 @@ it('sends signed Feishu text, respects provider codes, and hides provider respon
   ).rejects.toThrow('飞书拒绝通知');
 });
 
-it('uses TLS, private BCC recipients and sanitized SMTP errors', async () => {
+function configureSmtp(port = '587') {
+  vi.stubEnv('CASEFORGE_SMTP_HOST', 'smtp.example.com');
+  vi.stubEnv('CASEFORGE_SMTP_PORT', port);
+  vi.stubEnv('CASEFORGE_SMTP_USERNAME', 'sender@example.com');
+  vi.stubEnv('CASEFORGE_SMTP_PASSWORD', 'platform-secret');
+  vi.stubEnv('CASEFORGE_SMTP_FROM', 'sender@example.com');
+}
+
+it.each(['465', '587'])(
+  'uses platform SMTP on port %s, TLS and private BCC recipients, ignoring legacy SMTP settings',
+  async (port) => {
+    configureSmtp(port);
+    const config = {
+      host: 'legacy-smtp.example.com',
+      port: 465 as const,
+      username: 'old@example.com',
+      password: 'old-secret',
+      from: 'old@example.com',
+      recipients: ['recipient@example.com'],
+    };
+
+    smtp.createTransport.mockReturnValue({ sendMail: smtp.sendMail, close: smtp.close });
+    smtp.sendMail.mockResolvedValue({ accepted: config.recipients, rejected: [] });
+    await sendNotification('email', config, payload, 'delivery');
+    expect(smtp.createTransport.mock.calls[0][0]).toMatchObject({
+      host: '8.8.8.8',
+      port: Number(port),
+      secure: port === '465',
+      requireTLS: port === '587',
+      tls: { servername: 'smtp.example.com', minVersion: 'TLSv1.2' },
+      auth: { user: 'sender@example.com', pass: 'platform-secret' },
+      disableFileAccess: true,
+      disableUrlAccess: true,
+    });
+    expect(smtp.sendMail.mock.calls[0][0]).toMatchObject({
+      from: 'sender@example.com',
+      bcc: config.recipients,
+      subject: '[testdog] 测试失败',
+      messageId: '<delivery@testdog.invalid>',
+    });
+    smtp.sendMail.mockRejectedValue(Object.assign(new Error('password secret'), { code: 'EAUTH' }));
+    await expect(sendNotification('email', config, payload, 'delivery')).rejects.toThrow(
+      '邮件通知暂不可用，请联系管理员。',
+    );
+    expect(smtp.close).toHaveBeenCalledTimes(2);
+  },
+);
+
+it('rejects missing or invalid platform SMTP configuration without connecting or using legacy credentials', async () => {
   const config = {
-    host: 'smtp.example.com',
-    port: 587 as const,
-    username: 'sender@example.com',
-    password: 'secret',
-    from: 'sender@example.com',
+    host: 'legacy.example.com',
+    port: 465 as const,
+    username: 'old',
+    password: 'old-secret',
+    from: 'old@example.com',
     recipients: ['recipient@example.com'],
   };
 
+  configureSmtp();
+  for (const [key, value] of [
+    ['CASEFORGE_SMTP_HOST', ''],
+    ['CASEFORGE_SMTP_PORT', '25'],
+    ['CASEFORGE_SMTP_USERNAME', ''],
+    ['CASEFORGE_SMTP_PASSWORD', ''],
+    ['CASEFORGE_SMTP_FROM', 'invalid'],
+  ]) {
+    configureSmtp();
+    vi.stubEnv(key, value);
+    await expect(sendNotification('email', config, payload, 'delivery')).rejects.toThrow(
+      '邮件通知暂不可用',
+    );
+  }
+
+  expect(smtp.createTransport).not.toHaveBeenCalled();
+});
+
+it('sanitizes delivery failures and closes the SMTP transport', async () => {
+  configureSmtp();
   smtp.createTransport.mockReturnValue({ sendMail: smtp.sendMail, close: smtp.close });
-  smtp.sendMail.mockResolvedValue({ accepted: config.recipients, rejected: [] });
-  await sendNotification('email', config, payload, 'delivery');
-  expect(smtp.createTransport.mock.calls[0][0]).toMatchObject({
-    host: '8.8.8.8',
-    secure: false,
-    requireTLS: true,
-    tls: { servername: 'smtp.example.com' },
-    disableFileAccess: true,
-    disableUrlAccess: true,
-  });
-  expect(smtp.sendMail.mock.calls[0][0]).toMatchObject({
-    bcc: config.recipients,
-    subject: '[testdog] 测试失败',
-    messageId: '<delivery@testdog.invalid>',
-  });
-  smtp.sendMail.mockRejectedValue(Object.assign(new Error('password secret'), { code: 'EAUTH' }));
-  await expect(sendNotification('email', config, payload, 'delivery')).rejects.toThrow(
-    'SMTP 认证失败',
-  );
-  expect(smtp.close).toHaveBeenCalledTimes(2);
+  smtp.sendMail.mockRejectedValue(new Error('raw smtp password secret'));
+  await expect(
+    sendNotification('email', { recipients: ['recipient@example.com'] }, payload, 'delivery'),
+  ).rejects.toThrow('邮件发送失败，请检查收件邮箱或稍后重试。');
+  expect(smtp.close).toHaveBeenCalledOnce();
 });

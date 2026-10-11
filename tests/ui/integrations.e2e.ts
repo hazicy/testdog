@@ -9,7 +9,6 @@ const defaults: Integration[] = [
     events: [],
     configured: false,
     hasSigningSecret: false,
-    hasPassword: false,
   },
   {
     channel: 'email',
@@ -18,14 +17,17 @@ const defaults: Integration[] = [
     events: [],
     configured: false,
     hasSigningSecret: false,
-    hasPassword: false,
   },
 ];
 
 test('configures Feishu, keeps saved secrets hidden and shows queued test delivery', async ({
   page,
 }) => {
-  const data: IntegrationsResponse = { integrations: structuredClone(defaults), deliveries: [] };
+  const data: IntegrationsResponse = {
+    integrations: structuredClone(defaults),
+    deliveries: [],
+    emailAvailable: true,
+  };
   const payloads: Record<string, unknown>[] = [];
 
   await page.route('**/api/integrations', (route) => route.fulfill({ json: data }));
@@ -60,7 +62,13 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
     return route.fulfill({ json: { deliveryId: 'test-delivery' } });
   });
   await page.goto('/integrations');
-  const feishu = page.getByRole('region', { name: '飞书群机器人', exact: true });
+  await expect(page.getByLabel('Webhook 地址', { exact: true })).toHaveCount(0);
+  const configure = page.getByRole('button', { name: '配置飞书群机器人', exact: true });
+
+  await configure.click();
+  const feishu = page.getByRole('dialog', { name: '飞书群机器人', exact: true });
+
+  await expect(feishu).toBeVisible();
 
   await expect(feishu.getByRole('button', { name: '发送测试通知' })).toBeDisabled();
   await feishu
@@ -79,10 +87,15 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
     signingSecret: 'test-secret',
   });
   await feishu.getByRole('button', { name: '发送测试通知' }).click();
+  await expect(feishu.getByRole('status')).toContainText('测试通知已提交');
+  await feishu.getByRole('button', { name: '关闭配置' }).click();
+  await expect(feishu).toHaveCount(0);
+  await expect(configure).toBeFocused();
   await expect(
     page.getByRole('region', { name: '发送记录' }).getByText('已发送 · 1 次尝试'),
   ).toBeVisible();
   await page.reload();
+  await configure.click();
   await expect(feishu.getByLabel('Webhook 地址', { exact: true })).toHaveAttribute(
     'placeholder',
     '已保存，留空保留原地址',
@@ -95,10 +108,14 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
   expect(payloads[1]).not.toHaveProperty('signingSecret');
 });
 
-test('configures SMTP recipients, preserves password on later edits and retries failed deliveries', async ({
+test('configures email recipients without SMTP fields and retries failed deliveries', async ({
   page,
 }) => {
-  const data: IntegrationsResponse = { integrations: structuredClone(defaults), deliveries: [] };
+  const data: IntegrationsResponse = {
+    integrations: structuredClone(defaults),
+    deliveries: [],
+    emailAvailable: true,
+  };
   let lastInput: Record<string, unknown> = {};
 
   await page.route('**/api/integrations', (route) => route.fulfill({ json: data }));
@@ -112,12 +129,7 @@ test('configures SMTP recipients, preserves password on later edits and retries 
       version: input.version + 1,
       enabled: input.enabled,
       events: input.events,
-      hasPassword: true,
       email: {
-        host: input.host,
-        port: input.port,
-        username: input.username,
-        from: input.from,
         recipients: input.recipients,
       },
     };
@@ -132,7 +144,7 @@ test('configures SMTP recipients, preserves password on later edits and retries 
       eventType: 'test',
       status: 'failed',
       attempts: 3,
-      lastError: 'SMTP 认证失败，请检查账号和授权码。',
+      lastError: '邮件发送失败，请检查收件邮箱或稍后重试。',
       createdAt: '2026-10-01T00:00:00Z',
       sentAt: null,
     });
@@ -147,31 +159,72 @@ test('configures SMTP recipients, preserves password on later edits and retries 
     return route.fulfill({ json: { deliveryId: 'failed-delivery' } });
   });
   await page.goto('/integrations');
-  const email = page.getByRole('region', { name: 'Email 邮件', exact: true });
+  const configure = page.getByRole('button', { name: '配置Email 邮件', exact: true });
 
-  await email.getByLabel('SMTP 服务器', { exact: true }).fill('smtp.example.com');
-  await email.getByRole('combobox', { name: 'SMTP 端口与加密' }).click();
-  await page.getByRole('option', { name: '587 · STARTTLS', exact: true }).click();
-  await email.getByLabel('SMTP 账号', { exact: true }).fill('sender@example.com');
-  await email.getByLabel('SMTP 密码或授权码', { exact: true }).fill('test-password');
-  await email.getByLabel('发件邮箱', { exact: true }).fill('sender@example.com');
+  await configure.click();
+  const email = page.getByRole('dialog', { name: 'Email 邮件', exact: true });
+
+  await expect(email.getByLabel(/SMTP|发件邮箱/)).toHaveCount(0);
   await email.getByLabel('收件邮箱', { exact: true }).fill('one@example.com, two@example.com');
   await email.getByRole('button', { name: '保存配置', exact: true }).click();
   await expect(email.getByText('配置已保存。')).toBeVisible();
-  expect(lastInput).toMatchObject({
-    port: 587,
-    password: 'test-password',
+  expect(lastInput).toEqual({
+    version: 0,
+    enabled: false,
+    events: ['run.failed', 'issue.created'],
     recipients: ['one@example.com', 'two@example.com'],
   });
-  await expect(email.getByLabel('SMTP 密码或授权码', { exact: true })).toHaveValue('');
   await email.getByRole('button', { name: '发送测试通知' }).click();
+  await expect(email.getByRole('status')).toContainText('测试通知已提交');
+  await page.keyboard.press('Escape');
+  await expect(email).toHaveCount(0);
+  await expect(configure).toBeFocused();
   const history = page.getByRole('region', { name: '发送记录' });
 
-  await expect(history.getByText('SMTP 认证失败，请检查账号和授权码。')).toBeVisible();
+  await expect(history.getByText('邮件发送失败，请检查收件邮箱或稍后重试。')).toBeVisible();
   await history.getByRole('button', { name: '重试', exact: true }).click();
   await expect(history.getByText('待发送 · 0 次尝试')).toBeVisible();
+  await configure.click();
   await email.getByLabel('收件邮箱', { exact: true }).fill('three@example.com');
   await email.getByRole('button', { name: '保存配置', exact: true }).click();
   await expect(email.getByText('配置已保存。')).toBeVisible();
   expect(lastInput).not.toHaveProperty('password');
+});
+
+test('saves email preferences while platform mail is unavailable and disables test notifications', async ({
+  page,
+}) => {
+  const data: IntegrationsResponse = {
+    integrations: structuredClone(defaults),
+    deliveries: [],
+    emailAvailable: false,
+  };
+
+  await page.route('**/api/integrations', (route) => route.fulfill({ json: data }));
+  await page.route('**/api/integrations/email', (route) => {
+    const input = route.request().postDataJSON();
+
+    data.integrations[1] = {
+      ...data.integrations[1],
+      configured: true,
+      version: input.version + 1,
+      enabled: input.enabled,
+      events: input.events,
+      email: { recipients: input.recipients },
+    };
+
+    return route.fulfill({ json: { integration: data.integrations[1] } });
+  });
+  await page.goto('/integrations');
+  await page.getByRole('button', { name: '配置Email 邮件', exact: true }).click();
+  const email = page.getByRole('dialog', { name: 'Email 邮件', exact: true });
+
+  await expect(email.getByText('邮件通知暂不可用，请联系管理员。')).toBeVisible();
+  await email.getByLabel('收件邮箱', { exact: true }).fill('recipient@example.com');
+  await email.getByRole('button', { name: '保存配置', exact: true }).click();
+  await expect(email.getByText('配置已保存。')).toBeVisible();
+  await expect(email.getByRole('button', { name: '发送测试通知' })).toBeDisabled();
+  await email.getByRole('button', { name: '关闭配置' }).click();
+  await page.getByRole('button', { name: '配置Email 邮件', exact: true }).click();
+  await expect(email.getByLabel('收件邮箱', { exact: true })).toHaveValue('recipient@example.com');
 });

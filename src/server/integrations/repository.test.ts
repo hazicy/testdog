@@ -41,11 +41,12 @@ import {
 import { eq, sql } from 'drizzle-orm';
 import { readIntegrations, saveIntegration, queueTest, retryDelivery } from './repository';
 import { dispatchNotifications } from './dispatcher';
-import { decryptConfig } from './secrets';
+import { decryptConfig, encryptConfig } from './secrets';
 import { POST as testEndpoint } from '@/app/api/integrations/[channel]/test/route';
 import { PUT as saveEndpoint } from '@/app/api/integrations/[channel]/route';
 
 beforeEach(async () => {
+  vi.stubEnv('CASEFORGE_SMTP_HOST', '');
   vi.stubEnv('CASEFORGE_INTEGRATION_SECRET', 'integration-test-secret-at-least-32-characters');
   await isolated.client!.exec(
     'TRUNCATE auth_users, notification_integrations, notification_events, notification_deliveries, test_runs, issues, submission_requests CASCADE',
@@ -114,27 +115,135 @@ it('encrypts credentials, retains blank secrets, rejects stale configuration and
   expect((await readIntegrations('alice')).integrations[0].hasSigningSecret).toBe(false);
 });
 
-it('keeps SMTP passwords encrypted and out of API responses', async () => {
-  const email = {
-    version: 0,
+const emailInput = {
+  version: 0,
+  enabled: true,
+  events: ['run.failed'],
+  recipients: ['recipient@example.com'],
+};
+
+function configureSmtp() {
+  vi.stubEnv('CASEFORGE_SMTP_HOST', 'smtp.platform.example.com');
+  vi.stubEnv('CASEFORGE_SMTP_PORT', '465');
+  vi.stubEnv('CASEFORGE_SMTP_USERNAME', 'platform@example.com');
+  vi.stubEnv('CASEFORGE_SMTP_PASSWORD', 'platform-secret');
+  vi.stubEnv('CASEFORGE_SMTP_FROM', 'platform@example.com');
+}
+
+it('stores only email preferences and rejects user-supplied SMTP parameters', async () => {
+  const view = await saveIntegration('email', emailInput, 'alice');
+
+  expect(view.email).toEqual({ recipients: emailInput.recipients });
+  const [row] = await db.select().from(notificationIntegrations);
+
+  expect(decryptConfig(row.encryptedConfig, 'alice', 'email')).toEqual({
+    recipients: emailInput.recipients,
+  });
+  expect((await readIntegrations('alice')).emailAvailable).toBe(false);
+  configureSmtp();
+  const result = await readIntegrations('alice');
+
+  expect(result.emailAvailable).toBe(true);
+  expect(JSON.stringify(result)).not.toMatch(
+    /platform-secret|smtp.platform|platform@example|hasPassword/,
+  );
+  for (const extra of [
+    { host: 'smtp.user.example.com' },
+    { port: 465 },
+    { username: 'user' },
+    { password: 'secret' },
+    { from: 'user@example.com' },
+  ]) {
+    await expect(
+      saveIntegration('email', { ...emailInput, version: 1, ...extra }, 'alice'),
+    ).rejects.toThrow('通知配置无效');
+  }
+});
+
+it('reads legacy recipients without exposing SMTP settings and removes legacy credentials on save', async () => {
+  const legacy = {
+    host: 'smtp.legacy.example.com',
+    port: 465 as const,
+    username: 'legacy@example.com',
+    password: 'legacy-secret',
+    from: 'legacy@example.com',
+    recipients: emailInput.recipients,
+  };
+
+  await db.insert(notificationIntegrations).values({
+    userId: 'alice',
+    channel: 'email',
+    version: 3,
     enabled: true,
     events: ['run.failed'],
-    host: 'smtp.example.com',
-    port: 465,
-    username: 'sender@example.com',
-    password: 'smtp-test-password',
-    from: 'sender@example.com',
-    recipients: ['recipient@example.com'],
-  };
-  const view = await saveIntegration('email', email, 'alice');
+    encryptedConfig: encryptConfig(legacy, 'alice', 'email'),
+  });
+  const result = await readIntegrations('alice');
 
-  expect(view.email?.host).toBe('smtp.example.com');
-  expect(JSON.stringify(await readIntegrations('alice'))).not.toContain('smtp-test-password');
-  const { password: _password, ...withoutSecret } = email;
+  expect(result.integrations[1]).toMatchObject({
+    version: 3,
+    enabled: true,
+    events: ['run.failed'],
+    email: { recipients: legacy.recipients },
+  });
+  expect(JSON.stringify(result)).not.toMatch(
+    /legacy-secret|smtp.legacy|legacy@example|hasPassword/,
+  );
+  await saveIntegration('email', { ...emailInput, version: 3 }, 'alice');
+  const [row] = await db.select().from(notificationIntegrations);
 
-  void _password;
-  await saveIntegration('email', { ...withoutSecret, version: 1 }, 'alice');
-  expect((await readIntegrations('alice')).integrations[1].hasPassword).toBe(true);
+  expect(decryptConfig(row.encryptedConfig, 'alice', 'email')).toEqual({
+    recipients: legacy.recipients,
+  });
+});
+
+it('allows saving email preferences without platform SMTP but blocks test and retry requests', async () => {
+  await saveIntegration('email', emailInput, 'alice');
+  await expect(db.transaction((tx) => queueTest('email', 'alice', tx))).rejects.toMatchObject({
+    status: 503,
+  });
+  await expect(retryDelivery('email', randomUUID(), 'alice')).rejects.toMatchObject({
+    status: 503,
+  });
+  expect(await db.select().from(notificationDeliveries)).toHaveLength(0);
+  configureSmtp();
+  await db.transaction((tx) => queueTest('email', 'alice', tx));
+  await dispatchNotifications();
+  expect(send).toHaveBeenCalledWith(
+    'email',
+    { recipients: emailInput.recipients },
+    expect.any(Object),
+    expect.any(String),
+  );
+});
+
+it('validates email recipients and subscriptions and preserves owner and version checks', async () => {
+  for (const recipients of [
+    [],
+    ['invalid'],
+    Array.from({ length: 11 }, (_, i) => `user${i}@example.com`),
+  ]) {
+    await expect(saveIntegration('email', { ...emailInput, recipients }, 'alice')).rejects.toThrow(
+      '通知配置无效',
+    );
+  }
+
+  await expect(saveIntegration('email', { ...emailInput, events: [] }, 'alice')).rejects.toThrow(
+    '至少选择一个事件',
+  );
+  await saveIntegration('email', emailInput, 'alice');
+  expect((await readIntegrations('bob')).integrations[1].configured).toBe(false);
+  await expect(saveIntegration('email', emailInput, 'alice')).rejects.toMatchObject({
+    status: 409,
+  });
+  await saveIntegration(
+    'email',
+    { ...emailInput, version: 1, recipients: ['updated@example.com'] },
+    'alice',
+  );
+  expect((await readIntegrations('alice')).integrations[1].email?.recipients).toEqual([
+    'updated@example.com',
+  ]);
 });
 
 it('queues committed events exactly once for matching subscriptions and never for other users', async () => {

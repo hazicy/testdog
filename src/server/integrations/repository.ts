@@ -9,6 +9,7 @@ import {
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { WorkspaceError } from '@/server/shared/errors';
 import { encryptConfig, decryptConfig } from './secrets';
+import { platformSmtpConfig, requirePlatformSmtp } from './smtp';
 import { emailInput, feishuInput } from '@/features/integrations/schemas';
 import type {
   EmailConfig,
@@ -33,8 +34,10 @@ export function integrationView(row: typeof integrations.$inferSelect): Integrat
       events: row.events,
       configured: false,
       hasSigningSecret: false,
-      hasPassword: false,
-      configurationError: '配置无法解密，请重新填写完整配置和密钥后保存。',
+      configurationError:
+        row.channel === 'email'
+          ? '无法读取收件配置，请重新填写收件邮箱后保存。'
+          : '配置无法解密，请重新填写完整配置和密钥后保存。',
     };
   }
 
@@ -47,16 +50,7 @@ export function integrationView(row: typeof integrations.$inferSelect): Integrat
     version: row.version,
     configured: true,
     hasSigningSecret: row.channel === 'feishu' && !!(config as FeishuConfig).signingSecret,
-    hasPassword: !!email?.password,
-    email: email
-      ? {
-          host: email.host,
-          port: email.port,
-          username: email.username,
-          from: email.from,
-          recipients: email.recipients,
-        }
-      : undefined,
+    email: email ? { recipients: email.recipients } : undefined,
   };
 }
 
@@ -109,10 +103,10 @@ export async function readIntegrations(userId: UserScope) {
             events: [],
             configured: false,
             hasSigningSecret: false,
-            hasPassword: false,
           };
     }),
     deliveries: history,
+    emailAvailable: !!platformSmtpConfig(),
   };
 }
 
@@ -137,10 +131,7 @@ export async function saveIntegration(
       try {
         previous = decryptConfig(row.encryptedConfig, userId, channel);
       } catch {
-        const complete =
-          channel === 'feishu'
-            ? !!feishuInput.parse(raw).webhookUrl
-            : !!emailInput.parse(raw).password;
+        const complete = channel === 'feishu' ? !!feishuInput.parse(raw).webhookUrl : true;
 
         if (!complete) throw new WorkspaceError('配置无法解密，请重新填写完整配置和密钥后保存。');
       }
@@ -162,17 +153,8 @@ export async function saveIntegration(
       };
     } else {
       const value = emailInput.parse(raw);
-      const password = value.password ?? (previous as EmailConfig | undefined)?.password;
 
-      if (!password) throw new WorkspaceError('请填写 SMTP 密码或授权码。');
-      config = {
-        host: value.host,
-        port: value.port,
-        username: value.username,
-        password,
-        from: value.from,
-        recipients: value.recipients,
-      };
+      config = { recipients: value.recipients };
     }
 
     if (input.enabled && !input.events.length)
@@ -203,6 +185,7 @@ export async function saveIntegration(
 }
 
 export async function queueTest(channel: NotificationChannel, userId: UserScope, tx: Tx) {
+  if (channel === 'email') requirePlatformSmtp();
   const row = await integrationFor(tx, channel, userId, true);
 
   if (!row) throw new WorkspaceError('请先保存通知配置。');
@@ -242,6 +225,8 @@ export async function queueTest(channel: NotificationChannel, userId: UserScope,
 }
 
 export async function retryDelivery(channel: NotificationChannel, id: string, userId: UserScope) {
+  if (channel === 'email') requirePlatformSmtp();
+
   return db.transaction(async (tx) => {
     const row = await integrationFor(tx, channel, userId, true);
 

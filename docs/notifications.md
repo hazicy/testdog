@@ -6,11 +6,13 @@
 
 飞书使用群自定义机器人 Webhook，支持可选签名密钥。通知文字包含 `[testdog]`，若机器人限制关键词，可使用 `testdog`。地址仅接受 `https://open.feishu.cn/open-apis/bot/v2/hook/...`，不跟随重定向。配置参考[飞书自定义机器人文档](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)。
 
-Email 使用 SMTP 服务器、账号、密码或授权码、发件邮箱和最多 10 个收件邮箱。支持 465 TLS 和 587 STARTTLS，并验证服务器证书；多个收件人通过 BCC 收件。实现参考 [Nodemailer SMTP 文档](https://nodemailer.com/smtp)。
+Email 由平台统一发送，用户只填写最多 10 个收件邮箱、选择通知事件并设置启用开关。管理员在 API 和通知发送进程配置 `CASEFORGE_SMTP_HOST`、`CASEFORGE_SMTP_PORT`、`CASEFORGE_SMTP_USERNAME`、`CASEFORGE_SMTP_PASSWORD` 和 `CASEFORGE_SMTP_FROM`，全部有效时邮件服务才可用。支持 465 TLS 和 587 STARTTLS，并验证服务器证书；多个收件人通过 BCC 收件。实现参考 [Nodemailer SMTP 文档](https://nodemailer.com/smtp)。
 
-Webhook、飞书签名和 SMTP 密码不会通过读取接口返回。表单中的空密钥字段表示保留原配置；可明确清除飞书签名密钥。完整配置使用 AES-256-GCM 加密，并绑定用户和渠道。使用 `CASEFORGE_INTEGRATION_SECRET`（至少 32 字符），未配置时使用 `BETTER_AUTH_SECRET`；API 与发送服务需要相同密钥。变更密钥后需重新配置通知渠道。
+SMTP 参数不通过用户接口接收或返回，也不写入用户渠道配置。Webhook 和飞书签名不会通过读取接口返回；飞书表单中的空密钥字段表示保留原配置，可明确清除签名密钥。飞书配置和邮件收件设置使用 AES-256-GCM 加密，并绑定用户和渠道。使用 `CASEFORGE_INTEGRATION_SECRET`（至少 32 字符），未配置时使用 `BETTER_AUTH_SECRET`；API 与发送服务需要相同密钥。变更密钥后需重新配置通知渠道。
 
 SMTP 解析后固定连接目标 IP，默认禁止私网、回环和链路本地地址。管理员可以通过 `CASEFORGE_ALLOW_PRIVATE_SMTP=true` 允许可信内网 SMTP；TLS 验证仍然开启。通知仅包含标题、状态摘要与工作台链接，不发送原始日志、密钥、截图附件或错误堆栈。
+
+邮件服务未配置或参数无效时，用户仍可保存收件设置，测试通知和手动重试不可用，接口返回 HTTP 503。自动通知仍按订阅入队，并由发送服务按既有重试规则处理；服务恢复后可重试失败记录。`GET /api/integrations` 的 `emailAvailable` 表示服务端参数完整有效，不代表已验证邮件服务连接。旧邮件配置仅使用收件邮箱，原 SMTP 参数不再参与发信且不通过接口返回，下次保存自动清除；无需数据库结构迁移。修改平台 SMTP 配置后重启 API 和发送进程。
 
 ## 通知事件
 
@@ -37,11 +39,13 @@ pnpm notifications
 
 ## API
 
-| 接口                                                 | 功能                                               |
-| ---------------------------------------------------- | -------------------------------------------------- |
-| GET /api/integrations                                | 当前用户的两个渠道安全配置和最近投递记录           |
-| PUT /api/integrations/:channel                       | 保存配置，包含 version、enabled、events 及渠道参数 |
-| POST /api/integrations/:channel/test                 | 排队发送已保存配置的测试消息，HTTP 202             |
-| POST /api/integrations/:channel/deliveries/:id/retry | 重试当前用户的失败投递，HTTP 202                   |
+| 接口                                                 | 功能                                                 |
+| ---------------------------------------------------- | ---------------------------------------------------- |
+| GET /api/integrations                                | 当前用户的两个渠道安全配置、邮件可用性和最近投递记录 |
+| PUT /api/integrations/:channel                       | 保存配置，包含 version、enabled、events 及渠道参数   |
+| POST /api/integrations/:channel/test                 | 排队发送已保存配置的测试消息，HTTP 202               |
+| POST /api/integrations/:channel/deliveries/:id/retry | 重试当前用户的失败投递，HTTP 202                     |
 
 所有接口限制为当前用户；本地显式免登录模式仅访问无归属配置。工作区数据不会跨用户通知。
+
+Email 保存参数仅为 `version`、`enabled`、`events`、`recipients`；收件设置读取为 `email: { recipients }`，不再返回 `hasPassword` 或 SMTP 字段。

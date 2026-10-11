@@ -44,16 +44,6 @@ export const feishuInput = z
 export const emailInput = z
   .object({
     ...common,
-    host: z
-      .string()
-      .trim()
-      .min(1)
-      .max(253)
-      .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$/),
-    port: z.union([z.literal(465), z.literal(587)]),
-    username: z.string().trim().min(1).max(320),
-    password: z.string().min(1).max(1000).optional(),
-    from: z.email().max(320),
     recipients: z.array(z.email().max(320)).min(1).max(10),
   })
   .strict();
