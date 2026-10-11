@@ -4,6 +4,40 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { expect, it } from 'vitest';
 
+it.each(['empty', 'populated', 'missing'])(
+  'removes only empty legacy users tables (%s)',
+  async (state) => {
+    const client = new PGlite();
+
+    try {
+      const directory = join(process.cwd(), 'drizzle');
+      const cleanup = '20261011111451_simplify_legacy_storage';
+      const entries = (await readdir(directory)).filter((entry) => /^\d{14}_/.test(entry)).sort();
+
+      for (const entry of entries.filter((entry) => entry < cleanup))
+        await client.exec(await readFile(join(directory, entry, 'migration.sql'), 'utf8'));
+      if (state === 'missing') await client.exec('DROP TABLE users');
+      if (state === 'populated')
+        await client.exec("INSERT INTO users (id,name) VALUES (1,'Legacy user')");
+      await client.exec(await readFile(join(directory, cleanup, 'migration.sql'), 'utf8'));
+      expect(
+        (
+          await client.query<{ exists: boolean }>(
+            "SELECT to_regclass('public.users') IS NOT NULL AS exists",
+          )
+        ).rows[0].exists,
+      ).toBe(state === 'populated');
+      if (state === 'populated')
+        expect((await client.query('SELECT * FROM users')).rows).toEqual([
+          { id: 1, name: 'Legacy user' },
+        ]);
+    } finally {
+      await client.close();
+    }
+  },
+  30000,
+);
+
 it('backfills existing desktop recordings and terminates only unfinished legacy workers', async () => {
   const client = new PGlite();
   const directory = join(process.cwd(), 'drizzle');

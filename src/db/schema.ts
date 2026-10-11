@@ -9,7 +9,6 @@ import {
   integer,
   bigserial,
   pgTable,
-  varchar,
   uuid,
   text,
   jsonb,
@@ -30,12 +29,6 @@ import type {
   PlaywrightAssertion,
 } from '@/features/runs/types';
 
-export const users = pgTable('users', {
-  id: integer(),
-  name: varchar(),
-});
-
-// Keep the legacy users table intact; authentication has its own persistent models.
 export const authUsers = pgTable('auth_users', {
   id: text().primaryKey(),
   name: text().notNull(),
@@ -146,7 +139,6 @@ export const testRuns = pgTable(
       enum: ['queued', 'preparing', 'running', 'finalizing', 'passed', 'failed', 'cancelled'],
     }).notNull(),
     plan: jsonb().$type<Plan>(),
-    browserLogs: jsonb().$type<BrowserLog[]>().notNull().default([]),
     events: jsonb().$type<RunEvent[]>().notNull().default([]),
     replayable: boolean().notNull().default(false),
     cancelRequested: boolean().notNull().default(false),

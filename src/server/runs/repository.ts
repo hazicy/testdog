@@ -5,7 +5,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { runWrite, leaseScope } from '@/server/scheduling/lease';
 import { activeRunStatuses, isActiveRun } from '@/features/runs/types';
 import { legacyWebTarget, type TestTarget } from '@/automation/platform/target';
-import { and, asc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   testCases,
@@ -51,7 +51,7 @@ export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
     error: optional(row.error),
     plan: optional(row.plan),
     events: row.events,
-    browserLogs: row.browserLogs,
+    browserLogs: [],
     replayable: row.replayable,
     cancelRequested: row.cancelRequested,
     steps: [],
@@ -109,11 +109,8 @@ export async function getRun(
 ): Promise<TestRun> {
   return db.transaction(
     async (tx) => {
-      const { browserLogs: _logs, ...detailColumns } = getTableColumns(testRuns);
-
-      void _logs;
-      const [selected] = await tx
-        .select(options.includeLogs === false ? detailColumns : getTableColumns(testRuns))
+      const [row] = await tx
+        .select()
         .from(testRuns)
         .where(
           and(
@@ -121,7 +118,6 @@ export async function getRun(
             options.userId === undefined ? undefined : ownedBy(testRuns.userId, options.userId),
           ),
         );
-      const row = selected ? { browserLogs: [], ...selected } : undefined;
 
       if (!row) throw new WorkspaceError('执行记录不存在。', 404);
       const run = runRecord(row);
@@ -145,10 +141,7 @@ export async function getRun(
         ...run,
         steps: steps.map(stepRecord),
         artifacts: artifacts.map(artifactRecord),
-        browserLogs:
-          options.includeLogs === false
-            ? undefined
-            : [...(run.browserLogs ?? []), ...logs.map((log) => log.data)],
+        browserLogs: options.includeLogs === false ? undefined : logs.map((log) => log.data),
       };
     },
     { isolationLevel: 'repeatable read' },

@@ -88,7 +88,7 @@ it('searches literal wildcard characters and rejects malformed page inputs', asy
   expect(() => page('limit=1000000')).toThrow('分页');
   await expect(listTestPage(page('status=wrong'))).rejects.toThrow('状态');
 });
-it('paginates legacy and durable logs with server filters and leaves normal details light', async () => {
+it('paginates logs with server filters and leaves normal details light', async () => {
   const run = await createRun({ case: 'Logs', url: input.url });
   const base = {
     at: '2026-10-10T00:00:00Z',
@@ -99,15 +99,11 @@ it('paginates legacy and durable logs with server filters and leaves normal deta
     level: 'error' as const,
     message: 'broken',
   };
-  const legacy = { ...base, id: randomUUID() };
-
-  await db
-    .update(testRuns)
-    .set({ browserLogs: [legacy] })
-    .where(eq(testRuns.id, run.id));
+  const firstLog = { ...base, id: randomUUID() };
   const durable = { ...base, id: randomUUID(), elapsedMs: 20 };
 
   await db.insert(runBrowserLogs).values([
+    { id: firstLog.id, runId: run.id, data: firstLog },
     { id: durable.id, runId: run.id, data: durable },
     {
       id: randomUUID(),
@@ -119,12 +115,12 @@ it('paginates legacy and durable logs with server filters and leaves normal deta
     new Request(`http://localhost/api/runs/${run.id}/logs?kind=console&limit=1&${query}`);
   const first = await listBrowserLogs(run.id, request('errors=true'));
 
-  expect(first.logs).toEqual([legacy]);
+  expect(first.logs).toEqual([firstLog]);
   const second = await listBrowserLogs(run.id, request(`cursor=${first.nextCursor}&errors=true`));
 
   expect(second.logs).toEqual([durable]);
   expect(second.nextCursor).toBeNull();
-  expect((await listBrowserLogs(run.id, request('untilMs=15'))).logs).toEqual([legacy]);
+  expect((await listBrowserLogs(run.id, request('untilMs=15'))).logs).toEqual([firstLog]);
   expect((await listBrowserLogs(run.id, request('q=absent'))).logs).toEqual([]);
   expect((await getRun(run.id, { includeLogs: false })).browserLogs).toBeUndefined();
   expect((await getRun(run.id)).browserLogs).toHaveLength(3);

@@ -109,12 +109,12 @@ describe('PostgreSQL workspace repository', () => {
     await withLease(lease, () => appendBrowserLogs(run.id, [log]));
     await withLease(lease, () => appendBrowserLogs(run.id, [log]));
     expect((await getRun(run.id)).browserLogs).toEqual([log]);
-    const rows = await isolated.client!.query<{ browserLogs: unknown[] }>(
-      'SELECT "browserLogs" FROM test_runs WHERE id = $1',
+    const rows = await isolated.client!.query<{ data: unknown }>(
+      'SELECT data FROM run_browser_logs WHERE "runId" = $1',
       [run.id],
     );
 
-    expect(rows.rows[0].browserLogs).toEqual([]);
+    expect(rows.rows).toEqual([{ data: log }]);
     await expect(
       withLease({ ...lease, fencingToken: lease.fencingToken + 1 }, () =>
         appendBrowserLogs(run.id, [{ ...log, id: randomUUID() }]),
