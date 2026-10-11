@@ -215,3 +215,87 @@
 .run-issue-actions {
   border-top: 1px solid var(--page-line);
 }
+
+.recording-editor {
+  overflow: hidden;
+}
+.recording-editor-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--page-line);
+  background: var(--page);
+}
+.recording-editor-source,
+.recording-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.recording-editor-language {
+  padding-right: 12px;
+  color: var(--page-muted);
+  font-size: 12px;
+}
+.recording-editor-version {
+  min-width: 0;
+  max-width: 180px;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+}
+.recording-editor-actions {
+  flex-shrink: 0;
+}
+.recording-editor-actions .ws-icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+.recording-editor-actions .recording-editor-run {
+  color: var(--step-success);
+}
+.recording-code-editor {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.recording-editor-feedback {
+  flex-shrink: 0;
+  padding: 6px 16px;
+  border-top: 1px solid var(--page-line);
+  color: var(--step-success);
+  font-size: 11px;
+}
+.recording-editor-error {
+  flex-shrink: 0;
+  max-height: 120px;
+  overflow: auto;
+  padding: 10px 16px;
+  border-top: 1px solid var(--error-line);
+  background: var(--error-soft);
+  color: var(--error-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 480px) {
+  .recording-editor-toolbar {
+    padding-inline: 8px;
+  }
+  .recording-editor-language {
+    display: none;
+  }
+  .recording-editor-version {
+    max-width: 120px;
+  }
+}

@@ -48,7 +48,6 @@ export function CodeEditor({
           syntaxHighlighting(defaultHighlightStyle),
           bracketMatching(),
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-          EditorView.lineWrapping,
           EditorView.contentAttributes.of({
             'aria-label': label,
             spellcheck: 'false',
@@ -57,18 +56,19 @@ export function CodeEditor({
             if (update.docChanged) changed.current(update.state.doc.toString());
           }),
           EditorView.theme({
-            '&': { backgroundColor: 'var(--surface)', fontSize: '12px', minHeight: '400px' },
+            '&': { backgroundColor: 'var(--surface)', fontSize: '13px', height: '100%' },
             '.cm-scroller': {
               fontFamily: 'var(--font-geist-mono), monospace',
-              lineHeight: '1.9',
-              maxHeight: '650px',
+              lineHeight: '1.8',
               overflow: 'auto',
             },
             '.cm-content': { padding: '16px 0' },
+            '.cm-line': { padding: '0 16px' },
             '.cm-gutters': {
-              backgroundColor: 'var(--surface-muted)',
+              backgroundColor: 'var(--surface)',
               color: 'var(--editor-gutter)',
-              borderRight: '1px solid var(--page-line)',
+              borderRight: 'none',
+              paddingRight: '8px',
             },
             '.cm-activeLine': { backgroundColor: 'var(--editor-active-line)' },
             '&.cm-focused': { outline: 'none' },
@@ -101,5 +101,5 @@ export function CodeEditor({
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
   }, [value]);
 
-  return <div ref={parent} className="min-w-0 border border-page-line" />;
+  return <div ref={parent} className="recording-code-editor" />;
 }
