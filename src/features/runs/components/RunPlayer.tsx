@@ -142,6 +142,12 @@ export function RunPlayer({
               height={800}
               unoptimized
               onError={clearPreview}
+              onLoad={(event) =>
+                setDimensions({
+                  width: event.currentTarget.naturalWidth,
+                  height: event.currentTarget.naturalHeight,
+                })
+              }
               className="h-full w-full object-contain"
             />
           ) : currentFrame ? (

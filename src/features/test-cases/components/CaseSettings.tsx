@@ -1,7 +1,6 @@
 'use client';
 
 import { Label } from '@/components/ui/Label';
-import { Textarea } from '@/components/ui/Textarea';
 import useSWR from 'swr';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -37,7 +36,6 @@ export function CaseSettings({
     buildArtifactId,
     resetPolicy,
     launchUrl,
-    inputRefs,
     tags,
   } = value;
   const { data: buildCatalog } = useSWR<{
@@ -72,7 +70,7 @@ export function CaseSettings({
           disabled={busy}
           onValueChange={(value) => onChange({ platform: value as CaseSettingsValue['platform'] })}
           items={[
-            { value: 'web', label: 'Web · 移动浏览器' },
+            { value: 'web', label: 'Web · 浏览器' },
             { value: 'android', label: 'Android · 原生应用' },
             { value: 'ios', label: 'iOS · 原生应用' },
           ]}
@@ -92,25 +90,41 @@ export function CaseSettings({
               placeholder="https://your-app.com"
             />
           </Label>
-          <Label>
-            浏览器与设备
-            <Select
-              aria-label="浏览器与设备"
-              value={webProfile}
-              disabled={busy}
-              onValueChange={(value) =>
-                onChange({ webProfile: value as CaseSettingsValue['webProfile'] })
-              }
-              items={[
-                { value: 'Pixel 7', label: 'Pixel 7 · Chromium' },
-                { value: 'iPhone 13', label: 'iPhone 13 · WebKit' },
-                webProfile === 'legacy-desktop' && {
-                  value: 'legacy-desktop',
-                  label: '历史桌面 Chromium',
-                },
-              ]}
-            />
-          </Label>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <Checkbox
+                aria-label="移动模拟"
+                checked={webProfile !== 'legacy-desktop'}
+                disabled={busy}
+                onCheckedChange={(checked) =>
+                  onChange({ webProfile: checked ? 'Pixel 7' : 'legacy-desktop' })
+                }
+              />
+              移动模拟
+            </label>
+            <p className="text-xs text-page-muted">
+              {webProfile === 'legacy-desktop'
+                ? '桌面 Chromium · 1280 × 800'
+                : '模拟移动设备的视口、触摸操作和浏览器标识。'}
+            </p>
+          </div>
+          {webProfile !== 'legacy-desktop' && (
+            <Label>
+              浏览器与设备
+              <Select
+                aria-label="浏览器与设备"
+                value={webProfile}
+                disabled={busy}
+                onValueChange={(value) =>
+                  onChange({ webProfile: value as CaseSettingsValue['webProfile'] })
+                }
+                items={[
+                  { value: 'Pixel 7', label: 'Pixel 7 · Chromium' },
+                  { value: 'iPhone 13', label: 'iPhone 13 · WebKit' },
+                ]}
+              />
+            </Label>
+          )}
         </>
       ) : (
         <>
@@ -234,21 +248,6 @@ export function CaseSettings({
           </p>
         </>
       )}
-      <Label>
-        输入引用（JSON，可选）
-        <Textarea
-          className="min-h-24 font-mono text-xs"
-          aria-label="输入引用（JSON，可选）"
-          value={inputRefs}
-          disabled={busy}
-          onChange={(event) => onChange({ inputRefs: event.target.value })}
-        />
-        <span className="text-xs text-page-muted">
-          步骤中用 {'${input.name}'} 引用输入。普通输入：{'{"name":{"value":"Ada"}}'}
-          ；密码：
-          {'{"password":{"secretRef":"LOGIN_PASSWORD"}}'}。密钥由 worker 配置。
-        </span>
-      </Label>
       <Label>
         标签 <span className="font-normal text-text-subtle">（可选，逗号分隔）</span>
         <Input

@@ -592,6 +592,77 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   expect(payload).toEqual({ goal, url: 'https://example.com/' });
 });
 
+test('web settings toggle mobile emulation without changing platform', async ({ page }) => {
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) => route.fulfill({ json: { tests: [] } }));
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '新建测试', exact: true }).click();
+  const canvas = page.getByRole('region', { name: '测试画板' });
+
+  await openSettings(canvas);
+  const mobile = canvas.getByRole('checkbox', { name: '移动模拟' });
+
+  await expect(mobile).toBeChecked();
+  await mobile.click();
+  await expect(mobile).not.toBeChecked();
+  await expect(canvas.getByText('桌面 Chromium · 1280 × 800', { exact: true })).toBeVisible();
+  await expect(canvas.getByRole('combobox', { name: '浏览器与设备' })).toBeHidden();
+  await expect(canvas.getByRole('combobox', { name: '平台', exact: true })).toContainText('Web');
+  await mobile.click();
+  await expect(canvas.getByRole('combobox', { name: '浏览器与设备' })).toContainText('Pixel 7');
+});
+
+test('replay contains portrait landscape square and ultrawide media within the panel', async ({
+  page,
+}) => {
+  let width = 390;
+  let height = 844;
+  const artifact = {
+    id: 'ratio-frame',
+    runId: run.id,
+    stepId: run.steps[0].id,
+    kind: 'screenshot',
+    stage: 'after',
+    pageId: 'page-1',
+    pageUrl: saved.url,
+    capturedAt: saved.createdAt,
+    elapsedMs: 1000,
+    contentType: 'image/svg+xml',
+    size: 100,
+  };
+
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
+    route.fulfill({ json: { run: { ...run, artifacts: [artifact] } } }),
+  );
+  await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"/>`,
+    }),
+  );
+  for (const dimensions of [
+    [390, 844],
+    [1920, 1080],
+    [800, 800],
+    [2560, 1080],
+  ]) {
+    [width, height] = dimensions;
+    await page.goto(`/runs/${run.id}`);
+    const image = page.getByRole('img', { name: /^执行画面/ });
+
+    await expect(page.getByText(`${width} × ${height} · BROWSER`, { exact: true })).toBeVisible();
+    await expect(image).toHaveCSS('object-fit', 'contain');
+    const bounds = await image.boundingBox();
+    const surface = await page.locator('.run-replay-surface').boundingBox();
+    const controls = await page.locator('.run-replay-controls').boundingBox();
+
+    expect(bounds!.width).toBeGreaterThan(0);
+    expect(bounds!.height).toBeGreaterThan(0);
+    expect(bounds!.x).toBeGreaterThanOrEqual(surface!.x);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(controls!.y);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(surface!.x + surface!.width);
+  }
+});
+
 test('dialogs support keyboard entry, Escape dismissal and focus restoration', async ({ page }) => {
   await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
     route.fulfill({ json: { tests: [saved] } }),
