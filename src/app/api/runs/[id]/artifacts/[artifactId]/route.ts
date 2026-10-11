@@ -9,9 +9,9 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string; artifactId: string }> },
 ) {
-  const { id, artifactId } = await context.params;
-
   try {
+    const { id, artifactId } = await context.params;
+
     validId(id);
     validId(artifactId);
 

@@ -1,4 +1,11 @@
-import { PlanSchema, type Plan, type PlanNode } from '@/automation/compiler/schema';
+import {
+  PlanSchema,
+  nodeChildren,
+  nodeReferences,
+  mapNodeReferences,
+  type Plan,
+  type PlanNode,
+} from '@/automation/compiler/schema';
 
 export type PlanChange = {
   id: string;
@@ -36,24 +43,11 @@ const stable = (value: unknown): unknown =>
       : value;
 const same = (a: unknown, b: unknown) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
 const scaffold = (node?: PlanNode) => node?.kind === 'group' && node.presentation === 'sequence';
-const refs = (node: PlanNode) => [
-  ...node.dependsOn,
-  ...(node.kind === 'group'
-    ? node.children
-    : node.kind === 'branch'
-      ? [node.then, ...(node.otherwise ? [node.otherwise] : [])]
-      : []),
-];
 const owners = (plan: Plan) => {
   const result = new Map<string, string>();
 
-  for (const node of Object.values(plan.nodes)) {
-    if (node.kind === 'group') for (const child of node.children) result.set(child, node.id);
-    if (node.kind === 'branch') {
-      result.set(node.then, node.id);
-      if (node.otherwise) result.set(node.otherwise, node.id);
-    }
-  }
+  for (const node of Object.values(plan.nodes))
+    for (const child of nodeChildren(node)) result.set(child, node.id);
 
   return result;
 };
@@ -115,16 +109,7 @@ function align(before: Plan, source: Plan): Plan {
   const id = (value: string) => map.get(value) ?? value;
   const nodes: Plan['nodes'] = {};
 
-  for (const node of Object.values(source.nodes))
-    nodes[id(node.id)] = {
-      ...node,
-      id: id(node.id),
-      dependsOn: node.dependsOn.map(id),
-      ...(node.kind === 'group' ? { children: node.children.map(id) } : {}),
-      ...(node.kind === 'branch'
-        ? { then: id(node.then), ...(node.otherwise ? { otherwise: id(node.otherwise) } : {}) }
-        : {}),
-    };
+  for (const node of Object.values(source.nodes)) nodes[id(node.id)] = mapNodeReferences(node, id);
 
   return PlanSchema.parse({ rootId: before.rootId, nodes });
 }
@@ -183,7 +168,7 @@ export function reviewPlan(before: Plan, source: Plan): PlanReview {
 
     for (const node of [old, next]) {
       if (!node) continue;
-      for (const ref of refs(node)) {
+      for (const ref of nodeReferences(node)) {
         const structural =
           node.kind === 'branch' || (node.kind === 'group' && !scaffold(node) && (!old || !next));
 
@@ -278,15 +263,11 @@ export function resolveReview(
     const oldOrder = old?.kind === 'group' ? old.children : [];
     let newOrder = next?.kind === 'group' ? next.children : [];
     const common = oldOrder.filter((id) => newOrder.includes(id));
+    const reordered = newOrder.filter((id) => common.includes(id));
 
     if (
-      !same(
-        common,
-        newOrder.filter((id) => common.includes(id)),
-      ) &&
-      common
-        .filter((id, index) => newOrder.filter((value) => common.includes(value))[index] !== id)
-        .every((id) => !choice.get(id))
+      !same(common, reordered) &&
+      common.filter((id, index) => reordered[index] !== id).every((id) => !choice.get(id))
     )
       newOrder = [...oldOrder, ...newOrder.filter((id) => !oldOrder.includes(id))];
     const order = newOrder.filter((id) => nodes[id] && selectedOwner.get(id) === node.id);
@@ -308,8 +289,6 @@ export function resolveReview(
       );
     }
 
-    for (const id of newOrder)
-      if (nodes[id] && selectedOwner.get(id) === node.id && !order.includes(id)) order.push(id);
     node.children = order;
   }
 

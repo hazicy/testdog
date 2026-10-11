@@ -8,11 +8,11 @@ export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, context: Context) {
-  const { id } = await context.params;
-  const parsed = testSchema.safeParse(await request.json().catch(() => null));
-
-  if (!parsed.success) return NextResponse.json({ message: testInputMessage }, { status: 400 });
   try {
+    const { id } = await context.params;
+    const parsed = testSchema.safeParse(await request.json().catch(() => null));
+
+    if (!parsed.success) return NextResponse.json({ message: testInputMessage }, { status: 400 });
     validId(id);
 
     return NextResponse.json({
@@ -24,9 +24,9 @@ export async function PATCH(request: Request, context: Context) {
 }
 
 export async function DELETE(request: Request, context: Context) {
-  const { id } = await context.params;
-
   try {
+    const { id } = await context.params;
+
     validId(id);
     await deleteTest(id, await requireUserId(request));
 

@@ -22,11 +22,11 @@ export async function GET(request: Request, context: Context) {
 }
 
 export async function POST(request: Request, context: Context) {
-  const parsed = recordingRequestSchema.safeParse(await request.json().catch(() => null));
-
-  if (!parsed.success)
-    return NextResponse.json({ message: recordingInputMessage }, { status: 400 });
   try {
+    const parsed = recordingRequestSchema.safeParse(await request.json().catch(() => null));
+
+    if (!parsed.success)
+      return NextResponse.json({ message: recordingInputMessage }, { status: 400 });
     const { id } = await context.params;
 
     validId(id);

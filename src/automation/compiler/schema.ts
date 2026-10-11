@@ -97,15 +97,29 @@ export const PlanSchema = z
     Object.keys(plan.nodes).forEach(visit);
   });
 
-function nodeReferences(node: PlanNode): string[] {
-  const children =
-    node.kind === 'group'
-      ? node.children
-      : node.kind === 'branch'
-        ? [node.then, ...(node.otherwise ? [node.otherwise] : [])]
-        : [];
+export function nodeChildren(node: PlanNode): string[] {
+  if (node.kind === 'group') return node.children;
+  if (node.kind === 'branch') return [node.then, ...(node.otherwise ? [node.otherwise] : [])];
 
-  return [...node.dependsOn, ...children];
+  return [];
+}
+
+export function nodeReferences(node: PlanNode): string[] {
+  return [...node.dependsOn, ...nodeChildren(node)];
+}
+
+export function mapNodeReferences(node: PlanNode, map: (id: string) => string): PlanNode {
+  const mapped = { ...node, id: map(node.id), dependsOn: node.dependsOn.map(map) };
+
+  if (mapped.kind === 'group') return { ...mapped, children: mapped.children.map(map) };
+  if (mapped.kind === 'branch')
+    return {
+      ...mapped,
+      then: map(mapped.then),
+      ...(mapped.otherwise ? { otherwise: map(mapped.otherwise) } : {}),
+    };
+
+  return mapped;
 }
 
 export type Target = z.infer<typeof TargetSchema>;

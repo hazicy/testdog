@@ -67,10 +67,9 @@ export function editablePlan(source: Plan, title?: string): Plan {
     };
   }
 
-  if (
-    plan.nodes[plan.rootId].kind !== 'group' ||
-    (plan.nodes[plan.rootId] as Extract<PlanNode, { kind: 'group' }>).presentation
-  ) {
+  const originalRoot = plan.nodes[plan.rootId];
+
+  if (originalRoot.kind !== 'group' || originalRoot.presentation) {
     const id = freshId('case-root');
 
     plan.nodes[id] = {

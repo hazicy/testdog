@@ -8,9 +8,9 @@ export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, context: Context) {
-  const { id } = await context.params;
-
   try {
+    const { id } = await context.params;
+
     validId(id);
 
     return jsonResponse(request, {
@@ -25,9 +25,9 @@ export async function GET(request: Request, context: Context) {
 }
 
 export async function DELETE(request: Request, context: Context) {
-  const { id } = await context.params;
-
   try {
+    const { id } = await context.params;
+
     validId(id);
     await requestCancellation(id, await requireUserId(request));
 

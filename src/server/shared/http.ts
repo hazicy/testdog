@@ -16,15 +16,3 @@ export function apiError(error: unknown) {
     { status: 503 },
   );
 }
-
-export function withApiError<Args extends unknown[]>(
-  handler: (...args: Args) => Promise<Response>,
-) {
-  return async (...args: Args) => {
-    try {
-      return await handler(...args);
-    } catch (error) {
-      return apiError(error);
-    }
-  };
-}

@@ -1,14 +1,26 @@
-import { PlanSchema, type Plan, type PlanNode } from '@/automation/compiler/schema';
+import {
+  PlanSchema,
+  nodeChildren,
+  nodeReferences,
+  mapNodeReferences,
+  type Plan,
+  type PlanNode,
+} from '@/automation/compiler/schema';
 import type { Insertion } from './authoring';
 
-const references = (node: PlanNode) => [
-  ...node.dependsOn,
-  ...(node.kind === 'group'
-    ? node.children
-    : node.kind === 'branch'
-      ? [node.then, ...(node.otherwise ? [node.otherwise] : [])]
-      : []),
-];
+function subtreeIds(plan: Plan, id: string): Set<string> {
+  const ids = new Set<string>();
+  const visit = (ref: string) => {
+    if (ids.has(ref)) return;
+    ids.add(ref);
+    nodeChildren(plan.nodes[ref]).forEach(visit);
+  };
+
+  visit(id);
+
+  return ids;
+}
+
 const owner = (plan: Plan, id: string) =>
   Object.values(plan.nodes).find(
     (node): node is Extract<PlanNode, { kind: 'group' }> =>
@@ -54,35 +66,13 @@ export function duplicateNode(plan: Plan, id: string): Plan {
 
   if (!parent) return plan;
   const nodes = structuredClone(plan.nodes);
-  const copies = new Map<string, string>();
-
-  function collect(source: string) {
-    if (copies.has(source)) return;
-    copies.set(source, crypto.randomUUID());
-    const node = plan.nodes[source];
-
-    if (node.kind === 'group') node.children.forEach(collect);
-    if (node.kind === 'branch') {
-      collect(node.then);
-      if (node.otherwise) collect(node.otherwise);
-    }
-  }
-
-  collect(id);
+  const copies = new Map([...subtreeIds(plan, id)].map((ref) => [ref, crypto.randomUUID()]));
   const map = (ref: string) => copies.get(ref) ?? ref;
 
   for (const [source, copy] of copies) {
     const node = structuredClone(plan.nodes[source]);
 
-    nodes[copy] = {
-      ...node,
-      id: copy,
-      dependsOn: node.dependsOn.map(map),
-      ...(node.kind === 'group' ? { children: node.children.map(map) } : {}),
-      ...(node.kind === 'branch'
-        ? { then: map(node.then), ...(node.otherwise ? { otherwise: map(node.otherwise) } : {}) }
-        : {}),
-    };
+    nodes[copy] = mapNodeReferences(node, map);
   }
 
   (nodes[parent.id] as typeof parent).children.splice(parent.children.indexOf(id) + 1, 0, map(id));
@@ -93,21 +83,8 @@ export function duplicateNode(plan: Plan, id: string): Plan {
 export function removeNode(plan: Plan, id: string): Plan {
   if (id === plan.rootId) return plan;
   const nodes = structuredClone(plan.nodes);
-  const candidates = new Set<string>();
+  const candidates = subtreeIds(plan, id);
 
-  function collect(ref: string) {
-    if (candidates.has(ref)) return;
-    candidates.add(ref);
-    const node = nodes[ref];
-
-    if (node.kind === 'group') node.children.forEach(collect);
-    if (node.kind === 'branch') {
-      collect(node.then);
-      if (node.otherwise) collect(node.otherwise);
-    }
-  }
-
-  collect(id);
   for (const node of Object.values(nodes)) {
     node.dependsOn = node.dependsOn.filter((ref) => ref !== id);
     if (node.kind === 'group') node.children = node.children.filter((ref) => ref !== id);
@@ -130,7 +107,7 @@ export function removeNode(plan: Plan, id: string): Plan {
   function retain(ref: string) {
     if (retained.has(ref) || !nodes[ref]) return;
     retained.add(ref);
-    references(nodes[ref]).forEach(retain);
+    nodeReferences(nodes[ref]).forEach(retain);
   }
 
   Object.keys(nodes)

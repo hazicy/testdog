@@ -29,6 +29,10 @@ describe('canvas operations', () => {
     let plan = insertStep(fixture(), { groupId: 'root', index: 2 }, 'branch', 'branch');
 
     plan = insertStep(plan, { groupId: 'branch:then', index: 0 }, 'act', 'child');
+    plan = insertStep(plan, { groupId: 'branch:then', index: 1 }, 'act', 'dependent');
+    plan.nodes.child.dependsOn = ['a'];
+    plan.nodes.dependent.dependsOn = ['child'];
+    const original = structuredClone(plan);
     const copied = duplicateNode(plan, 'branch');
     const root = copied.nodes.root;
 
@@ -42,7 +46,12 @@ describe('canvas operations', () => {
 
     if (path.kind !== 'group') throw new Error('Missing path');
     expect(path.children[0]).not.toBe('child');
-    expect(copied.nodes[path.children[0]]).toMatchObject({ actionType: 'act' });
+    expect(copied.nodes[path.children[0]]).toMatchObject({
+      actionType: 'act',
+      dependsOn: ['a'],
+    });
+    expect(copied.nodes[path.children[1]]).toMatchObject({ dependsOn: [path.children[0]] });
+    expect(plan).toEqual(original);
     expect(PlanSchema.safeParse(copied).success).toBe(true);
   });
 
