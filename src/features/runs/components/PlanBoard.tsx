@@ -1,10 +1,10 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-
 import { useEffect, useMemo, type ReactNode } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import './plan-board.css';
 import type { Plan } from '@/automation/compiler/schema';
 import type { ExecutionStep, RunArtifact } from '@/features/runs/types';
 import { InsertStepMenu } from '@/features/test-cases/components/InsertStepMenu';
@@ -104,7 +104,10 @@ function PlanBoardContent({
   return (
     <div className={`plan-board ${fullHeight ? 'plan-board-full' : ''}`}>
       {error && (
-        <p role="alert" className="case-editor-error">
+        <p
+          role="alert"
+          className="shrink-0 border-t border-page-line px-6 py-2.5 text-[13px] text-error-ink"
+        >
           {error}
         </p>
       )}

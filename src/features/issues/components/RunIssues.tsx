@@ -175,7 +175,7 @@ function RunIssueCard({
       <footer className="run-issue-actions flex flex-wrap items-center gap-2">
         <Select
           aria-label={`问题状态：${issue.title}`}
-          className="ws-input w-auto"
+          className="w-auto"
           value={issue.status}
           disabled={busy}
           onValueChange={(status) => void changeStatus(status)}
@@ -248,7 +248,7 @@ export function RunIssues({
         {entries.length > 1 && (
           <Select
             aria-label="选择执行问题"
-            className="ws-input mt-3"
+            className="mt-3"
             value={selected.occurrence.id}
             onValueChange={(id) => {
               const entry = entries.find((item) => item.occurrence.id === id);

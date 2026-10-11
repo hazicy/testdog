@@ -1,3 +1,4 @@
+import { statusStyles } from '@/components/ui/statusStyles';
 import { Button } from '@/components/ui/Button';
 import type { ExecutionStep } from '../types';
 import type { indexRun } from '../lib/runIndex';
@@ -20,7 +21,7 @@ export function StepDetails({
     <div>
       <div className="flex flex-wrap items-center gap-3">
         <h3 className="text-sm font-medium">{step.title}</h3>
-        <span className={`ws-status ${step.status}`}>
+        <span data-slot="status" data-status={step.status} className={statusStyles(step.status)}>
           <span />
           {statuses[step.status]}
         </span>

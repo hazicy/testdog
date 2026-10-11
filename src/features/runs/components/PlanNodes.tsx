@@ -1,7 +1,7 @@
 'use client';
 
+import { statusStyles } from '@/components/ui/statusStyles';
 import { Button } from '@/components/ui/Button';
-
 import Image from 'next/image';
 import { asset, statuses } from '../presentation';
 import type { boardResult } from '../lib/boardResults';
@@ -216,7 +216,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           )}
         </div>
         {!!steps.length && (
-          <span className={`ws-status ${status}`}>
+          <span data-slot="status" data-status={status} className={statusStyles(status)}>
             <span />
             {data.result
               ? status === 'passed' && type !== 'assert'

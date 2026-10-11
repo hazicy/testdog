@@ -62,14 +62,14 @@ export function BrowserLogPanel({
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Input
           aria-label="搜索浏览器记录"
-          className="ws-input max-w-xs"
+          className="max-w-xs"
           placeholder="搜索内容、URL、状态码…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <Select
           aria-label="记录范围"
-          className="ws-input w-auto"
+          className="w-auto"
           value={scope}
           onValueChange={(value) => {
             setScope(value);

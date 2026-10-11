@@ -875,7 +875,9 @@ test('plan subflows retain both branch paths, shared references and external dep
   await expect(page.getByText('YES / 条件成立', { exact: true })).toBeVisible();
   await expect(page.getByText('NO / 条件不成立', { exact: true })).toBeVisible();
   await expect(page.locator('.react-flow__edge[aria-label="依赖：external → root"]')).toBeVisible();
-  await expect(page.locator('[data-plan-node="shared"] .ws-status.failed')).toHaveCount(2);
+  await expect(
+    page.locator('[data-plan-node="shared"] [data-slot="status"][data-status="failed"]'),
+  ).toHaveCount(2);
   await page.getByRole('button', { name: '查看引用节点 shared', exact: true }).click();
   const detail = page.locator('[data-plan-node="shared"].reference .plan-inline-evidence');
 

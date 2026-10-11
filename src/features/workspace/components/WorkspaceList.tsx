@@ -1,5 +1,6 @@
 'use client';
 
+import { Table } from '@/components/ui/Table';
 import Link from 'next/link';
 import { type ComponentProps, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -78,7 +79,7 @@ export function WorkspaceList({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={isTests ? '搜索用例…' : '搜索执行记录…'}
-            className="ws-input pl-9"
+            className="pl-9"
           />
         </div>
         <div className="workspace-index-filter">
@@ -86,7 +87,7 @@ export function WorkspaceList({
             aria-label="状态筛选"
             value={filter}
             onValueChange={(value) => setFilter(value)}
-            className="ws-input w-auto"
+            className="w-auto"
             items={[
               { value: 'all', label: '全部状态' },
               { value: 'passed', label: '已通过' },
@@ -159,9 +160,7 @@ export function WorkspaceList({
             role="region"
             aria-label="可横向滚动的记录表格"
           >
-            <table
-              className={`ws-table workspace-index-table ${isTests ? 'is-tests' : 'is-results'}`}
-            >
+            <Table className={`workspace-index-table ${isTests ? 'is-tests' : 'is-results'}`}>
               <thead>
                 <tr>
                   <th>{isTests ? '用例' : '测试'}</th>
@@ -187,7 +186,7 @@ export function WorkspaceList({
                   exportRun={exportRun}
                 />
               </tbody>
-            </table>
+            </Table>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { Textarea } from '@/components/ui/Textarea';
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -70,7 +71,7 @@ function VerificationAction({
         aria-label={`验证版本：${occurrence.snapshot.name}`}
         value={version}
         onValueChange={setVersion}
-        className="ws-input w-auto"
+        className="w-auto"
         items={[
           {
             value: 'current',
@@ -440,8 +441,8 @@ export function IssueDetail({ id }: { id: string }) {
         <form onSubmit={addComment} className="mb-6">
           <label className="block">
             补充处理说明
-            <textarea
-              className="ws-input mt-2 min-h-24"
+            <Textarea
+              className="mt-2 min-h-24"
               value={comment}
               onChange={(event) => setComment(event.target.value)}
               required

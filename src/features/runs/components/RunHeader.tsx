@@ -1,3 +1,4 @@
+import { statusStyles } from '@/components/ui/statusStyles';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@iconify/react/offline';
@@ -44,7 +45,11 @@ export function RunHeader({
           <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-page-muted">
             {run && (
               <>
-                <span className={`ws-status ${run.status}`}>
+                <span
+                  data-slot="status"
+                  data-status={run.status}
+                  className={statusStyles(run.status)}
+                >
                   <span />
                   {statuses[run.status]}
                 </span>

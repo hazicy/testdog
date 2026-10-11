@@ -1,3 +1,4 @@
+import { statusStyles } from '@/components/ui/statusStyles';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
@@ -29,7 +30,11 @@ const statusLabels = {
 
 function Status({ status }: { status?: RunSummary['status'] }) {
   return (
-    <span className={`ws-status ${status || 'none'}`}>
+    <span
+      data-slot="status"
+      data-status={status || 'none'}
+      className={statusStyles(status || 'none')}
+    >
       <Icon
         icon={
           status === 'passed'

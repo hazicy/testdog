@@ -1,0 +1,239 @@
+.case-floating-panel {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  bottom: 24px;
+  width: 392px;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  max-height: calc(100% - 48px);
+  height: fit-content;
+  z-index: 10;
+  border: 1px solid var(--page-line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  box-shadow:
+    0 8px 32px var(--canvas-panel-shadow),
+    0 2px 6px var(--canvas-panel-shadow-soft);
+  overflow: hidden;
+}
+
+.case-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+.case-panel-primary-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.case-panel-generate[aria-expanded='true'],
+.case-panel-generate[data-pending='true'] {
+  background: var(--brand-soft);
+  border-color: var(--brand-line);
+}
+
+.case-panel-platform {
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: var(--surface-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.case-panel-count {
+  color: var(--page-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.case-panel-heading {
+  padding: 0 20px 16px;
+}
+
+.case-panel-heading h2 {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.case-panel-heading p {
+  margin-top: 5px;
+  color: var(--page-muted);
+  font-size: 12px;
+}
+
+.case-panel-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+}
+
+.case-floating-panel.is-collapsed {
+  bottom: auto;
+}
+
+.case-prompt-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  z-index: 1;
+}
+
+.case-prompt-heading > button {
+  margin-left: auto;
+}
+
+.case-prompt-input {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+  padding: 48px 56px 110px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--control-ink);
+  font-size: clamp(15px, 1.3vw, 18px);
+  line-height: 1.8;
+  height: 100%;
+  letter-spacing: -0.02em;
+}
+
+.case-prompt-input::placeholder {
+  color: var(--control-placeholder);
+}
+
+.case-prompt-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0;
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+}
+
+@media (max-width: 900px) {
+  .case-floating-panel {
+    width: 336px;
+    right: 12px;
+    top: 12px;
+    max-height: calc(100% - 24px);
+  }
+}
+
+@media (max-width: 600px) {
+  .case-floating-panel {
+    width: min(336px, calc(100% - 24px));
+  }
+}
+
+.case-canvas-page {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+.case-prompt-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: var(--composer-backdrop);
+  backdrop-filter: blur(1px);
+  animation: case-prompt-fade 180ms ease-out;
+}
+
+.case-prompt-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 31;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  outline: none;
+  animation: case-prompt-fade 180ms ease-out;
+}
+
+.case-prompt-overlay > form {
+  height: 100%;
+}
+
+.case-prompt-error {
+  position: absolute;
+  bottom: 80px;
+  left: 56px;
+  right: 56px;
+  color: var(--error-ink);
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .case-prompt-input {
+    padding: 52px 24px 110px;
+  }
+  .case-prompt-error {
+    left: 24px;
+    right: 24px;
+  }
+}
+
+.case-canvas-preview {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--brand-line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  box-shadow: 0 6px 24px var(--canvas-preview-shadow);
+  white-space: nowrap;
+}
+
+.case-canvas-preview > span {
+  color: var(--page-muted);
+  font-size: 12px;
+}
+
+@keyframes case-prompt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-prompt-backdrop,
+  .case-prompt-overlay {
+    animation: none;
+  }
+}
+
+.case-canvas-page .plan-board {
+  border: 0;
+}

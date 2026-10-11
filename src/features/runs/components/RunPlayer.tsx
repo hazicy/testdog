@@ -246,7 +246,7 @@ export function RunPlayer({
                 setElapsedMs(0);
                 playback.setVideoId(value);
               }}
-              className="ws-input w-auto"
+              className="w-auto"
               items={videos.map((item) => ({ value: item.id, label: item.pageId }))}
             />
           )}

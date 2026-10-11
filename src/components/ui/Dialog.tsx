@@ -1,7 +1,8 @@
 'use client';
 
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
-import { useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode, type ComponentProps } from 'react';
+import { twMerge } from 'tailwind-merge';
 
 export function Dialog({
   children,
@@ -45,11 +46,14 @@ export function Dialog({
       disablePointerDismissal
     >
       <BaseDialog.Portal>
-        <BaseDialog.Backdrop className="ws-dialog-backdrop" />
-        <BaseDialog.Viewport className="ws-dialog-viewport">
+        <BaseDialog.Backdrop className="absolute inset-0 z-50 bg-backdrop backdrop-blur-[2px]" />
+        <BaseDialog.Viewport className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
           <BaseDialog.Popup
             ref={popup}
-            className={`ws-dialog ${className}`}
+            className={twMerge(
+              'relative w-full max-w-[620px] max-h-[calc(100dvh-48px)] overflow-y-auto rounded-xl border border-dialog-line bg-surface p-0 text-ink shadow-[0_20px_80px_var(--shadow)]',
+              className,
+            )}
             aria-labelledby={titleId}
             aria-busy={busy}
             initialFocus={() => {
@@ -83,5 +87,29 @@ export function Dialog({
         </BaseDialog.Viewport>
       </BaseDialog.Portal>
     </BaseDialog.Root>
+  );
+}
+
+export function DialogHeader({ className = '', ...props }: ComponentProps<'div'>) {
+  return (
+    <div
+      {...props}
+      className={twMerge(
+        'flex items-start justify-between gap-4 border-b border-page-line px-6 py-[22px]',
+        className,
+      )}
+    />
+  );
+}
+
+export function DialogFooter({ className = '', ...props }: ComponentProps<'div'>) {
+  return (
+    <div
+      {...props}
+      className={twMerge(
+        'flex justify-end gap-2.5 border-t border-page-line bg-surface-muted px-6 py-4',
+        className,
+      )}
+    />
   );
 }

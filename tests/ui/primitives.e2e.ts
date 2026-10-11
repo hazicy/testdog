@@ -56,6 +56,30 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test('field overrides and focus styles survive the shared Tailwind controls', async ({ page }) => {
+  await page.goto('/cases');
+  await expect(page.getByRole('textbox', { name: '搜索测试', exact: true })).toHaveCSS(
+    'padding-left',
+    '36px',
+  );
+  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  const editor = page.locator('.case-canvas-page');
+  await openSettings(editor);
+  const name = editor.getByRole('textbox', { name: '测试名称', exact: true });
+  await expect(name).toHaveCSS('min-height', '38px');
+  await expect(name).toHaveCSS('margin-top', '8px');
+  await name.focus();
+  await expect(name).toHaveCSS('outline-style', 'solid');
+  await expect(name).toHaveCSS('outline-offset', '0px');
+  await expect(editor.getByRole('combobox', { name: '平台', exact: true })).toHaveCSS(
+    'display',
+    'inline-flex',
+  );
+  await expect(
+    editor.getByRole('textbox', { name: '输入引用（JSON，可选）', exact: true }),
+  ).toHaveCSS('min-height', '96px');
+});
+
 test('select keyboard navigation and Escape stay within the editor dialog', async ({ page }) => {
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();

@@ -24,7 +24,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <div className="app-root">
+        <div className="isolate">
           <AuthCacheBoundary>
             <AppShell>{children}</AppShell>
           </AuthCacheBoundary>

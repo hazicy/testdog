@@ -1,5 +1,7 @@
 'use client';
 
+import { Input } from '@/components/ui/Input';
+import { DialogHeader } from '@/components/ui/Dialog';
 import { useId, useState } from 'react';
 import { Icon } from '@iconify/react/offline';
 import sendIcon from '@iconify-icons/lucide/send';
@@ -119,10 +121,9 @@ function ChannelForm({
       <label className="mb-2 block text-sm" htmlFor={`${channel}-${label}`}>
         {label}
       </label>
-      <input
+      <Input
         id={`${channel}-${label}`}
         type={type}
-        className="ws-input"
         value={value}
         placeholder={placeholder}
         autoComplete={type === 'password' ? 'new-password' : 'off'}
@@ -134,7 +135,7 @@ function ChannelForm({
 
   return (
     <Dialog titleId={titleId} busy={busy} onDismiss={onDismiss} initialFocus="input">
-      <div className="ws-dialog-header">
+      <DialogHeader>
         <div>
           <h2 id={titleId} className="text-base font-semibold">
             {notificationKinds[channel]}
@@ -152,7 +153,7 @@ function ChannelForm({
         >
           <Icon icon={closeIcon} width="18" aria-hidden="true" />
         </Button>
-      </div>
+      </DialogHeader>
       {integration.configurationError && (
         <p className="px-6 pt-4 text-sm text-error-ink" role="alert">
           {integration.configurationError}
@@ -384,7 +385,7 @@ export function Integrations() {
               onDismiss={() => setHistoryOpen(false)}
               className="max-w-3xl"
             >
-              <div className="ws-dialog-header">
+              <DialogHeader>
                 <h2 id={historyTitleId} className="text-base font-semibold">
                   发送记录
                 </h2>
@@ -397,7 +398,7 @@ export function Integrations() {
                 >
                   <Icon icon={closeIcon} width="18" aria-hidden="true" />
                 </Button>
-              </div>
+              </DialogHeader>
               <section className="p-6" aria-label="发送记录">
                 {actionError && (
                   <p role="alert" className="mb-4 text-sm text-error-ink">

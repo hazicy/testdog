@@ -1,5 +1,7 @@
 'use client';
 
+import './test-editor.css';
+
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
@@ -322,14 +324,14 @@ export function TestEditor({
 
   const content = (
     <form
-      className="case-editor-form case-editor-board"
+      className="flex h-full min-h-0 flex-1 flex-col"
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
         void save();
       }}
     >
-      <div className="case-canvas-content">
+      <div className="flex min-h-0 flex-1">
         <PlanBoard
           fullHeight
           plan={reviewPreview}
@@ -428,7 +430,10 @@ export function TestEditor({
                 </div>
               )}
               {formError && !composerOpen && (
-                <p role="alert" className="case-editor-error">
+                <p
+                  role="alert"
+                  className="shrink-0 border-t border-page-line px-6 py-2.5 text-[13px] text-error-ink"
+                >
                   {formError}
                 </p>
               )}

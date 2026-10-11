@@ -1,5 +1,6 @@
 'use client';
 
+import { DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
@@ -46,14 +47,14 @@ export function DeleteTestDialog({
           </p>
         )}
       </div>
-      <div className="ws-dialog-footer">
+      <DialogFooter>
         <Button disabled={saving} onClick={() => onClose()}>
           取消
         </Button>
         <Button disabled={saving} variant="danger" onClick={() => void remove()}>
           {saving ? '删除中…' : '删除测试'}
         </Button>
-      </div>
+      </DialogFooter>
     </Dialog>
   );
 }

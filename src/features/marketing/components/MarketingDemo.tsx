@@ -1,5 +1,6 @@
 'use client';
 
+import { statusStyles } from '@/components/ui/statusStyles';
 import { Tabs } from '@/components/ui/Tabs';
 
 const examples = [
@@ -104,7 +105,7 @@ export function MarketingDemo() {
           <section className="p-6 sm:p-8" aria-label="示例执行结果">
             <div className="mb-5 flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold">执行记录</h3>
-              <span className="ws-status passed">
+              <span data-slot="status" data-status="passed" className={statusStyles('passed')}>
                 <span />
                 已通过
               </span>

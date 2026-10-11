@@ -1,5 +1,7 @@
 'use client';
 
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { useId, useState } from 'react';
 import { Dialog } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
@@ -145,8 +147,8 @@ export function IssueEditor({
           <>
             <label className="block">
               搜索问题
-              <input
-                className="ws-input mt-2"
+              <Input
+                className="mt-2"
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);
@@ -172,8 +174,8 @@ export function IssueEditor({
           <>
             <label className="block">
               问题标题
-              <input
-                className="ws-input mt-2"
+              <Input
+                className="mt-2"
                 required
                 maxLength={200}
                 value={title}
@@ -184,9 +186,9 @@ export function IssueEditor({
               <label htmlFor={`${titleId}-description`} className="block">
                 问题描述
               </label>
-              <textarea
+              <Textarea
                 id={`${titleId}-description`}
-                className="ws-input mt-2 min-h-32"
+                className="mt-2 min-h-32"
                 maxLength={20000}
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}

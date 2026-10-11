@@ -1,5 +1,6 @@
 'use client';
 
+import { Input } from '@/components/ui/Input';
 import { useDeferredValue, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -50,9 +51,9 @@ export function IssueList() {
         </Button>
       </div>
       <div className="my-6 flex flex-wrap gap-3">
-        <input
+        <Input
           aria-label="搜索问题"
-          className="ws-input max-w-sm"
+          className="max-w-sm"
           placeholder="搜索问题…"
           maxLength={200}
           value={q}
@@ -60,14 +61,14 @@ export function IssueList() {
         />
         <Select
           aria-label="筛选问题状态"
-          className="ws-input w-auto"
+          className="w-auto"
           value={status}
           onValueChange={setStatus}
           items={[{ value: 'all', label: '全部状态' }, ...options(issueStatuses)]}
         />
         <Select
           aria-label="筛选环境"
-          className="ws-input w-auto"
+          className="w-auto"
           value={platform}
           onValueChange={setPlatform}
           items={[
@@ -79,7 +80,7 @@ export function IssueList() {
         />
         <Select
           aria-label="问题排序"
-          className="ws-input w-auto"
+          className="w-auto"
           value={sort}
           onValueChange={setSort}
           items={[
@@ -89,7 +90,7 @@ export function IssueList() {
         />
         <Select
           aria-label="筛选日期"
-          className="ws-input w-auto"
+          className="w-auto"
           value={days}
           onValueChange={setDays}
           items={[

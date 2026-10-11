@@ -1,5 +1,7 @@
 'use client';
 
+import { Label } from '@/components/ui/Label';
+import { Textarea } from '@/components/ui/Textarea';
 import useSWR from 'swr';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -48,13 +50,12 @@ export function CaseSettings({
   const deviceResources = resourceCatalog?.resources ?? [];
 
   return (
-    <div className="case-settings-fields">
-      <label className="ws-label">
+    <div className="flex flex-col gap-5">
+      <Label>
         测试名称
         <Input
           name="testName"
           aria-label="测试名称"
-          className="ws-input"
           required
           maxLength={120}
           value={name}
@@ -62,11 +63,10 @@ export function CaseSettings({
           onChange={(event) => onNameChange(event.target.value)}
           placeholder="例如：验证登录页面"
         />
-      </label>
-      <label className="ws-label">
+      </Label>
+      <Label>
         平台
         <Select
-          className="ws-input"
           aria-label="平台"
           value={platform}
           disabled={busy}
@@ -77,13 +77,12 @@ export function CaseSettings({
             { value: 'ios', label: 'iOS · 原生应用' },
           ]}
         />
-      </label>
+      </Label>
       {platform === 'web' ? (
         <>
-          <label className="ws-label">
+          <Label>
             网站地址
             <Input
-              className="ws-input"
               required
               type="url"
               aria-label="网站地址"
@@ -92,11 +91,10 @@ export function CaseSettings({
               onChange={(event) => onChange({ url: event.target.value })}
               placeholder="https://your-app.com"
             />
-          </label>
-          <label className="ws-label">
+          </Label>
+          <Label>
             浏览器与设备
             <Select
-              className="ws-input"
               aria-label="浏览器与设备"
               value={webProfile}
               disabled={busy}
@@ -112,14 +110,13 @@ export function CaseSettings({
                 },
               ]}
             />
-          </label>
+          </Label>
         </>
       ) : (
         <>
-          <label className="ws-label">
+          <Label>
             应用标识
             <Input
-              className="ws-input"
               required
               aria-label="应用标识"
               value={appId}
@@ -127,11 +124,10 @@ export function CaseSettings({
               onChange={(event) => onChange({ appId: event.target.value })}
               placeholder="com.example.app"
             />
-          </label>
-          <label className="ws-label">
+          </Label>
+          <Label>
             设备配置
             <Select
-              className="ws-input"
               required
               aria-label="设备配置"
               value={deviceProfileId}
@@ -161,11 +157,10 @@ export function CaseSettings({
                   ) && { value: deviceProfileId, label: <>{deviceProfileId} · 未连接</> },
               ]}
             />
-          </label>
-          <label className="ws-label">
+          </Label>
+          <Label>
             应用构建
             <Select
-              className="ws-input"
               aria-label="应用构建"
               value={buildArtifactId}
               disabled={busy}
@@ -189,11 +184,10 @@ export function CaseSettings({
                   },
               ]}
             />
-          </label>
-          <label className="ws-label">
+          </Label>
+          <Label>
             初始化策略
             <Select
-              className="ws-input"
               aria-label="初始化策略"
               value={resetPolicy}
               disabled={busy}
@@ -206,7 +200,7 @@ export function CaseSettings({
                 { value: 'reinstall', label: '重新安装所选构建' },
               ]}
             />
-          </label>
+          </Label>
           <fieldset className="space-y-2 text-xs text-page-muted">
             <legend className="mb-2">诊断附件</legend>
             {(
@@ -226,25 +220,24 @@ export function CaseSettings({
               </label>
             ))}
           </fieldset>
-          <label className="ws-label">
+          <Label>
             启动链接（可选）
             <Input
-              className="ws-input"
               value={launchUrl}
               disabled={busy}
               onChange={(event) => onChange({ launchUrl: event.target.value })}
               placeholder="myapp://login"
             />
-          </label>
+          </Label>
           <p className="text-xs text-page-muted">
             设备繁忙时会排队。重新安装及 iOS 清除数据需要选择应用构建。
           </p>
         </>
       )}
-      <label className="ws-label">
+      <Label>
         输入引用（JSON，可选）
-        <textarea
-          className="ws-input min-h-24 font-mono text-xs"
+        <Textarea
+          className="min-h-24 font-mono text-xs"
           aria-label="输入引用（JSON，可选）"
           value={inputRefs}
           disabled={busy}
@@ -255,17 +248,16 @@ export function CaseSettings({
           ；密码：
           {'{"password":{"secretRef":"LOGIN_PASSWORD"}}'}。密钥由 worker 配置。
         </span>
-      </label>
-      <label className="ws-label">
+      </Label>
+      <Label>
         标签 <span className="font-normal text-text-subtle">（可选，逗号分隔）</span>
         <Input
-          className="ws-input"
           value={tags}
           disabled={busy}
           onChange={(event) => onChange({ tags: event.target.value })}
           placeholder="冒烟测试, 登录"
         />
-      </label>
+      </Label>
     </div>
   );
 }

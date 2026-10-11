@@ -3,7 +3,6 @@
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Brand } from '@/components/brand/Brand';
 import { Button } from '@/components/ui/Button';
-
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
@@ -37,7 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className={`workspace-shell ${workspaceIndex ? 'workspace-index-shell ' : ''}grid min-h-dvh grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
+      className={`bg-page text-ink text-sm ${workspaceIndex ? 'workspace-index-shell ' : ''}grid min-h-dvh grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
     >
       <a
         href="#main-content"

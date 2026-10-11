@@ -1,5 +1,8 @@
 'use client';
 
+import { DialogHeader, DialogFooter } from '@/components/ui/Dialog';
+import { Label } from '@/components/ui/Label';
+import { Textarea } from '@/components/ui/Textarea';
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
@@ -38,27 +41,27 @@ export function RunMatrixDialog({
       initialFocus='[aria-label="运行配置（JSON）"]'
     >
       <form onSubmit={(event) => void onSubmit(event, matrixCode)}>
-        <div className="ws-dialog-header">
+        <DialogHeader>
           <h2 id="matrix-title" className="text-lg font-semibold">
             平台矩阵 · {test.name}
           </h2>
-        </div>
+        </DialogHeader>
         <div className="space-y-4 p-6">
           <p className="text-sm text-page-muted">
             填写 1–10 个运行配置。每项包含 target，可用 goal
             覆盖该平台的步骤与预期。所有运行一起创建，各自排队。
           </p>
-          <label className="ws-label">
+          <Label>
             运行配置（JSON）
-            <textarea
-              className="ws-input min-h-72 font-mono text-xs"
+            <Textarea
+              className="min-h-72 font-mono text-xs"
               required
               aria-label="运行配置（JSON）"
               value={matrixCode}
               disabled={busy}
               onChange={(event) => setMatrixCode(event.target.value)}
             />
-          </label>
+          </Label>
           <details className="text-xs text-page-muted">
             <summary>平台配置示例</summary>
             <pre className="mt-2 overflow-auto">
@@ -100,14 +103,14 @@ export function RunMatrixDialog({
             </p>
           )}
         </div>
-        <div className="ws-dialog-footer">
+        <DialogFooter>
           <Button type="button" disabled={busy} onClick={() => onClose()}>
             取消
           </Button>
           <Button type="submit" variant="primary" disabled={busy}>
             {busy ? '创建中…' : '运行矩阵'}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );
