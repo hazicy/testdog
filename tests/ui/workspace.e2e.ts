@@ -1020,6 +1020,38 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
   expect(errors).toEqual([]);
 });
 
+test('layout popover switches presets and restores the default', async ({ page }) => {
+  const errors: string[] = [];
+
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
+    route.fulfill({ json: { logs: [], nextCursor: null } }),
+  );
+  await page.goto(`/runs/${run.id}`);
+  const studio = page.getByLabel('执行工作台', { exact: true });
+  const trigger = page.getByRole('button', { name: '布局', exact: true });
+
+  for (const preset of ['审阅', '问题', '调试']) {
+    await trigger.click();
+    await page.getByRole('dialog').getByRole('button', { name: preset, exact: true }).click();
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(studio.locator('.dv-groupview')).toHaveCount(4);
+  }
+
+  await trigger.click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await page.getByRole('button', { name: '专注模式', exact: true }).click();
+  await expect(studio.locator('.dv-groupview')).toHaveCount(1);
+  await trigger.click();
+  await page.getByRole('button', { name: '恢复默认布局' }).click();
+  await expect(studio.locator('.dv-groupview')).toHaveCount(3);
+  expect(errors).toEqual([]);
+});
+
 test('execution studio opens a full height three pane layout', async ({ page }) => {
   await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
   await page.goto(`/runs/${run.id}`);

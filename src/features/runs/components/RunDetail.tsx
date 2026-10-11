@@ -19,6 +19,7 @@ import { indexRun } from '@/features/runs/lib/runIndex';
 import { useRunData } from '../hooks/useRunData';
 import { useRunPlayback } from '../hooks/useRunPlayback';
 import { RunHeader } from './RunHeader';
+import type { RunLayout } from './RunLayoutPopover';
 import { RunPlayer } from './RunPlayer';
 import { BrowserLogPanel } from './BrowserLogPanel';
 import { RunLogs } from './RunLogs';
@@ -88,6 +89,8 @@ export function RunDetail({ id }: { id: string }) {
   const [issueStep, setIssueStep] = useState<ExecutionStep>();
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [layoutVersion, setLayoutVersion] = useState(0);
+  const [layout, setLayout] = useState<RunLayout>('default');
   const playback = useRunPlayback();
   const {
     follow,
@@ -105,7 +108,7 @@ export function RunDetail({ id }: { id: string }) {
   const [view, setView] = useState<View>('execution');
   const [logTab, setLogTab] = useState<'logs' | 'console' | 'network'>('logs');
   const [revealPanels, setRevealPanels] = useState<readonly PanelId[]>([]);
-  const { run, error, setError, unavailable, now, previewUrl, clearPreview, refresh } = useRunData(
+  const { run, error, setError, unavailable, previewUrl, clearPreview, refresh } = useRunData(
     id,
     follow && view === 'execution',
   );
@@ -449,7 +452,14 @@ export function RunDetail({ id }: { id: string }) {
       <RunHeader
         id={id}
         run={run}
-        now={now}
+        layout={layout}
+        changeLayout={(next) => {
+          setLayout(next);
+          setView('execution');
+          setLogTab('logs');
+          setRevealPanels([]);
+          setLayoutVersion((version) => version + 1);
+        }}
         busy={busy}
         exporting={exporting}
         start={start}
@@ -478,12 +488,72 @@ export function RunDetail({ id }: { id: string }) {
         />
       )}
       <DockTabs
-        key={id}
+        key={`${id}:${layoutVersion}`}
         label="执行工作台"
         className="run-studio-dock"
-        tabs={workspaceTabs.map((tab) =>
-          tab.id === 'issues' ? { ...tab, badge: runIssues.length } : tab,
-        )}
+        tabs={workspaceTabs
+          .map((tab): DockTab & { id: PanelId } => {
+            const configured: DockTab & { id: PanelId } = {
+              ...tab,
+              ...(tab.id === 'issues' ? { badge: runIssues.length } : {}),
+            };
+
+            if (layout === 'focus') {
+              return {
+                ...configured,
+                reference: tab.id === 'steps' ? undefined : 'steps',
+                direction: 'within',
+                initiallyVisible: tab.id === 'execution',
+                initiallyCollapsed: false,
+                initialWidthRatio: undefined,
+                initialHeight: undefined,
+              };
+            }
+
+            if (layout === 'default') return configured;
+            if (tab.id === 'steps') configured.initialWidthRatio = 0.28;
+            if (tab.id === 'logs') configured.initiallyCollapsed = false;
+            if (layout === 'review' && tab.id === 'issues') {
+              configured.reference = 'execution';
+              configured.direction = 'right';
+              configured.initiallyVisible = true;
+              configured.initialWidthRatio = 0.28;
+            }
+
+            if (layout === 'notes' || layout === 'debug') {
+              if (tab.id === 'logs') {
+                configured.direction = 'right';
+                configured.initialWidthRatio = 0.28;
+                configured.initiallyVisible = layout === 'debug';
+              }
+
+              if (tab.id === 'issues') {
+                configured.reference = 'logs';
+                configured.direction = 'below';
+                configured.initiallyVisible = true;
+                configured.initialHeight = 260;
+              }
+
+              if (tab.id === 'console') configured.initiallyVisible = layout === 'notes';
+            }
+
+            return configured;
+          })
+          .sort((a, b) => {
+            // Create referenced panels before the panels positioned relative to them.
+            const order: PanelId[] = [
+              'steps',
+              'execution',
+              'logs',
+              'issues',
+              'plan',
+              'recording',
+              'console',
+              'network',
+            ];
+
+            return order.indexOf(a.id) - order.indexOf(b.id);
+          })}
         revealPanels={revealPanels}
         value={view}
         onChange={changePanel}

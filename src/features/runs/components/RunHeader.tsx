@@ -8,13 +8,15 @@ import resultsIcon from '@iconify-icons/lucide/play';
 import backIcon from '@iconify-icons/lucide/chevron-left';
 import stopIcon from '@iconify-icons/lucide/square';
 import recordIcon from '@iconify-icons/lucide/rotate-cw';
+import { RunLayoutPopover, type RunLayout } from './RunLayoutPopover';
 import { isActiveRun, type TestRun } from '@/features/runs/types';
-import { statuses, time } from '../presentation';
+import { statuses } from '../presentation';
 
 type Props = {
   id: string;
   run?: TestRun;
-  now: number;
+  layout: RunLayout;
+  changeLayout: (layout: RunLayout) => void;
   busy: boolean;
   exporting: boolean;
   start: (mode: 'record' | 'replay') => Promise<void>;
@@ -22,7 +24,17 @@ type Props = {
   exportReport: () => Promise<void>;
 };
 
-export function RunHeader({ id, run, now, busy, exporting, start, cancel, exportReport }: Props) {
+export function RunHeader({
+  id,
+  run,
+  layout,
+  changeLayout,
+  busy,
+  exporting,
+  start,
+  cancel,
+  exportReport,
+}: Props) {
   return (
     <header className="run-studio-toolbar grid min-h-14 shrink-0 grid-cols-1 items-center gap-x-4 gap-y-2 bg-page px-3 py-2 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
       <div className="flex min-w-0 items-center gap-3">
@@ -116,19 +128,8 @@ export function RunHeader({ id, run, now, busy, exporting, start, cancel, export
           <Icon icon={downloadIcon} width="16" aria-hidden="true" />
         </Button>
       </div>
-      <div className="flex shrink-0 items-center gap-3 justify-self-end text-xs whitespace-nowrap text-page-muted">
-        {run && (
-          <>
-            <span className="font-mono">{run.mode === 'replay' ? '重放' : '录制'}</span>
-            <span>{run.steps.length} 个步骤</span>
-            <span>{time(run.durationMs ?? Math.max(0, now - Date.parse(run.startedAt)))}</span>
-            {run.sourceRunId && (
-              <Link className="underline underline-offset-4" href={`/runs/${run.sourceRunId}`}>
-                查看原记录 ↗
-              </Link>
-            )}
-          </>
-        )}
+      <div className="flex shrink-0 items-center justify-self-end">
+        <RunLayoutPopover value={layout} onChange={changeLayout} />
       </div>
     </header>
   );

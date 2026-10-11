@@ -1,0 +1,120 @@
+'use client';
+
+import { useState } from 'react';
+import { Popover } from '@base-ui/react/popover';
+import { Icon } from '@iconify/react/offline';
+import layoutIcon from '@iconify-icons/lucide/panels-top-left';
+import focusIcon from '@iconify-icons/lucide/maximize';
+import { Button } from '@/components/ui/Button';
+import { buttonStyles } from '@/components/ui/buttonStyles';
+
+export type RunLayout = 'default' | 'review' | 'notes' | 'debug' | 'focus';
+
+const presets = [
+  {
+    id: 'default',
+    label: '预设',
+    columns: '1fr 1fr',
+    cells: ['1 / 1 / 3 / 2', '1 / 2 / 2 / 3', '2 / 2 / 3 / 3'],
+  },
+  {
+    id: 'review',
+    label: '审阅',
+    columns: '1fr 1fr 1fr',
+    cells: ['1 / 1 / 3 / 2', '1 / 2 / 2 / 3', '2 / 2 / 3 / 3', '1 / 3 / 3 / 4'],
+  },
+  {
+    id: 'notes',
+    label: '问题',
+    columns: '1fr 1fr 1fr',
+    cells: ['1 / 1 / 3 / 2', '1 / 2 / 3 / 3', '1 / 3 / 2 / 4', '2 / 3 / 3 / 4'],
+  },
+  {
+    id: 'debug',
+    label: '调试',
+    columns: '1fr 1fr 1fr',
+    cells: ['1 / 1 / 3 / 2', '1 / 2 / 3 / 3', '1 / 3 / 2 / 4', '2 / 3 / 3 / 4'],
+  },
+] as const;
+
+export function RunLayoutPopover({
+  value,
+  onChange,
+}: {
+  value: RunLayout;
+  onChange: (layout: RunLayout) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  function select(layout: RunLayout) {
+    onChange(layout);
+    setOpen(false);
+  }
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger
+        className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
+        aria-label="布局"
+        title="布局"
+      >
+        <Icon icon={layoutIcon} width="16" aria-hidden="true" />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="bottom" align="end" sideOffset={10} className="z-50">
+          <Popover.Popup className="w-[340px] max-w-[calc(100vw-24px)] max-h-[var(--available-height)] overflow-y-auto rounded-2xl border border-page-line bg-surface p-5 text-ink shadow-xl outline-none">
+            <Popover.Title className="text-base font-semibold">布局</Popover.Title>
+            <Popover.Description className="mt-1 text-xs text-page-muted">
+              选择工作台布局，也可拖动标签调整面板。
+            </Popover.Description>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {presets.map((preset) => (
+                <Button
+                  key={preset.id}
+                  variant="ghost"
+                  aria-pressed={value === preset.id}
+                  onClick={() => select(preset.id)}
+                  className={`h-auto flex-col items-stretch gap-2 rounded-xl border p-2.5 text-left ${value === preset.id ? 'border-ink bg-control-hover' : 'border-transparent'}`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="grid h-24 gap-1.5"
+                    style={{ gridTemplateColumns: preset.columns, gridTemplateRows: '1fr 0.35fr' }}
+                  >
+                    {preset.cells.map((area) => (
+                      <span
+                        key={area}
+                        style={{ gridArea: area }}
+                        className="rounded-md border border-page-line bg-surface-muted"
+                      />
+                    ))}
+                  </span>
+                  <span className="text-sm font-medium">{preset.label}</span>
+                </Button>
+              ))}
+            </div>
+            <div className="mt-4 border-t border-page-line pt-4">
+              <Button
+                variant="soft"
+                className="w-full gap-2 rounded-xl"
+                aria-pressed={value === 'focus'}
+                onClick={() => select(value === 'focus' ? 'default' : 'focus')}
+              >
+                <Icon icon={focusIcon} width="16" aria-hidden="true" />
+                {value === 'focus' ? '退出专注模式' : '专注模式'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 w-full text-page-muted"
+                onClick={() => select('default')}
+              >
+                恢复默认布局
+              </Button>
+            </div>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
