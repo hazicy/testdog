@@ -1,6 +1,6 @@
 import { twMerge } from 'tailwind-merge';
 
-export type ButtonVariant = 'outline' | 'primary' | 'ghost' | 'danger';
+export type ButtonVariant = 'outline' | 'primary' | 'soft' | 'ghost' | 'danger';
 export type ButtonSize = 'md' | 'sm' | 'xs' | 'icon' | 'icon-sm' | 'icon-xs';
 
 const base =
@@ -10,6 +10,7 @@ const variants: Record<ButtonVariant, string> = {
     'border-control-line bg-surface text-control-ink [&:hover:not(:disabled):not([data-disabled])]:bg-control-hover',
   primary:
     'border-brand bg-brand text-brand-foreground [&:hover:not(:disabled):not([data-disabled])]:bg-brand-hover',
+  soft: 'border-transparent bg-brand-soft text-brand-hover [&:hover:not(:disabled):not([data-disabled])]:bg-brand-line',
   ghost:
     'border-transparent bg-transparent text-control-muted [&:hover:not(:disabled):not([data-disabled])]:bg-control-hover [&:hover:not(:disabled):not([data-disabled])]:text-ink',
   danger:

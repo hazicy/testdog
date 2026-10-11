@@ -2,7 +2,8 @@
 
 使用 [Base UI](https://base-ui.com/react/overview/quick-start) 提供无头交互，主题颜色在 `src/app/globals.css` 中定义，组件的边框、尺寸和状态样式使用 Tailwind，并通过 `tailwind-merge` 合并调用方的定制。
 
-- `Button`：默认 `variant="outline"`、`size="md"`。通过 `variant` 选择 `outline`、`primary`、`ghost` 或 `danger`；通过 `size` 选择 `md`、`sm`、`xs` 或 `icon`、`icon-sm`、`icon-xs`。内部通过 Tailwind 类组合边框、颜色、尺寸、悬停、禁用和焦点样式，颜色使用已有主题变量。`className` 通过 `tailwind-merge` 与基础样式合并，主要用于布局。
+- `Button`：默认 `variant="outline"`、`size="md"`。通过 `variant` 选择 `outline`、`primary`、`soft`、`ghost` 或 `danger`；通过 `size` 选择 `md`、`sm`、`xs` 或 `icon`、`icon-sm`、`icon-xs`。内部通过 Tailwind 类组合边框、颜色、尺寸、悬停、禁用和焦点样式，颜色使用已有主题变量。`className` 通过 `tailwind-merge` 与基础样式合并，主要用于布局。
+- `soft`：使用主题浅色背景和品牌文字，适合工具栏中需要突出但保持轻量的核心操作。
 - 图标按钮使用 `<Button variant="ghost" size="icon" aria-label="关闭">…</Button>`；主要操作使用 `variant="primary"`。保留 Base UI 的 `ref`、`render` 和其他属性，支持函数形式的 `className`。
 - 链接及第三方交互组件使用 `buttonStyles({ variant, size, className })` 复用按钮外观，并保留各自的原生语义。业务调用不再手写 `ws-button`、`primary`、`ghost` 等样式类。
 - `Input`：保留 Base UI 属性和函数形式的 `className`；基础样式由 `inputStyles` 统一提供，传入 `pl-9`、`w-auto` 等工具类即可覆盖默认值。`Textarea` 复用同一套字段样式。
