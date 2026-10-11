@@ -35,7 +35,7 @@ const height = (value: string) => Math.max(72, 40 + Math.ceil(value.length / 58)
 // Visible group columns connect to their parent rather than to each other.
 // Column placement does not change authored execution order. Branch exits both
 // connect to the following step. Layout is a synchronous, UI-independent function.
-export function layoutPlan(plan: Plan): PlanLayout {
+export function layoutPlan(plan: Plan, results = false): PlanLayout {
   const nodes: LayoutNode[] = [],
     edges: LayoutEdge[] = [],
     insertions: LayoutInsertion[] = [];
@@ -100,7 +100,7 @@ export function layoutPlan(plan: Plan): PlanLayout {
     const hidden =
       node.kind === 'group' && node.presentation === 'sequence' && node.children.length > 0;
     const rowId = `plan:${id}`;
-    const rowHeight = height(text(node));
+    const rowHeight = height(text(node)) + (results && node.kind !== 'group' ? 190 : 0);
     let first: string | undefined = hidden ? undefined : rowId;
     let exits = first ? [first] : [];
     let bottom = hidden ? y : y + rowHeight;
@@ -195,7 +195,7 @@ export function layoutPlan(plan: Plan): PlanLayout {
     } else if (node.actionType !== 'assert') {
       for (const [index, assertion] of node.assertions.entries()) {
         const assertionId = `assertion:${id}:${index}`;
-        const rowHeight = height(assertion.description);
+        const rowHeight = height(assertion.description) + (results ? 190 : 0);
 
         nodes.push({
           id: assertionId,

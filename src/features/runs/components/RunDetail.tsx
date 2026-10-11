@@ -8,11 +8,12 @@ import { isActiveRun } from '@/features/runs/types';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { ExecutionStep, TestRun } from '@/features/runs/types';
+import type { ExecutionStep, RunArtifact, TestRun } from '@/features/runs/types';
 import { api } from '@/client/api';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { downloadRunReport } from '@/client/download';
 import { StepList } from './StepList';
+import { stepAtTime } from '../lib/boardResults';
 import { indexRun } from '@/features/runs/lib/runIndex';
 import { useRunData } from '../hooks/useRunData';
 import { useRunPlayback } from '../hooks/useRunPlayback';
@@ -22,6 +23,7 @@ import { BrowserLogPanel } from './BrowserLogPanel';
 import { RunLogs } from './RunLogs';
 import { StepDetails } from './StepDetails';
 import { RunSnapshot } from './RunSnapshot';
+import { IssueEditor } from '@/features/issues/components/IssueEditor';
 
 import './run-studio.css';
 
@@ -74,6 +76,8 @@ const RecordingEditor = dynamic(
 export function RunDetail({ id }: { id: string }) {
   const router = useRouter();
   const submit = useRunSubmission();
+  const [issueOpen, setIssueOpen] = useState(false);
+  const [issueStep, setIssueStep] = useState<ExecutionStep>();
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
   const playback = useRunPlayback();
@@ -88,6 +92,7 @@ export function RunDetail({ id }: { id: string }) {
     showFrame,
     selectStep: selectPlaybackStep,
   } = playback;
+  const [inspectedStepId, setInspectedStepId] = useState<string>();
   const [view, setView] = useState<View>('execution');
   const [logTab, setLogTab] = useState<'logs' | 'console' | 'network'>('logs');
   const [revealPanels, setRevealPanels] = useState<readonly PanelId[]>([]);
@@ -108,8 +113,16 @@ export function RunDetail({ id }: { id: string }) {
         frames.findLastIndex((frame) => frame.elapsedMs <= elapsedMs),
       ));
   const currentFrame = frames[currentIndex];
-  const selectedStep =
-    steps.get(stepId || '') || (follow ? run?.steps.at(-1) : steps.get(currentFrame?.stepId || ''));
+  const playbackStep = follow
+    ? run?.steps.at(-1)
+    : stepId
+      ? steps.get(stepId)
+      : evidenceIndex !== undefined
+        ? steps.get(currentFrame?.stepId || '')
+        : run
+          ? stepAtTime(run, elapsedMs)
+          : undefined;
+  const selectedStep = steps.get(inspectedStepId || '') || playbackStep;
   const video = videos.find((item) => item.id === videoId) || videos[0];
 
   const durationMs = Math.max(run?.durationMs || 0, frames.at(-1)?.elapsedMs || 0);
@@ -119,16 +132,49 @@ export function RunDetail({ id }: { id: string }) {
   }, [view, videoElement]);
   const selectStep = useCallback(
     (step: ExecutionStep) => {
+      setInspectedStepId(step.id);
       setView('execution');
       setRevealPanels(['execution', 'steps']);
       const positions = stepFrames.get(step.id);
 
       const index = positions ? (positions.after ?? positions.first) : undefined;
 
-      selectPlaybackStep(step.id, index === undefined ? 0 : frames[index].elapsedMs, index);
+      selectPlaybackStep(
+        step.id,
+        index === undefined
+          ? Math.max(0, Date.parse(step.startedAt) - Date.parse(run?.startedAt || step.startedAt))
+          : frames[index].elapsedMs,
+        index,
+      );
     },
-    [stepFrames, selectPlaybackStep, frames],
+    [stepFrames, selectPlaybackStep, frames, run?.startedAt],
   );
+
+  const selectBoardStep = useCallback(
+    (step: ExecutionStep) => {
+      selectStep(step);
+      setRevealPanels(['execution', 'plan']);
+    },
+    [selectStep],
+  );
+
+  const showBoardFrame = useCallback(
+    (frame: RunArtifact) => {
+      const index = frames.findIndex((item) => item.id === frame.id);
+
+      if (index < 0) return;
+      setInspectedStepId(frame.stepId);
+      setView('execution');
+      setRevealPanels(['execution', 'plan']);
+      showFrame(index, frame.elapsedMs);
+    },
+    [frames, showFrame],
+  );
+
+  const openIssue = useCallback((step: ExecutionStep) => {
+    setIssueStep(step);
+    setIssueOpen(true);
+  }, []);
 
   const renderStepDetails = useCallback(
     (step: ExecutionStep) => (
@@ -136,13 +182,14 @@ export function RunDetail({ id }: { id: string }) {
         step={step}
         runError={run?.error}
         stepFrames={stepFrames}
+        onIssue={openIssue}
         onShowFrame={(index) => {
           setView('execution');
           showFrame(index, frames[index].elapsedMs);
         }}
       />
     ),
-    [run?.error, stepFrames, frames, showFrame],
+    [run?.error, stepFrames, frames, showFrame, openIssue],
   );
 
   async function start(mode: 'record' | 'replay') {
@@ -201,7 +248,18 @@ export function RunDetail({ id }: { id: string }) {
           </div>
         );
       case 'plan':
-        return <PlanBoard plan={run?.plan} steps={run?.steps || []} onStep={selectStep} />;
+        return (
+          <PlanBoard
+            plan={run?.plan}
+            steps={run?.steps || emptySteps}
+            artifacts={run?.artifacts}
+            results
+            currentStepId={playbackStep?.id}
+            onStep={selectBoardStep}
+            onFrame={showBoardFrame}
+            onIssue={openIssue}
+          />
+        );
       case 'recording':
         return run ? <RecordingEditor key={run.id} run={run} /> : null;
       case 'execution':
@@ -276,6 +334,10 @@ export function RunDetail({ id }: { id: string }) {
         start={start}
         cancel={cancel}
         exportReport={exportReport}
+        onIssue={() => {
+          setIssueStep(undefined);
+          setIssueOpen(true);
+        }}
       />
       {run?.evidenceComplete === false && (
         <p role="alert" className="studio-alert">
@@ -289,6 +351,14 @@ export function RunDetail({ id }: { id: string }) {
             刷新
           </Button>
         </div>
+      )}
+      {issueOpen && run && (
+        <IssueEditor
+          run={run}
+          step={issueStep}
+          onDismiss={() => setIssueOpen(false)}
+          onSaved={(issue) => router.push(`/issues/${issue.id}`)}
+        />
       )}
       <DockTabs
         key={id}

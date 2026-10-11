@@ -7,6 +7,7 @@
 - `runs/run.ts`、`runtime.ts`：执行生命周期、平台运行时装配和取消控制。
 - `runs/replay.ts`：将历史执行步骤转换为引擎使用的重放步骤，调用平台适配器。
 - `runs/recordings.ts`：录制版本查询、解析校验和保存；其他录制与附件模块负责证据采集和归档。
+- `issues/repository.ts`：问题查询、事务写入、执行证据快照与回归关联。
 - `scheduling`：worker 与资源登记、任务领取、租约校验、续约和恢复。
 - `realtime`：数据库事件发布、SSE 和实时画面预览。
 - `shared`：鉴权、业务错误、HTTP 响应、Redis 连接、模型选择和进程身份。

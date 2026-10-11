@@ -1,9 +1,12 @@
 'use client';
 
+import Image from 'next/image';
+import { asset, statuses } from '../presentation';
+import type { boardResult } from '../lib/boardResults';
 import { memo, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { PlanNode } from '@/automation/compiler/schema';
-import type { ExecutionStep } from '@/features/runs/types';
+import type { ExecutionStep, RunArtifact } from '@/features/runs/types';
 import { StepBadge } from '@/features/test-cases/components/StepType';
 
 export const nodeDragType = 'application/x-caseforge-node';
@@ -29,6 +32,10 @@ export type PlanFlowNode = Node<
     onDrop: (id: string) => void;
     onStep: (step: ExecutionStep) => void;
     review?: NodeReview;
+    result?: ReturnType<typeof boardResult>;
+    current?: boolean;
+    onFrame?: (frame: RunArtifact) => void;
+    onIssue?: (step: ExecutionStep) => void;
   },
   'plan'
 >;
@@ -68,7 +75,9 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       data-plan-node={node.id}
       data-step-type={type}
       data-review={data.review?.kind}
-      className={`plan-node ${type} ${data.reference ? 'reference' : ''} ${editing ? 'active' : ''}`}
+      data-current={data.current || undefined}
+      data-result={data.result?.status}
+      className={`plan-node ${type} ${data.reference ? 'reference' : ''} ${editing ? 'active' : ''} ${data.result ? 'has-result' : ''}`}
       onDragOver={(event) => {
         if (data.editable && data.mutable && event.dataTransfer.types.includes(nodeDragType)) {
           event.preventDefault();
@@ -207,10 +216,73 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
         {!!steps.length && (
           <span className={`ws-status ${status}`}>
             <span />
-            {steps.length} 步
+            {data.result
+              ? status === 'passed' && type !== 'assert'
+                ? '步骤已通过'
+                : statuses[status as keyof typeof statuses]
+              : `${steps.length} 步`}
           </span>
         )}
       </div>
+      {data.result && (
+        <div className="plan-result nodrag nopan">
+          <div className="plan-result-summary">
+            {data.current && <span className="plan-playback-marker">当前回放位置</span>}
+            {data.result.durationMs !== undefined && (
+              <span>
+                {(data.result.durationMs / 1000).toFixed(1)}s · {steps.length} 步
+              </span>
+            )}
+            {type === 'assert' && <p>预期：{content}</p>}
+            {data.result.primary?.evidence && <p>验证证据：{data.result.primary.evidence}</p>}
+            {data.result.primary?.error && (
+              <p className="plan-result-error">{data.result.primary.error}</p>
+            )}
+            {node.kind === 'branch' && data.result.primary?.decision !== undefined && (
+              <p>判断结果：{data.result.primary.decision ? 'YES / 条件成立' : 'NO / 条件不成立'}</p>
+            )}
+            {!steps.length && <p>尚无执行结果</p>}
+            {steps.length > 0 && !data.result.frame && <p>暂无已归档截图</p>}
+            {data.result.primary && (
+              <button
+                type="button"
+                className="ws-button"
+                onClick={() => data.onStep(data.result!.primary!)}
+              >
+                查看过程
+              </button>
+            )}
+            {data.result.primary && data.onIssue && (
+              <button
+                type="button"
+                className="ws-button ml-2"
+                onClick={() => data.onIssue?.(data.result!.primary!)}
+              >
+                创建或关联问题
+              </button>
+            )}
+          </div>
+          {data.result.frame && (
+            <button
+              type="button"
+              className="plan-result-thumbnail"
+              aria-label={`查看截图：${content}`}
+              onClick={() => data.onFrame?.(data.result!.frame!)}
+            >
+              <Image
+                src={asset(data.result.frame.runId, data.result.frame)}
+                alt={`证据截图：${content}`}
+                width={240}
+                height={140}
+                unoptimized
+              />
+              <span>
+                {data.result.frame.stage === 'before' ? '执行前截图' : '执行截图'} · 点击回看
+              </span>
+            </button>
+          )}
+        </div>
+      )}
       {!data.editable && expanded && (
         <div className="plan-inline-evidence nodrag nopan">
           {steps.map((step) => (

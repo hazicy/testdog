@@ -162,7 +162,7 @@ test('frame playback and step selection keep the matching evidence visible', asy
 
   await page.getByRole('button', { name: '播放回看', exact: true }).click();
   await expect(image).toHaveAttribute('src', /frame-1-after$/);
-  await expect(page.getByRole('heading', { name: '检查页面', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '打开网站', exact: true })).toBeVisible();
 });
 
 test('uses one replay player and pauses video when leaving execution', async ({
@@ -722,6 +722,7 @@ test('nested plans keep node evidence and dependency navigation through zoom and
   await viewport.press('ArrowRight');
   await expect(detail.getByRole('button', { name: /打开网站/ })).toBeVisible();
   await detail.getByRole('button', { name: /打开网站/ }).click();
+  await page.getByRole('button', { name: '执行步骤', exact: true }).click();
   await expect(
     page
       .locator('section[aria-label="执行步骤"]')
@@ -1570,4 +1571,124 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
   await page.mouse.up({ button: 'left' });
   await expect(a).toHaveClass(/selected/);
   await expect(b).toHaveClass(/selected/);
+});
+
+test('result board shows assertion evidence and links screenshots to the existing timeline', async ({
+  page,
+}) => {
+  const screenshotStep = {
+    ...run.steps[0],
+    id: 'capture-step',
+    planNodeId: 'capture',
+    title: '保存订单截图',
+    startedAt: '2026-10-01T00:00:01Z',
+    finishedAt: '2026-10-01T00:00:02Z',
+    durationMs: 1000,
+  };
+  const assertionStep = {
+    ...screenshotStep,
+    id: 'assert-step',
+    planNodeId: 'check',
+    sequence: 2,
+    title: '订单金额为 100',
+    kind: 'assertion',
+    status: 'failed',
+    startedAt: '2026-10-01T00:00:03Z',
+    finishedAt: '2026-10-01T00:00:04Z',
+    assertion: { description: '订单金额为 100' },
+    evidence: '页面显示金额 120',
+    error: '金额不符合预期',
+  };
+  const plan = {
+    rootId: 'root',
+    nodes: {
+      root: {
+        id: 'root',
+        kind: 'group',
+        presentation: 'sequence',
+        goal: '验证订单',
+        children: ['capture', 'check'],
+        dependsOn: [],
+      },
+      capture: {
+        id: 'capture',
+        kind: 'task',
+        actionType: 'screenshot',
+        goal: '保存订单截图',
+        dependsOn: [],
+        requirementIds: [],
+        assertions: [],
+      },
+      check: {
+        id: 'check',
+        kind: 'task',
+        actionType: 'assert',
+        goal: '订单金额为 100',
+        dependsOn: [],
+        requirementIds: [],
+        assertions: [{ description: '订单金额为 100' }],
+      },
+    },
+  };
+  const artifacts = [screenshotStep, assertionStep].map((step, index) => ({
+    id: `board-frame-${index}`,
+    runId: run.id,
+    stepId: step.id,
+    kind: 'screenshot',
+    stage: 'after',
+    pageId: 'page-1',
+    pageUrl: saved.url,
+    capturedAt: step.finishedAt,
+    elapsedMs: (index + 1) * 2000,
+    contentType: 'image/svg+xml',
+    size: 100,
+  }));
+
+  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
+    route.fulfill({
+      json: {
+        run: {
+          ...run,
+          status: 'failed',
+          durationMs: 5000,
+          plan,
+          steps: [screenshotStep, assertionStep],
+          artifacts,
+        },
+      },
+    }),
+  );
+  await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800"/>',
+    }),
+  );
+  await page.goto(`/runs/${run.id}`);
+  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  const assertion = page.locator('[data-plan-node="check"]');
+  const capture = page.locator('[data-plan-node="capture"]');
+
+  await expect(assertion).toHaveAttribute('data-result', 'failed');
+  await expect(assertion.getByText('验证证据：页面显示金额 120')).toBeVisible();
+  await expect(assertion.getByText('金额不符合预期')).toBeVisible();
+  await expect(capture.getByRole('img', { name: '证据截图：保存订单截图' })).toBeVisible();
+  await capture.getByRole('button', { name: '查看截图：保存订单截图', exact: true }).click();
+  await expect(page.getByRole('img', { name: /^执行画面/ })).toHaveAttribute(
+    'src',
+    /board-frame-0$/,
+  );
+  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:02 / 00:05');
+  await expect(capture).toHaveAttribute('data-current', 'true');
+  await page.getByRole('slider', { name: '画面时间轴' }).fill('3500');
+  await expect(assertion).toHaveAttribute('data-current', 'true');
+  await expect(assertion).toHaveAttribute('data-result', 'failed');
+  await page.getByRole('slider', { name: '画面时间轴' }).fill('1000');
+  await expect(capture).toHaveAttribute('data-current', 'true');
+  await expect(assertion).toHaveAttribute('data-result', 'failed');
+  await assertion.getByRole('button', { name: '查看过程', exact: true }).click();
+  await expect(page.getByRole('img', { name: /^执行画面/ })).toHaveAttribute(
+    'src',
+    /board-frame-1$/,
+  );
 });

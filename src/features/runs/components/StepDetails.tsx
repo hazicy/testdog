@@ -8,11 +8,13 @@ export function StepDetails({
   runError,
   stepFrames,
   onShowFrame,
+  onIssue,
 }: {
   step: ExecutionStep;
   runError?: string;
   stepFrames: ReturnType<typeof indexRun>['stepFrames'];
   onShowFrame: (index: number) => void;
+  onIssue?: (step: ExecutionStep) => void;
 }) {
   return (
     <div>
@@ -65,7 +67,12 @@ export function StepDetails({
           {step.error || runError}
         </pre>
       )}
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
+        {onIssue && (
+          <Button className="ws-button" onClick={() => onIssue(step)}>
+            创建或关联问题
+          </Button>
+        )}
         {(['before', 'after'] as const).map((stage) => {
           const index = stepFrames.get(step.id)?.[stage] ?? -1;
 

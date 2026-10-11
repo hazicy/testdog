@@ -3,7 +3,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Edge, NodeChange } from '@xyflow/react';
 import type { Plan } from '@/automation/compiler/schema';
-import type { ExecutionStep } from '@/features/runs/types';
+import type { ExecutionStep, RunArtifact } from '@/features/runs/types';
+import { boardNodeSteps, boardResult } from '../lib/boardResults';
 import { layoutPlan, PLAN_ROW_WIDTH } from '@/features/runs/lib/planLayout';
 import type { InsertFlowNode } from '@/features/test-cases/components/InsertStepMenu';
 import { insertStep, type Insertion } from '@/features/test-cases/lib/authoring';
@@ -23,9 +24,25 @@ type Options = {
   onStep: (step: ExecutionStep) => void;
   onChange?: (plan: Plan) => void;
   review?: Record<string, NodeReview>;
+  artifacts?: RunArtifact[];
+  results?: boolean;
+  currentStepId?: string;
+  onFrame?: (frame: RunArtifact) => void;
+  onIssue?: (step: ExecutionStep) => void;
 };
 
-export function usePlanBoard({ plan, steps, onStep, onChange, review }: Options) {
+export function usePlanBoard({
+  plan,
+  steps,
+  onStep,
+  onChange,
+  review,
+  artifacts = [],
+  results = false,
+  currentStepId,
+  onFrame,
+  onIssue,
+}: Options) {
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const onNodesChange = useCallback((changes: NodeChange<BoardNode>[]) => {
@@ -43,7 +60,7 @@ export function usePlanBoard({ plan, steps, onStep, onChange, review }: Options)
       return next;
     });
   }, []);
-  const layout = useMemo(() => layoutPlan(plan), [plan]);
+  const layout = useMemo(() => layoutPlan(plan, results), [plan, results]);
   const stepsByNode = useMemo(() => {
     const index = new Map<string, ExecutionStep[]>();
 
@@ -80,17 +97,25 @@ export function usePlanBoard({ plan, steps, onStep, onChange, review }: Options)
     }
   }
 
+  const nodeResults = useMemo(() => {
+    const entries = new Map<
+      string,
+      { steps: ExecutionStep[]; result: ReturnType<typeof boardResult> }
+    >();
+
+    for (const item of layout.nodes) {
+      const node = plan.nodes[item.planNodeId];
+      const nodeSteps = boardNodeSteps(node, stepsByNode.get(node.id) ?? [], item.assertionIndex);
+
+      entries.set(item.id, { steps: nodeSteps, result: boardResult(nodeSteps, artifacts) });
+    }
+
+    return entries;
+  }, [layout, plan, stepsByNode, artifacts]);
+
   const nodes: BoardNode[] = layout.nodes.map((item) => {
     const node = plan.nodes[item.planNodeId];
-    const nodeSteps = (stepsByNode.get(node.id) ?? []).filter(
-      (step) =>
-        node.kind !== 'task' ||
-        node.actionType === 'assert' ||
-        (item.assertionIndex !== undefined
-          ? step.kind === 'assertion' &&
-            step.assertion?.description === node.assertions[item.assertionIndex]?.description
-          : !node.assertions.length || step.kind !== 'assertion'),
-    );
+    const { steps: nodeSteps, result } = nodeResults.get(item.id)!;
 
     return {
       id: item.id,
@@ -102,6 +127,10 @@ export function usePlanBoard({ plan, steps, onStep, onChange, review }: Options)
       style: { width: item.width, height: item.height },
       data: {
         node,
+        result: results && node.kind !== 'group' && !item.reference ? result : undefined,
+        current: nodeSteps.some((step) => step.id === currentStepId),
+        onFrame,
+        onIssue,
         review: review?.[node.id],
         assertionIndex: item.assertionIndex,
         reference: item.reference,

@@ -1,0 +1,270 @@
+import { expect, test } from '@playwright/test';
+import type { Issue, IssueDetail, IssueOccurrence } from '../../src/features/issues/types';
+import type { TestRun } from '../../src/features/runs/types';
+
+const issueId = '62534c46-a8eb-4991-993e-af6df14bece0';
+const runId = '62534c46-a8eb-4991-993e-af6df14bece1';
+const stepId = '62534c46-a8eb-4991-993e-af6df14bece2';
+const occurrenceId = '62534c46-a8eb-4991-993e-af6df14bece3';
+const timestamp = '2026-10-01T00:00:00Z';
+const initial: Issue = {
+  id: issueId,
+  title: '订单金额错误',
+  description: '预期100，实际120',
+  status: 'open',
+  category: 'product',
+  severity: 'high',
+  closeReason: null,
+  version: 1,
+  createdAt: timestamp,
+  updatedAt: timestamp,
+};
+const run: TestRun = {
+  id: runId,
+  name: '验证订单',
+  goal: '订单金额为100',
+  url: 'https://example.com',
+  status: 'failed',
+  mode: 'record',
+  startedAt: timestamp,
+  durationMs: 1000,
+  replayable: false,
+  cancelRequested: false,
+  events: [],
+  artifacts: [],
+  plan: {
+    rootId: 'amount',
+    nodes: {
+      amount: {
+        id: 'amount',
+        kind: 'task',
+        actionType: 'assert',
+        goal: '订单金额为100',
+        assertions: [{ description: '订单金额为100' }],
+        dependsOn: [],
+        requirementIds: [],
+      },
+    },
+  },
+  steps: [
+    {
+      id: stepId,
+      runId,
+      sequence: 1,
+      kind: 'assertion',
+      title: '订单金额为100',
+      planNodeId: 'amount',
+      assertion: { description: '订单金额为100' },
+      status: 'failed',
+      startedAt: timestamp,
+      durationMs: 1000,
+      pageId: 'page',
+      pageUrl: 'https://example.com',
+      error: '实际为120',
+      replayable: false,
+    },
+  ],
+};
+const occurrence: IssueOccurrence = {
+  id: occurrenceId,
+  issueId,
+  runId,
+  stepId,
+  createdAt: timestamp,
+  snapshot: {
+    name: run.name,
+    goal: run.goal,
+    url: run.url,
+    testId: issueId,
+    step: run.steps[0],
+    artifacts: [],
+    error: '实际为120',
+  },
+};
+
+test('creates, edits, comments, closes and reopens an issue', async ({ page }) => {
+  let issue = { ...initial };
+  const detail: IssueDetail = { issue, occurrences: [], events: [], verifications: [] };
+
+  await page.route('**/api/issues{,?*}', async (route) => {
+    if (route.request().method() === 'POST') {
+      issue = { ...issue, ...route.request().postDataJSON() };
+      detail.issue = issue;
+
+      return route.fulfill({ json: { issue } });
+    }
+
+    return route.fulfill({ json: { issues: [], nextCursor: null } });
+  });
+  await page.route(`**/api/issues/${issueId}`, async (route) => {
+    if (route.request().method() === 'PATCH') {
+      const { version, comment, ...patch } = route.request().postDataJSON();
+
+      issue = {
+        ...issue,
+        ...patch,
+        version: version + 1,
+        closeReason: patch.status === 'open' ? null : (patch.closeReason ?? issue.closeReason),
+      };
+      detail.issue = issue;
+      if (comment)
+        detail.events.unshift({
+          id: 'event',
+          issueId,
+          kind: 'comment',
+          message: comment,
+          createdAt: timestamp,
+        });
+    }
+
+    return route.fulfill({ json: route.request().method() === 'PATCH' ? { issue } : detail });
+  });
+  await page.goto('/issues');
+  await expect(page.getByText('暂无问题。可从执行记录的失败节点创建问题。')).toBeVisible();
+  await page.getByRole('button', { name: '新建问题' }).click();
+  await page.getByLabel('问题标题', { exact: true }).fill('订单金额错误');
+  await page.getByLabel('问题描述', { exact: true }).fill('预期100，实际120');
+  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await expect(page).toHaveURL(`/issues/${issueId}`);
+  await expect(page.getByRole('heading', { name: '订单金额错误', exact: true })).toBeVisible();
+  await page.getByLabel('补充处理说明').fill('已修正优惠计算，等待回归。');
+  await page.getByRole('button', { name: '添加说明' }).click();
+  await expect(
+    page.getByRole('region', { name: '处理记录' }).getByText('已修正优惠计算，等待回归。'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: '编辑问题' }).click();
+  await page.getByRole('combobox', { name: '问题状态' }).click();
+  await page.getByRole('option', { name: '已关闭', exact: true }).click();
+  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await expect(page.getByText('关闭原因：已修复')).toBeVisible();
+  await page.getByRole('button', { name: '编辑问题' }).click();
+  await page.getByRole('combobox', { name: '问题状态' }).click();
+  await page.getByRole('option', { name: '待确认', exact: true }).click();
+  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await expect(page.getByText('关闭原因：已修复')).toHaveCount(0);
+});
+
+test('creates an issue from a failed board node and starts a regression without auto-closing', async ({
+  page,
+}) => {
+  const detail: IssueDetail = {
+    issue: initial,
+    occurrences: [occurrence],
+    events: [],
+    verifications: [],
+  };
+  let submittedSource: unknown;
+
+  await page.route(`**/api/runs/${runId}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await page.route('**/api/issues', (route) => {
+    submittedSource = route.request().postDataJSON().source;
+
+    return route.fulfill({ json: { issue: initial } });
+  });
+  await page.route(`**/api/issues/${issueId}`, (route) => route.fulfill({ json: detail }));
+  await page.route(`**/api/issues/${issueId}/verifications`, (route) => {
+    expect(route.request().postDataJSON()).toEqual({ occurrenceId });
+    detail.issue = { ...initial, status: 'pending_verification' };
+    detail.verifications.push({
+      id: 'verification',
+      issueId,
+      occurrenceId,
+      runId,
+      createdAt: timestamp,
+      runStatus: 'passed',
+      outcome: 'passed',
+      explanation: '目标执行通过。',
+    });
+
+    return route.fulfill({ json: { run } });
+  });
+  await page.goto(`/runs/${runId}`);
+  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await page
+    .locator('[data-plan-node="amount"]')
+    .getByRole('button', { name: '创建或关联问题' })
+    .click();
+  await expect(page.getByLabel('问题标题', { exact: true })).toHaveValue('订单金额为100');
+  await expect(page.getByLabel('问题描述', { exact: true })).toHaveValue(/实际为120/);
+  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await expect(page).toHaveURL(`/issues/${issueId}`);
+  expect(submittedSource).toEqual({ runId, stepId });
+  await expect(
+    page.getByRole('region', { name: '问题出现记录' }).getByText('实际为120'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: '发起回归验证' }).click();
+  await expect(
+    page.getByRole('region', { name: '回归验证' }).getByText('目标验证通过'),
+  ).toBeVisible();
+  await expect(page.getByText('待验证', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: '查看回归执行' })).toHaveAttribute(
+    'href',
+    `/runs/${runId}`,
+  );
+});
+
+test('links a failed step to an existing issue and filters the issue list', async ({ page }) => {
+  let linked = false;
+  const queries: string[] = [];
+
+  await page.route(`**/api/runs/${runId}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await page.route('**/api/issues?*', (route) => {
+    queries.push(route.request().url());
+
+    return route.fulfill({ json: { issues: [initial], nextCursor: null } });
+  });
+  await page.route(`**/api/issues/${issueId}/occurrences`, (route) => {
+    expect(route.request().postDataJSON()).toEqual({ runId, stepId });
+    linked = true;
+
+    return route.fulfill({ json: { linked: true } });
+  });
+  await page.route(`**/api/issues/${issueId}`, (route) =>
+    route.fulfill({
+      json: { issue: initial, occurrences: [occurrence], events: [], verifications: [] },
+    }),
+  );
+  await page.goto(`/runs/${runId}`);
+  await page
+    .getByRole('region', { name: '执行步骤' })
+    .getByRole('button', { name: '创建或关联问题' })
+    .click();
+  await page.getByRole('button', { name: '关联已有问题', exact: true }).click();
+  await page.getByRole('combobox', { name: '选择已有问题' }).click();
+  await page.getByRole('option', { name: '待确认 · 订单金额错误' }).click();
+  await page.getByRole('button', { name: '关联问题', exact: true }).click();
+  await expect(page).toHaveURL(`/issues/${issueId}`);
+  expect(linked).toBe(true);
+  await page.getByRole('link', { name: '← 返回问题追踪' }).click();
+  await page.getByRole('combobox', { name: '筛选问题状态' }).click();
+  await page.getByRole('option', { name: '处理中', exact: true }).click();
+  await page.getByRole('textbox', { name: '搜索问题', exact: true }).fill('订单');
+  await expect
+    .poll(() =>
+      queries.some(
+        (url) =>
+          new URL(url).searchParams.get('q') === '订单' &&
+          new URL(url).searchParams.get('status') === 'in_progress',
+      ),
+    )
+    .toBe(true);
+});
+
+test('reports an execution failure before any step exists', async ({ page }) => {
+  await page.route(`**/api/runs/${runId}{,?*}`, (route) =>
+    route.fulfill({ json: { run: { ...run, steps: [], error: '设备准备失败' } } }),
+  );
+  await page.route('**/api/issues', (route) => {
+    expect(route.request().postDataJSON().source).toEqual({ runId });
+
+    return route.fulfill({ json: { issue: initial } });
+  });
+  await page.route(`**/api/issues/${issueId}`, (route) =>
+    route.fulfill({ json: { issue: initial, occurrences: [], events: [], verifications: [] } }),
+  );
+  await page.goto(`/runs/${runId}`);
+  await page.getByRole('button', { name: '报告执行问题', exact: true }).click();
+  await expect(page.getByLabel('问题描述', { exact: true })).toHaveValue('设备准备失败');
+  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await expect(page).toHaveURL(`/issues/${issueId}`);
+});

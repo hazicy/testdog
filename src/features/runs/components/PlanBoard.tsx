@@ -4,7 +4,7 @@ import { useEffect, useMemo, type ReactNode } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { Plan } from '@/automation/compiler/schema';
-import type { ExecutionStep } from '@/features/runs/types';
+import type { ExecutionStep, RunArtifact } from '@/features/runs/types';
 import { InsertStepMenu } from '@/features/test-cases/components/InsertStepMenu';
 import { usePlanBoard, type BoardNode } from '../hooks/usePlanBoard';
 import { PlanNodes, type NodeReview } from './PlanNodes';
@@ -24,6 +24,11 @@ type BoardProps = {
   viewportOverlay?: ReactNode;
   overlayExpanded?: boolean;
   review?: Record<string, NodeReview>;
+  artifacts?: RunArtifact[];
+  results?: boolean;
+  currentStepId?: string;
+  onFrame?: (frame: RunArtifact) => void;
+  onIssue?: (step: ExecutionStep) => void;
 };
 
 export function PlanBoard(props: BoardProps) {
@@ -49,6 +54,11 @@ function PlanBoardContent({
   viewportOverlay,
   overlayExpanded,
   review,
+  artifacts,
+  results,
+  currentStepId,
+  onFrame,
+  onIssue,
 }: BoardProps & { plan: Plan }) {
   const { nodes, edges, error, onNodesChange } = usePlanBoard({
     plan,
@@ -56,6 +66,11 @@ function PlanBoardContent({
     onStep,
     onChange,
     review,
+    artifacts,
+    results,
+    currentStepId,
+    onFrame,
+    onIssue,
   });
   const flow = useReactFlow<BoardNode>();
   const viewportWidth = useStore((state) => state.width);

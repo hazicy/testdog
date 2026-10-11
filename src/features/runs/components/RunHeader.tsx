@@ -15,9 +15,20 @@ type Props = {
   start: (mode: 'record' | 'replay') => Promise<void>;
   cancel: () => Promise<void>;
   exportReport: () => Promise<void>;
+  onIssue?: () => void;
 };
 
-export function RunHeader({ id, run, now, busy, exporting, start, cancel, exportReport }: Props) {
+export function RunHeader({
+  id,
+  run,
+  now,
+  busy,
+  exporting,
+  start,
+  cancel,
+  exportReport,
+  onIssue,
+}: Props) {
   return (
     <header className="run-studio-toolbar">
       <Link
@@ -50,6 +61,11 @@ export function RunHeader({ id, run, now, busy, exporting, start, cancel, export
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {run && onIssue && (
+            <Button className="ws-button" onClick={onIssue}>
+              报告执行问题
+            </Button>
+          )}
           {run && isActiveRun(run.status) ? (
             <Button
               disabled={busy || run.cancelRequested}
