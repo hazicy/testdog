@@ -122,7 +122,7 @@ export function IssueList() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-page-line bg-surface-raised">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-[13px] [&_th]:text-xs [&_th]:font-normal">
             <thead className="bg-page text-page-muted">
               <tr>
                 <th className="w-24 px-4 py-3">严重程度</th>
@@ -148,7 +148,10 @@ export function IssueList() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Link className="font-semibold hover:text-brand" href={`/issues/${issue.id}`}>
+                    <Link
+                      className="text-[13px] leading-normal font-medium tracking-[-0.01em] hover:text-brand"
+                      href={`/issues/${issue.id}`}
+                    >
                       {issue.title}
                     </Link>
                     <p className="mt-1 text-xs text-page-muted">
@@ -163,7 +166,7 @@ export function IssueList() {
                   </td>
                   <td className="px-4 py-3">{issue.runCount ?? 0}</td>
                   <td
-                    className="px-4 py-3 whitespace-nowrap"
+                    className="px-4 py-3 whitespace-nowrap text-text-secondary tabular-nums"
                     title={new Date(issue.lastSeen ?? issue.createdAt).toLocaleString('zh-CN')}
                   >
                     {relativeTime(issue.lastSeen ?? issue.createdAt)}

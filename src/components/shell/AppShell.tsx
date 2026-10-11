@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className={`bg-page text-ink text-sm ${workspaceIndex ? 'workspace-index-shell ' : ''}grid min-h-dvh grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
+      className={`bg-page text-ink text-sm grid min-h-dvh grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
     >
       <a
         href="#main-content"
@@ -44,7 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         跳转到主内容
       </a>
-      <aside className="sticky top-0 flex h-dvh flex-col border-r border-page-line bg-sidebar">
+      <aside className="sticky top-0 flex h-dvh flex-col border-r border-page-line bg-page">
         <Link
           href="/"
           className="flex h-14 shrink-0 items-center gap-3 border-b border-page-line px-4"
@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 title={item.name}
                 aria-label={item.name}
                 aria-current={item === activeItem ? 'page' : undefined}
-                className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm hover:bg-sidebar-hover ${item === activeItem ? 'bg-surface-raised font-medium text-brand-active shadow-sm' : ''}`}
+                className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm hover:bg-sidebar-hover ${item === activeItem ? 'bg-badge-surface font-medium text-ink' : 'text-text-secondary'}`}
               >
                 <Icon icon={item.icon} width="18" aria-hidden="true" />
                 {!collapsed && <span className="hidden md:block">{item.name}</span>}
@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="flex h-14 items-center gap-3 border-b border-page-line bg-page px-5 md:px-7">
+        <header className="flex h-14 items-center gap-3 border-b border-page-line bg-surface px-5 md:px-7">
           <Button
             variant="ghost"
             size="icon"

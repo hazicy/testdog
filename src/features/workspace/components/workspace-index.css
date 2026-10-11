@@ -22,21 +22,6 @@
   padding: 18px 28px 40px;
   background: var(--surface);
 }
-.workspace-index-shell aside {
-  background: var(--page);
-}
-.workspace-index-shell nav[aria-label='工作区导航'] a {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-.workspace-index-shell nav[aria-label='工作区导航'] a[aria-current='page'] {
-  background: var(--badge-surface);
-  color: var(--ink);
-  box-shadow: none;
-}
-.workspace-index-shell header {
-  background: var(--surface);
-}
 .workspace-index-toolbar {
   display: flex;
   align-items: center;
@@ -53,7 +38,7 @@
   padding-bottom: 6px;
   border-radius: 5px;
   background: transparent;
-  font-size: 12px;
+  font-size: 14px;
 }
 .workspace-index-search [data-slot='input'] {
   border-color: transparent;
@@ -91,7 +76,7 @@
   padding: 11px 12px;
   background: transparent;
   color: var(--page-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
 }
 .workspace-index-table th:first-child {
@@ -116,6 +101,7 @@
   width: 16%;
 }
 .workspace-index-table td {
+  font-size: 13px;
   height: 62px;
   padding: 11px 12px;
   border-bottom: 1px solid var(--line-subtle);
@@ -137,7 +123,7 @@
   max-width: 100%;
   white-space: normal;
   overflow-wrap: anywhere;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   letter-spacing: -0.01em;
 }
@@ -148,11 +134,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--page-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .workspace-index-id {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 10px;
+  font-size: 12px;
 }
 .workspace-index-meta-separator {
   padding: 0 7px;
@@ -160,7 +146,7 @@
 }
 .workspace-index-time {
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .workspace-index-tags {
@@ -173,11 +159,11 @@
   background: var(--surface-muted);
   border-radius: 3px;
   color: var(--text-subtle);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 .workspace-index-table [data-slot='status'] {
-  font-size: 11px;
+  font-size: 12px;
 }
 .workspace-index-table [data-slot='status'][data-status='none'] {
   color: var(--page-muted);
@@ -239,7 +225,7 @@
   gap: 16px;
   padding: 16px 0;
   color: var(--page-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .workspace-index-live {

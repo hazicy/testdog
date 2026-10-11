@@ -124,7 +124,7 @@ export function WorkspaceRows({
                     <Button
                       onClick={() => openEditor(test)}
                       variant="ghost"
-                      className="workspace-index-name text-left font-medium hover:text-brand-link min-h-0 rounded-none p-0 whitespace-normal"
+                      className="workspace-index-name text-left font-medium text-ink hover:text-brand-link min-h-0 rounded-none p-0 whitespace-normal"
                     >
                       {test.name}
                     </Button>
