@@ -1,5 +1,14 @@
 'use client';
 
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/Table';
+
 import useSWR from 'swr';
 import { fetchJson } from '@/client/api';
 import type { readModelUsage } from '@/server/runs/modelUsage';
@@ -30,32 +39,32 @@ export function ModelUsagePanel({ id, active }: { id: string; active: boolean })
           )}
           <details className="mt-3">
             <summary className="cursor-pointer">查看每次调用</summary>
-            <table className="mt-2 w-full text-left">
-              <thead>
-                <tr>
-                  <th>模型 / 时间</th>
-                  <th>耗时</th>
-                  <th>输入 / 输出</th>
-                  <th>状态 / 重试</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="mt-2 text-xs">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>模型 / 时间</TableHead>
+                  <TableHead>耗时</TableHead>
+                  <TableHead>输入 / 输出</TableHead>
+                  <TableHead>状态 / 重试</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {data.data?.calls.map((call) => (
-                  <tr key={call.id}>
-                    <td>
+                  <TableRow key={call.id}>
+                    <TableCell>
                       {call.model} · {new Date(call.startedAt).toLocaleTimeString('zh-CN')}
-                    </td>
-                    <td>{call.durationMs}ms</td>
-                    <td>
+                    </TableCell>
+                    <TableCell>{call.durationMs}ms</TableCell>
+                    <TableCell>
                       {call.inputTokens ?? '—'} / {call.outputTokens ?? '—'}
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       {call.status} / {call.retryCount}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </details>
         </>
       ) : (

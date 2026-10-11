@@ -1,5 +1,14 @@
 'use client';
 
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/Table';
+
 import { Input } from '@/components/ui/Input';
 import { useDeferredValue, useState } from 'react';
 import Link from 'next/link';
@@ -122,21 +131,21 @@ export function IssueList() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-page-line bg-surface-raised">
-          <table className="w-full text-left text-[13px] [&_th]:text-xs [&_th]:font-normal">
-            <thead className="bg-page text-page-muted">
-              <tr>
-                <th className="w-24 px-4 py-3">严重程度</th>
-                <th className="px-4 py-3">问题</th>
-                <th className="px-4 py-3">环境</th>
-                <th className="px-4 py-3">执行次数</th>
-                <th className="px-4 py-3">最近出现 ↓</th>
-                <th className="px-4 py-3">状态</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader className="bg-page text-page-muted">
+              <TableRow>
+                <TableHead className="w-24 px-4 py-3">严重程度</TableHead>
+                <TableHead className="px-4 py-3">问题</TableHead>
+                <TableHead className="px-4 py-3">环境</TableHead>
+                <TableHead className="px-4 py-3">执行次数</TableHead>
+                <TableHead className="px-4 py-3">最近出现 ↓</TableHead>
+                <TableHead className="px-4 py-3">状态</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.map((issue) => (
-                <tr key={issue.id} className="border-t border-page-line">
-                  <td className="px-4 py-3">
+                <TableRow key={issue.id} className="border-t border-page-line">
+                  <TableCell className="px-4 py-3">
                     <span
                       className="inline-block bg-danger px-2 py-1 text-xs font-semibold text-white"
                       title={issueSeverities[issue.severity]}
@@ -146,8 +155,8 @@ export function IssueList() {
                     <span className="mt-1 block text-xs text-page-muted">
                       {issueSeverities[issue.severity]}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     <Link
                       className="text-[13px] leading-normal font-medium tracking-[-0.01em] hover:text-brand"
                       href={`/issues/${issue.id}`}
@@ -158,24 +167,26 @@ export function IssueList() {
                       {issue.latestOccurrence?.snapshot.name ?? '手动创建'} ·{' '}
                       {issue.latestOccurrence?.snapshot.target?.platform ?? 'Web'}
                     </p>
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     <span className="border border-page-line bg-page px-2 py-1 text-xs">
                       {environmentLabel(issue.latestOccurrence)}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">{issue.runCount ?? 0}</td>
-                  <td
+                  </TableCell>
+                  <TableCell className="px-4 py-3">{issue.runCount ?? 0}</TableCell>
+                  <TableCell
                     className="px-4 py-3 whitespace-nowrap text-text-secondary tabular-nums"
                     title={new Date(issue.lastSeen ?? issue.createdAt).toLocaleString('zh-CN')}
                   >
                     {relativeTime(issue.lastSeen ?? issue.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 text-page-muted">{issueStatuses[issue.status]}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-page-muted">
+                    {issueStatuses[issue.status]}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
       {data?.at(-1)?.nextCursor && (

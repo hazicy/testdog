@@ -1,3 +1,4 @@
+import { TableRow, TableCell } from '@/components/ui/Table';
 import { statusStyles } from '@/components/ui/statusStyles';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -118,8 +119,8 @@ export function WorkspaceRows({
             const run = latest(test.id);
 
             return (
-              <tr key={test.id}>
-                <td>
+              <TableRow key={test.id}>
+                <TableCell>
                   <div className="workspace-index-title">
                     <Button
                       onClick={() => openEditor(test)}
@@ -143,11 +144,11 @@ export function WorkspaceRows({
                       ? `${test.target.platform} · ${test.target.appId}`
                       : address(test.url)}
                   </p>
-                </td>
-                <td>
+                </TableCell>
+                <TableCell>
                   <Status status={run?.status} />
-                </td>
-                <td>
+                </TableCell>
+                <TableCell>
                   {run ? (
                     <Link
                       href={`/runs/${run.id}`}
@@ -163,8 +164,8 @@ export function WorkspaceRows({
                   ) : (
                     <span className="text-text-faint">—</span>
                   )}
-                </td>
-                <td>
+                </TableCell>
+                <TableCell>
                   <div className="flex justify-end gap-1">
                     <Button
                       size="xs"
@@ -206,13 +207,13 @@ export function WorkspaceRows({
                       ]}
                     />
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })
         : visibleRuns.map((run) => (
-            <tr key={run.id}>
-              <td>
+            <TableRow key={run.id}>
+              <TableCell>
                 <Link
                   href={`/runs/${run.id}`}
                   className="workspace-index-name font-medium hover:text-brand-link"
@@ -226,20 +227,20 @@ export function WorkspaceRows({
                   </span>
                   {address(run.url)}
                 </p>
-              </td>
-              <td>
+              </TableCell>
+              <TableCell>
                 <Status status={run.status} />
-              </td>
-              <td className="workspace-index-time">
+              </TableCell>
+              <TableCell className="workspace-index-time">
                 <time
                   dateTime={run.startedAt}
                   title={new Date(run.startedAt).toLocaleString('zh-CN')}
                 >
                   {date(run.startedAt)}
                 </time>
-              </td>
-              <td className="font-mono text-xs text-page-muted">{duration(run)}</td>
-              <td>
+              </TableCell>
+              <TableCell className="font-mono text-xs text-page-muted">{duration(run)}</TableCell>
+              <TableCell>
                 <div className="flex justify-end gap-2">
                   <Link
                     href={`/runs/${run.id}`}
@@ -263,8 +264,8 @@ export function WorkspaceRows({
                     ]}
                   />
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
     </>
   );

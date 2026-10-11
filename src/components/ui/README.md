@@ -6,7 +6,7 @@
 - 图标按钮使用 `<Button variant="ghost" size="icon" aria-label="关闭">…</Button>`；主要操作使用 `variant="primary"`。保留 Base UI 的 `ref`、`render` 和其他属性，支持函数形式的 `className`。
 - 链接及第三方交互组件使用 `buttonStyles({ variant, size, className })` 复用按钮外观，并保留各自的原生语义。业务调用不再手写 `ws-button`、`primary`、`ghost` 等样式类。
 - `Input`：保留 Base UI 属性和函数形式的 `className`；基础样式由 `inputStyles` 统一提供，传入 `pl-9`、`w-auto` 等工具类即可覆盖默认值。`Textarea` 复用同一套字段样式。
-- `Label`：统一字段标题和控件间距；`Table`：统一原生表格外观；`statusStyles`：统一状态文字和圆点样式。
+- `Label`：统一字段标题和控件间距；`Table`：基于 Base UI `useRender` 封装原生表格，配合 `TableHeader`、`TableBody`、`TableRow`、`TableHead`、`TableCell`、`TableCaption` 使用，支持 `render`、`ref` 和 Tailwind 覆盖；`statusStyles`：统一状态文字和圆点样式。
 - `Checkbox`：用 `checked` 和 `onCheckedChange` 控制状态，配合外层 `label` 提供名称。
 - `Select`：用 `value`、`onValueChange` 和 `items` 控制选择；选项支持 `disabled`，组件支持 `required`、`name` 和 `aria-label`。弹出列表通过 Portal 渲染。数值选项统一转成字符串，调用方按需转换。
 - `Dialog`：配合 `DialogHeader`、`DialogFooter` 统一布局，宽度可以通过 `className="max-w-md"` 等工具类定制。由挂载控制打开状态，`onDismiss` 处理 Escape；`busy` 时阻止关闭。`titleId` 指向可见标题，`initialFocus` 可指定初始焦点；关闭后恢复触发元素焦点，元素被删除时回到主内容。

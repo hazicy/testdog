@@ -1,6 +1,6 @@
 'use client';
 
-import { Table } from '@/components/ui/Table';
+import { Table, TableHeader, TableBody, TableRow, TableHead } from '@/components/ui/Table';
 import Link from 'next/link';
 import { type ComponentProps, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -161,16 +161,16 @@ export function WorkspaceList({
             aria-label="可横向滚动的记录表格"
           >
             <Table className={`workspace-index-table ${isTests ? 'is-tests' : 'is-results'}`}>
-              <thead>
-                <tr>
-                  <th>{isTests ? '用例' : '测试'}</th>
-                  <th>{isTests ? '最近状态' : '状态'}</th>
-                  <th>{isTests ? '最近执行' : '开始时间'}</th>
-                  {!isTests && <th>耗时</th>}
-                  <th className="text-right">操作</th>
-                </tr>
-              </thead>
-              <tbody>
+              <TableHeader className="bg-transparent">
+                <TableRow>
+                  <TableHead>{isTests ? '用例' : '测试'}</TableHead>
+                  <TableHead>{isTests ? '最近状态' : '状态'}</TableHead>
+                  <TableHead>{isTests ? '最近执行' : '开始时间'}</TableHead>
+                  {!isTests && <TableHead>耗时</TableHead>}
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 <WorkspaceRows
                   isTests={isTests}
                   visibleTests={visibleTests}
@@ -185,7 +185,7 @@ export function WorkspaceList({
                   start={start}
                   exportRun={exportRun}
                 />
-              </tbody>
+              </TableBody>
             </Table>
           </div>
         </div>

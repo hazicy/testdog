@@ -1,5 +1,14 @@
 'use client';
 
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/Table';
+
 import { Textarea } from '@/components/ui/Textarea';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -309,20 +318,20 @@ export function IssueDetail({ id }: { id: string }) {
         </div>
         {occurrences.length > 0 && (
           <div className="overflow-x-auto border border-page-line bg-surface-raised">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-surface-muted text-page-muted">
-                <tr>
+            <Table>
+              <TableHeader className="bg-surface-muted text-page-muted">
+                <TableRow>
                   {['状态', '执行', '环境', '耗时', '开始时间'].map((title) => (
-                    <th className="px-3 py-3 font-medium" key={title}>
+                    <TableHead className="px-3 py-3 font-medium" key={title}>
                       {title}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {occurrences.map((item) => (
-                  <tr key={item.id} className="border-t border-page-line">
-                    <td className="px-3 py-4">
+                  <TableRow key={item.id} className="border-t border-page-line">
+                    <TableCell className="px-3 py-4">
                       <span className="border border-page-line px-2 py-1 text-xs">
                         {item.snapshot.runStatus === 'passed'
                           ? '通过'
@@ -333,25 +342,25 @@ export function IssueDetail({ id }: { id: string }) {
                               ? '失败'
                               : '未知'}
                       </span>
-                    </td>
-                    <td className="px-3 py-4">
+                    </TableCell>
+                    <TableCell className="px-3 py-4">
                       <Link className="font-semibold hover:text-brand" href={`/runs/${item.runId}`}>
                         {item.snapshot.name}
                       </Link>
-                    </td>
-                    <td className="px-3 py-4">{environmentLabel(item)}</td>
-                    <td className="px-3 py-4">
+                    </TableCell>
+                    <TableCell className="px-3 py-4">{environmentLabel(item)}</TableCell>
+                    <TableCell className="px-3 py-4">
                       {item.snapshot.durationMs == null
                         ? '—'
                         : `${(item.snapshot.durationMs / 1000).toFixed(1)}s`}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="px-3 py-4 whitespace-nowrap">
                       {relativeTime(item.snapshot.startedAt ?? item.createdAt)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
         {!occurrences.length && (

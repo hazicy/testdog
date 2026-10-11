@@ -1,5 +1,14 @@
 'use client';
 
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/Table';
+
 import { Input } from '@/components/ui/Input';
 import { DialogHeader } from '@/components/ui/Dialog';
 import { useId, useState } from 'react';
@@ -409,23 +418,23 @@ export function Integrations() {
                   <p className="text-sm text-page-muted">暂无发送记录。</p>
                 ) : (
                   <div className="overflow-x-auto rounded-lg border border-page-line">
-                    <table className="w-full min-w-[560px] text-left text-sm">
-                      <thead className="bg-page">
-                        <tr>
-                          <th className="p-4">渠道 / 通知</th>
-                          <th className="p-4">状态</th>
-                          <th className="p-4">发送时间</th>
-                          <th className="p-4">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                    <Table className="min-w-[560px]">
+                      <TableHeader className="bg-page">
+                        <TableRow>
+                          <TableHead className="p-4">渠道 / 通知</TableHead>
+                          <TableHead className="p-4">状态</TableHead>
+                          <TableHead className="p-4">发送时间</TableHead>
+                          <TableHead className="p-4">操作</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {data.deliveries.map((item) => (
-                          <tr key={item.id} className="border-t border-page-line">
-                            <td className="p-4">
+                          <TableRow key={item.id} className="border-t border-page-line">
+                            <TableCell className="p-4">
                               <p>{notificationKinds[item.channel]}</p>
                               <p className="mt-1 text-page-muted">{item.title}</p>
-                            </td>
-                            <td className="p-4">
+                            </TableCell>
+                            <TableCell className="p-4">
                               <p>
                                 {deliveryStatuses[item.status]} · {item.attempts} 次尝试
                               </p>
@@ -434,11 +443,11 @@ export function Integrations() {
                                   {item.lastError}
                                 </p>
                               )}
-                            </td>
-                            <td className="p-4 whitespace-nowrap">
+                            </TableCell>
+                            <TableCell className="p-4 whitespace-nowrap">
                               {new Date(item.sentAt ?? item.createdAt).toLocaleString('zh-CN')}
-                            </td>
-                            <td className="p-4">
+                            </TableCell>
+                            <TableCell className="p-4">
                               {item.status === 'failed' && (
                                 <Button
                                   disabled={
@@ -450,11 +459,11 @@ export function Integrations() {
                                   重试
                                 </Button>
                               )}
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </section>
