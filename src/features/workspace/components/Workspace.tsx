@@ -13,8 +13,8 @@ import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDia
 import { RunMatrixDialog } from '@/features/test-cases/components/RunMatrixDialog';
 import { QuickCreateDialog } from '@/features/test-cases/components/QuickCreateDialog';
 import { Icon } from '@iconify/react/offline';
-import plusIcon from '@iconify-icons/lucide/plus';
-import sparklesIcon from '@iconify-icons/lucide/sparkles';
+import canvasIcon from '@iconify-icons/lucide/panels-top-left';
+import lightningIcon from '@iconify-icons/lucide/zap';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { WorkspaceList } from './WorkspaceList';
 import './workspace-index.css';
@@ -131,12 +131,21 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         actions={
           isTests ? (
             <>
-              <Button size="sm" onClick={() => setQuickCreateOpen(true)}>
-                <Icon icon={sparklesIcon} width="16" aria-hidden="true" />
+              <Button
+                size="sm"
+                className="case-create-button is-quick"
+                onClick={() => setQuickCreateOpen(true)}
+              >
+                <Icon icon={lightningIcon} width="16" aria-hidden="true" />
                 快速创建
               </Button>
-              <Button size="sm" variant="primary" onClick={() => openEditor()}>
-                <Icon icon={plusIcon} width="16" aria-hidden="true" />
+              <Button
+                size="sm"
+                variant="primary"
+                className="case-create-button is-canvas"
+                onClick={() => openEditor()}
+              >
+                <Icon icon={canvasIcon} width="16" aria-hidden="true" />
                 新建测试
               </Button>
             </>

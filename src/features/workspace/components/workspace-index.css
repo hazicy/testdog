@@ -68,6 +68,30 @@
   gap: 8px;
   margin-left: auto;
 }
+
+.case-create-button svg {
+  transition: transform 180ms ease;
+}
+
+.case-create-button.is-canvas:hover svg {
+  transform: rotate(-6deg);
+}
+
+.case-create-button.is-quick:hover svg {
+  transform: translateY(-2px) rotate(8deg);
+}
+
+.case-create-button:active svg {
+  transform: scale(0.92);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-create-button svg {
+    transition: none;
+    transform: none !important;
+  }
+}
+
 .workspace-index-table {
   table-layout: fixed;
   min-width: 740px;
