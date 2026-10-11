@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Dialog } from '@/components/shared/Dialog';
+import { Dialog } from '@/components/ui/Dialog';
 import type { TestCase } from '@/features/test-cases/types';
 
 export function RunMatrixDialog({

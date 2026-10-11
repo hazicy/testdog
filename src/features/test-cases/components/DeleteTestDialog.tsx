@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import { api } from '@/client/api';
-import { Dialog } from '@/components/shared/Dialog';
+import { Dialog } from '@/components/ui/Dialog';
 
 export function DeleteTestDialog({
   test,

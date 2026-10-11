@@ -55,7 +55,6 @@ export function useWorkspaceData(isTests: boolean) {
     isVisible,
     errorRetryInterval: 10000,
     onErrorRetry: retryVisibleRequest,
-    onSuccess: () => setError(''),
   };
   const {
     data: stats,

@@ -486,6 +486,15 @@ test('exports complete reports from both history and detail, and allows retry af
 
   await exportButton.click();
   await expect(page.getByRole('alert').filter({ hasText: '报告暂时不可用' })).toBeVisible();
+  // A successful list read must not erase an unrelated export failure.
+  const searchResponse = page.waitForResponse((response) =>
+    response.url().includes('/api/runs?q='),
+  );
+
+  await page.getByRole('textbox', { name: '搜索结果', exact: true }).fill(run.name);
+  await searchResponse;
+  await expect(exportButton).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: '报告暂时不可用' })).toBeVisible();
   const listDownload = page.waitForEvent('download');
 
   await exportButton.click();

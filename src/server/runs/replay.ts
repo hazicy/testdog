@@ -1,14 +1,11 @@
 import type { ReplayStep } from '@/automation/platform/contracts';
-import {
-  normalizeLegacyWebAction,
-  normalizePlaywrightAssertion,
-} from '@/automation/platform/web/replay';
+import { normalizePlaywrightAssertion } from '@/automation/platform/web/replay';
 import type { ExecutionStep } from '@/features/runs/types';
 
 export function normalizeReplaySteps(steps: ExecutionStep[]): ReplayStep[] {
   return steps.map((step) => {
-    const action =
-      step.platformAction ?? (step.action ? normalizeLegacyWebAction(step.action) : undefined);
+    const action: ReplayStep['event']['action'] =
+      step.platformAction ?? (step.action ? { platform: 'web', action: step.action } : undefined);
 
     return {
       surfaceId: step.surface?.id ?? step.pageId,

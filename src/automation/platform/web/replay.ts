@@ -1,9 +1,4 @@
-import type { Step } from '../../compiler/schema';
-import { PlatformAssertionSchema, type PlatformAction, type SessionEvent } from '../contracts';
-
-export function normalizeLegacyWebAction(action: Step): PlatformAction {
-  return { platform: 'web', action };
-}
+import { PlatformAssertionSchema, type SessionEvent } from '../contracts';
 
 export function normalizePlaywrightAssertion(
   assertion: NonNullable<SessionEvent['playwrightAssertion']>,

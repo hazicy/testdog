@@ -62,17 +62,12 @@ export function TestEditor({
   }
 
   const [goal, setGoal] = useState(initialDraft?.goal ?? test?.goal ?? '');
-  const [plan, setPlan] = useState<Plan | undefined>(() => {
+  const [plan, setPlan] = useState<Plan>(() => {
     if (initialDraft) return initialDraft.plan;
-    if (!test?.plan) return emptyPlan(name);
-    const draft = editablePlan(test.plan, name);
-    const root = draft.nodes[draft.rootId];
 
-    if (root.kind === 'group') draft.nodes[root.id] = { ...root, goal: name };
-
-    return draft;
+    return test?.plan ? editablePlan(test.plan, name) : emptyPlan(name);
   });
-  const hasSteps = Object.values(plan?.nodes ?? {}).some((node) => node.kind === 'task');
+  const hasSteps = Object.values(plan.nodes).some((node) => node.kind === 'task');
   const [composerOpen, setComposerOpen] = useState(false);
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const canvasRef = useRef<HTMLElement>(null);
@@ -106,9 +101,11 @@ export function TestEditor({
   const [compiling, setCompiling] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const busy = saving || compiling;
+  const editingLocked = busy || !!candidate;
 
   useEffect(() => {
-    if (draftId && plan)
+    if (draftId)
       writeCaseDraft(draftId, {
         test: savedCase ?? test,
         duplicate: savedCase ? false : duplicate,
@@ -124,19 +121,17 @@ export function TestEditor({
     nameChanged.current = true;
     setPrevious(undefined);
     setName(value);
-    if (plan) {
-      const root = plan.nodes[plan.rootId];
+    const root = plan.nodes[plan.rootId];
 
-      if (root.kind === 'group')
-        setPlan({
-          ...plan,
-          nodes: { ...plan.nodes, [root.id]: { ...root, goal: value || '未命名测试' } },
-        });
-    }
+    if (root.kind === 'group')
+      setPlan({
+        ...plan,
+        nodes: { ...plan.nodes, [root.id]: { ...root, goal: value || '未命名测试' } },
+      });
   }
 
   async function compile() {
-    if (saving || compiling || candidate || !goal.trim()) return;
+    if (editingLocked || !goal.trim()) return;
     setCompiling(true);
     setFormError('');
     try {
@@ -161,8 +156,9 @@ export function TestEditor({
       const next = editablePlan(source, title);
       const nextRoot = next.nodes[next.rootId];
 
+      // Preserve an explicitly cleared name; editablePlan only applies non-empty titles.
       if (nextRoot.kind === 'group') next.nodes[nextRoot.id] = { ...nextRoot, goal: title };
-      const review = reviewPlan(plan!, next);
+      const review = reviewPlan(plan, next);
 
       setCandidate({
         url: startUrl || url,
@@ -178,9 +174,9 @@ export function TestEditor({
   }
 
   function decideChanges(decisions: ReviewDecisions) {
-    if (!candidate || !plan) return;
+    if (!candidate) return;
     try {
-      resolveReview(candidate.review, decisions, true);
+      const next = resolveReview(candidate.review, decisions, true);
       const complete = candidate.review.changes.every((change) =>
         Object.hasOwn(decisions, change.id),
       );
@@ -192,7 +188,6 @@ export function TestEditor({
         return;
       }
 
-      const next = resolveReview(candidate.review, decisions);
       const accepted = Object.values(decisions).some(Boolean);
 
       if (accepted || !candidate.review.changes.length) {
@@ -248,9 +243,9 @@ export function TestEditor({
   }
 
   async function save(runAfterSave = false) {
-    if (saving || compiling || candidate || !plan) return;
+    if (editingLocked) return;
     setFormError('');
-    if (!Object.values(plan.nodes).some((node) => node.kind === 'task')) {
+    if (!hasSteps) {
       setFormError('请点击画板上的 ＋ 添加至少一个步骤。');
 
       return;
@@ -341,7 +336,7 @@ export function TestEditor({
           steps={[]}
           onStep={() => {}}
           onChange={
-            saving || compiling || candidate
+            editingLocked
               ? undefined
               : (next) => {
                   setPrevious(undefined);
@@ -362,10 +357,7 @@ export function TestEditor({
                   {platform === 'web' ? 'Web' : platform === 'ios' ? 'iOS' : 'Android'}
                 </span>
                 <span className="case-panel-count">
-                  {
-                    Object.values(reviewPreview?.nodes ?? {}).filter((node) => node.kind === 'task')
-                      .length
-                  }{' '}
+                  {Object.values(reviewPreview.nodes).filter((node) => node.kind === 'task').length}{' '}
                   个步骤
                 </span>
                 <div className="case-panel-primary-actions">
@@ -373,7 +365,7 @@ export function TestEditor({
                     type="button"
                     className="case-panel-action primary"
                     aria-label="Run"
-                    disabled={saving || compiling || !!candidate}
+                    disabled={editingLocked}
                     onClick={() => void save(true)}
                   >
                     <Icon icon={playIcon} width="13" aria-hidden="true" /> Run
@@ -382,7 +374,7 @@ export function TestEditor({
                     type="submit"
                     className="case-panel-action"
                     aria-label="Save"
-                    disabled={saving || compiling || !!candidate}
+                    disabled={editingLocked}
                   >
                     <Icon icon={saveIcon} width="13" aria-hidden="true" /> Save
                   </Button>
@@ -407,7 +399,7 @@ export function TestEditor({
                     className="case-panel-action"
                     aria-label="撤销生成"
                     title="撤销生成"
-                    disabled={saving || compiling}
+                    disabled={busy}
                     onClick={undoGeneration}
                   >
                     <Icon icon={undoIcon} width="14" aria-hidden="true" />
@@ -446,7 +438,7 @@ export function TestEditor({
                     onNameChange={changeName}
                     value={configuration}
                     onChange={changeSettings}
-                    busy={saving || compiling || !!candidate}
+                    busy={editingLocked}
                   />
                 </div>
               )}
@@ -458,12 +450,7 @@ export function TestEditor({
   );
 
   return (
-    <section
-      ref={canvasRef}
-      className="case-canvas-page"
-      aria-label="测试画板"
-      aria-busy={saving || compiling}
-    >
+    <section ref={canvasRef} className="case-canvas-page" aria-label="测试画板" aria-busy={busy}>
       {content}
       {candidate && (
         <div className="case-canvas-preview" role="status">
@@ -480,7 +467,7 @@ export function TestEditor({
           </Button>
         </div>
       )}
-      <BaseDialog.Root open={composerOpen} onOpenChange={(open) => setComposerOpen(open)}>
+      <BaseDialog.Root open={composerOpen} onOpenChange={setComposerOpen}>
         <BaseDialog.Portal container={canvasRef}>
           <BaseDialog.Backdrop className="case-prompt-backdrop" />
           <BaseDialog.Popup
@@ -512,7 +499,7 @@ export function TestEditor({
                 className="case-prompt-input"
                 maxLength={20000}
                 value={goal}
-                disabled={saving || compiling}
+                disabled={busy}
                 placeholder={promptHint}
                 onChange={(event) => setGoal(event.target.value)}
                 onKeyDown={(event) => {
@@ -532,7 +519,7 @@ export function TestEditor({
                   type="submit"
                   className="ws-button primary"
                   title="⌘ / Ctrl + Enter"
-                  disabled={saving || compiling || !goal.trim()}
+                  disabled={busy || !goal.trim()}
                 >
                   {compiling ? '生成中…' : hasSteps ? '预览' : '生成'}
                   <Icon icon={arrowUpIcon} width="14" aria-hidden="true" />

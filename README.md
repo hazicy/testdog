@@ -78,7 +78,7 @@ src/
   components/          跨功能复用的组件
     ui/                基础交互组件
     shell/             工作区导航与布局
-    shared/            图标、错误状态与弹窗兼容导出
+    shared/            错误状态等共用组件
   client/              浏览器端 JSON 请求、SWR 重试策略、SSE 与文件下载
   automation/          用例编译与统一计划执行
     compiler/          用例计划和动作 schema
