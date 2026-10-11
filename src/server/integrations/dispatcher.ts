@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   notificationIntegrations as integrations,
@@ -55,13 +55,23 @@ export async function dispatchNotifications(limit = 10) {
     return claimed;
   });
 
+  if (!jobs.length) return;
+  const contexts = await db
+    .select({ id: deliveries.id, integration: integrations, event: events })
+    .from(deliveries)
+    .innerJoin(integrations, eq(integrations.id, deliveries.integrationId))
+    .innerJoin(events, eq(events.id, deliveries.eventId))
+    .where(
+      inArray(
+        deliveries.id,
+        jobs.map((job) => job.id),
+      ),
+    );
+  const byId = new Map(contexts.map((context) => [context.id, context]));
+
   await Promise.all(
     jobs.map(async (job) => {
-      const [integration] = await db
-        .select()
-        .from(integrations)
-        .where(eq(integrations.id, job.integrationId));
-      const [event] = await db.select().from(events).where(eq(events.id, job.eventId));
+      const { integration, event } = byId.get(job.id) ?? {};
       const where = and(eq(deliveries.id, job.id), eq(deliveries.leaseToken, job.leaseToken));
 
       if (

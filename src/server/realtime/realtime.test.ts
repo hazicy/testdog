@@ -126,3 +126,20 @@ it('publishes execution events once, preserves history on run deltas and rolls b
     (await database.client.query('SELECT summary FROM realtime_outbox WHERE revision > 4')).rows,
   ).toEqual([{ summary: false }, { summary: true }]);
 });
+
+it('acknowledges only the published batch and leaves the remaining entries for the next flush', async () => {
+  await flushOutbox();
+  await database.client.exec(
+    `INSERT INTO realtime_outbox (kind,data,summary) SELECT 'tests','{}'::jsonb,true FROM generate_series(1,201)`,
+  );
+  await flushOutbox();
+  expect(
+    (await database.client.query('SELECT id FROM realtime_outbox WHERE "publishedAt" IS NULL'))
+      .rows,
+  ).toHaveLength(1);
+  await flushOutbox();
+  expect(
+    (await database.client.query('SELECT id FROM realtime_outbox WHERE "publishedAt" IS NULL'))
+      .rows,
+  ).toHaveLength(0);
+});

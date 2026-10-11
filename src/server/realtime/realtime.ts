@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { realtimeOutbox, runArtifacts, runSteps, testRuns } from '@/db/schema';
 import { artifactRecord, runRecord, stepRecord } from '@/server/runs/repository';
@@ -39,12 +39,19 @@ export async function flushOutbox() {
 
     await db.transaction(async (tx) => {
       const rows = await tx
-        .select()
+        .select({
+          id: realtimeOutbox.id,
+          runId: realtimeOutbox.runId,
+          userId: realtimeOutbox.userId,
+          summary: realtimeOutbox.summary,
+        })
         .from(realtimeOutbox)
         .where(sql`${realtimeOutbox.publishedAt} is null`)
         .orderBy(asc(realtimeOutbox.id))
         .limit(200)
         .for('update', { skipLocked: true });
+
+      if (!rows.length) return;
       const runs = new Set(rows.flatMap((row) => (row.runId ? [row.runId] : [])));
 
       for (const id of runs) await client.publish(redisKey(`run:${id}`), '{"kind":"changed"}');
@@ -55,11 +62,15 @@ export async function flushOutbox() {
           redisKey(workspaceChannel(userId)),
           JSON.stringify({ kind: 'changed' }),
         );
-      for (const row of rows)
-        await tx
-          .update(realtimeOutbox)
-          .set({ publishedAt: new Date().toISOString() })
-          .where(eq(realtimeOutbox.id, row.id));
+      await tx
+        .update(realtimeOutbox)
+        .set({ publishedAt: new Date().toISOString() })
+        .where(
+          inArray(
+            realtimeOutbox.id,
+            rows.map((row) => row.id),
+          ),
+        );
     });
   } catch {
     // Recent unpublished rows remain durable; retention gaps recover from snapshots.

@@ -29,18 +29,16 @@ export async function runWrite<T>(
     if (!run.workerId) throw new LostLeaseError('Run has not been claimed by a worker');
     const lease = leaseScope.getStore();
 
-    if (run.workerId) {
-      if (
-        !lease ||
-        lease.runId !== runId ||
-        lease.workerId !== run.workerId ||
-        lease.fencingToken !== run.fencingToken ||
-        !run.leaseUntil ||
-        Date.parse(run.leaseUntil) <= Date.now() ||
-        !activeRunStatuses.includes(run.status)
-      )
-        throw new LostLeaseError('Execution lease lost');
-    }
+    if (
+      !lease ||
+      lease.runId !== runId ||
+      lease.workerId !== run.workerId ||
+      lease.fencingToken !== run.fencingToken ||
+      !run.leaseUntil ||
+      Date.parse(run.leaseUntil) <= Date.now() ||
+      !activeRunStatuses.includes(run.status)
+    )
+      throw new LostLeaseError('Execution lease lost');
 
     return operation(tx);
   });

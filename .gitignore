@@ -48,3 +48,5 @@ next-env.d.ts
 
 # Worker logs (root only; keeps src/**/logs route directories tracked)
 /logs/
+
+certificates

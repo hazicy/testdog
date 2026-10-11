@@ -55,6 +55,20 @@ beforeEach(async () => {
 afterAll(() => isolated.client!.close());
 const input = { url: 'https://example.com' };
 
+it('leaves lease recovery to maintenance when reading or editing recording versions', async () => {
+  const run = await createRun({ case: 'Expired lease', url: input.url });
+
+  await isolated.client!.query(
+    'UPDATE test_runs SET "leaseUntil" = now() - interval \'1 minute\' WHERE id = $1',
+    [run.id],
+  );
+  expect(await listRecordingVersions(run.id)).toEqual([]);
+  await expect(
+    saveRecordingVersion(run.id, 'await page1.goto("https://example.com");'),
+  ).rejects.toThrow('结束');
+  expect((await getRun(run.id)).status).toBe('running');
+});
+
 it.each(['constructor', 'toString', '__proto__'])(
   'rejects inherited object properties as plan node links: %s',
   async (nodeId) => {

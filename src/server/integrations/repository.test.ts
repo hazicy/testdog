@@ -236,6 +236,34 @@ it('retries delivery failures, recovers abandoned claims and cancels old configu
   expect((await db.select().from(notificationDeliveries)).at(-1)?.status).toBe('skipped');
 });
 
+it('dispatches a mixed-owner batch using each delivery configuration and payload', async () => {
+  await saveIntegration('feishu', input, 'alice');
+  const bobWebhook = 'https://open.feishu.cn/open-apis/bot/v2/hook/bob-hook';
+
+  await saveIntegration('feishu', { ...input, webhookUrl: bobWebhook }, 'bob');
+  const aliceRun = await failedRun('alice');
+  const bobRun = await failedRun('bob');
+
+  await dispatchNotifications(10);
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(send).toHaveBeenCalledWith(
+    'feishu',
+    expect.objectContaining({ webhookUrl: input.webhookUrl }),
+    expect.objectContaining({ path: `/runs/${aliceRun.id}` }),
+    expect.any(String),
+  );
+  expect(send).toHaveBeenCalledWith(
+    'feishu',
+    expect.objectContaining({ webhookUrl: bobWebhook }),
+    expect.objectContaining({ path: `/runs/${bobRun.id}` }),
+    expect.any(String),
+  );
+  expect((await readIntegrations('alice')).deliveries[0].status).toBe('sent');
+  expect((await readIntegrations('bob')).deliveries[0].status).toBe('sent');
+  await dispatchNotifications();
+  expect(send).toHaveBeenCalledTimes(2);
+});
+
 it('queues explicit tests while disabled and enforces route authentication, idempotency and throttling', async () => {
   const context = { params: Promise.resolve({ channel: 'feishu' }) };
   const request = (key: string, user = 'alice') =>

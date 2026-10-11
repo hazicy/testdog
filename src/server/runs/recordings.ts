@@ -7,7 +7,6 @@ import { isActiveRun } from '@/features/runs/types';
 import { parseDeviceRecordingScript } from '@/features/runs/lib/deviceRecording';
 import type { ExecutionStep } from '@/features/runs/types';
 import { WorkspaceError } from '@/server/shared/errors';
-import { recoverExpiredRuns } from './runLifecycle';
 import { recordingCodeSchema, recordingInputMessage } from '@/features/runs/schemas';
 
 const recordingVersionFields = {
@@ -21,7 +20,6 @@ const recordingVersionFields = {
 };
 
 export async function listRecordingVersions(runId: string, userId?: UserScope) {
-  await recoverExpiredRuns();
   const [run] = await db
     .select({ id: testRuns.id })
     .from(testRuns)
@@ -45,7 +43,6 @@ export async function saveRecordingVersion(runId: string, code: string, userId?:
   const parsed = recordingCodeSchema.safeParse(code);
 
   if (!parsed.success) throw new WorkspaceError(recordingInputMessage);
-  await recoverExpiredRuns();
   const [run] = await db
     .select({
       status: testRuns.status,
