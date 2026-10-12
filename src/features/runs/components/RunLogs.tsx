@@ -9,7 +9,7 @@ type Props = {
   run?: TestRun;
   video?: RunArtifact;
   trace?: RunArtifact;
-  diagnostics: RunArtifact[];ww
+  diagnostics: RunArtifact[];
 };
 
 export function RunLogs({ id, run, video, trace, diagnostics }: Props) {
