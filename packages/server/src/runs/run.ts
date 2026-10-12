@@ -5,7 +5,7 @@ import { targetUrl } from '@testdog/contracts/automation/platform/target';
 import { SecretInputs } from '@testdog/contracts/automation/platform/inputs';
 import { leaseScope, LostLeaseError, setRunPhase } from '@testdog/server/scheduling/lease';
 import { releaseLease, renewLease } from '@testdog/server/scheduling/scheduler';
-import { appendEvent, getRunInternal, savePlan } from '@testdog/server/runs/repository';
+import { appendEvent, savePlan } from '@testdog/server/runs/repository';
 import { finishRun } from '@testdog/server/runs/lifecycle';
 import { normalizeReplaySteps } from '@testdog/server/runs/replay';
 import { TextCompiler } from '@testdog/automation/compiler/textCompiler';
@@ -182,9 +182,6 @@ export async function executeRun(
     if (controller.signal.aborted && cause !== reason) error += `\n${errorMessage(cause)}`;
   } finally {
     clearTimeout(deadline);
-    const current = await getRunInternal(run.id).catch(() => undefined);
-
-    if (current?.cancelRequested) status = 'cancelled';
     await setRunPhase(run.id, 'finalizing').catch(() => {});
     if (runtime) {
       try {

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { fetchJson } from '@/client/api';
 import { Button } from '@/components/ui/Button';
-import type { BrowserLog } from '@testdog/contracts/runs/types';
+import type { BrowserLog, BrowserLogPage } from '@testdog/contracts/runs/types';
 
 export function BrowserLogPanel({
   runId,
@@ -45,7 +45,7 @@ export function BrowserLogPanel({
   if (scope === 'step' && stepId) params.set('stepId', stepId);
   if (scope === 'time' && elapsedMs !== undefined) params.set('untilMs', String(elapsedMs));
   if (cursors.length) params.set('cursor', cursors.at(-1)!);
-  const data = useSWR<{ logs: BrowserLog[]; nextCursor: string | null }>(
+  const data = useSWR<BrowserLogPage>(
     enabled && runId ? `/api/runs/${runId}/logs?${params}` : null,
     fetchJson,
     { refreshInterval: active ? 5000 : 0 },

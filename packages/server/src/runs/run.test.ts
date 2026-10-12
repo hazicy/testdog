@@ -30,6 +30,7 @@ import { recordingScript } from '@testdog/contracts/runs/lib/recordingScript';
 import { claimRun, registerResources, withLease } from '@testdog/server/scheduling/scheduler';
 import { cancelRun, executeRun as executeClaimedRun } from '@testdog/server/runs/run';
 import { executeTestRun as executeRun } from '@testdog/server/testing/executeTestRun';
+import { listBrowserLogs } from '@testdog/server/runs/logs';
 import { RunRecorder } from '@testdog/server/runs/recorder';
 import { listResources } from '@testdog/server/scheduling/scheduler';
 import { GET as serveArtifact } from '../../../../apps/web/src/app/api/runs/[id]/artifacts/[artifactId]/route';
@@ -37,6 +38,16 @@ import { GET as serveArtifact } from '../../../../apps/web/src/app/api/runs/[id]
 let server: Server;
 let url: string;
 let directory: string;
+
+async function logs(id: string) {
+  return (
+    await listBrowserLogs(
+      id,
+      new Request(`http://localhost/api/runs/${id}/logs?kind=all&limit=100`),
+      null,
+    )
+  ).logs;
+}
 
 function ref(value: unknown, role: string): string | undefined {
   if (!value || typeof value !== 'object') return;
@@ -325,7 +336,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     const recorded = await getRun(run.id, { userId: null });
 
     expect(recorded.status, recorded.error).toBe('passed');
-    expect(recorded.browserLogs).toEqual(
+    expect(await logs(recorded.id)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: 'console', message: 'browser console', pageId: 'page-1' }),
         expect.objectContaining({
@@ -393,7 +404,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     await executeRun(replay);
     const result = await getRun(replay.id, { userId: null });
 
-    expect(result.browserLogs).toEqual(
+    expect(await logs(result.id)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: 'console', message: 'browser console' }),
         expect.objectContaining({ kind: 'network', status: 200 }),
@@ -441,7 +452,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       saved.artifacts.some((item) => item.stepId === failed.id && item.stage === 'after'),
     ).toBe(true);
     expect(saved.replayable).toBe(false);
-    expect(saved.browserLogs?.some((log) => log.kind === 'network')).toBe(true);
+    expect((await logs(saved.id)).some((log) => log.kind === 'network')).toBe(true);
   }, 30000);
   it('records and replays a popup with the correct page and per-page videos', async () => {
     mocks.generate.mockImplementation(async (input) => {
@@ -522,7 +533,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
 
     expect(result.status, result.error).toBe('passed');
     expect(result.steps.at(-1)?.pageId).toBe('page-2');
-    expect(result.browserLogs).toEqual(
+    expect(await logs(result.id)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           kind: 'console',
@@ -604,12 +615,37 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
 
     expect(result.status).toBe('cancelled');
     expect(result.errorCode).toBe('CANCELLED');
-    expect(result.browserLogs).toEqual(
+    expect(await logs(result.id)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: 'console', message: 'browser console' }),
       ]),
     );
     expect(result.artifacts.some((item) => item.kind === 'video')).toBe(true);
+  });
+
+  it('honors cancellation arriving during finalization in the terminal transaction', async () => {
+    const run = await createRun({ case: 'Cancel during finalization', url }, undefined, null);
+    const original = RunRecorder.prototype.stop;
+    const archive = vi.spyOn(RunRecorder.prototype, 'stop').mockImplementation(async function (
+      this: RunRecorder,
+      ...args
+    ) {
+      await requestCancellation(run.id, null);
+      await original.apply(this, args);
+    });
+
+    try {
+      await executeRun(run);
+      const result = await getRun(run.id, { userId: null });
+
+      expect(result.status).toBe('cancelled');
+      expect(result.errorCode).toBe('CANCELLED');
+      expect(result.cancelRequested).toBe(true);
+      expect(result.replayable).toBe(false);
+      expect(result.steps.every((step) => step.status === 'passed')).toBe(true);
+    } finally {
+      archive.mockRestore();
+    }
   });
 
   it('retains the primary failure and redacts secrets in an additional archive error', async () => {

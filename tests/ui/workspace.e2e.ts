@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { makeCase, makeRun, makeStep, makeScreenshot, summarizeRun } from './fixtures/workspace';
 import { mockWorkspaceSupport, mockRun, mockLists, mockScreenshots } from './fixtures/routes';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
-import type { TestRun } from '@testdog/contracts/runs/types';
+import type { BrowserLog, TestRun } from '@testdog/contracts/runs/types';
 
 async function openSettings(editor: Locator) {
   await expect(editor.getByRole('complementary', { name: '测试面板' })).toBeVisible();
@@ -363,6 +363,40 @@ test('exports complete reports from both history and detail, and allows retry af
   page,
 }) => {
   let rejectExport = true;
+  const browserLogs: BrowserLog[] = [
+    {
+      id: 'console',
+      kind: 'console',
+      message: 'hello',
+      at: run.startedAt,
+      elapsedMs: 0,
+      pageId: 'page-1',
+      pageUrl: run.url,
+    },
+    {
+      id: 'network',
+      kind: 'network',
+      status: 200,
+      at: run.startedAt,
+      elapsedMs: 1,
+      pageId: 'page-1',
+      pageUrl: run.url,
+    },
+  ];
+  const logRequests: string[] = [];
+
+  await page.route(`**/api/runs/${run.id}/logs?*`, (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.searchParams.get('kind') !== 'all')
+      return route.fulfill({ json: { logs: [], nextCursor: null } });
+    logRequests.push(url.search);
+    const second = url.searchParams.has('cursor');
+
+    return route.fulfill({
+      json: { logs: [browserLogs[second ? 1 : 0]], nextCursor: second ? null : '100' },
+    });
+  });
 
   await mockLists(page, { tests: [saved] });
   await mockLists(page, { runs: [summary] });
@@ -399,12 +433,24 @@ test('exports complete reports from both history and detail, and allows retry af
   const report = await listDownload;
 
   expect(report.suggestedFilename()).toBe(`testdog-${run.id}.json`);
-  expect(JSON.parse(await readFile((await report.path())!, 'utf8'))).toEqual(run);
+  expect(JSON.parse(await readFile((await report.path())!, 'utf8'))).toEqual({
+    ...run,
+    browserLogs,
+  });
   await page.goto(`/runs/${run.id}`);
   const detailDownload = page.waitForEvent('download');
 
   await page.getByRole('button', { name: '导出执行报告', exact: true }).click();
-  expect(JSON.parse(await readFile((await (await detailDownload).path())!, 'utf8'))).toEqual(run);
+  expect(JSON.parse(await readFile((await (await detailDownload).path())!, 'utf8'))).toEqual({
+    ...run,
+    browserLogs,
+  });
+  expect(logRequests).toEqual([
+    '?kind=all&limit=100',
+    '?kind=all&limit=100&cursor=100',
+    '?kind=all&limit=100',
+    '?kind=all&limit=100&cursor=100',
+  ]);
 });
 
 test('quick creation preserves failed prompts and opens generated nodes in the canvas', async ({

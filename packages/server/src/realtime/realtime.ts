@@ -138,14 +138,12 @@ export async function readRunUpdates(runId: string, revision: number): Promise<R
       const {
         steps: _steps,
         artifacts: _artifacts,
-        browserLogs: _logs,
         events: _events,
         ...data
       } = runRecord(row.data as typeof testRuns.$inferSelect);
 
       void _steps;
       void _artifacts;
-      void _logs;
       void _events;
 
       return { kind: 'run', revision, data };
@@ -171,9 +169,8 @@ export async function readRunUpdates(runId: string, revision: number): Promise<R
       };
 
     return {
-      kind: 'log',
+      kind: 'logs',
       revision,
-      data: row.data.data as import('@testdog/contracts/runs/types').BrowserLog,
     };
   });
 }

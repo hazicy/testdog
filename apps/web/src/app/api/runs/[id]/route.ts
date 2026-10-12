@@ -17,7 +17,6 @@ export async function GET(request: Request, context: Context) {
     return jsonResponse(request, {
       run: await getRun(id, {
         userId: await requireUserId(request),
-        includeLogs: new URL(request.url).searchParams.get('include') === 'logs',
       }),
     });
   } catch (error) {

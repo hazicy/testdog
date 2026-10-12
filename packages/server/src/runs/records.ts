@@ -35,7 +35,6 @@ export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
     error: optional(row.error),
     plan: optional(row.plan),
     events: [],
-    browserLogs: [],
     replayable: row.replayable,
     cancelRequested: row.cancelRequested,
     steps: [],

@@ -370,7 +370,7 @@ export async function getIssue(id: string, userId: UserScope) {
     .orderBy(desc(issueVerifications.createdAt));
   const verifications = await Promise.all(
     rows.map(async (row) => {
-      const run = await getRun(row.runId, { userId, includeLogs: false });
+      const run = await getRun(row.runId, { userId });
       const source = occurrences.find((item) => item.id === row.occurrenceId)!;
 
       return { ...row, runStatus: run.status, ...verificationResult(source.snapshot, run) };

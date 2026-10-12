@@ -1,3 +1,4 @@
+import type { BrowserLogPage } from '@testdog/contracts/runs/types';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -7,7 +8,7 @@ import { WorkspaceError } from '@testdog/server/shared/errors';
 import { searchPattern } from '@testdog/server/shared/pagination';
 
 const querySchema = z.object({
-  kind: z.enum(['console', 'network']),
+  kind: z.enum(['console', 'network', 'all']),
   q: z.string().max(200).default(''),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   cursor: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
@@ -16,7 +17,11 @@ const querySchema = z.object({
   errors: z.enum(['true', 'false']).default('false'),
 });
 
-export async function listBrowserLogs(id: string, request: Request, userId: UserScope) {
+export async function listBrowserLogs(
+  id: string,
+  request: Request,
+  userId: UserScope,
+): Promise<BrowserLogPage> {
   const parsed = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
 
   if (!parsed.success) throw new WorkspaceError('日志筛选参数无效。');
@@ -34,7 +39,7 @@ export async function listBrowserLogs(id: string, request: Request, userId: User
       and(
         eq(runBrowserLogs.runId, id),
         gt(runBrowserLogs.sequence, query.cursor),
-        sql`${runBrowserLogs.data}->>'kind' = ${query.kind}`,
+        query.kind === 'all' ? undefined : sql`${runBrowserLogs.data}->>'kind' = ${query.kind}`,
         query.q
           ? sql`concat_ws(' ', ${runBrowserLogs.data}->>'message', ${runBrowserLogs.data}->>'url', ${runBrowserLogs.data}->>'pageId', ${runBrowserLogs.data}->>'level', ${runBrowserLogs.data}->>'status') ilike ${searchPattern(query.q)}`
           : undefined,

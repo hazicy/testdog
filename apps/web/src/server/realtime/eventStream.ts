@@ -78,7 +78,7 @@ export async function eventStream(request: Request, runId: string | undefined, u
   };
 
   const snapshot = async () => {
-    const run = await getRun(runId!, { includeLogs: false, userId });
+    const run = await getRun(runId!, { userId });
 
     revision = run.realtimeRevision ?? 0;
     send('snapshot', { run }, revision);
@@ -132,13 +132,7 @@ export async function eventStream(request: Request, runId: string | undefined, u
               await snapshot();
             else {
               revision = updates.at(-1)!.revision;
-              send(
-                'updates',
-                updates.map((update) =>
-                  update.kind === 'log' ? { kind: 'logs', revision: update.revision } : update,
-                ),
-                revision,
-              );
+              send('updates', updates, revision);
               if (revision < row.revision) dirty = true;
             }
           }

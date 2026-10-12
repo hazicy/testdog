@@ -38,6 +38,7 @@ import {
 } from '@testdog/server/scheduling/scheduler';
 import { setRunPhase, type RunLease } from '@testdog/server/scheduling/lease';
 
+import { listBrowserLogs } from '@testdog/server/runs/logs';
 import { listRunPage, listTestPage } from '@testdog/server/workspace/queries';
 
 const page = { limit: 50, q: '', status: 'all', cursor: undefined };
@@ -183,7 +184,16 @@ describe('PostgreSQL workspace repository', () => {
 
     await withLease(lease, () => appendBrowserLogs(run.id, [log]));
     await withLease(lease, () => appendBrowserLogs(run.id, [log]));
-    expect((await getRun(run.id, { userId: null })).browserLogs).toEqual([log]);
+    expect(
+      (
+        await listBrowserLogs(
+          run.id,
+          new Request(`http://localhost/api/runs/${run.id}/logs?kind=all`),
+          null,
+        )
+      ).logs,
+    ).toEqual([log]);
+    expect(await getRun(run.id, { userId: null })).not.toHaveProperty('browserLogs');
     const rows = await isolated.client!.query<{ data: unknown }>(
       'SELECT data FROM run_browser_logs WHERE "runId" = $1',
       [run.id],
@@ -195,7 +205,16 @@ describe('PostgreSQL workspace repository', () => {
         appendBrowserLogs(run.id, [{ ...log, id: randomUUID() }]),
       ),
     ).rejects.toThrow('Execution lease lost');
-    expect((await getRun(run.id, { userId: null })).browserLogs).toEqual([log]);
+    expect(
+      (
+        await listBrowserLogs(
+          run.id,
+          new Request(`http://localhost/api/runs/${run.id}/logs?kind=all`),
+          null,
+        )
+      ).logs,
+    ).toEqual([log]);
+    expect(await getRun(run.id, { userId: null })).not.toHaveProperty('browserLogs');
     // Empty batches need no lease or database access, even for an unknown run.
     await appendBrowserLogs(randomUUID(), []);
   });

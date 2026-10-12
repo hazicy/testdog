@@ -2,13 +2,12 @@ import { expect, it } from 'vitest';
 import { applyRunUpdates } from '@testdog/contracts/runs/lib/realtime';
 import type { TestRun, ExecutionStep } from '@testdog/contracts/runs/types';
 
-it('merges deltas idempotently without replacing evidence or logs on a run update', () => {
+it('merges deltas idempotently without replacing evidence on a run update', () => {
   const run = {
     id: 'run',
     realtimeRevision: 1,
     steps: [],
     artifacts: [{ id: 'evidence' }],
-    browserLogs: [],
     events: [{ at: '2026-10-11T00:00:00Z', message: 'Started' }],
     status: 'running',
   } as unknown as TestRun;
@@ -35,4 +34,15 @@ it('merges deltas idempotently without replacing evidence or logs on a run updat
   expect(result.artifacts).toEqual(run.artifacts);
   expect(applyRunUpdates(result, updates)).toBe(result);
   expect(run.steps).toEqual([]);
+});
+
+it('invalidates the dedicated log cache without storing log payloads in run details', () => {
+  const run = { realtimeRevision: 1, steps: [], artifacts: [], events: [] } as unknown as TestRun;
+  const updates = [{ kind: 'logs' as const, revision: 2 }];
+  const result = applyRunUpdates(run, updates);
+
+  expect(result.browserLogRevision).toBe(2);
+  expect(result).not.toHaveProperty('browserLogs');
+  expect(result.steps).toBe(run.steps);
+  expect(applyRunUpdates(result, updates)).toBe(result);
 });

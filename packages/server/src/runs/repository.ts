@@ -14,47 +14,30 @@ import { runWrite } from '@testdog/server/scheduling/lease';
 import { storeArtifactFile } from '@testdog/server/runs/artifactStorage';
 import { runRecord, stepRecord, artifactRecord } from '@testdog/server/runs/records';
 
-export async function getRun(
-  id: string,
-  options: { includeLogs?: boolean; userId: UserScope },
-): Promise<TestRun> {
+export async function getRun(id: string, options: { userId: UserScope }): Promise<TestRun> {
   assertUserScope(options?.userId);
 
-  return readRun(id, and(eq(testRuns.id, id), ownedBy(testRuns.userId, options.userId))!, options);
+  return readRun(id, and(eq(testRuns.id, id), ownedBy(testRuns.userId, options.userId))!);
 }
 
-export function getRunInternal(
-  id: string,
-  options: { includeLogs?: boolean } = {},
-): Promise<TestRun> {
-  return readRun(id, eq(testRuns.id, id), options);
+export function getRunInternal(id: string): Promise<TestRun> {
+  return readRun(id, eq(testRuns.id, id));
 }
 
-async function readRun(
-  id: string,
-  filter: SQL,
-  options: { includeLogs?: boolean },
-): Promise<TestRun> {
+async function readRun(id: string, filter: SQL): Promise<TestRun> {
   return db.transaction(
     async (tx) => {
       const [row] = await tx.select().from(testRuns).where(filter);
 
       if (!row) throw new WorkspaceError('执行记录不存在。', 404);
       const run = runRecord(row);
-      const [steps, artifacts, logs, events] = await Promise.all([
+      const [steps, artifacts, events] = await Promise.all([
         tx.select().from(runSteps).where(eq(runSteps.runId, id)).orderBy(asc(runSteps.sequence)),
         tx
           .select()
           .from(runArtifacts)
           .where(eq(runArtifacts.runId, id))
           .orderBy(asc(runArtifacts.elapsedMs), asc(runArtifacts.capturedAt), asc(runArtifacts.id)),
-        options.includeLogs === false
-          ? Promise.resolve([])
-          : tx
-              .select({ data: runBrowserLogs.data })
-              .from(runBrowserLogs)
-              .where(eq(runBrowserLogs.runId, id))
-              .orderBy(asc(runBrowserLogs.sequence)),
         tx
           .select({ at: automationRunEvents.at, message: automationRunEvents.message })
           .from(automationRunEvents)
@@ -67,7 +50,6 @@ async function readRun(
         events: events.map((event) => ({ ...event, at: new Date(event.at).toISOString() })),
         steps: steps.map(stepRecord),
         artifacts: artifacts.map(artifactRecord),
-        browserLogs: options.includeLogs === false ? undefined : logs.map((log) => log.data),
       };
     },
     { isolationLevel: 'repeatable read' },

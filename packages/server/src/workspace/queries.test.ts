@@ -160,8 +160,16 @@ it('paginates logs with server filters and leaves normal details light', async (
   expect(second.nextCursor).toBeNull();
   expect((await listBrowserLogs(run.id, request('untilMs=15'), null)).logs).toEqual([firstLog]);
   expect((await listBrowserLogs(run.id, request('q=absent'), null)).logs).toEqual([]);
-  expect((await getRun(run.id, { includeLogs: false, userId: null })).browserLogs).toBeUndefined();
-  expect((await getRun(run.id, { userId: null })).browserLogs).toHaveLength(3);
+  expect(await getRun(run.id, { userId: null })).not.toHaveProperty('browserLogs');
+  expect(
+    (
+      await listBrowserLogs(
+        run.id,
+        new Request(`http://localhost/api/runs/${run.id}/logs?kind=all`),
+        null,
+      )
+    ).logs.map((log) => log.kind),
+  ).toEqual(['console', 'console', 'network']);
 });
 it('list and detail reads never reclaim an expired execution', async () => {
   const run = await createRun({ case: 'Read only', url: input.url }, undefined, null);

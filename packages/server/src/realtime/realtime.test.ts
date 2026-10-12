@@ -66,11 +66,12 @@ it('commits ordered deltas with business writes, ignores lease renewals, strips 
     [1, 'run'],
     [2, 'step'],
     [3, 'artifact'],
-    [4, 'log'],
+    [4, 'logs'],
   ]);
   expect(updates[0].data).not.toHaveProperty('steps');
   expect(updates[2].data).not.toHaveProperty('path');
-  expect(updates[3].data).toEqual({ id: 'log-1', message: 'hello' });
+  expect(updates[3]).toEqual({ kind: 'logs', revision: 4 });
+  expect(updates[0].data).not.toHaveProperty('browserLogs');
   expect(
     (
       await database.client.query<{ summary: boolean }>(

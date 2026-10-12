@@ -74,6 +74,7 @@ export type BrowserLog = {
   responseHeaders?: Record<string, string>;
   failure?: string;
 };
+export type BrowserLogPage = { logs: BrowserLog[]; nextCursor: string | null };
 export type TestRun = {
   realtimeRevision?: number;
   browserLogRevision?: number;
@@ -105,7 +106,6 @@ export type TestRun = {
   durationMs?: number;
   error?: string;
   events: RunEvent[];
-  browserLogs?: BrowserLog[];
   plan?: Plan;
   replayable: boolean;
   cancelRequested: boolean;
