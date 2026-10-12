@@ -46,7 +46,7 @@ export function TestEditor({
 }: {
   test?: TestCase;
   duplicate?: boolean;
-  onSaved: () => Promise<void>;
+  onSaved: (test?: TestCase) => Promise<void>;
   initialDraft?: CaseDraft;
   draftId?: string;
 }) {
@@ -87,7 +87,11 @@ export function TestEditor({
     decisions: ReviewDecisions;
   }>();
   const [previous, setPrevious] = useState<{ plan: Plan; name: string; url: string }>();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      new URL(window.location.href).searchParams.has('loginIdentityDraft'),
+  );
   const compilation = usePlanCompilation();
   const compiling = compilation.busy;
   const [saving, setSaving] = useState(false);
@@ -108,8 +112,20 @@ export function TestEditor({
         goal,
         plan,
         settings: configuration,
+        returnLoginIdentityDraft: initialDraft?.returnLoginIdentityDraft,
       });
-  }, [draftId, plan, name, url, goal, configuration, test, duplicate, savedCase]);
+  }, [
+    draftId,
+    plan,
+    name,
+    url,
+    goal,
+    configuration,
+    test,
+    duplicate,
+    savedCase,
+    initialDraft?.returnLoginIdentityDraft,
+  ]);
 
   function changeName(value: string) {
     nameChanged.current = true;
@@ -313,10 +329,13 @@ export function TestEditor({
         setTrialActive(true);
         setTrialOpen(true);
       } else {
-        await (savedCase
-          ? api.patch(`/api/tests/${savedCase.id}`, { json: parsed.data })
-          : api.post('/api/tests', { json: parsed.data }));
-        await onSaved();
+        const result = await (
+          savedCase
+            ? api.patch(`/api/tests/${savedCase.id}`, { json: parsed.data })
+            : api.post('/api/tests', { json: parsed.data })
+        ).json<{ test: TestCase }>();
+
+        await onSaved(result?.test);
       }
     } catch (error) {
       setFormError(error instanceof Error ? error.message : trial ? '试跑失败' : '保存失败');
@@ -444,6 +463,7 @@ export function TestEditor({
               {settingsOpen && (
                 <div id="case-panel-settings" className="case-panel-body">
                   <CaseSettings
+                    webOnly={!!initialDraft?.returnLoginIdentityDraft}
                     name={name}
                     onNameChange={changeName}
                     value={configuration}

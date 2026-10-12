@@ -1,3 +1,4 @@
+import { LoginPreparationError } from '@/server/login-identities/runtime';
 import { budgetedModel, modelBudgetFromEnv } from '@/automation/llm/budget';
 import { recordModelCall } from './modelUsage';
 import { targetUrl } from '@/automation/platform/target';
@@ -175,7 +176,8 @@ export async function executeRun(
       report,
     });
 
-    if (run.mode === 'replay') await runner.replay(normalizeReplaySteps(replaySteps!));
+    if (run.authenticationVerification) await report('登录身份验证成功');
+    else if (run.mode === 'replay') await runner.replay(normalizeReplaySteps(replaySteps!));
     else await runner.record(runtime.initial);
     await report('全部操作与断言执行完成');
   } catch (cause) {
@@ -184,7 +186,12 @@ export async function executeRun(
 
     status =
       reason instanceof RunAbortError && reason.code === 'CANCELLED' ? 'cancelled' : 'failed';
-    errorCode = reason instanceof RunAbortError ? reason.code : 'EXECUTION_FAILED';
+    errorCode =
+      reason instanceof RunAbortError
+        ? reason.code
+        : cause instanceof RuntimeOpenError && cause.cause instanceof LoginPreparationError
+          ? 'LOGIN_PREPARATION_FAILED'
+          : 'EXECUTION_FAILED';
     if (!runtime) evidenceComplete = false;
     error = errorMessage(reason);
     if (controller.signal.aborted && cause !== reason) error += `\n${errorMessage(cause)}`;

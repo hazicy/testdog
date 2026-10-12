@@ -86,7 +86,8 @@ export function RunHeader({
             {run.cancelRequested ? '正在停止…' : '停止'}
           </Button>
         ) : (
-          run && (
+          run &&
+          !run.authenticationVerification && (
             <>
               <Button
                 disabled={busy || !run.replayable}

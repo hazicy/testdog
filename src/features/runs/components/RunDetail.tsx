@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { DockTabs, type DockTab } from '@/components/ui/DockTabs';
@@ -482,7 +484,24 @@ export function RunDetail({
         cancel={cancel}
         exportReport={exportReport}
       />
-      {run?.evidenceComplete === false && (
+      {run?.targetSnapshot?.platform === 'web' && run.targetSnapshot.loginIdentityId && (
+        <div className="studio-alert" role="status">
+          <span className="font-medium">登录准备 · </span>
+          {run.errorCode === 'LOGIN_PREPARATION_FAILED'
+            ? '失败，业务步骤未开始。'
+            : (run.events
+                .filter((event) =>
+                  /检查登录身份|已复用登录身份|登录准备完成|登录身份未就绪|登录准备失败/.test(
+                    event.message,
+                  ),
+                )
+                .at(-1)?.message ?? '等待准备登录身份…')}{' '}
+          <Link href="/settings#login-identities" className="underline">
+            管理登录身份
+          </Link>
+        </div>
+      )}
+      {run?.evidenceComplete === false && run.errorCode !== 'LOGIN_PREPARATION_FAILED' && (
         <p role="alert" className="studio-alert">
           本次执行的证据归档不完整，请查看执行错误。
         </p>

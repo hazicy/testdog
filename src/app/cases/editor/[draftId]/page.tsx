@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { identityDraftKey, type LoginIdentityDraft } from '@/features/login-identities/draft';
 import { TestEditor } from '@/features/test-cases/components/TestEditor';
 import { clearCaseDraft, readCaseDraft } from '@/features/test-cases/lib/caseDraft';
 
@@ -38,8 +39,38 @@ export default function CaseCanvasPage() {
       duplicate={draft.duplicate}
       initialDraft={draft}
       draftId={draftId}
-      onSaved={async () => {
+      onSaved={async (saved) => {
         clearCaseDraft(draftId);
+        if (draft.returnLoginIdentityDraft && saved) {
+          const rawIdentity = sessionStorage.getItem(
+            identityDraftKey(draft.returnLoginIdentityDraft),
+          );
+
+          if (rawIdentity) {
+            const identity = JSON.parse(rawIdentity) as LoginIdentityDraft;
+
+            sessionStorage.setItem(
+              identityDraftKey(draft.returnLoginIdentityDraft),
+              JSON.stringify({
+                ...identity,
+                loginTestId: saved.id,
+                inputs: { ...saved.target?.inputs, ...identity.inputs },
+              }),
+            );
+            const returnUrl = new URL(
+              identity.returnTo || '/settings#login-identities',
+              window.location.origin,
+            );
+
+            if (returnUrl.origin === window.location.origin) {
+              returnUrl.searchParams.set('loginIdentityDraft', draft.returnLoginIdentityDraft);
+              router.push(`${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`);
+
+              return;
+            }
+          }
+        }
+
         router.push('/cases');
       }}
     />

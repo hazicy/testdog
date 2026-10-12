@@ -1,3 +1,5 @@
+import { assertLoginIdentityReference } from '@/server/login-identities/repository';
+import { loginIdentities } from '@/db/schema';
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
@@ -6,6 +8,17 @@ import { defaultWebTarget, legacyWebTarget, targetUrl } from '@/automation/platf
 import type { TestCase } from '@/features/test-cases/types';
 import { testSchema, testValidationMessage } from '@/features/test-cases/schemas';
 import { WorkspaceError } from '@/server/shared/errors';
+
+export async function getTest(id: string, userId: UserScope) {
+  const [test] = await db
+    .select()
+    .from(testCases)
+    .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)));
+
+  if (!test) throw new WorkspaceError('用例不存在。', 404);
+
+  return { ...test, target: test.target ?? legacyWebTarget(test.url) };
+}
 
 export const listTests = async (userId: UserScope = null) =>
   (
@@ -33,23 +46,54 @@ export async function saveTest(
     ...parsed.data,
     target: parsed.data.target ?? defaultWebTarget(parsed.data.url),
   };
-  const [test] = id
-    ? await db
-        .update(testCases)
-        .set({ ...input, updatedAt: new Date().toISOString() })
-        .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)))
-        .returning()
-    : await db
-        .insert(testCases)
-        .values({ ...input, userId })
-        .returning();
 
-  if (!test) throw new WorkspaceError('用例不存在。', 404);
+  return db.transaction(async (tx) => {
+    await assertLoginIdentityReference(input.target, userId, tx);
+    if (id) {
+      const [identity] = await tx
+        .select()
+        .from(loginIdentities)
+        .where(and(eq(loginIdentities.loginTestId, id), ownedBy(loginIdentities.userId, userId)))
+        .limit(1);
 
-  return test;
+      if (
+        identity &&
+        (!input.plan ||
+          input.target?.platform !== 'web' ||
+          input.target.loginIdentityId ||
+          new URL(input.target.url).origin !== new URL(identity.website).origin)
+      )
+        throw new WorkspaceError(
+          '该用例被登录身份用作前置流程，不能改为原生平台、引用登录身份或切换网站。',
+        );
+    }
+
+    const [test] = id
+      ? await tx
+          .update(testCases)
+          .set({ ...input, updatedAt: new Date().toISOString() })
+          .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)))
+          .returning()
+      : await tx
+          .insert(testCases)
+          .values({ ...input, userId })
+          .returning();
+
+    if (!test) throw new WorkspaceError('用例不存在。', 404);
+
+    return test;
+  });
 }
 
 export async function deleteTest(id: string, userId: UserScope = null) {
+  const [identity] = await db
+    .select({ id: loginIdentities.id })
+    .from(loginIdentities)
+    .where(and(eq(loginIdentities.loginTestId, id), ownedBy(loginIdentities.userId, userId)))
+    .limit(1);
+
+  if (identity)
+    throw new WorkspaceError('该用例被登录身份引用，请先更换登录流程或删除登录身份。', 409);
   const rows = await db
     .delete(testCases)
     .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)))

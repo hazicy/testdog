@@ -236,7 +236,6 @@ function PlanBoardContent({
           </ReactFlow>
           {viewportOverlay}
           <div className="plan-canvas-tools">
-            <span className="plan-canvas-hint">滚动平移 · 空格拖动画板 · Ctrl / ⌘ + 滚轮缩放</span>
             <div className="plan-viewport-controls" role="group" aria-label="画板视图">
               {onChange && (
                 <>

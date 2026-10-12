@@ -6,6 +6,7 @@ import type { TestCase } from '../types';
 export type CaseDraft = {
   test?: TestCase;
   duplicate?: boolean;
+  returnLoginIdentityDraft?: string;
   name: string;
   url: string;
   goal: string;

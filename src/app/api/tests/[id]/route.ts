@@ -1,11 +1,24 @@
 import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
-import { saveTest, deleteTest } from '@/server/test-cases/repository';
+import { saveTest, deleteTest, getTest } from '@/server/test-cases/repository';
 import { testSchema, testValidationMessage } from '@/features/test-cases/schemas';
 import { apiError, validId } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
+
+export async function GET(request: Request, context: Context) {
+  try {
+    const userId = await requireUserId(request);
+    const { id } = await context.params;
+
+    validId(id);
+
+    return NextResponse.json({ test: await getTest(id, userId) });
+  } catch (error) {
+    return apiError(error);
+  }
+}
 
 export async function PATCH(request: Request, context: Context) {
   try {

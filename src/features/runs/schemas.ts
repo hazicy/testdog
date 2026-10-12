@@ -4,6 +4,7 @@ import { websiteSchema } from '@/features/test-cases/schemas';
 import { ExecutablePlanSchema } from '@/automation/compiler/schema';
 
 export const runRequestSchema = z.union([
+  z.strictObject({ loginIdentityId: z.uuid() }),
   z.strictObject({
     draft: z.strictObject({
       name: z.string().trim().min(1).max(120),

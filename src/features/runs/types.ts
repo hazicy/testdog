@@ -90,6 +90,7 @@ export type TestRun = {
   attempt?: number;
   errorCode?: string;
 
+  authenticationVerification?: boolean;
   targetSnapshot?: TestTarget;
   environmentSnapshot?: Record<string, unknown>;
   replayEnvironmentSnapshot?: Record<string, unknown>;

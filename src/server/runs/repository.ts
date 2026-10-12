@@ -1,3 +1,8 @@
+import {
+  assertLoginIdentityReference,
+  identityFor,
+  loginFlow,
+} from '@/server/login-identities/repository';
 import { createIssuesForFailedRun } from '@/server/issues/repository';
 import { validateInputReferences } from '@/automation/compiler/executionPlan';
 import type { Plan } from '@/automation/compiler/schema';
@@ -32,6 +37,7 @@ const optional = <T>(value: T | null) => value ?? undefined;
 
 export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
   return {
+    authenticationVerification: row.authenticationVerification,
     realtimeRevision: row.realtimeRevision,
     workerId: optional(row.workerId),
     resourceId: optional(row.resourceId),
@@ -179,6 +185,7 @@ export async function createRun(
 
   if (!parsed.success) throw new WorkspaceError('执行参数无效，请指定用例、测试描述或重放来源。');
   const input: {
+    loginIdentityId?: string;
     batchId?: string;
     goalOverride?: string;
     target?: TestTarget;
@@ -192,6 +199,7 @@ export async function createRun(
   } = { ...parsed.data, batchId: request.batchId, goalOverride: request.goalOverride };
   const persist = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => {
     let snapshot: {
+      authenticationVerification?: boolean;
       targetSnapshot?: TestTarget;
       testId?: string;
       name: string;
@@ -205,7 +213,25 @@ export async function createRun(
       mode: 'record' | 'replay';
     };
 
-    if (input.draft) {
+    if (input.loginIdentityId) {
+      const identity = await identityFor(input.loginIdentityId, userId, tx);
+      const flow = await loginFlow(identity, tx);
+
+      snapshot = {
+        authenticationVerification: true,
+        targetSnapshot: {
+          ...flow.target,
+          loginIdentityId: identity.id,
+          inputs: { ...flow.target.inputs, ...identity.inputs },
+          url: identity.checkUrl,
+        },
+        name: `${identity.name} · 登录验证`,
+        url: identity.checkUrl,
+        goal: '验证登录身份',
+        plan: flow.plan,
+        mode: 'record',
+      };
+    } else if (input.draft) {
       snapshot = {
         name: `${input.draft.name} · 草稿试跑`,
         goal: input.draft.goal,
@@ -221,6 +247,8 @@ export async function createRun(
         .where(and(eq(testRuns.id, input.sourceRunId!), ownedBy(testRuns.userId, userId)));
 
       if (!source) throw new WorkspaceError('原执行不存在。', 404);
+      if (source.authenticationVerification)
+        throw new WorkspaceError('登录身份验证请在设置中重新发起。');
 
       if (
         input.target &&
@@ -299,6 +327,7 @@ export async function createRun(
       };
     }
 
+    await assertLoginIdentityReference(snapshot.targetSnapshot, userId, tx);
     if (snapshot.mode === 'record') {
       try {
         validateInputReferences(snapshot.goal, snapshot.plan, snapshot.targetSnapshot?.inputs);

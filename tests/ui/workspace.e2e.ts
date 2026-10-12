@@ -12,6 +12,9 @@ async function openSettings(editor: Locator) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/login-identities', (route) =>
+    route.fulfill({ json: { identities: [], flows: [] } }),
+  );
   await page.route('**/api/workspace/stats', (route) =>
     route.fulfill({
       json: {

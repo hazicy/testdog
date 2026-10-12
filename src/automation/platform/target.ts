@@ -11,6 +11,7 @@ export const WebTargetSchema = z
   .strictObject({
     schemaVersion: z.literal(1).default(1),
     platform: z.literal('web'),
+    loginIdentityId: z.uuid().optional(),
     inputs: InputRefsSchema.optional(),
     url: HttpUrlSchema,
     browser: z.enum(['chromium', 'webkit']).default('chromium'),

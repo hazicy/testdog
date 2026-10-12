@@ -2,6 +2,7 @@
 
 本目录由 Next.js API 路由和独立执行 worker 共用。业务代码按职责组织，测试与被测模块就近存放。
 
+- `login-identities`：登录身份、加密状态缓存、刷新租约及执行前登录准备。
 - `test-cases/repository.ts`：用例查询、保存和删除。
 - `runs/repository.ts`：执行记录、步骤、事件、日志和附件的数据库读写。
 - `runs/run.ts`、`runtime.ts`：执行生命周期、平台运行时装配和取消控制。

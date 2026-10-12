@@ -1,5 +1,7 @@
 'use client';
 
+import { LoginIdentityPicker } from '@/features/login-identities/components/LoginIdentityPicker';
+
 import { Label } from '@/components/ui/Label';
 import useSWR from 'swr';
 import { Input } from '@/components/ui/Input';
@@ -21,12 +23,14 @@ export function CaseSettings({
   value,
   onChange,
   busy,
+  webOnly = false,
 }: {
   name: string;
   onNameChange: (name: string) => void;
   value: CaseSettingsValue;
   onChange: (patch: Partial<CaseSettingsValue>) => void;
   busy: boolean;
+  webOnly?: boolean;
 }) {
   const {
     url,
@@ -72,8 +76,8 @@ export function CaseSettings({
           onValueChange={(value) => onChange({ platform: value as CaseSettingsValue['platform'] })}
           items={[
             { value: 'web', label: 'Web · 浏览器' },
-            { value: 'android', label: 'Android · 原生应用' },
-            { value: 'ios', label: 'iOS · 原生应用' },
+            { value: 'android', label: 'Android · 原生应用', disabled: webOnly },
+            { value: 'ios', label: 'iOS · 原生应用', disabled: webOnly },
           ]}
         />
       </Label>
@@ -91,6 +95,14 @@ export function CaseSettings({
               placeholder="https://your-app.com"
             />
           </Label>
+          {!webOnly && (
+            <LoginIdentityPicker
+              value={value.loginIdentityId}
+              website={url}
+              disabled={busy}
+              onChange={(id) => onChange({ loginIdentityId: id })}
+            />
+          )}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm text-ink">
               <Checkbox
