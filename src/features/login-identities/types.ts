@@ -9,6 +9,7 @@ export type LoginIdentity = {
   checkUrl: string;
   successText: string;
   inputs: InputRefs;
+  configuredSecrets?: string[];
   ttlMinutes: number;
   version: number;
   status: 'unverified' | 'verifying' | 'ready' | 'failed' | 'expired';

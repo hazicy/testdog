@@ -25,7 +25,7 @@ vi.mock('@/server/shared/auth', async () => {
   };
 });
 import { db } from '@/db';
-import { authUsers, loginStateCaches, testRuns } from '@/db/schema';
+import { authUsers, loginIdentities, loginStateCaches, testRuns } from '@/db/schema';
 import { saveTest, deleteTest } from '@/server/test-cases/repository';
 import { createRun } from '@/server/runs/repository';
 import {
@@ -33,9 +33,11 @@ import {
   readLoginIdentities,
   deleteLoginIdentity,
   clearLoginState,
+  identityFor,
+  identityCredentials,
 } from './repository';
 import { POST as verify } from '@/app/api/login-identities/[id]/verify/route';
-import { GET as list } from '@/app/api/login-identities/route';
+import { GET as list, POST as createIdentity } from '@/app/api/login-identities/route';
 import { eq } from 'drizzle-orm';
 import { withLoginRefreshLock, readCachedLoginState } from './cache';
 
@@ -93,6 +95,63 @@ afterAll(async () => {
 });
 
 describe('login identity ownership and references', () => {
+  it('encrypts UI passwords, never returns them, preserves blank edits and replaces them without env changes', async () => {
+    const input = {
+      ...profileInput(),
+      inputs: { password: { secretRef: 'LOGIN_PASSWORD' } },
+      secrets: { password: 'private-password' },
+    };
+    const response = await createIdentity(
+      new Request('http://localhost/api/login-identities', {
+        method: 'POST',
+        headers: { 'test-user': 'alice', 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    const { identity } = await response.json();
+
+    expect(identity.configuredSecrets).toEqual(['password']);
+    expect(JSON.stringify(identity)).not.toContain('private-password');
+    expect(identity).not.toHaveProperty('encryptedCredentials');
+    const row = await identityFor(identity.id, 'alice');
+
+    expect(row.encryptedCredentials).not.toContain('private-password');
+    expect(identityCredentials(row)).toEqual({ password: 'private-password' });
+    await expect(identityFor(identity.id, 'bob')).rejects.toMatchObject({ status: 404 });
+    const retained = await saveLoginIdentity(
+      { ...profileInput(), version: 1, inputs: identity.inputs },
+      'alice',
+      identity.id,
+    );
+
+    expect(identityCredentials(await identityFor(identity.id, 'alice')).password).toBe(
+      'private-password',
+    );
+    const updated = await saveLoginIdentity(
+      {
+        ...profileInput(),
+        version: 2,
+        inputs: retained.inputs,
+        secrets: { password: 'new-password' },
+      },
+      'alice',
+      identity.id,
+    );
+
+    expect(identityCredentials(await identityFor(identity.id, 'alice')).password).toBe(
+      'new-password',
+    );
+    expect(JSON.stringify(await readLoginIdentities('alice'))).not.toContain('new-password');
+    expect(updated.inputs.password).not.toEqual(identity.inputs.password);
+    const verification = await createRun({ loginIdentityId: identity.id }, undefined, 'alice');
+
+    expect(JSON.stringify(verification)).not.toContain('new-password');
+    const [stored] = await db.select().from(loginIdentities);
+
+    expect(stored.encryptedCredentials).toMatch(/^v1\./);
+  });
   it('saves identities, isolates owners and limits login flows to standalone Web cases', async () => {
     const identity = await saveLoginIdentity(profileInput(), 'alice');
 

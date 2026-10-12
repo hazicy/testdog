@@ -73,10 +73,16 @@ async function catalog(page: import('@playwright/test').Page, identities: LoginI
   );
   await page.route('**/api/login-identities', async (route) => {
     if (route.request().method() === 'POST') {
-      const input = route.request().postDataJSON();
+      const { secrets, ...input } = route.request().postDataJSON();
 
       data.identities.push(
-        profile({ ...input, id: identityId, version: input.version + 1, status: 'unverified' }),
+        profile({
+          ...input,
+          configuredSecrets: Object.keys(secrets ?? {}),
+          id: identityId,
+          version: input.version + 1,
+          status: 'unverified',
+        }),
       );
 
       return route.fulfill({ status: 201, json: { identity: data.identities.at(-1) } });
@@ -124,8 +130,12 @@ test('creates an identity, configures account references and queues verification
 
   await dialog.getByLabel('登录流程', { exact: true }).click();
   await page.getByRole('option', { name: '登录流程', exact: true }).click();
-  await expect(dialog.getByLabel('password（密钥名称）')).toHaveValue('LOGIN_PASSWORD');
-  await dialog.getByLabel('username', { exact: true }).fill('another-admin');
+  await expect(dialog.getByLabel('密码', { exact: true })).toHaveAttribute('type', 'password');
+  await dialog.getByLabel('密码', { exact: true }).fill('user-entered-password');
+  expect(await page.evaluate(() => JSON.stringify(sessionStorage))).not.toContain(
+    'user-entered-password',
+  );
+  await dialog.getByLabel('账号', { exact: true }).fill('another-admin');
   await dialog.getByRole('button', { name: '保存并验证' }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByText('正在验证', { exact: true })).toBeVisible();
@@ -145,6 +155,54 @@ test('shows references and prevents deletion while an identity is in use', async
   await expect(page.getByRole('button', { name: '删除', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: '清除登录态' }).click();
   await expect(page.getByRole('status')).toHaveText('登录态已清除，下次执行会重新登录。');
+});
+test('keeps saved passwords blank when editing and submits replacements only when entered', async ({
+  page,
+}) => {
+  const data = await catalog(page, [
+    profile({
+      inputs: { username: { value: 'admin' }, password: { secretRef: 'IDENTITY_SAVED' } },
+      configuredSecrets: ['password'],
+    }),
+  ]);
+  const requests: { secrets: Record<string, string> }[] = [];
+
+  await page.route('**/api/login-identities/*/verify', (route) =>
+    route.fulfill({ status: 202, json: { runId: 'verification-run' } }),
+  );
+
+  await page.route(`**/api/login-identities/${identityId}`, (route) => {
+    const { secrets, ...input } = route.request().postDataJSON();
+
+    requests.push({ secrets });
+    data.identities[0] = profile({
+      ...input,
+      configuredSecrets: ['password'],
+      version: input.version + 1,
+    });
+
+    return route.fulfill({ json: { identity: data.identities[0] } });
+  });
+  await page.goto('/settings#login-identities');
+  await page.getByRole('button', { name: '编辑', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '编辑登录身份' });
+
+  await expect(dialog.getByLabel('密码', { exact: true })).toHaveValue('');
+  await expect(dialog.getByLabel('密码', { exact: true })).toHaveAttribute(
+    'placeholder',
+    '已保存，留空保持不变',
+  );
+  await dialog.getByRole('button', { name: '保存并验证' }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(requests[0].secrets).toEqual({});
+  await page.getByRole('button', { name: '编辑', exact: true }).click();
+  await dialog.getByLabel('密码', { exact: true }).fill('replacement-password');
+  await dialog.getByRole('button', { name: '保存并验证' }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(requests[1].secrets).toEqual({ password: 'replacement-password' });
+  expect(await page.evaluate(() => JSON.stringify(sessionStorage))).not.toContain(
+    'replacement-password',
+  );
 });
 test('selects an identity in case settings and preserves it in the saved target', async ({
   page,
@@ -273,6 +331,7 @@ test('creates an identity from case settings without submitting the enclosing ca
 
   await dialog.getByLabel('登录流程', { exact: true }).click();
   await page.getByRole('option', { name: '登录流程', exact: true }).click();
+  await dialog.getByLabel('密码', { exact: true }).fill('user-entered-password');
   await dialog.getByRole('button', { name: '保存并验证' }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByLabel('登录身份', { exact: true })).toContainText('测试管理员');

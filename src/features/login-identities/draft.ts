@@ -10,6 +10,7 @@ export type LoginIdentityDraft = {
   ttlMinutes: number;
   version: number;
   inputs: InputRefs;
+  configuredSecrets?: string[];
   returnTo?: string;
 };
 export const identityDraftKey = (id: string) => `caseforge:login-identity-draft:${id}`;

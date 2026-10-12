@@ -58,7 +58,7 @@ export async function openPlatformRuntime(input: {
   const { run, expectedEnvironment, resource, signal } = input;
   const model = input.model ?? modelClient;
   const target = run.targetSnapshot ?? legacyWebTarget(run.url);
-  const secrets = new SecretInputs(target.inputs);
+  const secrets = new SecretInputs(run.authenticationVerification ? {} : target.inputs);
 
   if (target.platform !== 'web') {
     if (!resource?.deviceId) throw new Error('设备租约没有绑定设备 ID');

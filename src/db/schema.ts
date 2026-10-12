@@ -602,6 +602,7 @@ export const loginIdentities = pgTable(
     checkUrl: text().notNull(),
     successText: text().notNull(),
     inputs: jsonb().$type<import('@/automation/platform/inputs').InputRefs>().notNull().default({}),
+    encryptedCredentials: text(),
     ttlMinutes: integer().notNull().default(60),
     version: integer().notNull().default(1),
     lastVerifiedAt: timestamp({ withTimezone: true, mode: 'string' }),

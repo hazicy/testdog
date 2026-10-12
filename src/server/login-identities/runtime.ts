@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { errors, type Browser, type BrowserContextOptions } from 'playwright';
 import { db } from '@/db';
 import { loginIdentities, testRuns } from '@/db/schema';
-import { identityFor, loginFlow } from './repository';
+import { identityFor, loginFlow, identityCredentials } from './repository';
 import { readCachedLoginState, withLoginRefreshLock, type LoginState } from './cache';
 import { SecretInputs } from '@/automation/platform/inputs';
 import { resolvePlanInputs } from '@/automation/compiler/executionPlan';
@@ -17,7 +17,7 @@ import type { LoginPreparation } from '@/features/login-identities/types';
 
 export class LoginPreparationError extends Error {
   constructor() {
-    super('登录准备失败，业务步骤尚未开始。请检查登录流程、成功标志和账号密钥。');
+    super('登录准备失败，业务步骤尚未开始。请检查登录流程、成功标志和账号密码。');
   }
 }
 
@@ -74,7 +74,14 @@ export async function prepareRunLogin(input: {
     if (new URL(target.url).origin !== new URL(identity.website).origin) throw new Error();
     const flow = await loginFlow(identity);
     const inputs = { ...flow.target.inputs, ...identity.inputs };
-    const secrets = new SecretInputs(inputs);
+    const storedSecrets = Object.fromEntries(
+      Object.entries(identityCredentials(identity)).flatMap(([key, password]) => {
+        const entry = inputs[key];
+
+        return entry && 'secretRef' in entry ? [[entry.secretRef, password]] : [];
+      }),
+    );
+    const secrets = new SecretInputs(inputs, storedSecrets);
     // PostgreSQL jsonb may reorder the replay profile's keys. Equivalent settings
     // must reuse the same state in recordings and replays.
     const profileKey = JSON.stringify(profile, (_key, value: unknown) =>
@@ -218,7 +225,7 @@ export async function prepareRunLogin(input: {
     await db
       .update(loginIdentities)
       .set({
-        lastError: `登录准备失败${failedStep ? `：${failedStep}` : '，请检查登录流程、成功标志和账号密钥。'}`,
+        lastError: `登录准备失败${failedStep ? `：${failedStep}` : '，请检查登录流程、成功标志和账号密码。'}`,
       })
       .where(
         and(eq(loginIdentities.id, identity.id), eq(loginIdentities.version, identity.version)),

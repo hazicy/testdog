@@ -29,10 +29,11 @@ export function inputGoal(goal: string, inputs: InputRefs = {}) {
 
 export class SecretInputs {
   private values = new Map<string, string>();
-  constructor(inputs: InputRefs = {}) {
+  constructor(inputs: InputRefs = {}, storedSecrets: Record<string, string> = {}) {
     for (const input of Object.values(inputs)) {
       if (!('secretRef' in input)) continue;
-      const value = process.env[`CASEFORGE_SECRET_${input.secretRef}`];
+      const value =
+        storedSecrets[input.secretRef] ?? process.env[`CASEFORGE_SECRET_${input.secretRef}`];
 
       if (!value) throw new Error(`Missing worker secret: ${input.secretRef}`);
       this.values.set(input.secretRef, value);

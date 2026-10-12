@@ -27,7 +27,7 @@ vi.mock('@/automation/platform/web/webPlanner', () => ({
 import { db } from '@/db';
 import { loginStateCaches, testRuns } from '@/db/schema';
 import { saveTest } from '@/server/test-cases/repository';
-import { saveLoginIdentity, clearLoginState } from './repository';
+import { saveLoginIdentity, clearLoginState, identityFor } from './repository';
 import { prepareRunLogin } from './runtime';
 import { eq } from 'drizzle-orm';
 
@@ -163,6 +163,38 @@ it('logs in once, restores isolated contexts and never caches mutations made by 
   const [cache] = await db.select().from(loginStateCaches);
 
   expect(cache.encryptedState).not.toContain('session');
+}, 30000);
+it('loads saved passwords and refreshes after a UI password update without restarting the worker', async () => {
+  const identity = await identityFor(identityId, null);
+  const config = {
+    name: identity.name,
+    website: identity.website,
+    loginTestId: identity.loginTestId,
+    checkUrl: identity.checkUrl,
+    successText: identity.successText,
+    ttlMinutes: identity.ttlMinutes,
+    version: identity.version,
+    inputs: { password: { secretRef: 'LOGIN_PASSWORD' } },
+    secrets: { password: 'first-ui-password' },
+  };
+
+  vi.stubEnv('CASEFORGE_SECRET_LOGIN_PASSWORD', '');
+  const saved = await saveLoginIdentity(config, null, identityId);
+
+  expect((await prepare()).preparation?.reused).toBe(false);
+  expect((await prepare()).preparation?.reused).toBe(true);
+  await saveLoginIdentity(
+    {
+      ...config,
+      version: saved.version,
+      inputs: saved.inputs,
+      secrets: { password: 'updated-ui-password' },
+    },
+    null,
+    identityId,
+  );
+  expect((await prepare()).preparation?.reused).toBe(false);
+  expect(logins).toBe(2);
 }, 30000);
 it('refreshes expired or invalid states once and supports manual force refresh', async () => {
   await prepare();

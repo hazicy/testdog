@@ -89,7 +89,7 @@ export async function executeRun(
   let errorCode: string | null = null;
 
   try {
-    secrets = new SecretInputs(run.targetSnapshot?.inputs);
+    secrets = new SecretInputs(run.authenticationVerification ? {} : run.targetSnapshot?.inputs);
     const model = budgetedModel(modelClient, modelBudgetFromEnv(), (metric) =>
       recordModelCall(run.id, metric),
     );

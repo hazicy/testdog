@@ -2,6 +2,19 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { inputGoal, InputRefsSchema, SecretInputs } from './inputs';
 
 afterEach(() => vi.unstubAllEnvs());
+test('stored passwords resolve and redact without worker environment configuration', () => {
+  vi.stubEnv('CASEFORGE_SECRET_STORED_PASSWORD', '');
+  const secrets = new SecretInputs(
+    { password: { secretRef: 'STORED_PASSWORD' } },
+    { STORED_PASSWORD: 'ui-password' },
+  );
+
+  expect(secrets.resolve('${secret:STORED_PASSWORD}')).toEqual({
+    value: 'ui-password',
+    sensitive: true,
+  });
+  expect(secrets.redact('ui-password')).toBe('[redacted]');
+});
 test('public inputs resolve while secret values stay outside compiler and recording context', () => {
   const inputs = InputRefsSchema.parse({
     name: { value: 'Ada' },

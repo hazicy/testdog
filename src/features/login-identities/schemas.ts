@@ -10,6 +10,10 @@ export const loginIdentityInput = z
     checkUrl: HttpUrlSchema,
     successText: z.string().trim().min(1).max(200),
     inputs: InputRefsSchema.default({}),
+    secrets: z
+      .record(z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/), z.string().min(1).max(20000))
+      .refine((secrets) => Object.keys(secrets).length <= 50, 'Too many secrets')
+      .default({}),
     ttlMinutes: z.number().int().min(1).max(1440).default(60),
     version: z.number().int().min(0),
   })

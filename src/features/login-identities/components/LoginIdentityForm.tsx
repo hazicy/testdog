@@ -39,12 +39,13 @@ export function LoginIdentityForm({
       successText: '',
       ttlMinutes: 60,
       version: 0,
-      inputs: {},
+      inputs: { username: { value: '' }, password: { secretRef: 'LOGIN_PASSWORD' } },
     },
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
   const flows = catalog.flows.filter((flow) => {
     try {
       return !draft.website || new URL(flow.url).origin === new URL(draft.website).origin;
@@ -121,6 +122,7 @@ export function LoginIdentityForm({
         ttlMinutes: draft.ttlMinutes,
         version: draft.version,
         inputs: draft.inputs,
+        secrets: Object.fromEntries(Object.entries(passwords).filter(([, value]) => value !== '')),
       };
       const result = await (
         id
@@ -128,7 +130,13 @@ export function LoginIdentityForm({
           : api.post('/api/login-identities', { json })
       ).json<{ identity: LoginIdentity }>();
 
-      patch({ id: result.identity.id, version: result.identity.version });
+      patch({
+        id: result.identity.id,
+        version: result.identity.version,
+        inputs: result.identity.inputs,
+        configuredSecrets: result.identity.configuredSecrets,
+      });
+      setPasswords({});
       setSaved(true);
       await submit(`/api/login-identities/${result.identity.id}/verify`, {});
       await onSaved(result.identity);
@@ -181,7 +189,14 @@ export function LoginIdentityForm({
             onValueChange={(value) => {
               const flow = catalog.flows.find((item) => item.id === value);
 
-              patch({ loginTestId: value, inputs: flow?.target?.inputs ?? {} });
+              const inputs = Object.fromEntries(
+                Object.entries(flow?.target?.inputs ?? {}).map(([key, entry]) => [
+                  key,
+                  draft.inputs[key] ?? entry,
+                ]),
+              );
+
+              patch({ loginTestId: value, inputs });
             }}
             items={[
               { value: '', label: '选择已保存的登录流程' },
@@ -210,6 +225,7 @@ export function LoginIdentityForm({
           </div>
           <p className="text-xs text-page-muted">
             使用现有画板编写登录操作。流程保存后会回到这里，当前填写内容会保留。
+            密码请在流程保存后填写，不会保存在画板草稿中。
           </p>
         </div>
         {Object.entries(draft.inputs).length === 0 && (
@@ -232,29 +248,40 @@ export function LoginIdentityForm({
             {Object.entries(draft.inputs).map(([key, input]) => (
               <label key={key} className="block space-y-2 text-sm">
                 <span>
-                  {key}
-                  {'secretRef' in input ? '（密钥名称）' : ''}
+                  {key === 'username'
+                    ? '账号'
+                    : key === 'password'
+                      ? '密码'
+                      : `${key}${'secretRef' in input ? '（密码）' : ''}`}
                 </span>
                 <Input
-                  value={'secretRef' in input ? input.secretRef : input.value}
+                  type={'secretRef' in input ? 'password' : 'text'}
+                  autoComplete={'secretRef' in input ? 'new-password' : 'off'}
+                  required={'secretRef' in input && !draft.configuredSecrets?.includes(key)}
+                  placeholder={
+                    'secretRef' in input
+                      ? draft.configuredSecrets?.includes(key)
+                        ? '已保存，留空保持不变'
+                        : '请输入登录密码'
+                      : ''
+                  }
+                  value={'secretRef' in input ? (passwords[key] ?? '') : input.value}
                   disabled={busy}
                   onChange={(event) =>
-                    patch({
-                      inputs: {
-                        ...draft.inputs,
-                        [key]:
-                          'secretRef' in input
-                            ? { secretRef: event.target.value }
-                            : { value: event.target.value },
-                      },
-                    })
+                    'secretRef' in input
+                      ? setPasswords((current) => ({ ...current, [key]: event.target.value }))
+                      : patch({
+                          inputs: {
+                            ...draft.inputs,
+                            [key]: { value: event.target.value },
+                          },
+                        })
                   }
                 />
               </label>
             ))}
             <p className="text-xs text-page-muted">
-              密码使用已配置的密钥名称，例如
-              LOGIN_PASSWORD。不同身份可以引用同一流程并使用不同账号。
+              密码加密保存，修改后直接生效。不同身份可以使用同一流程和不同账号。
             </p>
           </fieldset>
         )}
@@ -277,7 +304,7 @@ export function LoginIdentityForm({
         </label>
         {saved && (
           <p role="status" className="text-sm text-page-muted">
-            配置已保存，验证由执行 worker 完成。
+            配置已保存，正在提交登录验证。
           </p>
         )}
         {error && (

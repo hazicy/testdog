@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { validateInputReferences } from '@/automation/compiler/executionPlan';
 import { db } from '@/db';
@@ -8,6 +9,32 @@ import { ExecutablePlanSchema } from '@/automation/compiler/schema';
 import { WebTargetSchema, type TestTarget } from '@/automation/platform/target';
 import { loginIdentityInput } from '@/features/login-identities/schemas';
 import type { LoginIdentity } from '@/features/login-identities/types';
+import { encryptSecret, decryptSecret } from '@/server/integrations/secrets';
+
+export function publicLoginIdentity(identity: typeof loginIdentities.$inferSelect) {
+  const { encryptedCredentials, ...publicFields } = identity;
+
+  void encryptedCredentials;
+
+  return {
+    ...publicFields,
+    configuredSecrets: Object.entries(identity.inputs)
+      .filter(([, input]) => 'secretRef' in input && input.secretRef.startsWith('IDENTITY_'))
+      .map(([key]) => key),
+  };
+}
+
+export function identityCredentials(
+  identity: typeof loginIdentities.$inferSelect,
+): Record<string, string> {
+  return identity.encryptedCredentials
+    ? (decryptSecret(
+        identity.encryptedCredentials,
+        identity.userId,
+        `login-credentials:${identity.id}`,
+      ) as Record<string, string>)
+    : {};
+}
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -29,7 +56,7 @@ export async function identityFor(
 }
 
 export async function loginFlow(
-  identity: typeof loginIdentities.$inferSelect,
+  identity: Pick<typeof loginIdentities.$inferSelect, 'loginTestId' | 'userId' | 'website'>,
   tx: Tx | typeof db = db,
 ) {
   const [flow] = await tx
@@ -108,7 +135,7 @@ export async function readLoginIdentities(userId: UserScope) {
                 : 'ready';
 
       return {
-        ...item,
+        ...publicLoginIdentity(item),
         status,
         references: cases
           .filter(
@@ -147,17 +174,52 @@ export async function saveLoginIdentity(raw: unknown, userId: UserScope, id?: st
     if (id && !previous) throw new WorkspaceError('登录身份不存在。', 404);
     if ((previous?.version ?? 0) !== input.version)
       throw new WorkspaceError('登录身份已更新，请刷新后重试。', 409);
-    const flow = await loginFlow({ ...input, userId } as typeof loginIdentities.$inferSelect, tx);
+    const identityId = previous?.id ?? randomUUID();
+    const credentials = previous ? identityCredentials(previous) : {};
+
+    for (const [key, password] of Object.entries(input.secrets)) {
+      if (!input.inputs[key] || !('secretRef' in input.inputs[key]))
+        throw new WorkspaceError('密码必须对应登录流程中的敏感输入。');
+      input.inputs[key] = {
+        secretRef: `IDENTITY_${randomUUID().replaceAll('-', '').toUpperCase()}`,
+      };
+      credentials[key] = password;
+    }
+
+    for (const [key, entry] of Object.entries(input.inputs)) {
+      if ('secretRef' in entry && entry.secretRef.startsWith('IDENTITY_')) {
+        const old = previous?.inputs[key];
+
+        if (
+          !credentials[key] ||
+          (!input.secrets[key] &&
+            (!old || !('secretRef' in old) || old.secretRef !== entry.secretRef))
+        )
+          throw new WorkspaceError('请填写登录密码。');
+      } else delete credentials[key];
+    }
+
+    for (const key of Object.keys(credentials)) {
+      if (!input.inputs[key]) delete credentials[key];
+    }
+
+    const flow = await loginFlow({ ...input, userId }, tx);
 
     try {
       validateInputReferences(flow.goal, flow.plan, { ...flow.target.inputs, ...input.inputs });
     } catch {
-      throw new WorkspaceError('登录流程引用了未配置的输入，请补充账号与密钥引用。');
+      throw new WorkspaceError('登录流程引用了未配置的输入，请补充账号与密码。');
     }
 
-    const { version, ...config } = input;
+    const { version, secrets, ...config } = input;
+
+    void secrets;
     const values = {
       ...config,
+      id: identityId,
+      encryptedCredentials: Object.keys(credentials).length
+        ? encryptSecret(credentials, userId, `login-credentials:${identityId}`)
+        : null,
       userId,
       version: version + 1,
       lastVerifiedAt: null,
@@ -176,7 +238,7 @@ export async function saveLoginIdentity(raw: unknown, userId: UserScope, id?: st
     if (previous)
       await tx.delete(loginStateCaches).where(eq(loginStateCaches.identityId, previous.id));
 
-    return saved;
+    return publicLoginIdentity(saved);
   });
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "login_identities" ADD COLUMN "encryptedCredentials" text;
