@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type { Integration, IntegrationsResponse } from '../../src/features/integrations/types';
+import type { Integration, IntegrationsResponse } from '@testdog/contracts/integrations/types';
 
 const defaults: Integration[] = [
   {

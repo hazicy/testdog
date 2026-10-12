@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import type { Issue, IssueDetail, IssueOccurrence } from '../../src/features/issues/types';
-import type { TestRun } from '../../src/features/runs/types';
+import type { Issue, IssueDetail, IssueOccurrence } from '@testdog/contracts/issues/types';
+import type { TestRun } from '@testdog/contracts/runs/types';
 
 const issueId = '62534c46-a8eb-4991-993e-af6df14bece0';
 const runId = '62534c46-a8eb-4991-993e-af6df14bece1';

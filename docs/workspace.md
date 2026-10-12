@@ -24,7 +24,7 @@ erDiagram
 
 执行状态为 `queued`、`preparing`、`running`、`finalizing`、`passed`、`failed`、`cancelled`。步骤状态为 `running`、`passed`、`failed`，取消时未完成的步骤标记为中断。模式为 `record` 或 `replay`。数据库检查约束限制状态、类型、正序号和非负大小。
 
-执行结束在同一事务中保存状态、errorCode、evidenceComplete、错误与未完成步骤；事务提交前收到取消时，状态与错误码都以取消为准。错误码区分 CANCELLED、PREPARATION_TIMEOUT、EXECUTION_TIMEOUT、LEASE_LOST、EXECUTION_FAILED 与 FINALIZATION_FAILED，附加归档错误不覆盖主要失败，最终错误统一脱敏。执行结束和租约超时恢复在同一事务中更新执行与未完成步骤；步骤更新失败时，执行状态也回滚。超时恢复只处理本次过期的执行，不扫描失败历史的步骤。重复提交结束结果不会覆盖已有终态，耗时根据数据库保存的开始时间计算。状态与租约逻辑集中在 `src/server/scheduling/scheduler.ts` 和 `src/server/scheduling/lease.ts`，业务错误定义在 `src/server/shared/errors.ts`。
+执行结束在同一事务中保存状态、errorCode、evidenceComplete、错误与未完成步骤；事务提交前收到取消时，状态与错误码都以取消为准。错误码区分 CANCELLED、PREPARATION_TIMEOUT、EXECUTION_TIMEOUT、LEASE_LOST、EXECUTION_FAILED 与 FINALIZATION_FAILED，附加归档错误不覆盖主要失败，最终错误统一脱敏。执行结束和租约超时恢复在同一事务中更新执行与未完成步骤；步骤更新失败时，执行状态也回滚。超时恢复只处理本次过期的执行，不扫描失败历史的步骤。重复提交结束结果不会覆盖已有终态，耗时根据数据库保存的开始时间计算。状态与租约逻辑集中在 `packages/server/src/scheduling/scheduler.ts` 和 `packages/server/src/scheduling/lease.ts`，业务错误定义在 `packages/server/src/shared/errors.ts`。
 
 续约和结束写入都校验当前执行器身份。执行归属变化后，旧执行器停止工作，不写入终态或中断新执行器的步骤；租约丢失与用户取消分别处理。过期恢复仍可跨执行器标记已失联的执行。
 
@@ -173,7 +173,7 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 不稳定的 aria-ref 定位器需要手动替换后才能保存。
 下载的 `.js` 文件使用平台提供的页面编号和辅助函数，适合备份编辑稿；独立运行时须提供这些上下文。
 
-录制版本的查询与保存集中在 `src/server/runs/recordings.ts`，脚本解析不进入普通用例和执行查询模块。版本列表检查执行是否存在时只读取 ID；保存版本只读取执行状态和计划，避免加载日志与录制快照。
+录制版本的查询与保存集中在 `packages/server/src/runs/recordings.ts`，脚本解析不进入普通用例和执行查询模块。版本列表检查执行是否存在时只读取 ID；保存版本只读取执行状态和计划，避免加载日志与录制快照。
 
 编辑后的版本保存在 `recording_versions`，不覆盖原步骤和画面。
 重放启动时将选中版本的步骤复制到 `test_runs.recordingSteps`，执行中后续版本不会影响此快照。

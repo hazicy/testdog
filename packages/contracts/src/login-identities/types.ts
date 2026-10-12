@@ -1,0 +1,31 @@
+import type { InputRefs } from '@testdog/contracts/automation/platform/inputs';
+import type { TestCase } from '@testdog/contracts/test-cases/types';
+
+export type LoginIdentity = {
+  id: string;
+  name: string;
+  website: string;
+  loginTestId: string;
+  checkUrl: string;
+  successText: string;
+  inputs: InputRefs;
+  configuredSecrets?: string[];
+  ttlMinutes: number;
+  version: number;
+  status: 'unverified' | 'verifying' | 'ready' | 'failed' | 'expired';
+  lastVerifiedAt: string | null;
+  lastError: string | null;
+  verificationRunId: string | null;
+  verificationStatus?: string;
+  references: { id: string; name: string }[];
+};
+export type LoginIdentitiesResponse = {
+  identities: LoginIdentity[];
+  flows: Pick<TestCase, 'id' | 'name' | 'url' | 'target'>[];
+};
+export type LoginPreparation = {
+  identityId: string;
+  name: string;
+  version: number;
+  reused: boolean;
+};

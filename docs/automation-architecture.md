@@ -35,16 +35,16 @@ flowchart TB
 
 ## 当前代码与迁移边界
 
-| 当前入口                                    | 现状                                     | 目标职责                                            |
-| ------------------------------------------- | ---------------------------------------- | --------------------------------------------------- |
-| `src/server/runs/run.ts`                    | API 后台任务启动 Chromium，固定 1280×800 | worker 执行生命周期、选择 adapter、取消、超时及归档 |
-| `src/automation/planRunner.ts`              | 遍历 DAG 并统一编排动作、断言与重放      | Web 与原生 session 提供平台动作和观察能力           |
-| `browserSession.ts`、`observer.ts`          | 管理 Page 和 ARIA 观察                   | PlaywrightSession 内部实现                          |
-| `planner.ts`、`compiler/schema.ts`          | 动作含 css/ariaRef，等待含 newPage       | 保留意图 DAG；动作使用平台判别联合及能力约束        |
-| `src/server/runs/recorder.ts`、`locator.ts` | Page hooks、DOM 稳定定位、截图及 trace   | 通用事件 sink + adapter 录制定位与附件提供者        |
-| `recordingScript.ts`                        | 解析受限 Playwright 脚本                 | 保留 Web 编辑器；新增设备动作编辑器，共用版本化 IR  |
-| `types.ts`、`src/db/schema.ts`              | url/pageId/browserLogs 为中心            | target、surface、能力与平台快照                     |
-| `store.ts`、`api/runs/route.ts`             | 全局单运行锁，Next after 执行            | 入队 + worker 原子领取，按设备/浏览器 slot 互斥     |
+| 当前入口                                             | 现状                                     | 目标职责                                            |
+| ---------------------------------------------------- | ---------------------------------------- | --------------------------------------------------- |
+| `packages/server/src/runs/run.ts`                    | API 后台任务启动 Chromium，固定 1280×800 | worker 执行生命周期、选择 adapter、取消、超时及归档 |
+| `packages/automation/src/planRunner.ts`              | 遍历 DAG 并统一编排动作、断言与重放      | Web 与原生 session 提供平台动作和观察能力           |
+| `browserSession.ts`、`observer.ts`                   | 管理 Page 和 ARIA 观察                   | PlaywrightSession 内部实现                          |
+| `planner.ts`、`compiler/schema.ts`                   | 动作含 css/ariaRef，等待含 newPage       | 保留意图 DAG；动作使用平台判别联合及能力约束        |
+| `packages/server/src/runs/recorder.ts`、`locator.ts` | Page hooks、DOM 稳定定位、截图及 trace   | 通用事件 sink + adapter 录制定位与附件提供者        |
+| `recordingScript.ts`                                 | 解析受限 Playwright 脚本                 | 保留 Web 编辑器；新增设备动作编辑器，共用版本化 IR  |
+| `types.ts`、`packages/server/src/db/schema.ts`       | url/pageId/browserLogs 为中心            | target、surface、能力与平台快照                     |
+| `store.ts`、`api/runs/route.ts`                      | 全局单运行锁，Next after 执行            | 入队 + worker 原子领取，按设备/浏览器 slot 互斥     |
 
 不能把原生设备塞进伪造 Page，或给现有 DOM Target 添加几个可选字段后继续共用所有浏览器代码。
 
@@ -171,13 +171,13 @@ Next.js API 仅校验、保存快照、入队并返回 202，独立长驻 Node w
 
 ### Web 实现目录
 
-Web 专用实现集中在 `src/automation/platform/web/`。`webActions.ts` 执行浏览器动作，`webLocator.ts` 解析元素定位器，供 `PlaywrightSession` 和录制定位共用。Web 与原生工作台运行统一通过 `PlanRunner` 编排；平台差异由各自的 session、planner 和 replay adapter 处理。
+Web 专用实现集中在 `packages/automation/src/platform/web/`。`webActions.ts` 执行浏览器动作，`webLocator.ts` 解析元素定位器，供 `PlaywrightSession` 和录制定位共用。Web 与原生工作台运行统一通过 `PlanRunner` 编排；平台差异由各自的 session、planner 和 replay adapter 处理。
 
 ### 执行依赖装配与平台边界
 
-`src/server/runs/runtime.ts` 选择并装配匹配的平台 session、planner、注入模型的 `SemanticEvaluator` 与证据采集。`PlanRunner` 只依赖统一接口，不选择具体平台或模型，也不读取旧工作台录制格式。
+`packages/server/src/runs/runtime.ts` 选择并装配匹配的平台 session、planner、注入模型的 `SemanticEvaluator` 与证据采集。`PlanRunner` 只依赖统一接口，不选择具体平台或模型，也不读取旧工作台录制格式。
 
-历史 `ExecutionStep` 先通过 `src/server/runs/replay.ts` 转换为 `ReplayStep`。Web 旧动作和 Playwright 断言由 `platform/web/replay.ts` 转换，保留旧断言元数据供录制器记录。平台 session 的 `prepareReplayStep` 决定页面选择与重放规则：Web 弹窗等待不切回原页面，瞬时 ARIA 引用不能重放；原生会话继续绑定已租用的设备和应用。
+历史 `ExecutionStep` 先通过 `packages/server/src/runs/replay.ts` 转换为 `ReplayStep`。Web 旧动作和 Playwright 断言由 `platform/web/replay.ts` 转换，保留旧断言元数据供录制器记录。平台 session 的 `prepareReplayStep` 决定页面选择与重放规则：Web 弹窗等待不切回原页面，瞬时 ARIA 引用不能重放；原生会话继续绑定已租用的设备和应用。
 
 session 的 `executionPolicy.reobserveAfterAction` 声明动作后是否必须重新观察。原生会话逐动作重新规划，Web 可执行同一观察中的批量动作；任一会话 revision 变化都使剩余批次失效。自然语言断言和分支通过注入的 `Evaluator` 使用当前观察判断，确定性平台断言继续交给 session 检查。
 

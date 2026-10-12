@@ -2,9 +2,9 @@ import { expect, test } from '@playwright/test';
 import type {
   LoginIdentitiesResponse,
   LoginIdentity,
-} from '../../src/features/login-identities/types';
-import type { TestCase } from '../../src/features/test-cases/types';
-import { initialCaseSettings } from '../../src/features/test-cases/lib/caseSettings';
+} from '@testdog/contracts/login-identities/types';
+import type { TestCase } from '@testdog/contracts/test-cases/types';
+import { initialCaseSettings } from '../../apps/web/src/features/test-cases/lib/caseSettings';
 
 const flowId = '00000000-0000-4000-8000-000000000001';
 const identityId = '00000000-0000-4000-8000-000000000002';
@@ -656,7 +656,7 @@ test('shows login preparation failure details and submits a separate verificatio
 }) => {
   await catalog(page, [profile({ status: 'failed', lastError: '成功标志未出现' })]);
   const runId = '00000000-0000-4000-8000-000000000009';
-  const run: import('../../src/features/runs/types').TestRun = {
+  const run: import('@testdog/contracts/runs/types').TestRun = {
     id: runId,
     name: '订单测试',
     url: 'https://app.example/orders',

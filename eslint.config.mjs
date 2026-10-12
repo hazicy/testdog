@@ -4,7 +4,7 @@ import nextTs from 'eslint-config-next/typescript';
 import prettier from 'eslint-config-prettier/flat';
 import stylistic from '@stylistic/eslint-plugin';
 
-const serverImportPattern = '^(?:@/|(?:\\.{1,2}/)+(?:src/)?)server(?:/|$)';
+const serverImportPattern = '^@testdog/server(?:/|$)|^(?:@/|(?:\\.{1,2}/)+(?:src/)?)server(?:/|$)';
 
 // 函数声明（包括 export function 和 export default function）
 const functionStatements = [
@@ -67,6 +67,8 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
 
+  { settings: { next: { rootDir: 'apps/web/' } } },
+
   // 关闭与 Prettier 冲突的格式化规则
   prettier,
 
@@ -80,13 +82,66 @@ const eslintConfig = defineConfig([
     },
   },
 
+  {
+    files: ['packages/contracts/src/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^@testdog/(?:automation|server)/|^@/|^next(?:/|$)|^react(?:/|$)',
+              message: '共享协议不能依赖应用、执行实现或服务端。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/automation/src/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^@testdog/server/|^@/',
+              message: '执行引擎通过接口使用存储和业务能力，不依赖服务端。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: ['packages/server/src/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^@/|^next(?:/|$)|^better-auth(?:/|$)|^@better-auth/',
+              message: '共享后端不能依赖 Web 应用、Next.js 或用户会话实现。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // 模型消费者依赖限制
   {
     files: [
-      'src/automation/compiler/textCompiler.ts',
-      'src/automation/evaluator.ts',
-      'src/automation/platform/web/webPlanner.ts',
-      'src/automation/platform/native/nativePlanner.ts',
+      'packages/automation/src/compiler/textCompiler.ts',
+      'packages/automation/src/evaluator.ts',
+      'packages/automation/src/platform/web/webPlanner.ts',
+      'packages/automation/src/platform/native/nativePlanner.ts',
     ],
     rules: {
       'no-restricted-imports': [
@@ -94,7 +149,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: `^openai(?:/|$)|(?:^|/)llm/(?!contracts(?:\\.[cm]?[jt]sx?)?$)|${serverImportPattern}`,
+              regex: `^openai(?:/|$)|^@testdog/automation/llm/(?!contracts)|(?:^|/)llm/(?!contracts(?:\\.[cm]?[jt]sx?)?$)|${serverImportPattern}`,
               message: '模型消费者依赖 ModelClient；具体模型和 SDK 由装配层选择并注入。',
             },
           ],
@@ -106,8 +161,8 @@ const eslintConfig = defineConfig([
   // Web 会话和录制定位依赖限制
   {
     files: [
-      'src/automation/platform/web/playwrightSession.ts',
-      'src/automation/platform/web/recordingLocator.ts',
+      'packages/automation/src/platform/web/playwrightSession.ts',
+      'packages/automation/src/platform/web/recordingLocator.ts',
     ],
     rules: {
       'no-restricted-imports': [
@@ -115,7 +170,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: `(?:^|/)db(?:/.*)?$|${serverImportPattern}`,
+              regex: `(?:^|/)db(?:/.*)?$|^@testdog/server/|${serverImportPattern}`,
               message: 'Web 会话和录制定位依赖平台能力，不直接依赖工作台服务端或数据库。',
             },
           ],
@@ -126,14 +181,14 @@ const eslintConfig = defineConfig([
 
   // PlanRunner 依赖限制
   {
-    files: ['src/automation/planRunner.ts'],
+    files: ['packages/automation/src/planRunner.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              regex: `(?:^|/)(?:llm|features|db|platform/(?:web|native))(?:/.*)?$|${serverImportPattern}`,
+              regex: `^@testdog/(?:server|contracts/(?!automation/)|automation/(?:llm|platform/(?:web|native)))|(?:^|/)(?:llm|features|db|platform/(?:web|native))(?:/.*)?$|${serverImportPattern}`,
               allowTypeImports: true,
               message: 'PlanRunner 通过注入接口编排执行，不直接依赖平台驱动、模型或工作台存储。',
             },
@@ -146,9 +201,9 @@ const eslintConfig = defineConfig([
   // 浏览器组件依赖限制
   {
     files: [
-      'src/components/**/*.{ts,tsx}',
-      'src/features/**/*.{ts,tsx}',
-      'src/client/**/*.{ts,tsx}',
+      'apps/web/src/components/**/*.{ts,tsx}',
+      'apps/web/src/features/**/*.{ts,tsx}',
+      'apps/web/src/client/**/*.{ts,tsx}',
     ],
     rules: {
       'no-restricted-imports': [
@@ -156,7 +211,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: `(?:^|/)(?:db(?:/.*)?|automation/(?:planRunner|evaluator|llm(?:/.*)?|platform/web/(?:browserSession|observer|pageReadiness|webPlanner|webActions|webLocator|recordingLocator|replay)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$|${serverImportPattern}`,
+              regex: `^@testdog/server/|^@testdog/automation/|(?:^|/)(?:db(?:/.*)?|automation/(?:planRunner|evaluator|llm(?:/.*)?|platform/web/(?:browserSession|observer|pageReadiness|webPlanner|webActions|webLocator|recordingLocator|replay)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$|${serverImportPattern}`,
               allowTypeImports: true,
               message: '浏览器组件通过 API 访问服务端功能；共享类型请使用 import type。',
             },
@@ -168,10 +223,11 @@ const eslintConfig = defineConfig([
 
   // 忽略文件
   globalIgnores([
-    '.next/**',
+    '**/.next/**',
+    '**/dist/**',
     'out/**',
     'build/**',
-    'next-env.d.ts',
+    '**/next-env.d.ts',
     'test-results/**',
     'playwright-report/**',
   ]),

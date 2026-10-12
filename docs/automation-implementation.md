@@ -26,9 +26,9 @@ pnpm lint
 pnpm typecheck
 pnpm format:check
 pnpm build
-RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/sdk pnpm exec vitest run src/automation/platform/native/agentDevice.live.test.ts
-CASEFORGE_TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/caseforge_test_scheduler pnpm exec vitest run src/server/scheduling/scheduler.postgres.test.ts
-CASEFORGE_UI_URL=http://127.0.0.1:3015 pnpm exec vitest run src/features/workspace/workspace.live.test.ts
+RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/sdk pnpm exec vitest run packages/automation/src/platform/native/agentDevice.live.test.ts
+CASEFORGE_TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/caseforge_test_scheduler pnpm exec vitest run packages/server/src/scheduling/scheduler.postgres.test.ts
+CASEFORGE_UI_URL=http://127.0.0.1:3015 pnpm exec vitest run apps/web/src/features/workspace/workspace.live.test.ts
 ```
 
 PostgreSQL 测试只接受本地、名称以 caseforge_test_ 开头的数据库，使用独立临时 schema 并清理，不读取 DATABASE_URL。同时设置 CASEFORGE_ANDROID_SERIAL 可验证原生健康恢复，设备必须专用于测试。

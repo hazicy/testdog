@@ -165,10 +165,160 @@ settings:
 importers:
 
   .:
-    dependencies:
+    devDependencies:
       '@aws-sdk/client-s3':
         specifier: 3.1148.0
         version: 3.1148.0
+      '@base-ui/react':
+        specifier: ^1.8.0
+        version: 1.8.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@better-auth/drizzle-adapter':
+        specifier: ^1.7.7
+        version: 1.7.7(@better-auth/core@1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(@opentelemetry/api@1.9.1)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.5))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(zod@4.4.3))
+      '@codemirror/commands':
+        specifier: ^6.11.1
+        version: 6.11.1
+      '@codemirror/lang-javascript':
+        specifier: ^6.2.5
+        version: 6.2.5
+      '@codemirror/language':
+        specifier: ^6.13.1
+        version: 6.13.1
+      '@codemirror/state':
+        specifier: ^6.7.6
+        version: 6.7.6
+      '@codemirror/view':
+        specifier: ^6.43.14
+        version: 6.43.14
+      '@electric-sql/pglite':
+        specifier: ^0.5.8
+        version: 0.5.8
+      '@iconify-icons/lucide':
+        specifier: ^2.0.18
+        version: 2.0.18
+      '@iconify/react':
+        specifier: ^6.0.2
+        version: 6.0.2(react@19.2.8)
+      '@playwright/test':
+        specifier: 1.63.0
+        version: 1.63.0
+      '@stylistic/eslint-plugin':
+        specifier: ^5.10.0
+        version: 5.10.0(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))
+      '@tailwindcss/postcss':
+        specifier: ^4.3.3
+        version: 4.3.3
+      '@testdog/automation':
+        specifier: workspace:*
+        version: link:packages/automation
+      '@testdog/contracts':
+        specifier: workspace:*
+        version: link:packages/contracts
+      '@testdog/server':
+        specifier: workspace:*
+        version: link:packages/server
+      '@types/node':
+        specifier: ^22
+        version: 22.20.5
+      '@types/nodemailer':
+        specifier: ^8.0.2
+        version: 8.0.2
+      '@types/pg':
+        specifier: ^8.23.1
+        version: 8.23.1
+      '@types/react':
+        specifier: ^19
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.7(@types/react@19.2.18)
+      '@xyflow/react':
+        specifier: ^12.12.0
+        version: 12.12.0(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      acorn:
+        specifier: ^8.19.0
+        version: 8.19.0
+      agent-device:
+        specifier: 0.21.24
+        version: 0.21.24
+      better-auth:
+        specifier: ^1.7.7
+        version: 1.7.7(@opentelemetry/api@1.9.1)(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(zod@4.4.3))(next@16.3.4(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.20.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@5.0.2(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(vite@8.3.1(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.20.6)))
+      dockview-react:
+        specifier: ^8.4.1
+        version: 8.4.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      drizzle-kit:
+        specifier: 1.0.0-rc.4
+        version: 1.0.0-rc.4
+      drizzle-orm:
+        specifier: 1.0.0-rc.4
+        version: 1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(zod@4.4.3)
+      eslint:
+        specifier: ^9.39.0
+        version: 9.39.4(jiti@2.7.0)(supports-color@7.2.0)
+      eslint-config-next:
+        specifier: 16.3.5
+        version: 16.3.5(@typescript-eslint/parser@8.69.0(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
+      eslint-config-prettier:
+        specifier: ^10.1.8
+        version: 10.1.8(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))
+      ky:
+        specifier: ^2.2.0
+        version: 2.2.0
+      next:
+        specifier: 16.3.4
+        version: 16.3.4(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.20.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      nodemailer:
+        specifier: ^10.1.0
+        version: 10.1.0
+      openai:
+        specifier: ^7.10.0
+        version: 7.10.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(ws@8.21.3)(zod@4.4.3)
+      pg:
+        specifier: ^8.23.0
+        version: 8.23.0
+      playwright:
+        specifier: ^1.63.0
+        version: 1.63.0
+      prettier:
+        specifier: ^3.9.8
+        version: 3.9.8
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      redis:
+        specifier: ^6.3.0
+        version: 6.3.0(@opentelemetry/api@1.9.1)
+      swr:
+        specifier: ^2.5.1
+        version: 2.5.1(react@19.2.8)
+      tailwind-merge:
+        specifier: ^3.7.0
+        version: 3.7.0
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
+      tsx:
+        specifier: 4.20.6
+        version: 4.20.6
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+      vitest:
+        specifier: ^5.0.2
+        version: 5.0.2(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(vite@8.3.1(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.20.6))
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+
+  apps/web:
+    dependencies:
       '@base-ui/react':
         specifier: ^1.8.0
         version: 1.8.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -196,18 +346,18 @@ importers:
       '@iconify/react':
         specifier: ^6.0.2
         version: 6.0.2(react@19.2.8)
-      '@playwright/test':
-        specifier: 1.63.0
-        version: 1.63.0
+      '@testdog/automation':
+        specifier: workspace:*
+        version: link:../../packages/automation
+      '@testdog/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@testdog/server':
+        specifier: workspace:*
+        version: link:../../packages/server
       '@xyflow/react':
         specifier: ^12.12.0
         version: 12.12.0(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      acorn:
-        specifier: ^8.19.0
-        version: 8.19.0
-      agent-device:
-        specifier: 0.21.24
-        version: 0.21.24
       better-auth:
         specifier: ^1.7.7
         version: 1.7.7(@opentelemetry/api@1.9.1)(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(zod@4.4.3))(next@16.3.4(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.20.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@5.0.2(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(vite@8.3.1(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.20.6)))
@@ -217,27 +367,12 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
-      drizzle-orm:
-        specifier: 1.0.0-rc.4
-        version: 1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(zod@4.4.3)
       ky:
         specifier: ^2.2.0
         version: 2.2.0
       next:
         specifier: 16.3.4
         version: 16.3.4(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.20.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      nodemailer:
-        specifier: ^10.1.0
-        version: 10.1.0
-      openai:
-        specifier: ^7.10.0
-        version: 7.10.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(ws@8.21.3)(zod@4.4.3)
-      pg:
-        specifier: ^8.23.0
-        version: 8.23.0
-      playwright:
-        specifier: ^1.63.0
-        version: 1.63.0
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -257,15 +392,172 @@ importers:
         specifier: 4.4.3
         version: 4.4.3
     devDependencies:
-      '@electric-sql/pglite':
-        specifier: ^0.5.8
-        version: 0.5.8
-      '@stylistic/eslint-plugin':
-        specifier: ^5.10.0
-        version: 5.10.0(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3
+      '@types/node':
+        specifier: ^22
+        version: 22.20.5
+      '@types/react':
+        specifier: ^19
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.7(@types/react@19.2.18)
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+
+  apps/worker:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 3.1148.0
+        version: 3.1148.0
+      '@playwright/test':
+        specifier: 1.63.0
+        version: 1.63.0
+      '@testdog/automation':
+        specifier: workspace:*
+        version: link:../../packages/automation
+      '@testdog/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@testdog/server':
+        specifier: workspace:*
+        version: link:../../packages/server
+      acorn:
+        specifier: ^8.19.0
+        version: 8.19.0
+      agent-device:
+        specifier: 0.21.24
+        version: 0.21.24
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      drizzle-orm:
+        specifier: 1.0.0-rc.4
+        version: 1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(zod@4.4.3)
+      nodemailer:
+        specifier: ^10.1.0
+        version: 10.1.0
+      openai:
+        specifier: ^7.10.0
+        version: 7.10.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(ws@8.21.3)(zod@4.4.3)
+      pg:
+        specifier: ^8.23.0
+        version: 8.23.0
+      playwright:
+        specifier: ^1.63.0
+        version: 1.63.0
+      redis:
+        specifier: ^6.3.0
+        version: 6.3.0(@opentelemetry/api@1.9.1)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22
+        version: 22.20.5
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
+      tsx:
+        specifier: 4.20.6
+        version: 4.20.6
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+
+  packages/automation:
+    dependencies:
+      '@playwright/test':
+        specifier: 1.63.0
+        version: 1.63.0
+      '@testdog/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      agent-device:
+        specifier: 0.21.24
+        version: 0.21.24
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      openai:
+        specifier: ^7.10.0
+        version: 7.10.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(ws@8.21.3)(zod@4.4.3)
+      playwright:
+        specifier: ^1.63.0
+        version: 1.63.0
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22
+        version: 22.20.5
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+
+  packages/contracts:
+    dependencies:
+      acorn:
+        specifier: ^8.19.0
+        version: 8.19.0
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22
+        version: 22.20.5
+      playwright:
+        specifier: ^1.63.0
+        version: 1.63.0
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+
+  packages/server:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 3.1148.0
+        version: 3.1148.0
+      '@testdog/automation':
+        specifier: workspace:*
+        version: link:../automation
+      '@testdog/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      agent-device:
+        specifier: 0.21.24
+        version: 0.21.24
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      drizzle-orm:
+        specifier: 1.0.0-rc.4
+        version: 1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(zod@4.4.3)
+      nodemailer:
+        specifier: ^10.1.0
+        version: 10.1.0
+      pg:
+        specifier: ^8.23.0
+        version: 8.23.0
+      playwright:
+        specifier: ^1.63.0
+        version: 1.63.0
+      redis:
+        specifier: ^6.3.0
+        version: 6.3.0(@opentelemetry/api@1.9.1)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
       '@types/node':
         specifier: ^22
         version: 22.20.5
@@ -275,39 +567,9 @@ importers:
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
-      '@types/react':
-        specifier: ^19
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: ^19
-        version: 19.2.7(@types/react@19.2.18)
-      drizzle-kit:
-        specifier: 1.0.0-rc.4
-        version: 1.0.0-rc.4
-      eslint:
-        specifier: ^9.39.0
-        version: 9.39.4(jiti@2.7.0)(supports-color@7.2.0)
-      eslint-config-next:
-        specifier: 16.3.5
-        version: 16.3.5(@typescript-eslint/parser@8.69.0(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
-      eslint-config-prettier:
-        specifier: ^10.1.8
-        version: 10.1.8(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))
-      prettier:
-        specifier: ^3.9.8
-        version: 3.9.8
-      tailwindcss:
-        specifier: ^4.3.3
-        version: 4.3.3
-      tsx:
-        specifier: 4.20.6
-        version: 4.20.6
       typescript:
         specifier: ~6.0.2
         version: 6.0.3
-      vitest:
-        specifier: ^5.0.2
-        version: 5.0.2(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(vite@8.3.1(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.20.6))
 
 packages:
 
@@ -5502,7 +5764,6 @@ snapshots:
       '@esbuild/win32-arm64': 0.28.2
       '@esbuild/win32-ia32': 0.28.2
       '@esbuild/win32-x64': 0.28.2
-    optional: true
 
   escalade@3.2.0: {}
 

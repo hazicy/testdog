@@ -1,0 +1,29 @@
+# 功能目录
+
+每个功能包含自己的 `components/`、`hooks/`、`types.ts`、`schemas.ts` 和 `lib/`，按实际需要创建。测试与被测模块就近存放。
+
+- `marketing`：首页演示与动效。
+- `auth`：认证表单、账户菜单与切换账号时的缓存隔离。
+- `integrations`：通知渠道与浏览器服务配置。
+- `login-identities`：登录身份维护、用例选择器、输入引用与登录流程草稿。
+- `settings`：账户资料与密码修改，复用认证接口与登录状态。
+- `test-cases`：用例类型、请求校验、编辑、删除和平台矩阵运行配置。
+- `workspace`：组合用例与执行记录列表、筛选、统计和弹窗，管理列表数据的实时刷新。
+- `issues`：问题列表、编辑、出现记录、处理时间线和回归结果判断。
+- `runs`：执行类型、请求校验、实时更新协议、录制脚本解析、回放索引、计划布局，以及对应界面。
+
+`apps/web/src/app` 负责路由入口；`apps/web/src/components` 保留跨功能复用的基础 UI、应用外壳和共享组件。功能可以通过明确的组件路径组合其他功能，但共享组件不依赖业务功能。
+
+前后端共用的 `types.ts`、`schemas.ts`、录制解析和实时协议已迁至 `packages/contracts/src/<功能>`，通过 `@testdog/contracts/<功能>/...` 导入；功能目录保留 UI、hooks 和界面专用函数；组件和 hooks 通过 API 调用后端。通用请求、SSE 和 SWR 重试策略在 `apps/web/src/client`；API 与 worker 共用的后端业务在 `packages/server/src`，包括调用平台实现的重放适配。ESLint 禁止功能目录直接导入数据库、服务端运行时或模型实现。
+
+`features/workspace` 只负责列表与统计的界面组合，领域类型分别属于 `test-cases` 和 `runs`。数据库迁移测试在 `packages/server/src/db`，真实执行测试的 fixture 在 `packages/server/src/runs/fixtures`。
+
+运行详情的播放状态仍由页面实例持有，通过 `useRunPlayback` 集中更新；数据订阅由 `useRunData` 管理。计划画板和录制编辑器保持动态加载，录制编辑器在首次打开后保留挂载，以保留未保存的草稿。
+
+工作区列表和执行详情通过 SWR 管理 API 数据、缓存、请求去重与刷新，SWR 的 `fetchJson` 和业务请求共用 `ky.create()` 创建的 `api` 实例。业务代码使用 `api.get/post/patch/delete`、`json` 选项和 `.json<T>()`，错误提示统一由 `beforeError` Hook 处理，保留 ky 原生错误类型；ETag 条件读取单独位于 `apps/web/src/client/etag.ts`。ky 关闭自动重试，由 SWR 管理读取重试；写入操作不会自动重复发送。请求与响应体读取共用 15 秒总超时，保留取消请求和统一错误提示。列表 SSE 通知触发缓存重新获取；详情 SSE 快照与增量直接更新同一份缓存，按执行版本防止旧 HTTP 响应覆盖新数据。SSE 连接正常时暂停自动读取，断线后恢复可见页面的轮询；已结束或不存在的执行详情仅在挂载和手动刷新时读取。执行详情的 HTTP 读取保留 ETag 缓存。
+
+画板由三个层次组成：`runs/lib/planLayout.ts` 同步计算节点、连线和插入位置；`runs/hooks/usePlanBoard.ts` 关联执行步骤、审阅状态和编辑操作；`runs/components/PlanBoard.tsx` 管理视口与界面。相邻的普通 Group 左右并排，组内步骤和隐藏的 `presentation: sequence` 保持纵向排列。并排分组通过父子连线连接所属 Group，不连接同级分组。横向排版不改变 `children` 的执行顺序；分支的 YES / NO 出口都连接后续步骤。
+
+插入入口按可见节点生成：每个可见 Group 在标题下保留一个入口，普通步骤在末尾保留入口；组间和组尾不再重复生成入口。所有入口的菜单都可通过“插入位置”选择所属分组中的任意位置。隐藏顺序分组没有标题入口，由可见子步骤提供入口。附属断言只编辑自身描述，不提供复制、删除或拖拽整个任务的操作。
+
+画板使用左键单选、框选节点，并显示选中边框；按住鼠标中键平移画布，框选时不自动平移。添加入口与连线不参与选择，节点位置仍由布局器管理。

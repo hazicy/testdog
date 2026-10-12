@@ -5,44 +5,44 @@ const eslint = new ESLint();
 
 beforeAll(async () => {
   await eslint.lintText('export const probe = 1;', {
-    filePath: 'src/components/BoundaryProbe.tsx',
+    filePath: 'apps/web/src/components/BoundaryProbe.tsx',
   });
 }, 30000);
 
-async function violations(source: string, filePath = 'src/components/BoundaryProbe.tsx') {
+async function violations(source: string, filePath = 'apps/web/src/components/BoundaryProbe.tsx') {
   const [result] = await eslint.lintText(source, { filePath });
 
   return result.messages.filter((message) => message.ruleId === 'no-restricted-imports');
 }
 
 it.each([
-  '@/db',
+  '@testdog/server/db',
   '../../db/index',
-  '@/automation/llm/deepseek',
+  '@testdog/automation/llm/deepseek',
   '@/automation/llm/futureProvider',
-  '@/automation/evaluator',
-  '@/automation/planRunner',
-  '@/server/runs/runtime',
-  '@/automation/platform/web/replay',
-  '@/automation/platform/web/webPlanner',
-  '@/automation/platform/web/browserSession',
-  '@/automation/platform/web/observer',
+  '@testdog/automation/evaluator',
+  '@testdog/automation/planRunner',
+  '@testdog/server/runs/runtime',
+  '@testdog/automation/platform/web/replay',
+  '@testdog/automation/platform/web/webPlanner',
+  '@testdog/automation/platform/web/browserSession',
+  '@testdog/automation/platform/web/observer',
   '../../automation/platform/web/pageReadiness.ts',
-  '@/automation/platform/web/webActions',
-  '@/automation/platform/web/webLocator',
-  '@/automation/platform/web/recordingLocator',
-  '@/automation/platform/native/nativePlanner',
+  '@testdog/automation/platform/web/webActions',
+  '@testdog/automation/platform/web/webLocator',
+  '@testdog/automation/platform/web/recordingLocator',
+  '@testdog/automation/platform/native/nativePlanner',
   '../../automation/compiler/textCompiler.ts',
-  '@/server/runs/recordings',
+  '@testdog/server/runs/recordings',
   '../../server/runs/repository',
-  '@/server/runs/artifactResponse',
-  '@/server/runs/artifactStorage',
+  '@testdog/server/runs/artifactResponse',
+  '@testdog/server/runs/artifactStorage',
   '@/server/futureRepository',
-  '@/server/test-cases/repository',
-  '@/server/scheduling/scheduler',
+  '@testdog/server/test-cases/repository',
+  '@testdog/server/scheduling/scheduler',
   '@/server/realtime/eventStream',
   '@/server/shared/auth',
-  '@/server/testing/testDatabase',
+  '@testdog/server/testing/testDatabase',
   '../../server/runs/run.ts',
 ])('blocks server runtime imports in browser components: %s', async (path) => {
   expect(await violations(`import '${path}';`)).toHaveLength(1);
@@ -50,32 +50,32 @@ it.each([
 
 it.each([
   "import { renderToStaticMarkup } from 'react-dom/server'; export { renderToStaticMarkup };",
-  "import type { TestRun } from '@/features/runs/types'; export type Run = TestRun;",
-  "import { recordingScript } from '@/features/runs/lib/recordingScript'; export { recordingScript };",
-  "import { planForest } from '@/features/runs/lib/planTree'; export { planForest };",
-  "import { testSchema } from '@/features/test-cases/schemas'; export { testSchema };",
+  "import type { TestRun } from '@testdog/contracts/runs/types'; export type Run = TestRun;",
+  "import { recordingScript } from '@testdog/contracts/runs/lib/recordingScript'; export { recordingScript };",
+  "import { planForest } from '../apps/web/src/features/runs/lib/planTree'; export { planForest };",
+  "import { testSchema } from '@testdog/contracts/test-cases/schemas'; export { testSchema };",
 ])('permits shared browser utilities and erased type imports', async (source) => {
   expect(await violations(source)).toEqual([]);
 });
 
 it.each([
-  'src/features/workspace/components/BoundaryProbe.tsx',
-  'src/features/runs/hooks/useBoundaryProbe.ts',
-  'src/features/test-cases/components/BoundaryProbe.tsx',
+  'apps/web/src/features/workspace/components/BoundaryProbe.tsx',
+  'apps/web/src/features/runs/hooks/useBoundaryProbe.ts',
+  'apps/web/src/features/test-cases/components/BoundaryProbe.tsx',
 ])('applies browser boundaries to feature components and hooks: %s', async (filePath) => {
   for (const path of [
-    '@/db',
-    '@/server/runs/runtime',
-    '@/server/test-cases/repository',
-    '@/server/scheduling/lease',
-    '@/server/realtime/preview',
-    '@/server/shared/redis',
-    '@/automation/llm/deepseek',
+    '@testdog/server/db',
+    '@testdog/server/runs/runtime',
+    '@testdog/server/test-cases/repository',
+    '@testdog/server/scheduling/lease',
+    '@testdog/server/realtime/preview',
+    '@testdog/server/shared/redis',
+    '@testdog/automation/llm/deepseek',
   ])
     expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
   expect(
     await violations(
-      "import type { TestRun } from '@/features/runs/types'; export type Run = TestRun;",
+      "import type { TestRun } from '@testdog/contracts/runs/types'; export type Run = TestRun;",
       filePath,
     ),
   ).toEqual([]);
@@ -84,42 +84,44 @@ it.each([
 it.each([
   './llm/deepseek',
   './platform/web/playwrightSession',
-  '@/automation/platform/native/agentDeviceSession',
-  '@/server/runs/runtime',
-  '@/features/runs/components/RunDetail',
-  '@/features/runs/lib/recordingScript',
-  '@/db',
+  '@testdog/automation/platform/native/agentDeviceSession',
+  '@testdog/server/runs/runtime',
+  '../apps/web/src/features/runs/components/RunDetail',
+  '@testdog/contracts/runs/lib/recordingScript',
+  '@testdog/server/db',
 ])('keeps platform, model and persistence implementations out of PlanRunner: %s', async (path) => {
-  expect(await violations(`import '${path}';`, 'src/automation/planRunner.ts')).toHaveLength(1);
+  expect(
+    await violations(`import '${path}';`, 'packages/automation/src/planRunner.ts'),
+  ).toHaveLength(1);
 });
 
 it('permits PlanRunner to depend on shared contracts and erased evaluator types', async () => {
   expect(
     await violations(
       "import { ObservationSchema } from './platform/contracts'; import type { Evaluator } from './evaluator'; export type Check = Evaluator; export { ObservationSchema };",
-      'src/automation/planRunner.ts',
+      'packages/automation/src/planRunner.ts',
     ),
   ).toEqual([]);
 });
 
 it.each([
-  'src/automation/compiler/textCompiler.ts',
-  'src/automation/evaluator.ts',
-  'src/automation/platform/web/webPlanner.ts',
-  'src/automation/platform/native/nativePlanner.ts',
+  'packages/automation/src/compiler/textCompiler.ts',
+  'packages/automation/src/evaluator.ts',
+  'packages/automation/src/platform/web/webPlanner.ts',
+  'packages/automation/src/platform/native/nativePlanner.ts',
 ])(
   'requires model injection and permits the provider independent contract in %s',
   async (filePath) => {
     for (const path of [
-      '@/automation/llm/deepseek',
+      '@testdog/automation/llm/deepseek',
       '../../llm/futureProvider.ts',
       'openai/resources/responses/responses',
-      '@/server/shared/model',
+      '@testdog/server/shared/model',
     ])
       expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
     expect(
       await violations(
-        "import type { ModelClient } from '@/automation/llm/contracts'; export type Client = ModelClient;",
+        "import type { ModelClient } from '@testdog/contracts/automation/llm/contracts'; export type Client = ModelClient;",
         filePath,
       ),
     ).toEqual([]);
@@ -127,10 +129,14 @@ it.each([
 );
 
 it.each([
-  'src/automation/platform/web/playwrightSession.ts',
-  'src/automation/platform/web/recordingLocator.ts',
+  'packages/automation/src/platform/web/playwrightSession.ts',
+  'packages/automation/src/platform/web/recordingLocator.ts',
 ])('keeps Web sessions and recording locators independent of persistence: %s', async (filePath) => {
-  for (const path of ['@/server/runs/recorder', '../../../../server/runs/repository.ts', '@/db'])
+  for (const path of [
+    '@testdog/server/runs/recorder',
+    '../../../../server/runs/repository.ts',
+    '@testdog/server/db',
+  ])
     expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
   expect(
     await violations(
@@ -138,4 +144,17 @@ it.each([
       filePath,
     ),
   ).toEqual([]);
+});
+
+it.each([
+  ['packages/contracts/src/BoundaryProbe.ts', '@testdog/automation/planRunner'],
+  ['packages/contracts/src/BoundaryProbe.ts', '@testdog/server/runs/repository'],
+  ['packages/contracts/src/BoundaryProbe.ts', '@/client/api'],
+  ['packages/automation/src/BoundaryProbe.ts', '@testdog/server/db'],
+  ['packages/automation/src/BoundaryProbe.ts', '@/server/auth/auth'],
+  ['packages/server/src/BoundaryProbe.ts', '@/server/shared/auth'],
+  ['packages/server/src/BoundaryProbe.ts', 'next/server'],
+  ['packages/server/src/BoundaryProbe.ts', 'better-auth/minimal'],
+])('blocks reverse package dependencies in %s: %s', async (filePath, dependency) => {
+  expect(await violations(`import '${dependency}';`, filePath)).toHaveLength(1);
 });

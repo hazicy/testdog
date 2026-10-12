@@ -7,7 +7,9 @@ it('keeps the production module graph free of runtime import cycles', () => {
   const config = ts.readConfigFile(resolve(root, 'tsconfig.json'), ts.sys.readFile);
   const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, root);
   const files = parsed.fileNames.filter(
-    (file) => file.startsWith(`${root}/src/`) && !file.endsWith('.test.ts'),
+    (file) =>
+      ['apps/', 'packages/'].some((directory) => file.startsWith(`${root}/${directory}`)) &&
+      !file.endsWith('.test.ts'),
   );
   const graph = new Map<string, string[]>();
   const cache = ts.createModuleResolutionCache(root, (path) => path, parsed.options);

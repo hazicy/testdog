@@ -1,6 +1,6 @@
 # testdog
 
-品牌素材位于 `public/brand`，缺省页插画位于 `public/illustrations`，正式采用暖陶土橙侧脸猎犬标识，验证勾融入垂耳。浏览器图标位于 `src/app/icon.svg`。可打开 [素材预览](public/brand/preview.html) 或访问 `/brand/preview.html` 查看整套设计。为了兼容现有部署，`CASEFORGE_*` 环境变量、数据库名称和历史证据格式继续沿用。
+品牌素材位于 `apps/web/public/brand`，缺省页插画位于 `apps/web/public/illustrations`，正式采用暖陶土橙侧脸猎犬标识，验证勾融入垂耳。浏览器图标位于 `apps/web/src/app/icon.svg`。可打开 [素材预览](apps/web/public/brand/preview.html) 或访问 `/brand/preview.html` 查看整套设计。为了兼容现有部署，`CASEFORGE_*` 环境变量、数据库名称和历史证据格式继续沿用。
 
 基于 Next.js、PostgreSQL、Redis、Playwright 和 DeepSeek 的自然语言测试工作台。编写用例、录制执行、观察浏览器画面、查看逐步证据，并按记录重放操作。
 
@@ -64,7 +64,7 @@ API 将任务持久化入队，独立常驻 Node worker 通过 PostgreSQL 行锁
 
 ## 飞书与 Email 通知
 
-运行 `pnpm db:migrate` 后重启 worker 或 maintenance；也可用 `pnpm notifications` 独立启动发送服务。进入 `/integrations` 配置飞书 Webhook（可选签名）或 SMTP 邮件，选择执行失败、问题创建、问题状态变化及回归完成事件。支持测试通知、失败重试和发送记录。API 与发送服务使用相同的 `CASEFORGE_INTEGRATION_SECRET`，未设置时使用 `BETTER_AUTH_SECRET`。配置密钥加密保存，通知按当前用户隔离，不自动补发历史事件。详细配置、接口和重试规则见 [通知文档](docs/notifications.md)。Browserless 配置、执行接入和新增浏览器服务提供方的扩展方式见 [浏览器服务文档](src/server/browser-providers/README.md)。
+运行 `pnpm db:migrate` 后重启 worker 或 maintenance；也可用 `pnpm notifications` 独立启动发送服务。进入 `/integrations` 配置飞书 Webhook（可选签名）或 SMTP 邮件，选择执行失败、问题创建、问题状态变化及回归完成事件。支持测试通知、失败重试和发送记录。API 与发送服务使用相同的 `CASEFORGE_INTEGRATION_SECRET`，未设置时使用 `BETTER_AUTH_SECRET`。配置密钥加密保存，通知按当前用户隔离，不自动补发历史事件。详细配置、接口和重试规则见 [通知文档](docs/notifications.md)。Browserless 配置、执行接入和新增浏览器服务提供方的扩展方式见 [浏览器服务文档](packages/server/src/browser-providers/README.md)。
 
 ## 实时更新与 Redis
 
@@ -81,48 +81,40 @@ SSE 重连从一致性快照恢复；连接中每 15 秒校验运行版本或列
 隔离 Redis 集成验证会启动临时本地 Redis，使用随机端口和独立 key 前缀，不访问开发数据库：
 
 ```bash
-CASEFORGE_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run src/server/realtime/realtime.integration.test.ts
+CASEFORGE_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run packages/server/src/realtime/realtime.integration.test.ts
 ```
 
 ## 目录
 
 ```text
-src/
-  app/                 页面、布局与 API 路由
-  features/            按业务功能组织的组件、hooks 与共享领域代码
-    auth/              认证表单、用户菜单与账户缓存隔离
-    integrations/      通知和浏览器服务配置
-    issues/            问题追踪、执行关联与回归结果
-    login-identities/  登录身份、输入引用与流程草稿
-    settings/          账户资料与密码修改
-    marketing/         首页演示与动效
-    test-cases/        用例类型、校验、编辑、删除与平台矩阵弹窗
-    workspace/         用例和执行记录列表、统计与数据订阅
-    runs/              执行类型、校验、纯函数、播放器、画板与录制编辑
-  components/          跨功能复用的组件
-    ui/                基础交互组件
-    shell/             工作区导航与布局
-    shared/            错误状态等共用组件
-  client/              浏览器端 JSON 请求、SWR 重试策略、SSE 与文件下载
-  automation/          用例编译与统一计划执行
-    compiler/          用例计划和动作 schema
-    llm/               统一 ModelClient 契约与模型适配器
-    evaluator.ts       注入模型的自然语言断言与分支判断
-    planRunner.ts      注入 planner、session、evaluator 的公共编排
-    platform/          统一会话协议、执行策略与目标配置
-      web/             浏览器会话、观察、动作规划、执行与定位
-      native/          Android/iOS 会话、规划、诊断与构建管理
-  server/              API 与 worker 共用的后端业务层
-    test-cases/        用例 CRUD 与数据访问
-    runs/              执行记录、运行时、录制、日志与证据归档
-    scheduling/        worker 注册、资源分配、租约与恢复
-    realtime/          SSE、实时预览与事件发布
-    shared/            鉴权、错误、HTTP、Redis 与模型装配
-    testing/           隔离测试数据库辅助代码
-  db/                  Drizzle 表定义与 PostgreSQL 连接
-drizzle/              数据库迁移
-docs/                 数据模型和 API 文档
+apps/
+  web/                 Next.js 页面、API、客户端和 UI；独立构建及部署
+  worker/              执行、维护、通知与运维入口；独立 Node 构建及部署
+packages/
+  contracts/src/       前后端共享类型、校验、平台协议和录制解析
+  automation/src/      编译器、模型适配、计划执行与 Web/原生平台驱动
+  server/src/          API 与 worker 共用业务、调度、证据和数据库访问
+    db/                Drizzle 表定义与 PostgreSQL 连接
+drizzle/               数据库迁移
+tests/                 跨包架构检查与 UI 验证
+tools/                 独立部署打包工具
+docs/                  数据模型、API 与部署文档
 ```
+
+## 独立部署
+
+仓库使用 pnpm workspace。Web 提交任务，worker 通过 PostgreSQL 领取并执行；两端共享数据库、Redis 和证据存储，不需要部署在同一主机。worker 是执行节点，平台 provider 在 `packages/automation` 中。
+
+```bash
+pnpm build:web         # 只构建 Next.js
+pnpm build:worker      # 只构建 Node worker 及维护、通知、运维入口
+pnpm start            # 启动 Web
+pnpm worker:start     # 启动已构建的 worker
+pnpm package:web /tmp/testdog-web-release
+pnpm package:worker /tmp/testdog-worker-release
+```
+
+本地根目录 `.env` 和 `.automation` 继续可用；生产部署使用自己的环境变量和绝对数据路径。部署产物、启动方式和跨主机存储要求见 [monorepo 与部署](docs/monorepo.md)。
 
 ## 验证
 
@@ -132,7 +124,7 @@ docs/                 数据模型和 API 文档
 pnpm check
 ```
 
-该命令依次检查格式、Lint、类型、默认测试，再构建生产版本并执行 UI 测试。`.github/workflows/quality.yml` 在 push 和 pull request 时执行相同检查，使用锁文件安装依赖和真实 Chromium。CI 不连接实际数据库或调用真实模型。浏览器组件的 Lint 规则禁止直接导入数据库、仓库、模型适配器和运行器等服务端模块，覆盖别名、相对路径与显式扩展名；纯类型导入和共享工具允许使用。`tests/architecture.test.ts` 用实际 ESLint 配置验证这些边界。
+该命令依次检查格式、Lint、类型、默认测试、worker 构建，再构建 Web 生产版本并执行 UI 测试。`.github/workflows/quality.yml` 在 push 和 pull request 时执行相同检查，使用锁文件安装依赖和真实 Chromium。CI 不连接实际数据库或调用真实模型。浏览器组件的 Lint 规则禁止直接导入数据库、仓库、模型适配器和运行器等服务端模块，覆盖别名、相对路径与显式扩展名；纯类型导入和共享工具允许使用。`tests/architecture.test.ts` 用实际 ESLint 配置验证这些边界。
 
 也可以单独运行：
 
@@ -152,13 +144,13 @@ pnpm test:ui
 真实模型录制与重放验证使用本地示例网站和隔离数据库，可单独运行：
 
 ```bash
-RUN_WORKSPACE_LIVE_TESTS=true pnpm exec vitest run src/server/runs/liveRun.integration.test.ts
+RUN_WORKSPACE_LIVE_TESTS=true pnpm exec vitest run packages/server/src/runs/liveRun.integration.test.ts
 ```
 
 只验证用例编译的原有集成测试：
 
 ```bash
-RUN_LIVE_TESTS=true pnpm exec vitest run src/automation/compiler/textCompiler.integration.test.ts
+RUN_LIVE_TESTS=true pnpm exec vitest run packages/automation/src/compiler/textCompiler.integration.test.ts
 ```
 
 下载 Trace 后，可以通过 `pnpm exec playwright show-trace <trace.zip>` 查看页面快照和浏览器动作。
@@ -213,9 +205,9 @@ worker 默认并发数为登记资源数，可用 CASEFORGE_WORKER_CONCURRENCY �
 真实设备适配器验证使用自建测试应用：
 
 ```bash
-RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/android-sdk pnpm exec vitest run src/automation/platform/native/agentDevice.live.test.ts
+RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/android-sdk pnpm exec vitest run packages/automation/src/platform/native/agentDevice.live.test.ts
 ```
 
 该测试为 iOS 创建并删除独立 simulator；Android 需要指定已启动的专用 emulator。Android fixture 编译使用 SDK 36 与 build-tools 36.0.0，Java 路径可用 CASEFORGE_JAVA_HOME 设置。
 
-浏览器工作台验收使用真实页面和隔离 API fixtures：启动本地服务后运行 `CASEFORGE_UI_URL=http://localhost:3015 pnpm exec vitest run src/features/workspace/workspace.live.test.ts`。
+浏览器工作台验收使用真实页面和隔离 API fixtures：启动本地服务后运行 `CASEFORGE_UI_URL=http://localhost:3015 pnpm exec vitest run apps/web/src/features/workspace/workspace.live.test.ts`。

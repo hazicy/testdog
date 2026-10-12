@@ -1,0 +1,25 @@
+{
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "name": "@testdog/automation",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@playwright/test": "1.63.0",
+    "playwright": "^1.63.0",
+    "agent-device": "0.21.24",
+    "openai": "^7.10.0",
+    "zod": "4.4.3",
+    "dotenv": "^17.4.2",
+    "@testdog/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "@types/node": "^22"
+  }
+}

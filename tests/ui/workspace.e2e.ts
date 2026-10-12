@@ -1,7 +1,7 @@
 import { expect, test, type Locator } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import type { TestCase } from '../../src/features/test-cases/types';
-import type { TestRun, RunSummary } from '../../src/features/runs/types';
+import type { TestCase } from '@testdog/contracts/test-cases/types';
+import type { TestRun, RunSummary } from '@testdog/contracts/runs/types';
 
 async function openSettings(editor: Locator) {
   await expect(editor.getByRole('complementary', { name: '测试面板' })).toBeVisible();
@@ -1789,7 +1789,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
       stored!.plan!.nodes[id].kind === 'task'
         ? (
             stored!.plan!.nodes[id] as Extract<
-              import('../../src/automation/compiler/schema').PlanNode,
+              import('@testdog/contracts/automation/compiler/schema').PlanNode,
               { kind: 'task' }
             >
           ).actionType

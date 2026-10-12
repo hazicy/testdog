@@ -50,3 +50,7 @@ next-env.d.ts
 /logs/
 
 certificates
+# Workspace dependencies and build outputs
+**/node_modules/
+**/.next/
+**/dist/

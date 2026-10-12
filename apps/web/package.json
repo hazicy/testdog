@@ -1,0 +1,46 @@
+{
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "name": "@testdog/web",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "node start.mjs",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.8.0",
+    "@better-auth/drizzle-adapter": "^1.7.7",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.14",
+    "@iconify-icons/lucide": "^2.0.18",
+    "@iconify/react": "^6.0.2",
+    "@xyflow/react": "^12.12.0",
+    "better-auth": "^1.7.7",
+    "dockview-react": "^8.4.1",
+    "ky": "^2.2.0",
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "redis": "^6.3.0",
+    "swr": "^2.5.1",
+    "tailwind-merge": "^3.7.0",
+    "zod": "4.4.3",
+    "dotenv": "^17.4.2",
+    "@testdog/contracts": "workspace:*",
+    "@testdog/automation": "workspace:*",
+    "@testdog/server": "workspace:*"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "~6.0.2",
+    "@types/node": "^22"
+  }
+}
