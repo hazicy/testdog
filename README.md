@@ -105,6 +105,12 @@ docs/                  数据模型、API 与部署文档
 
 仓库使用 pnpm workspace。Web 提交任务，worker 通过 PostgreSQL 领取并执行；两端共享数据库、Redis 和证据存储，不需要部署在同一主机。worker 是执行节点，平台 provider 在 `packages/automation` 中。
 
+依赖版本统一维护在 `pnpm-workspace.yaml` 的 `catalog` 中，各应用和包通过 `catalog:` 声明自己的依赖；仓库内依赖继续使用 `workspace:*`。根 `package.json` 只声明仓库工具、配置及根目录测试直接使用的依赖。升级时修改 catalog 并运行 `pnpm install`，提交更新后的锁文件。
+
+`pnpm typecheck` 先执行各应用和包的类型检查，覆盖各自源码与同目录测试（Web 同时生成并检查 Next.js 路由类型），再执行 `typecheck:repo` 检查 `tests/` 和根目录 TypeScript 配置。根配置不再将 `apps/`、`packages/` 作为检查入口；TypeScript 仍会按需读取被导入的源码，以校验跨包调用。
+
+automation 的跨包集成测试通过开发依赖使用 server。类型检查直接读取源码且不生成其他包需要的构建产物，因此递归检查使用 `--no-sort`，无需按包含测试依赖的包拓扑排序。
+
 ```bash
 pnpm build:web         # 只构建 Next.js
 pnpm build:worker      # 只构建 Node worker 及维护、通知、运维入口

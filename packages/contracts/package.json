@@ -10,12 +10,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "4.4.3",
-    "acorn": "^8.19.0"
+    "acorn": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "typescript": "~6.0.2",
-    "@types/node": "^22",
-    "playwright": "^1.63.0"
+    "@types/node": "catalog:",
+    "playwright": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

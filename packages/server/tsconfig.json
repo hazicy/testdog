@@ -1,11 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["../../apps/web/src/*"]
+    }
+  },
   "include": ["src/**/*.ts"],
-  "exclude": [
-    "src/**/*.test.ts",
-    "src/**/*.integration.test.ts",
-    "src/**/*.live.test.ts",
-    "src/**/*.postgres.test.ts",
-    "node_modules"
-  ]
+  "exclude": ["node_modules", "dist"]
 }

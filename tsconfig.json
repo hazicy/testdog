@@ -5,6 +5,6 @@
       "@/*": ["./apps/web/src/*"]
     }
   },
-  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "tests/**/*.ts", "*.ts"],
-  "exclude": ["node_modules", "apps/web/.next", "**/dist"]
+  "include": ["tests/**/*.ts", "*.ts"],
+  "exclude": ["node_modules"]
 }
