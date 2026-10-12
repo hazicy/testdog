@@ -141,9 +141,15 @@ export class PlanRunner {
     const completedSteps: PlatformAction[] = [];
     let remainingWaitMs = 15000;
     let count = 0;
+    let planningAttempts = 0;
+    let staleObservations = 0;
+    const maxPlanningAttempts = 60;
+    const maxStaleObservations = 10;
 
     while (true) {
       signal.throwIfAborted();
+      if (++planningAttempts > maxPlanningAttempts)
+        throw new Error(`Planning attempt budget exceeded: ${node.goal}`);
       const observation = await this.observe();
       const revision = session.revision;
       const decision = await planner.plan({
@@ -155,7 +161,12 @@ export class PlanRunner {
       });
 
       signal.throwIfAborted();
-      if (revision !== session.revision) continue;
+      if (revision !== session.revision) {
+        if (++staleObservations > maxStaleObservations)
+          throw new Error(`Observation changed too often during planning: ${node.goal}`);
+        continue;
+      }
+      staleObservations = 0;
       if (decision.done) return;
       if (!decision.steps.length) throw new Error('Planner returned no actions');
       for (const supplied of decision.steps) {
@@ -165,6 +176,8 @@ export class PlanRunner {
           if (remainingWaitMs <= 0) throw new Error(`Wait budget exceeded: ${node.goal}`);
           const budget = Math.min(step.action.timeoutMs, remainingWaitMs);
 
+          if (!Number.isFinite(budget) || budget <= 0)
+            throw new Error(`Invalid wait budget: ${node.goal}`);
           remainingWaitMs -= budget;
           step.action.timeoutMs = budget;
         } else if (++count > 20) throw new Error(`Exceeded 20 actions: ${node.goal}`);
