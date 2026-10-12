@@ -85,6 +85,16 @@ HOSTNAME=0.0.0.0 PORT=3000 node apps/web/server.js
 
 Next.js standalone 输出包含 `public` 和 `.next/static`。部署整个输出目录，无需复制 worker 应用或仓库开发依赖。在完整仓库直接部署也可使用 `pnpm build:web` 和 `pnpm start`。
 
+#### Vercel
+
+Web 应用的部署配置在 `apps/web/vercel.json`，只构建 Web，不运行仓库根目录包含 worker 的 `build` 脚本。
+
+在 Vercel 项目的 Build and Deployment 设置中，将 **Root Directory** 设为 `apps/web`，并启用 **Include source files outside of the Root Directory in the Build Step**，以便安装 pnpm workspace 依赖并访问 `packages/*`。安装命令使用平台默认值，框架为 Next.js；构建命令和 `.next` 输出目录由应用配置提供。保存后重新部署。
+
+出现 `No Next.js version detected` 时，首先检查 Root Directory。仓库根 `package.json` 只声明仓库工具，Next.js 依赖由 `apps/web/package.json` 的 `catalog:` 引用根 `pnpm-workspace.yaml` 中的版本。Root Directory 是远端项目设置，不能用 `vercel.json` 中的 `rootDirectory` 字段覆盖。参见 [Vercel monorepo 配置](https://vercel.com/docs/monorepos/monorepo-faq)。
+
+worker 仍按下文独立部署到常驻执行节点；Web 与 worker 使用相同的 PostgreSQL，并按环境配置共享 Redis 和附件存储。
+
 ### Worker
 
 ```bash
