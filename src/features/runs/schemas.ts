@@ -1,6 +1,5 @@
-import { TestTargetSchema } from '@/automation/platform/target';
+import { HttpUrlSchema, TestTargetSchema } from '@/automation/platform/target';
 import { z } from 'zod';
-import { websiteSchema } from '@/features/test-cases/schemas';
 import { ExecutablePlanSchema } from '@/automation/compiler/schema';
 
 export const runRequestSchema = z.union([
@@ -27,7 +26,7 @@ export const runRequestSchema = z.union([
   z.strictObject({
     mode: z.literal('record').default('record'),
     case: z.string().trim().min(1).max(20000),
-    url: websiteSchema.optional(),
+    url: HttpUrlSchema.optional(),
     target: TestTargetSchema.optional(),
   }),
 ]);

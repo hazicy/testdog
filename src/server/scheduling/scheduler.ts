@@ -12,7 +12,7 @@ import { WorkspaceError } from '@/server/shared/errors';
 import { leaseScope, type RunLease } from './lease';
 import { activeRunStatuses } from '@/features/runs/types';
 
-export type ResourceRegistration = Pick<
+type ResourceRegistration = Pick<
   typeof resources.$inferInsert,
   'id' | 'hostId' | 'platform' | 'profileId' | 'deviceId' | 'metadata'
 >;
@@ -273,7 +273,6 @@ export async function recoverLeases() {
 }
 
 export const listResources = () => db.select().from(resources).orderBy(asc(resources.id));
-export const listWorkers = () => db.select().from(workers);
 
 // Explicit recovery is separate from TTL reclamation. Caller proves cleanup and health on host.
 export async function recoverResource(

@@ -12,8 +12,9 @@ vi.mock('@/db', async () => {
 
   return { db: result.db };
 });
-import { createRun as createQueuedRun, getRun, savePlan as saveClaimedPlan } from './repository';
-import { finishRun as finishClaimedRun } from './runLifecycle';
+import { createRun as createQueuedRun } from './submission';
+import { getRun, savePlan as saveClaimedPlan } from './repository';
+import { finishRun as finishClaimedRun } from './lifecycle';
 import { saveRecordingVersion, listRecordingVersions } from './recordings';
 
 import { claimRun, registerWorker, withLease } from '@/server/scheduling/scheduler';
@@ -40,7 +41,9 @@ async function finishRun(
   status: import('@/features/runs/types').RunStatus,
   error?: string,
 ) {
-  return withLease(testLeases.get(id)!, () => finishClaimedRun(id, status, error));
+  return withLease(testLeases.get(id)!, async () =>
+    finishClaimedRun(id, status, (await getRun(id)).startedAt, error),
+  );
 }
 
 async function savePlan(...args: Parameters<typeof saveClaimedPlan>) {

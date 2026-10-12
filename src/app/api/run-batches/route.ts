@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { TestTargetSchema } from '@/automation/platform/target';
-import { createRun } from '@/server/runs/repository';
+import { createRun } from '@/server/runs/submission';
 import { apiError } from '@/server/shared/http';
 
 export const runtime = 'nodejs';

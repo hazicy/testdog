@@ -32,7 +32,9 @@ vi.mock('@/db', async (original) => {
   return { pool: isolated.pool, db: drizzle({ client: isolated.pool }) };
 });
 import { claimRun, recoverLeases, registerWorker, releaseLease, withLease } from './scheduler';
-import { createRun, appendEvent, getRun, finishRun } from '@/server/runs/repository';
+import { createRun } from '@/server/runs/submission';
+import { appendEvent, getRun } from '@/server/runs/repository';
+import { finishRun } from '@/server/runs/lifecycle';
 import { db } from '@/db';
 import { automationResources } from '@/db/schema';
 import { eq } from 'drizzle-orm';

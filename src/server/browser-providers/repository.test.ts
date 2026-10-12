@@ -27,7 +27,7 @@ vi.mock('@/server/shared/auth', () => ({
 import { db } from '@/db';
 import { authUsers, browserProviderIntegrations, testRuns } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { decryptSecret } from '@/server/integrations/secrets';
+import { decryptSecret } from '@/server/shared/secrets';
 import { browserProviderDefinitions, type BrowserProviderDefinition } from './registry';
 import { browserlessProvider } from '@/automation/platform/web/providers/browserless';
 import {

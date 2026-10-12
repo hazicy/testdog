@@ -1,7 +1,7 @@
 import type { Browser } from 'playwright';
 import type { WebTarget } from '../../target';
 
-export const webArtifacts = ['screenshot', 'snapshot', 'video', 'trace', 'console', 'network'];
+const webArtifacts = ['screenshot', 'snapshot', 'video', 'trace', 'console', 'network'];
 
 export interface BrowserConnection {
   browser: Browser;

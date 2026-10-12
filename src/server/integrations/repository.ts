@@ -22,7 +22,7 @@ import type {
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export function integrationView(row: typeof integrations.$inferSelect): Integration {
+function integrationView(row: typeof integrations.$inferSelect): Integration {
   let config: NotificationConfig;
 
   try {

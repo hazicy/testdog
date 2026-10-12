@@ -1,4 +1,10 @@
-import { claimRun, registerWorker, withLease, releaseLease } from '@/server/scheduling/scheduler';
+import {
+  claimRun,
+  registerWorker,
+  recoverLeases,
+  withLease,
+  releaseLease,
+} from '@/server/scheduling/scheduler';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,14 +20,9 @@ vi.mock('@/db', async () => {
   return { db: result.db };
 });
 import { saveTest, deleteTest } from '@/server/test-cases/repository';
-import {
-  createRun,
-  getRun,
-  finishRun,
-  recoverExpiredRuns,
-  requestCancellation,
-  insertStep,
-} from './repository';
+import { createRun } from './submission';
+import { getRun, insertStep } from './repository';
+import { finishRun, requestCancellation } from './lifecycle';
 import { saveRecordingVersion, listRecordingVersions } from '@/server/runs/recordings';
 
 beforeEach(async () => {
@@ -67,7 +68,7 @@ describe('PostgreSQL workspace repository', () => {
     const test = await saveTest(input);
     const run = await createRun({ testId: test.id });
 
-    await recoverExpiredRuns();
+    await recoverLeases();
     expect((await getRun(run.id)).status).toBe('queued');
     await registerWorker('recovery', 'test', [
       { id: 'recovery-web', hostId: 'test', platform: 'web', profileId: 'mobile' },
@@ -94,7 +95,7 @@ describe('PostgreSQL workspace repository', () => {
     );
     // claimRun moves the run to preparing; the in-flight step marks active work.
     expect((await getRun(run.id)).status).toBe('preparing');
-    await recoverExpiredRuns();
+    await recoverLeases();
     const recovered = await getRun(run.id);
 
     expect(recovered.status).toBe('failed');

@@ -21,14 +21,9 @@ import {
   recoverResource,
   releaseLease,
 } from './scheduler';
-import {
-  appendEvent,
-  createRun,
-  getRun,
-  insertStep,
-  finishRun,
-  requestCancellation,
-} from '@/server/runs/repository';
+import { appendEvent, getRun, insertStep } from '@/server/runs/repository';
+import { createRun } from '@/server/runs/submission';
+import { finishRun, requestCancellation } from '@/server/runs/lifecycle';
 
 afterAll(() => isolated.client!.close());
 beforeEach(async () => {

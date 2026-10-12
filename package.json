@@ -50,7 +50,6 @@
     "dockview-react": "^8.4.1",
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.4",
-    "elkjs": "^0.12.0",
     "ky": "^2.2.0",
     "next": "16.3.4",
     "nodemailer": "^10.1.0",

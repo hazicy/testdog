@@ -18,11 +18,12 @@ vi.mock('@/db', async () => {
 
   return { db: result.db };
 });
-import { createRun, getRun, getArtifact } from './repository';
+import { createRun } from './submission';
+import { getRun, getArtifact } from './repository';
 import { saveTest } from '@/server/test-cases/repository';
 import { saveLoginIdentity } from '@/server/login-identities/repository';
 import { saveRecordingVersion } from './recordings';
-import { requestCancellation } from './runLifecycle';
+import { requestCancellation } from './lifecycle';
 import { recordingScript } from '@/features/runs/lib/recordingScript';
 import { claimRun, registerWorker } from '@/server/scheduling/scheduler';
 import { executeRun, cancelRun } from './run';

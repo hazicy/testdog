@@ -135,9 +135,3 @@ export function removeNode(plan: Plan, id: string): Plan {
 
   return PlanSchema.parse({ ...plan, nodes });
 }
-
-export function positionBefore(plan: Plan, id: string): Insertion | undefined {
-  const parent = owner(plan, id);
-
-  return parent && { groupId: parent.id, index: parent.children.indexOf(id) };
-}

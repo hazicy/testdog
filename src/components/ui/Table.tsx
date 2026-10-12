@@ -92,21 +92,3 @@ export function TableCell({ render, ref, className, ...props }: useRender.Compon
     },
   });
 }
-
-export function TableCaption({
-  render,
-  ref,
-  className,
-  ...props
-}: useRender.ComponentProps<'caption'>) {
-  return useRender({
-    defaultTagName: 'caption',
-    render,
-    ref,
-    props: {
-      ...props,
-      'data-slot': 'table-caption',
-      className: twMerge('caption-bottom mt-4 text-xs text-page-muted', className),
-    },
-  });
-}

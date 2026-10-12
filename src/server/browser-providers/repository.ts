@@ -5,7 +5,7 @@ import { db } from '@/db';
 import { browserProviderIntegrations as integrations, testRuns } from '@/db/schema';
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { WorkspaceError } from '@/server/shared/errors';
-import { encryptSecret, decryptSecret } from '@/server/integrations/secrets';
+import { encryptSecret, decryptSecret } from '@/server/shared/secrets';
 import type { BrowserProviderIntegration } from '@/features/integrations/types';
 import {
   browserProviderDefinitions,

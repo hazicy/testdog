@@ -5,9 +5,16 @@ import { targetUrl } from '@/automation/platform/target';
 import { SecretInputs } from '@/automation/platform/inputs';
 import { hostname } from 'node:os';
 import { leaseScope, setRunPhase } from '@/server/scheduling/lease';
-import { claimRun, registerWorker, releaseLease, withLease } from '@/server/scheduling/scheduler';
+import {
+  claimRun,
+  registerWorker,
+  releaseLease,
+  renewLease,
+  withLease,
+} from '@/server/scheduling/scheduler';
 import { owner } from '@/server/shared/workerIdentity';
-import { appendEvent, finishRun, getRun, heartbeat, savePlan } from './repository';
+import { appendEvent, getRun, savePlan } from './repository';
+import { finishRun } from './lifecycle';
 import { normalizeReplaySteps } from '@/server/runs/replay';
 import { TextCompiler } from '@/automation/compiler/textCompiler';
 import { resolvePlanInputs } from '@/automation/compiler/executionPlan';
@@ -25,7 +32,7 @@ export function cancelRun(id: string) {
   jobs.get(id)?.abort(new RunAbortError('CANCELLED', '用户停止了测试'));
 }
 
-export function errorMessage(error: unknown): string {
+function errorMessage(error: unknown): string {
   if (!(error instanceof Error)) return String(error);
   if (error instanceof AggregateError)
     return `${error.message}\n${error.errors.map(errorMessage).join('\n')}`;
@@ -62,7 +69,7 @@ export async function executeRun(
     if (pulseBusy) return;
     pulseBusy = true;
     try {
-      const active = await heartbeat(run.id);
+      const active = await renewLease(lease);
 
       if (!active || active.cancelRequested)
         controller.abort(

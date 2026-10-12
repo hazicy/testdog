@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { CompileRequest } from '@/automation/compiler/request';
-import { compilePlan } from './compilePlan';
+import { compilePlan } from '../lib/compilePlan';
 
 export function usePlanCompilation() {
   const active = useRef<AbortController | undefined>(undefined);

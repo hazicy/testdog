@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import type { Browser } from 'playwright';
 import type { TestRun } from '@/features/runs/types';
 
 const mocks = vi.hoisted(() => ({
   open: vi.fn(),
-  launch: vi.fn(),
+  browser: vi.fn(),
   drain: vi.fn(),
   capture: vi.fn(),
   diagnostics: vi.fn(),
@@ -15,9 +16,10 @@ vi.mock('@/automation/platform/native/agentDeviceSession', () => ({
   AgentDeviceSession: { open: mocks.open },
 }));
 vi.mock('@/automation/platform/web/mobile', () => ({
-  launchWebBrowser: mocks.launch,
   resolveWebProfile: () => ({ viewport: { width: 400, height: 800 } }),
 }));
+vi.mock('@/server/browser-providers/runtime', () => ({ openRunBrowser: mocks.browser }));
+vi.mock('@/server/login-identities/runtime', () => ({ prepareRunLogin: async () => ({}) }));
 vi.mock('./recorder', () => ({
   RunRecorder: class {
     directory = '/tmp';
@@ -32,6 +34,7 @@ vi.mock('./deviceRecorder', () => ({
     finalizeDiagnostics = mocks.diagnostics;
   },
 }));
+import { browserConnection } from '@/automation/platform/web/providers/contracts';
 import { openPlatformRuntime, RuntimeOpenError } from './runtime';
 import { finalizeRuntime } from './finalizeRuntime';
 
@@ -121,7 +124,7 @@ it('retains both the web preparation and cleanup errors and quarantines an unclo
     close: vi.fn().mockRejectedValue(new Error('browser close failed')),
   };
 
-  mocks.launch.mockResolvedValue(browser);
+  mocks.browser.mockResolvedValue(browserConnection(browser as unknown as Browser, 'local'));
   const request = input();
 
   request.run = {
@@ -137,6 +140,8 @@ it('retains both the web preparation and cleanup errors and quarantines an unclo
   const error = await openPlatformRuntime(request).catch((error) => error);
 
   expect(error).toBeInstanceOf(RuntimeOpenError);
+  expect(browser.newContext).toHaveBeenCalledOnce();
+  expect(browser.close).toHaveBeenCalledOnce();
   expect(error.healthy).toBe(false);
   expect(error.cause.errors.map((cause: Error) => cause.message)).toEqual([
     'context failed',

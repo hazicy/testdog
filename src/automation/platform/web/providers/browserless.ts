@@ -1,4 +1,4 @@
-import { browserlessConfigSchema } from '@/features/integrations/schemas';
+import { browserlessConfigSchema } from './browserlessConfig';
 import { connectBrowserless } from '../browserless';
 import { browserConnection, type BrowserProvider } from './contracts';
 

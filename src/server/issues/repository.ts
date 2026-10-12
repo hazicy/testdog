@@ -13,7 +13,8 @@ import {
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { WorkspaceError } from '@/server/shared/errors';
 import { pageCursor, searchPattern, type PageQuery } from '@/server/shared/pagination';
-import { createRun, getRun } from '@/server/runs/repository';
+import { createRun } from '@/server/runs/submission';
+import { getRun } from '@/server/runs/repository';
 import {
   issueInput,
   issueUpdate,

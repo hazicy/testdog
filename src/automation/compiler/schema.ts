@@ -25,7 +25,8 @@ export type WaitStep = z.infer<typeof WaitStepSchema>;
 const id = z.string().trim().min(1);
 const ids = z.array(id);
 
-export const StepTypeSchema = z.enum(['act', 'assert', 'login', 'files', 'screenshot']);
+const StepTypeSchema = z.enum(['act', 'assert', 'login', 'files', 'screenshot']);
+
 export type StepType = z.infer<typeof StepTypeSchema>;
 
 export const NodeSchema = z.discriminatedUnion('kind', [

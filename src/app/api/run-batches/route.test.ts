@@ -17,8 +17,8 @@ vi.mock('@/db', async () => {
 
   return { db: isolated.db };
 });
-vi.mock('@/server/runs/repository', async (original) => {
-  const store = await original<typeof import('@/server/runs/repository')>();
+vi.mock('@/server/runs/submission', async (original) => {
+  const store = await original<typeof import('@/server/runs/submission')>();
 
   return {
     ...store,

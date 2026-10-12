@@ -4,7 +4,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import type { BrowserContextOptions } from 'playwright';
 import { db } from '@/db';
 import { loginIdentities, loginStateCaches } from '@/db/schema';
-import { encryptSecret, decryptSecret } from '@/server/integrations/secrets';
+import { encryptSecret, decryptSecret } from '@/server/shared/secrets';
 import type { UserScope } from '@/server/shared/ownership';
 
 export type LoginState = Exclude<BrowserContextOptions['storageState'], string | undefined>;

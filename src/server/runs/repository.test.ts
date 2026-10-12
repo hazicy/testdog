@@ -12,26 +12,30 @@ vi.mock('@/db', async () => {
 
   return { db: result.db };
 });
-import { saveTest, deleteTest, listTests } from '@/server/test-cases/repository';
+import { saveTest, deleteTest } from '@/server/test-cases/repository';
+import { createRun as createQueuedRun } from './submission';
 import {
-  createRun as createQueuedRun,
   getRun,
   insertStep as insertClaimedStep,
-  listRuns,
   appendEvent as appendClaimedEvent,
   insertArtifact as insertClaimedArtifact,
   appendBrowserLogs,
-  finishRun as completeClaimedRun,
 } from './repository';
 import {
   finishRun as finishClaimedRun,
-  recoverExpiredRuns,
+  finishRun as completeClaimedRun,
   requestCancellation,
-} from './runLifecycle';
+} from './lifecycle';
 import type { RunRequest } from '@/features/runs/schemas';
 
-import { claimRun, registerWorker, withLease } from '@/server/scheduling/scheduler';
+import { claimRun, registerWorker, recoverLeases, withLease } from '@/server/scheduling/scheduler';
 import { setRunPhase, type RunLease } from '@/server/scheduling/lease';
+
+import { listRunPage, listTestPage } from '@/server/workspace/queries';
+
+const page = { limit: 50, q: '', status: 'all', cursor: undefined };
+const listRuns = async () => (await listRunPage(page)).runs;
+const listTests = async () => (await listTestPage(page)).tests;
 
 const testLeases = new Map<string, RunLease>();
 
@@ -54,7 +58,9 @@ async function finishRun(
   status: import('@/features/runs/types').RunStatus,
   error?: string,
 ) {
-  return withLease(testLeases.get(id)!, () => finishClaimedRun(id, status, error));
+  return withLease(testLeases.get(id)!, async () =>
+    finishClaimedRun(id, status, (await getRun(id)).startedAt, error),
+  );
 }
 
 async function insertStep(...args: Parameters<typeof insertClaimedStep>) {
@@ -310,9 +316,7 @@ describe('PostgreSQL workspace repository', () => {
     `);
       try {
         await expect(
-          operation === 'finish'
-            ? finishRun(run.id, 'failed', 'Browser closed')
-            : recoverExpiredRuns(),
+          operation === 'finish' ? finishRun(run.id, 'failed', 'Browser closed') : recoverLeases(),
         ).rejects.toThrow();
         const result = await isolated.client!.query<{ status: string; finishedAt: string | null }>(
           'SELECT status, "finishedAt" FROM test_runs WHERE id = $1',
@@ -363,7 +367,7 @@ describe('PostgreSQL workspace repository', () => {
     const step = pendingStep(live.id);
 
     await insertStep(step);
-    await recoverExpiredRuns();
+    await recoverLeases();
     const current = await getRun(live.id);
 
     expect(current.status).toBe('running');
@@ -397,7 +401,7 @@ describe('PostgreSQL workspace repository', () => {
     const test = await saveTest(input);
     const run = await createRun({ testId: test.id });
 
-    await recoverExpiredRuns();
+    await recoverLeases();
     expect((await getRun(run.id)).status).toBe('running');
     await insertStep({
       id: randomUUID(),
@@ -416,7 +420,7 @@ describe('PostgreSQL workspace repository', () => {
       [run.id],
     );
     expect((await getRun(run.id)).status).toBe('running');
-    await recoverExpiredRuns();
+    await recoverLeases();
     const recovered = await getRun(run.id);
 
     expect(recovered.status).toBe('failed');

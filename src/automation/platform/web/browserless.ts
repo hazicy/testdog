@@ -1,5 +1,5 @@
 import { chromium, type Browser } from 'playwright';
-import type { BrowserlessConfig } from '@/features/integrations/types';
+import type { BrowserlessConfig } from './providers/browserlessConfig';
 
 export async function connectBrowserless(
   config: BrowserlessConfig,

@@ -7,7 +7,7 @@ import type { RunSummary } from '@/features/runs/types';
 import { WorkspaceError } from '@/server/shared/errors';
 import { pageCursor, searchPattern, type PageQuery } from '@/server/shared/pagination';
 
-export const emptyCounts = () => ({
+const emptyCounts = () => ({
   queued: 0,
   preparing: 0,
   running: 0,
@@ -16,6 +16,7 @@ export const emptyCounts = () => ({
   failed: 0,
   cancelled: 0,
 });
+
 export type WorkspaceStats = {
   testCount: number;
   runCount: number;

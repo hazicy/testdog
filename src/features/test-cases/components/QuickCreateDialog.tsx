@@ -3,7 +3,7 @@
 import { useState, type RefObject } from 'react';
 import { CasePrompt } from './CasePrompt';
 import { useRouter } from 'next/navigation';
-import { usePlanCompilation } from '../lib/usePlanCompilation';
+import { usePlanCompilation } from '../hooks/usePlanCompilation';
 import { caseName, editablePlan, goalUrl } from '../lib/authoring';
 import { writeCaseDraft } from '../lib/caseDraft';
 

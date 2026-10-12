@@ -7,7 +7,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { TestCase } from '@/features/test-cases/types';
 import { api } from '@/client/api';
-import { usePlanCompilation } from '../lib/usePlanCompilation';
+import { usePlanCompilation } from '../hooks/usePlanCompilation';
 import { Icon } from '@iconify/react/offline';
 import { PlanBoard } from '@/features/runs/components/PlanBoard';
 import type { NodeReview } from '@/features/runs/components/PlanNodes';

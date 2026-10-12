@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { LoginIdentityForm } from './LoginIdentityForm';
-import { useLoginIdentities, useResumedIdentityDraft } from '../useLoginIdentities';
+import { useLoginIdentities, useResumedIdentityDraft } from '../hooks/useLoginIdentities';
 import { sameWebsite } from '../inputs';
 import { identityStatuses } from '../presentation';
 import { IdentityFeedback } from './IdentityFeedback';

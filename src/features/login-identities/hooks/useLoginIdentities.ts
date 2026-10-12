@@ -3,8 +3,8 @@
 import useSWR from 'swr';
 import { useEffect, useState } from 'react';
 import { fetchJson } from '@/client/api';
-import type { LoginIdentitiesResponse } from './types';
-import { resumeIdentityDraft, type LoginIdentityDraft } from './draft';
+import type { LoginIdentitiesResponse } from '../types';
+import { resumeIdentityDraft, type LoginIdentityDraft } from '../draft';
 
 export function useLoginIdentities() {
   return useSWR<LoginIdentitiesResponse>('/api/login-identities', fetchJson, {

@@ -181,6 +181,6 @@ Web 专用实现集中在 `src/automation/platform/web/`。`webActions.ts` 执�
 
 session 的 `executionPolicy.reobserveAfterAction` 声明动作后是否必须重新观察。原生会话逐动作重新规划，Web 可执行同一观察中的批量动作；任一会话 revision 变化都使剩余批次失效。自然语言断言和分支通过注入的 `Evaluator` 使用当前观察判断，确定性平台断言继续交给 session 检查。
 
-模型请求、响应和工具定义集中在 `automation/llm/contracts.ts`，不依赖供应商 SDK。`TextCompiler`、Web/Native planner 和 `SemanticEvaluator` 都接收 `ModelClient`，不直接引用 DeepSeek 或 OpenAI SDK。`server/shared/model.ts` 是默认模型的选择点，编译与运行时装配共用同一个客户端；新增模型适配器实现该接口后在此选择。`llm/jev.ts` 当前为空占位文件，尚未提供可调用实现。
+模型请求、响应和工具定义集中在 `automation/llm/contracts.ts`，不依赖供应商 SDK。`TextCompiler`、Web/Native planner 和 `SemanticEvaluator` 都接收 `ModelClient`，不直接引用 DeepSeek 或 OpenAI SDK。`server/shared/model.ts` 是默认模型的选择点，编译与运行时装配共用同一个客户端；新增模型适配器实现该接口后在此选择。
 
 稳定录制定位由 `platform/web/recordingLocator.ts` 提供，`RecordedAction` 定义在 `platform/web/types.ts`。Web session 与服务端录制器共用该平台能力；工作台执行记录和数据库表定义引用 Web 领域类型，session 不再导入工作台服务端定位模块。

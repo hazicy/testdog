@@ -14,7 +14,7 @@ import { LoginIdentityForm } from './LoginIdentityForm';
 import type { LoginIdentityDraft } from '../draft';
 import type { LoginIdentity } from '../types';
 import { identityStatuses, verificationHint } from '../presentation';
-import { useLoginIdentities, useResumedIdentityDraft } from '../useLoginIdentities';
+import { useLoginIdentities, useResumedIdentityDraft } from '../hooks/useLoginIdentities';
 
 export function LoginIdentities() {
   const { data, error, mutate } = useLoginIdentities();

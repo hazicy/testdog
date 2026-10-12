@@ -13,7 +13,8 @@ vi.mock('@/db', async () => {
   return { db: result.db };
 });
 import { listRunPage, listTestPage, workspaceStats } from './queries';
-import { createRun, getRun } from '@/server/runs/repository';
+import { createRun } from '@/server/runs/submission';
+import { getRun } from '@/server/runs/repository';
 import { saveTest } from '@/server/test-cases/repository';
 import { readPage } from '@/server/shared/pagination';
 import { listBrowserLogs } from '@/server/runs/logs';

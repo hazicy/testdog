@@ -1,6 +1,7 @@
 import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
-import { getRun, requestCancellation } from '@/server/runs/repository';
+import { getRun } from '@/server/runs/repository';
+import { requestCancellation } from '@/server/runs/lifecycle';
 import { apiError, validId } from '@/server/shared/http';
 import { jsonResponse } from '@/server/shared/jsonResponse';
 

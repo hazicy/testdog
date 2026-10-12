@@ -90,6 +90,11 @@ CASEFORGE_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run src/serve
 src/
   app/                 页面、布局与 API 路由
   features/            按业务功能组织的组件、hooks 与共享领域代码
+    auth/              认证表单、用户菜单与账户缓存隔离
+    integrations/      通知和浏览器服务配置
+    issues/            问题追踪、执行关联与回归结果
+    login-identities/  登录身份、输入引用与流程草稿
+    settings/          账户资料与密码修改
     marketing/         首页演示与动效
     test-cases/        用例类型、校验、编辑、删除与平台矩阵弹窗
     workspace/         用例和执行记录列表、统计与数据订阅

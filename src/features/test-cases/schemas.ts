@@ -3,8 +3,7 @@ import { validateInputReferences } from '@/automation/compiler/executionPlan';
 import { ExecutablePlanSchema } from '@/automation/compiler/schema';
 import { z } from 'zod';
 
-export const websiteSchema = HttpUrlSchema;
-export const testInputMessage = '请填写名称、有效的测试目标和测试步骤。';
+const testInputMessage = '请填写名称、有效的测试目标和测试步骤。';
 
 export function testValidationMessage(error: z.ZodError) {
   return error.issues.find((issue) => issue.code === 'custom')?.message ?? testInputMessage;
@@ -15,7 +14,7 @@ export const testSchema = z
     name: z.string().trim().min(1).max(120),
     // Native cases normalize their legacy URL column to ''. API and repository
     // validation must both accept this representation without requiring a URL.
-    url: z.preprocess((value) => (value === '' ? undefined : value), websiteSchema.optional()),
+    url: z.preprocess((value) => (value === '' ? undefined : value), HttpUrlSchema.optional()),
     target: TestTargetSchema.optional(),
     goal: z.string().trim().min(1).max(20000),
     plan: ExecutablePlanSchema.nullable().optional(),

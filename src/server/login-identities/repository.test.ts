@@ -27,7 +27,7 @@ vi.mock('@/server/shared/auth', async () => {
 import { db } from '@/db';
 import { authUsers, loginIdentities, loginStateCaches, testRuns } from '@/db/schema';
 import { saveTest, deleteTest } from '@/server/test-cases/repository';
-import { createRun } from '@/server/runs/repository';
+import { createRun } from '@/server/runs/submission';
 import {
   saveLoginIdentity,
   readLoginIdentities,

@@ -5,7 +5,7 @@ import { apiError, validId } from '@/server/shared/http';
 import { submitOnce } from '@/server/shared/idempotency';
 import { identityFor } from '@/server/login-identities/repository';
 import { loginIdentities, testRuns } from '@/db/schema';
-import { createRun } from '@/server/runs/repository';
+import { createRun } from '@/server/runs/submission';
 import { ownedBy } from '@/server/shared/ownership';
 
 export const runtime = 'nodejs';

@@ -3,7 +3,7 @@ import { submitOnce } from '@/server/shared/idempotency';
 import { listRunPage } from '@/server/workspace/queries';
 import { readPage } from '@/server/shared/pagination';
 import { NextResponse } from 'next/server';
-import { createRun } from '@/server/runs/repository';
+import { createRun } from '@/server/runs/submission';
 import { apiError } from '@/server/shared/http';
 import { runRequestSchema } from '@/features/runs/schemas';
 

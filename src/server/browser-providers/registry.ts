@@ -1,4 +1,5 @@
-import { browserlessConfigSchema, browserlessInput } from '@/features/integrations/schemas';
+import { browserlessInput } from '@/features/integrations/schemas';
+import { browserlessConfigSchema } from '@/automation/platform/web/providers/browserlessConfig';
 import { WorkspaceError } from '@/server/shared/errors';
 import { browserlessProvider } from '@/automation/platform/web/providers/browserless';
 import type { BrowserProvider } from '@/automation/platform/web/providers/contracts';

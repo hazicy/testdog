@@ -32,7 +32,6 @@ export type Delivery = {
   createdAt: string;
   sentAt: string | null;
 };
-export type BrowserlessConfig = { endpoint: string; token?: string };
 export type BrowserProviderIntegration = {
   provider: string;
   name: string;

@@ -1,10 +1,10 @@
 import { assertLoginIdentityReference } from '@/server/login-identities/repository';
 import { loginIdentities } from '@/db/schema';
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { testCases } from '@/db/schema';
-import { defaultWebTarget, legacyWebTarget, targetUrl } from '@/automation/platform/target';
+import { defaultWebTarget, legacyWebTarget } from '@/automation/platform/target';
 import type { TestCase } from '@/features/test-cases/types';
 import { testSchema, testValidationMessage } from '@/features/test-cases/schemas';
 import { WorkspaceError } from '@/server/shared/errors';
@@ -19,20 +19,6 @@ export async function getTest(id: string, userId: UserScope) {
 
   return { ...test, target: test.target ?? legacyWebTarget(test.url) };
 }
-
-export const listTests = async (userId: UserScope = null) =>
-  (
-    await db
-      .select()
-      .from(testCases)
-      .where(ownedBy(testCases.userId, userId))
-      .orderBy(desc(testCases.updatedAt), desc(testCases.id))
-      .limit(50)
-  ).map((test) => ({
-    ...test,
-    url: test.target ? targetUrl(test.target) : test.url,
-    target: test.target ?? legacyWebTarget(test.url),
-  }));
 
 export async function saveTest(
   input: Pick<TestCase, 'name' | 'url' | 'goal' | 'tags' | 'target' | 'plan'>,

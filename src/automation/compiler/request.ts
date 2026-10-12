@@ -4,11 +4,12 @@ import { HttpUrlSchema } from '../platform/target';
 import { InputRefsSchema } from '../platform/inputs';
 
 // Authoring does not require a fully configured device or URL yet.
-export const CompilationContextSchema = z.strictObject({
+const CompilationContextSchema = z.strictObject({
   platform: z.enum(['web', 'android', 'ios']),
   appId: z.string().trim().min(1).max(200).optional(),
   inputs: InputRefsSchema.optional(),
 });
+
 export const CompileRequestSchema = z
   .strictObject({
     goal: z.string().trim().min(1).max(20000),

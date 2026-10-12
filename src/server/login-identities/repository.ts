@@ -11,9 +11,9 @@ import { ExecutablePlanSchema } from '@/automation/compiler/schema';
 import { WebTargetSchema, type TestTarget } from '@/automation/platform/target';
 import { loginIdentityInput } from '@/features/login-identities/schemas';
 import type { LoginIdentity } from '@/features/login-identities/types';
-import { encryptSecret, decryptSecret } from '@/server/integrations/secrets';
+import { encryptSecret, decryptSecret } from '@/server/shared/secrets';
 
-export function publicLoginIdentity(identity: typeof loginIdentities.$inferSelect) {
+function publicLoginIdentity(identity: typeof loginIdentities.$inferSelect) {
   const { encryptedCredentials, ...publicFields } = identity;
 
   void encryptedCredentials;

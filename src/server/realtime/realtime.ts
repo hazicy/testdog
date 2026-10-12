@@ -1,7 +1,7 @@
 import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { realtimeOutbox, runArtifacts, runSteps, testRuns } from '@/db/schema';
-import { artifactRecord, runRecord, stepRecord } from '@/server/runs/repository';
+import { artifactRecord, runRecord, stepRecord } from '@/server/runs/records';
 import { readyRedis, redisClient, redisKey } from '@/server/shared/redis';
 import type { RunUpdate } from '@/features/runs/lib/realtime';
 import { workspaceChannel } from '@/server/shared/ownership';

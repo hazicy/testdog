@@ -15,7 +15,8 @@ vi.mock('@/db', async () => {
 
   return { db: result.db };
 });
-import { createRun, getRun, getArtifact } from './repository';
+import { createRun } from './submission';
+import { getRun, getArtifact } from './repository';
 import { saveTest } from '@/server/test-cases/repository';
 import { executeRun } from './run';
 

@@ -19,7 +19,7 @@ it.each([
   '@/db',
   '../../db/index',
   '@/automation/llm/deepseek',
-  '@/automation/llm/jev',
+  '@/automation/llm/futureProvider',
   '@/automation/evaluator',
   '@/automation/planRunner',
   '@/server/runs/runtime',
@@ -112,7 +112,7 @@ it.each([
   async (filePath) => {
     for (const path of [
       '@/automation/llm/deepseek',
-      '../../llm/jev.ts',
+      '../../llm/futureProvider.ts',
       'openai/resources/responses/responses',
       '@/server/shared/model',
     ])
