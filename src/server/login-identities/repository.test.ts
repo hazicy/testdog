@@ -95,7 +95,79 @@ afterAll(async () => {
 });
 
 describe('login identity ownership and references', () => {
+  it('returns field errors for stale input types and missing sensitive values without exposing secrets', async () => {
+    flow = await saveTest(
+      {
+        ...flow,
+        target: {
+          ...target,
+          inputs: { password: { secretRef: 'LOGIN_PASSWORD', label: '登录密码' } },
+        },
+      },
+      flow.id,
+      'alice',
+    );
+    const request = (inputs: unknown, secrets: unknown) =>
+      createIdentity(
+        new Request('http://localhost/api/login-identities', {
+          method: 'POST',
+          headers: { 'test-user': 'alice', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...profileInput(), inputs, secrets }),
+        }),
+      );
+    const mismatch = await request({ password: { value: '' } }, { password: 'must-stay-private' });
+
+    expect(mismatch.status).toBe(400);
+    const body = await mismatch.json();
+
+    expect(body.fieldErrors['inputs.password']).toContain('登录密码');
+    expect(JSON.stringify(body)).not.toContain('must-stay-private');
+    const missing = await request({ password: { secretRef: 'LOGIN_PASSWORD' } }, {});
+
+    expect(missing.status).toBe(400);
+    expect((await missing.json()).fieldErrors['inputs.password']).toBe('请填写登录密码。');
+    expect(await db.select().from(loginIdentities)).toHaveLength(0);
+  });
+  it('rejects removed inputs and ambiguous flow labels and returns a complete identity on save', async () => {
+    await expect(
+      saveLoginIdentity({ ...profileInput(), inputs: { removed: { value: 'old' } } }, 'alice'),
+    ).rejects.toMatchObject({ fieldErrors: { 'inputs.removed': expect.any(String) } });
+    flow = await saveTest(
+      {
+        ...flow,
+        target: {
+          ...target,
+          inputs: { username: { value: '' }, extra: { value: '', label: '账号' } },
+        },
+      },
+      flow.id,
+      'alice',
+    );
+    await expect(
+      saveLoginIdentity({ ...profileInput(), inputs: flow.target?.inputs }, 'alice'),
+    ).rejects.toMatchObject({ fieldErrors: { loginTestId: expect.stringContaining('重复') } });
+    flow = await saveTest(
+      { ...flow, target: { ...target, inputs: { username: { value: '', label: '邮箱' } } } },
+      flow.id,
+      'alice',
+    );
+    const identity = await saveLoginIdentity(
+      { ...profileInput(), inputs: { username: { value: 'alice', label: 'old label' } } },
+      'alice',
+    );
+
+    expect(identity).toMatchObject({
+      status: 'unverified',
+      references: [],
+      inputs: { username: { value: 'alice', label: '邮箱' } },
+    });
+  });
   it('encrypts UI passwords, never returns them, preserves blank edits and replaces them without env changes', async () => {
+    flow = await saveTest(
+      { ...flow, target: { ...target, inputs: { password: { secretRef: 'LOGIN_PASSWORD' } } } },
+      flow.id,
+      'alice',
+    );
     const input = {
       ...profileInput(),
       inputs: { password: { secretRef: 'LOGIN_PASSWORD' } },

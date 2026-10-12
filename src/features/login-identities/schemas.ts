@@ -17,7 +17,7 @@ export const loginIdentityInput = z
     ttlMinutes: z.number().int().min(1).max(1440).default(60),
     version: z.number().int().min(0),
   })
-  .refine(
-    (value) => new URL(value.website).origin === new URL(value.checkUrl).origin,
-    '登录后的验证页面必须属于同一网站',
-  );
+  .refine((value) => new URL(value.website).origin === new URL(value.checkUrl).origin, {
+    message: '登录后的验证页面必须属于同一网站',
+    path: ['checkUrl'],
+  });

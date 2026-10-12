@@ -25,7 +25,7 @@ vi.mock('@/automation/platform/web/webPlanner', () => ({
   },
 }));
 import { db } from '@/db';
-import { loginStateCaches, testRuns } from '@/db/schema';
+import { loginStateCaches, testRuns, testCases } from '@/db/schema';
 import { saveTest } from '@/server/test-cases/repository';
 import { saveLoginIdentity, clearLoginState, identityFor } from './repository';
 import { prepareRunLogin } from './runtime';
@@ -166,6 +166,20 @@ it('logs in once, restores isolated contexts and never caches mutations made by 
 }, 30000);
 it('loads saved passwords and refreshes after a UI password update without restarting the worker', async () => {
   const identity = await identityFor(identityId, null);
+  const [flow] = await db.select().from(testCases).where(eq(testCases.id, identity.loginTestId));
+
+  await saveTest(
+    {
+      ...flow,
+      target: {
+        ...target,
+        url: `${url}/login`,
+        loginIdentityId: undefined,
+        inputs: { password: { secretRef: 'LOGIN_PASSWORD' } },
+      },
+    },
+    flow.id,
+  );
   const config = {
     name: identity.name,
     website: identity.website,

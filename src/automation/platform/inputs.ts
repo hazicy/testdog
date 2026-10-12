@@ -4,8 +4,11 @@ export const InputRefsSchema = z
   .record(
     z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/),
     z.union([
-      z.strictObject({ value: z.string().max(20000) }),
-      z.strictObject({ secretRef: z.string().regex(/^[A-Z][A-Z0-9_]{0,127}$/) }),
+      z.strictObject({ value: z.string().max(20000), label: z.string().trim().max(60).optional() }),
+      z.strictObject({
+        secretRef: z.string().regex(/^[A-Z][A-Z0-9_]{0,127}$/),
+        label: z.string().trim().max(60).optional(),
+      }),
     ]),
   )
   .refine((inputs) => Object.keys(inputs).length <= 50, 'Too many inputs');

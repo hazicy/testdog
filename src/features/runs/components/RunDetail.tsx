@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
+import { LoginPreparationActions } from '@/features/login-identities/components/LoginPreparationActions';
 import { DockTabs, type DockTab } from '@/components/ui/DockTabs';
 import { isActiveRun } from '@/features/runs/types';
 import dynamic from 'next/dynamic';
@@ -496,9 +497,28 @@ export function RunDetail({
                   ),
                 )
                 .at(-1)?.message ?? '等待准备登录身份…')}{' '}
-          <Link href="/settings#login-identities" className="underline">
-            管理登录身份
-          </Link>
+          {run.errorCode === 'LOGIN_PREPARATION_FAILED' ? (
+            <>
+              <span>
+                {run.events.filter((event) => /登录准备失败/.test(event.message)).at(-1)?.message}
+              </span>{' '}
+              <LoginPreparationActions identityId={run.targetSnapshot.loginIdentityId} />
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setLogTab('logs');
+                  setRevealPanels(['logs']);
+                }}
+              >
+                查看失败信息
+              </Button>
+            </>
+          ) : (
+            <Link href="/settings#login-identities" className="underline">
+              管理登录身份
+            </Link>
+          )}
         </div>
       )}
       {run?.evidenceComplete === false && run.errorCode !== 'LOGIN_PREPARATION_FAILED' && (

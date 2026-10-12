@@ -16,6 +16,7 @@ export type LoginIdentity = {
   lastVerifiedAt: string | null;
   lastError: string | null;
   verificationRunId: string | null;
+  verificationStatus?: string;
   references: { id: string; name: string }[];
 };
 export type LoginIdentitiesResponse = {

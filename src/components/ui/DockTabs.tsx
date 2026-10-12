@@ -1,6 +1,14 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   DockviewReact,
   themeLight,
@@ -198,8 +206,16 @@ export function DockTabs<T extends string>({
     if (panel && !panel.api.isActive) panel.api.setActive();
   }, [value]);
 
+  const reveal = useEffectEvent((id: string) => {
+    const panel = dock.current?.getPanel(id);
+
+    if (!panel) return;
+    if (collapsedGroups.has(panel.group.id)) collapse(panel.group.api, false);
+    panel.api.setActive();
+  });
+
   useEffect(() => {
-    for (const id of revealPanels ?? []) dock.current?.getPanel(id)?.api.setActive();
+    for (const id of revealPanels ?? []) reveal(id);
   }, [revealPanels]);
 
   function collapse(api: DockviewGroupPanelApi, collapsed: boolean) {

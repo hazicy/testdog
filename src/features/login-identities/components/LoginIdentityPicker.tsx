@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import useSWR from 'swr';
-import { fetchJson } from '@/client/api';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { LoginIdentityForm } from './LoginIdentityForm';
-import { resumeIdentityDraft, type LoginIdentityDraft } from '../draft';
-import type { LoginIdentitiesResponse } from '../types';
+import { useLoginIdentities, useResumedIdentityDraft } from '../useLoginIdentities';
+import { sameWebsite } from '../inputs';
+import { identityStatuses } from '../presentation';
+import { IdentityFeedback } from './IdentityFeedback';
 
 export function LoginIdentityPicker({
   value,
@@ -21,34 +21,12 @@ export function LoginIdentityPicker({
   disabled: boolean;
   onChange: (id: string) => void;
 }) {
-  const { data, error, mutate } = useSWR<LoginIdentitiesResponse>(
-    '/api/login-identities',
-    fetchJson,
-    { revalidateOnFocus: false },
-  );
+  const { data, error, mutate } = useLoginIdentities();
   const [creating, setCreating] = useState(false);
-  const [resumed, setResumed] = useState<LoginIdentityDraft>();
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      const draft = resumeIdentityDraft();
-
-      if (draft) {
-        setResumed(draft);
-        setCreating(true);
-      }
-    });
-
-    return () => cancelAnimationFrame(frame);
-  }, []);
+  const [resumed, setResumed] = useResumedIdentityDraft();
   const identities =
-    data?.identities.filter((identity) => {
-      try {
-        return new URL(identity.website).origin === new URL(website).origin;
-      } catch {
-        return identity.id === value;
-      }
-    }) ?? [];
+    data?.identities.filter((identity) => sameWebsite(identity.website, website)) ?? [];
+  const selected = identities.find((identity) => identity.id === value);
 
   return (
     <div className="space-y-2">
@@ -56,24 +34,37 @@ export function LoginIdentityPicker({
       <Select
         aria-label="登录身份"
         value={value}
-        disabled={disabled}
+        disabled={disabled || !data}
         onValueChange={(id) => (id === '__new__' ? setCreating(true) : onChange(id))}
         items={[
           { value: '', label: '不使用登录身份' },
-          identities.map((identity) => ({ value: identity.id, label: identity.name })),
-          !!value &&
-            !identities.some((item) => item.id === value) && {
-              value,
-              label: '所选登录身份不可用，请重新选择',
-            },
-          { value: '__new__', label: '＋ 新建登录身份', disabled: !data },
+          identities.map((identity) => ({
+            value: identity.id,
+            label: `${identity.name} · ${identityStatuses[identity.status]}`,
+          })),
+          !!value && !selected && { value, label: '所选登录身份不可用，请重新选择' },
+          { value: '__new__', label: '＋ 新建登录身份', disabled: !sameWebsite(website, website) },
         ]}
       />
-      <p className="text-xs text-page-muted">
-        {value
-          ? '执行前自动准备登录，失效时重新登录。'
-          : '从未登录状态开始；测试登录或退出流程时选择此项。'}
-      </p>
+      {!data && !error && (
+        <p role="status" className="text-xs text-page-muted">
+          正在加载登录身份…
+        </p>
+      )}
+      {data && value && !selected && (
+        <p role="alert" className="text-xs text-error-ink">
+          所选身份不存在或与当前网站不匹配，请重新选择。
+        </p>
+      )}
+      {selected ? (
+        <IdentityFeedback identity={selected} />
+      ) : (
+        !value && (
+          <p className="text-xs text-page-muted">
+            从未登录状态开始；测试登录或退出流程时选择此项。
+          </p>
+        )
+      )}
       {error && (
         <p role="alert" className="text-xs text-error-ink">
           登录身份加载失败。
@@ -85,7 +76,7 @@ export function LoginIdentityPicker({
       <Link href="/settings#login-identities" className="text-xs text-brand-active">
         管理登录身份
       </Link>
-      {creating && data && (
+      {(creating || resumed) && data && (
         <LoginIdentityForm
           initial={resumed}
           website={website}
@@ -94,8 +85,22 @@ export function LoginIdentityPicker({
             setCreating(false);
             setResumed(undefined);
           }}
-          onSaved={async (identity) => {
-            await mutate();
+          onSaved={async (identity, runId) => {
+            await mutate(
+              {
+                ...data,
+                identities: [
+                  ...data.identities.filter((item) => item.id !== identity.id),
+                  {
+                    ...identity,
+                    status: runId ? 'verifying' : 'unverified',
+                    verificationRunId: runId ?? null,
+                    verificationStatus: runId ? 'queued' : undefined,
+                  },
+                ],
+              },
+              { revalidate: true },
+            );
             onChange(identity.id);
             setCreating(false);
             setResumed(undefined);

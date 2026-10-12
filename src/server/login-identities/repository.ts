@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { validateInputReferences } from '@/automation/compiler/executionPlan';
+import { InputReferenceError } from '@/automation/platform/inputs';
+import { inputLabel, inputDefinitionError } from '@/features/login-identities/inputs';
 import { db } from '@/db';
 import { loginIdentities, loginStateCaches, testCases, testRuns } from '@/db/schema';
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
@@ -67,9 +69,13 @@ export async function loginFlow(
   const plan = ExecutablePlanSchema.safeParse(flow?.plan);
 
   if (!flow || !target.success || !plan.success || target.data.loginIdentityId)
-    throw new WorkspaceError('请选择已保存画板且不引用登录身份的 Web 登录流程。');
+    throw new WorkspaceError('请选择已保存画板且不引用登录身份的 Web 登录流程。', 400, {
+      loginTestId: '流程不可用，请重新选择或编辑流程。',
+    });
   if (new URL(target.data.url).origin !== new URL(identity.website).origin)
-    throw new WorkspaceError('登录流程必须属于该身份的网站。');
+    throw new WorkspaceError('登录流程必须属于该身份的网站。', 400, {
+      loginTestId: '登录流程与网站不匹配，请重新选择。',
+    });
 
   return { ...flow, target: target.data, plan: plan.data };
 }
@@ -137,6 +143,7 @@ export async function readLoginIdentities(userId: UserScope) {
       return {
         ...publicLoginIdentity(item),
         status,
+        verificationStatus: verification?.status,
         references: cases
           .filter(
             (test) => test.target?.platform === 'web' && test.target.loginIdentityId === item.id,
@@ -158,8 +165,30 @@ export async function readLoginIdentities(userId: UserScope) {
 export async function saveLoginIdentity(raw: unknown, userId: UserScope, id?: string) {
   const parsed = loginIdentityInput.safeParse(raw);
 
-  if (!parsed.success)
-    throw new WorkspaceError('请填写身份名称、同一网站的登录流程、验证页面和成功标志。');
+  if (!parsed.success) {
+    const names: Record<string, string> = {
+      name: '身份名称',
+      website: '网站地址',
+      loginTestId: '登录流程',
+      checkUrl: '验证页面',
+      successText: '登录成功标志',
+      ttlMinutes: '登录态有效期',
+      version: '配置版本',
+      inputs: '登录输入',
+      secrets: '密码',
+    };
+    const fields = Object.fromEntries(
+      parsed.error.issues.map((issue) => [
+        issue.path.join('.'),
+        issue.code === 'custom'
+          ? issue.message
+          : `请检查${names[String(issue.path[0])] ?? '登录配置'}。`,
+      ]),
+    );
+
+    throw new WorkspaceError(Object.values(fields).join(' '), 400, fields);
+  }
+
   const input = parsed.data;
 
   return db.transaction(async (tx) => {
@@ -176,12 +205,44 @@ export async function saveLoginIdentity(raw: unknown, userId: UserScope, id?: st
       throw new WorkspaceError('登录身份已更新，请刷新后重试。', 409);
     const identityId = previous?.id ?? randomUUID();
     const credentials = previous ? identityCredentials(previous) : {};
+    const flow = await loginFlow({ ...input, userId }, tx);
+    const definitions = flow.target.inputs ?? {};
+    const definitionError = inputDefinitionError(definitions);
+
+    if (definitionError)
+      throw new WorkspaceError(`${definitionError}请编辑登录流程。`, 400, {
+        loginTestId: definitionError,
+      });
+    for (const [key, entry] of Object.entries(input.inputs)) {
+      const definition = Object.hasOwn(definitions, key) ? definitions[key] : undefined;
+
+      if (!definition || 'secretRef' in entry !== 'secretRef' in definition) {
+        const message = `“${inputLabel(key, definition ?? entry)}”与登录流程不匹配，请重新选择流程或编辑输入。`;
+
+        throw new WorkspaceError(message, 400, { [`inputs.${key}`]: message });
+      }
+
+      entry.label = definition.label;
+    }
+
+    for (const [key, definition] of Object.entries(definitions)) {
+      if (!input.inputs[key]) {
+        const message = `请配置“${inputLabel(key, definition)}”。`;
+
+        throw new WorkspaceError(message, 400, { [`inputs.${key}`]: message });
+      }
+    }
 
     for (const [key, password] of Object.entries(input.secrets)) {
-      if (!input.inputs[key] || !('secretRef' in input.inputs[key]))
-        throw new WorkspaceError('密码必须对应登录流程中的敏感输入。');
+      if (!input.inputs[key] || !('secretRef' in input.inputs[key])) {
+        const message = `“${inputLabel(key, definitions[key])}”未配置为敏感输入，请编辑登录流程。`;
+
+        throw new WorkspaceError(message, 400, { [`inputs.${key}`]: message });
+      }
+
       input.inputs[key] = {
         secretRef: `IDENTITY_${randomUUID().replaceAll('-', '').toUpperCase()}`,
+        label: definitions[key]?.label,
       };
       credentials[key] = password;
     }
@@ -195,20 +256,35 @@ export async function saveLoginIdentity(raw: unknown, userId: UserScope, id?: st
           (!input.secrets[key] &&
             (!old || !('secretRef' in old) || old.secretRef !== entry.secretRef))
         )
-          throw new WorkspaceError('请填写登录密码。');
-      } else delete credentials[key];
+          throw new WorkspaceError(`请填写${inputLabel(key, entry)}。`, 400, {
+            [`inputs.${key}`]: `请填写${inputLabel(key, entry)}。`,
+          });
+      } else {
+        delete credentials[key];
+        if ('secretRef' in entry) {
+          const old = previous?.inputs[key];
+
+          if (!old || !('secretRef' in old) || old.secretRef !== entry.secretRef)
+            throw new WorkspaceError(`请填写${inputLabel(key, entry)}。`, 400, {
+              [`inputs.${key}`]: `请填写${inputLabel(key, entry)}。`,
+            });
+        }
+      }
     }
 
     for (const key of Object.keys(credentials)) {
       if (!input.inputs[key]) delete credentials[key];
     }
 
-    const flow = await loginFlow({ ...input, userId }, tx);
-
     try {
       validateInputReferences(flow.goal, flow.plan, { ...flow.target.inputs, ...input.inputs });
-    } catch {
-      throw new WorkspaceError('登录流程引用了未配置的输入，请补充账号与密码。');
+    } catch (cause) {
+      const message =
+        cause instanceof InputReferenceError
+          ? `登录步骤使用了未配置的输入“${cause.key}”，请编辑流程添加或移除该输入。`
+          : '登录流程输入无效，请编辑流程检查步骤。';
+
+      throw new WorkspaceError(message, 400, { loginTestId: message });
     }
 
     const { version, secrets, ...config } = input;
@@ -238,7 +314,20 @@ export async function saveLoginIdentity(raw: unknown, userId: UserScope, id?: st
     if (previous)
       await tx.delete(loginStateCaches).where(eq(loginStateCaches.identityId, previous.id));
 
-    return publicLoginIdentity(saved);
+    const cases = await tx
+      .select({ id: testCases.id, name: testCases.name, target: testCases.target })
+      .from(testCases)
+      .where(ownedBy(testCases.userId, userId));
+
+    return {
+      ...publicLoginIdentity(saved),
+      status: 'unverified' as const,
+      references: cases
+        .filter(
+          (test) => test.target?.platform === 'web' && test.target.loginIdentityId === saved.id,
+        )
+        .map(({ id, name }) => ({ id, name })),
+    };
   });
 }
 

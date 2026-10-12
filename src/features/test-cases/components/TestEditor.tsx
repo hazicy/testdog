@@ -4,6 +4,7 @@ import './test-editor.css';
 
 import { Button } from '@/components/ui/Button';
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { TestCase } from '@/features/test-cases/types';
 import { api } from '@/client/api';
 import { usePlanCompilation } from '../lib/usePlanCompilation';
@@ -36,6 +37,9 @@ import undoIcon from '@iconify-icons/lucide/undo-2';
 import collapseIcon from '@iconify-icons/lucide/chevron-up';
 import expandIcon from '@iconify-icons/lucide/chevron-down';
 import sparklesIcon from '@iconify-icons/lucide/sparkles';
+import { LoginInputContext } from '@/features/login-identities/components/InputReferences';
+import { inputDefinitionError } from '@/features/login-identities/inputs';
+import { validateInputReferences } from '@/automation/compiler/executionPlan';
 
 export function TestEditor({
   test,
@@ -43,14 +47,17 @@ export function TestEditor({
   onSaved,
   initialDraft,
   draftId,
+  onCancel,
 }: {
   test?: TestCase;
   duplicate?: boolean;
   onSaved: (test?: TestCase) => Promise<void>;
   initialDraft?: CaseDraft;
   draftId?: string;
+  onCancel?: () => void;
 }) {
   const submitRun = useRunSubmission();
+  const searchParams = useSearchParams();
   const [savedCase] = useState<TestCase | undefined>(duplicate ? undefined : test);
   const [name, setName] = useState(
     initialDraft?.name ?? (test ? `${test.name}${duplicate ? '（副本）' : ''}` : caseName('')),
@@ -66,6 +73,15 @@ export function TestEditor({
     };
   });
   const { url, platform, webProfile, appId, deviceProfileId, inputRefs, tags } = configuration;
+  const loginFlowMode = !!initialDraft?.returnLoginIdentityDraft;
+  const loginInputs = useMemo(() => {
+    if (!loginFlowMode) return undefined;
+    try {
+      return parseCaseInputs(inputRefs);
+    } catch {
+      return {};
+    }
+  }, [loginFlowMode, inputRefs]);
 
   function changeSettings(patch: Partial<CaseSettingsValue>) {
     setConfiguration((current) => ({ ...current, ...patch }));
@@ -88,9 +104,7 @@ export function TestEditor({
   }>();
   const [previous, setPrevious] = useState<{ plan: Plan; name: string; url: string }>();
   const [settingsOpen, setSettingsOpen] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      new URL(window.location.href).searchParams.has('loginIdentityDraft'),
+    () => !!initialDraft?.returnLoginIdentityDraft || searchParams.has('loginIdentityDraft'),
   );
   const compilation = usePlanCompilation();
   const compiling = compilation.busy;
@@ -267,12 +281,22 @@ export function TestEditor({
       return;
     }
 
-    let inputs: unknown;
+    let inputs: ReturnType<typeof parseCaseInputs>;
 
     try {
       inputs = parseCaseInputs(inputRefs);
-    } catch {
-      setFormError('请在测试设置中填写有效的输入引用 JSON。');
+      if (loginFlowMode) {
+        const definitionError = inputDefinitionError(inputs);
+
+        if (definitionError) throw new Error(definitionError);
+        validateInputReferences(planText(plan), plan, inputs);
+      }
+    } catch (cause) {
+      setFormError(
+        loginFlowMode
+          ? `${cause instanceof Error ? cause.message : '登录输入无效'}。请检查登录输入和步骤。`
+          : '请在测试设置中填写有效的输入引用 JSON。',
+      );
       setSettingsOpen(true);
       setComposerOpen(false);
 
@@ -386,20 +410,33 @@ export function TestEditor({
                   个步骤
                 </span>
                 <div className="case-panel-primary-actions">
+                  {!loginFlowMode && (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="xs"
+                      aria-label="Run"
+                      title={trialActive ? '查看正在进行的试跑' : '试跑当前草稿，不保存用例'}
+                      disabled={editingLocked}
+                      onClick={() => void save(true)}
+                    >
+                      <Icon icon={playIcon} width="13" aria-hidden="true" /> Run
+                    </Button>
+                  )}
                   <Button
-                    type="button"
-                    variant="primary"
+                    type="submit"
                     size="xs"
-                    aria-label="Run"
-                    title={trialActive ? '查看正在进行的试跑' : '试跑当前草稿，不保存用例'}
+                    aria-label={loginFlowMode ? '保存并返回' : 'Save'}
                     disabled={editingLocked}
-                    onClick={() => void save(true)}
                   >
-                    <Icon icon={playIcon} width="13" aria-hidden="true" /> Run
+                    <Icon icon={saveIcon} width="13" aria-hidden="true" />{' '}
+                    {loginFlowMode ? '保存并返回' : 'Save'}
                   </Button>
-                  <Button type="submit" size="xs" aria-label="Save" disabled={editingLocked}>
-                    <Icon icon={saveIcon} width="13" aria-hidden="true" /> Save
-                  </Button>
+                  {loginFlowMode && (
+                    <Button type="button" size="xs" disabled={busy} onClick={onCancel}>
+                      取消并返回
+                    </Button>
+                  )}
                 </div>
                 <Button
                   type="button"
@@ -450,6 +487,9 @@ export function TestEditor({
                 <div className="case-panel-heading">
                   <h2 id="editor-title">{name || '未命名测试'}</h2>
                   <p>{platform === 'web' ? webProfile : deviceProfileId || '未设置设备'}</p>
+                  {loginFlowMode && (
+                    <p>编辑登录步骤并插入账号、密码，保存返回后填写实际值并验证。</p>
+                  )}
                 </div>
               )}
               {formError && !composerOpen && (
@@ -480,50 +520,52 @@ export function TestEditor({
   );
 
   return (
-    <section ref={canvasRef} className="case-canvas-page" aria-label="测试画板" aria-busy={busy}>
-      {content}
-      {trialId && (
-        <TrialRunDialog
-          key={trialId}
-          id={trialId}
-          open={trialOpen}
-          onClose={() => setTrialOpen(false)}
-          onActiveChange={setTrialActive}
+    <LoginInputContext.Provider value={loginInputs}>
+      <section ref={canvasRef} className="case-canvas-page" aria-label="测试画板" aria-busy={busy}>
+        {content}
+        {trialId && (
+          <TrialRunDialog
+            key={trialId}
+            id={trialId}
+            open={trialOpen}
+            onClose={() => setTrialOpen(false)}
+            onActiveChange={setTrialActive}
+          />
+        )}
+        {candidate && (
+          <div className="case-canvas-preview" role="status">
+            <span>{pendingChanges.length} 项变更待审阅</span>
+            <Button type="button" size="xs" onClick={() => decideAll(false)}>
+              全部拒绝
+            </Button>
+            <Button type="button" variant="primary" size="xs" onClick={() => decideAll(true)}>
+              全部接受
+            </Button>
+          </div>
+        )}
+        <CasePrompt
+          open={composerOpen}
+          onOpenChange={setComposerOpen}
+          container={canvasRef}
+          finalFocus={generateRef}
+          title={hasSteps ? '调整步骤' : '描述测试'}
+          value={goal}
+          onChange={setGoal}
+          placeholder={
+            hasSteps
+              ? '描述要新增或修改的步骤，以及预期结果…'
+              : '描述测试步骤和预期结果，可附上网站地址…'
+          }
+          busy={busy}
+          onCancel={() => {
+            compilation.cancel();
+            setFormError('已取消生成，画板和描述已保留。');
+          }}
+          error={formError}
+          submitLabel={hasSteps ? '预览' : '生成'}
+          onSubmit={compile}
         />
-      )}
-      {candidate && (
-        <div className="case-canvas-preview" role="status">
-          <span>{pendingChanges.length} 项变更待审阅</span>
-          <Button type="button" size="xs" onClick={() => decideAll(false)}>
-            全部拒绝
-          </Button>
-          <Button type="button" variant="primary" size="xs" onClick={() => decideAll(true)}>
-            全部接受
-          </Button>
-        </div>
-      )}
-      <CasePrompt
-        open={composerOpen}
-        onOpenChange={setComposerOpen}
-        container={canvasRef}
-        finalFocus={generateRef}
-        title={hasSteps ? '调整步骤' : '描述测试'}
-        value={goal}
-        onChange={setGoal}
-        placeholder={
-          hasSteps
-            ? '描述要新增或修改的步骤，以及预期结果…'
-            : '描述测试步骤和预期结果，可附上网站地址…'
-        }
-        busy={busy}
-        onCancel={() => {
-          compilation.cancel();
-          setFormError('已取消生成，画板和描述已保留。');
-        }}
-        error={formError}
-        submitLabel={hasSteps ? '预览' : '生成'}
-        onSubmit={compile}
-      />
-    </section>
+      </section>
+    </LoginInputContext.Provider>
   );
 }

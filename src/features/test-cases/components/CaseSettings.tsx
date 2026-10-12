@@ -1,6 +1,8 @@
 'use client';
 
 import { LoginIdentityPicker } from '@/features/login-identities/components/LoginIdentityPicker';
+import { LoginInputsEditor } from '@/features/login-identities/components/LoginInputsEditor';
+import { parseCaseInputs } from '../lib/caseSettings';
 
 import { Label } from '@/components/ui/Label';
 import useSWR from 'swr';
@@ -261,21 +263,29 @@ export function CaseSettings({
           </p>
         </>
       )}
-      <Label>
-        输入引用（JSON，可选）
-        <Textarea
-          aria-label="输入引用（JSON，可选）"
-          value={value.inputRefs}
+      {webOnly ? (
+        <LoginInputsEditor
+          inputs={parseCaseInputs(value.inputRefs)}
           disabled={busy}
-          spellCheck={false}
-          className="min-h-24 font-mono"
-          onChange={(event) => onChange({ inputRefs: event.target.value })}
-          placeholder={'{"name":{"value":"Ada"},"password":{"secretRef":"PASSWORD"}}'}
+          onChange={(inputs) => onChange({ inputRefs: JSON.stringify(inputs) })}
         />
-        <span className="mt-2 block text-xs text-page-muted">
-          步骤中使用 {'${input.name}'} 引用输入；密码等敏感值使用 secretRef。
-        </span>
-      </Label>
+      ) : (
+        <Label>
+          输入引用（JSON，可选）
+          <Textarea
+            aria-label="输入引用（JSON，可选）"
+            value={value.inputRefs}
+            disabled={busy}
+            spellCheck={false}
+            className="min-h-24 font-mono"
+            onChange={(event) => onChange({ inputRefs: event.target.value })}
+            placeholder={'{"name":{"value":"Ada"},"password":{"secretRef":"PASSWORD"}}'}
+          />
+          <span className="mt-2 block text-xs text-page-muted">
+            步骤中使用 {'${input.name}'} 引用输入；密码等敏感值使用 secretRef。
+          </span>
+        </Label>
+      )}
       <Label>
         标签 <span className="font-normal text-text-subtle">（可选，逗号分隔）</span>
         <Input

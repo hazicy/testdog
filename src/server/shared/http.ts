@@ -8,7 +8,14 @@ export function validId(id: string) {
 
 export function apiError(error: unknown) {
   if (error instanceof WorkspaceError)
-    return NextResponse.json({ success: false, message: error.message }, { status: error.status });
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+        ...(error.fieldErrors ? { fieldErrors: error.fieldErrors } : {}),
+      },
+      { status: error.status },
+    );
   console.error('工作台请求失败', error instanceof Error ? error.message : error);
 
   return NextResponse.json(
