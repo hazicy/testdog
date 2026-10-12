@@ -1,3 +1,4 @@
+import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { betterAuth } from 'better-auth/minimal';
@@ -152,10 +153,18 @@ test('uses real sessions to isolate lists, latest status, searches, pagination, 
   const a = await ownedRun(alice);
   const b = await ownedRun(bob);
 
-  await db.insert(testCases).values({ ...input, name: 'Unassigned' });
-  await db
-    .insert(testRuns)
-    .values({ name: 'Unassigned', goal: 'Legacy', url: input.url, status: 'queued' });
+  await db.insert(testCases).values({
+    name: 'Unassigned',
+    goal: input.goal,
+    tags: input.tags,
+    target: defaultWebTarget(input.url),
+  });
+  await db.insert(testRuns).values({
+    name: 'Unassigned',
+    goal: 'Legacy',
+    targetSnapshot: defaultWebTarget(input.url),
+    status: 'queued',
+  });
   const [cases, runs, stats] = await Promise.all([
     listTests(request('/api/tests?q=private&limit=1', alice)),
     listRuns(request('/api/runs?q=Private&limit=1', alice)),
@@ -175,7 +184,7 @@ test('uses real sessions to isolate lists, latest status, searches, pagination, 
     userId: bob.id,
     testId: a.saved.id,
     name: 'Foreign',
-    url: input.url,
+    targetSnapshot: defaultWebTarget(input.url),
     goal: 'Foreign',
     status: 'passed',
     startedAt: '2099-01-01T00:00:00Z',
@@ -347,7 +356,12 @@ test('requires authentication at route level and only exposes unassigned records
   ).toBe(401);
   expect((await getWorkspaceEvents(request('/api/events'))).status).toBe(401);
   await ownedRun(alice);
-  await db.insert(testCases).values({ ...input, name: 'Unassigned' });
+  await db.insert(testCases).values({
+    name: 'Unassigned',
+    goal: input.goal,
+    tags: input.tags,
+    target: defaultWebTarget(input.url),
+  });
   vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', 'true');
   try {
     expect(

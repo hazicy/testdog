@@ -122,6 +122,7 @@ describe('execution API with PostgreSQL persistence', () => {
     );
   });
   it('rejects invalid targets, malformed requests and missing cases without scheduling jobs', async () => {
+    expect((await POST(request({ case: 'Check' }))).status).toBe(400);
     expect((await POST(request({ case: 'Check', url: 'file:///etc/passwd' }))).status).toBe(400);
     expect((await POST(request({ testId: '62534c46-a8eb-4991-993e-af6df14bece0' }))).status).toBe(
       404,

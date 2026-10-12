@@ -1,3 +1,4 @@
+import { targetUrl } from '@testdog/contracts/automation/platform/target';
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { validateInputReferences } from '@testdog/contracts/automation/compiler/executionPlan';
@@ -146,7 +147,7 @@ export async function readLoginIdentities(userId: UserScope) {
         verificationStatus: verification?.status,
         references: cases
           .filter(
-            (test) => test.target?.platform === 'web' && test.target.loginIdentityId === item.id,
+            (test) => test.target.platform === 'web' && test.target.loginIdentityId === item.id,
           )
           .map(({ id, name }) => ({ id, name })),
       };
@@ -154,11 +155,11 @@ export async function readLoginIdentities(userId: UserScope) {
     flows: cases
       .filter(
         (test) =>
-          test.target?.platform === 'web' &&
+          test.target.platform === 'web' &&
           !test.target.loginIdentityId &&
           ExecutablePlanSchema.safeParse(test.plan).success,
       )
-      .map(({ id, name, url, target }) => ({ id, name, url, target: target ?? undefined })),
+      .map(({ id, name, target }) => ({ id, name, url: targetUrl(target), target })),
   };
 }
 
@@ -324,7 +325,7 @@ export async function saveLoginIdentity(raw: unknown, userId: UserScope, id?: st
       status: 'unverified' as const,
       references: cases
         .filter(
-          (test) => test.target?.platform === 'web' && test.target.loginIdentityId === saved.id,
+          (test) => test.target.platform === 'web' && test.target.loginIdentityId === saved.id,
         )
         .map(({ id, name }) => ({ id, name })),
     };

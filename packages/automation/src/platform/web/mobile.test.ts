@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchWebBrowser, resolveWebProfile } from '@testdog/automation/platform/web/mobile';
-import {
-  legacyWebTarget,
-  TestTargetSchema,
-  type WebTarget,
-} from '@testdog/contracts/automation/platform/target';
+import { TestTargetSchema, type WebTarget } from '@testdog/contracts/automation/platform/target';
 
 afterEach(() => vi.unstubAllEnvs());
 describe('mobile browser environments', () => {
@@ -51,7 +47,15 @@ describe('mobile browser environments', () => {
   }
 
   it('preserves legacy desktop and rejects mismatched profiles and native URLs', () => {
-    expect(resolveWebProfile(legacyWebTarget('https://example.com')).viewport).toEqual({
+    expect(
+      resolveWebProfile({
+        schemaVersion: 1,
+        platform: 'web',
+        url: 'https://example.com',
+        browser: 'chromium',
+        deviceProfile: 'legacy-desktop',
+      }).viewport,
+    ).toEqual({
       width: 1280,
       height: 800,
     });

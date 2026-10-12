@@ -41,7 +41,6 @@ it('uses target URLs consistently in historical detail, summaries and search', a
   });
   const web = await createRun({ case: 'Web snapshot', url: 'https://example.com/current' });
 
-  await db.update(testRuns).set({ url: 'https://stale.example.com' });
   expect((await getRun(native.id)).url).toBe('');
   expect((await getRun(web.id)).url).toBe('https://example.com/current');
   const summaries = (await listRunPage(page())).runs;

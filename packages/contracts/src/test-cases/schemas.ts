@@ -16,8 +16,7 @@ export function testValidationMessage(error: z.ZodError) {
 export const testSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
-    // Native cases normalize their legacy URL column to ''. API and repository
-    // validation must both accept this representation without requiring a URL.
+    // URL-only Web input remains accepted; persisted URLs live in the target.
     url: z.preprocess((value) => (value === '' ? undefined : value), HttpUrlSchema.optional()),
     target: TestTargetSchema.optional(),
     goal: z.string().trim().min(1).max(20000),

@@ -1,3 +1,4 @@
+import { defaultWebTarget, targetUrl } from '@testdog/contracts/automation/platform/target';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeEach, expect, it, vi } from 'vitest';
 
@@ -82,7 +83,7 @@ async function failedRun(userId = 'alice') {
       userId,
       name: '测试失败',
       goal: 'check',
-      url: 'https://example.com',
+      targetSnapshot: defaultWebTarget('https://example.com'),
       status: 'queued',
     })
     .returning();
@@ -281,7 +282,7 @@ it('queues committed events exactly once for matching subscriptions and never fo
       userId: 'alice',
       name: 'regression',
       goal: 'check',
-      url: 'https://example.com',
+      targetSnapshot: defaultWebTarget('https://example.com'),
       status: 'queued',
     })
     .returning();
@@ -290,7 +291,12 @@ it('queues committed events exactly once for matching subscriptions and never fo
     .values({
       issueId: issue.id,
       runId: run.id,
-      snapshot: { name: run.name, goal: run.goal, url: run.url, artifacts: [] },
+      snapshot: {
+        name: run.name,
+        goal: run.goal,
+        url: targetUrl(run.targetSnapshot),
+        artifacts: [],
+      },
     })
     .returning();
 

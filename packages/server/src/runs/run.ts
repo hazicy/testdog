@@ -100,27 +100,22 @@ export async function executeRun(
   let errorCode: string | null = null;
 
   try {
-    secrets = new SecretInputs(run.authenticationVerification ? {} : run.targetSnapshot?.inputs);
+    secrets = new SecretInputs(run.authenticationVerification ? {} : run.targetSnapshot.inputs);
     const model = budgetedModel(modelClient, modelBudgetFromEnv(), (metric) =>
       recordModelCall(run.id, metric),
     );
 
     await pulse();
     controller.signal.throwIfAborted();
-    // Only historical replay jobs need the source; new jobs carry immutable snapshots.
-    const source =
-      run.mode === 'replay' && !run.recordingSteps && run.sourceRunId
-        ? await getRun(run.sourceRunId)
-        : undefined;
-    const replaySteps = run.recordingSteps ?? source?.steps;
+    const replaySteps = run.recordingSteps;
 
     if (run.mode === 'replay' && !replaySteps?.length)
       throw new Error('重放缺少操作快照，请重新录制');
     const report = (message: string) => appendEvent(run.id, message);
     const plan =
       (run.mode === 'replay'
-        ? run.plan || source?.plan
-        : run.plan && resolvePlanInputs(run.plan, run.targetSnapshot?.inputs)) ||
+        ? run.plan
+        : run.plan && resolvePlanInputs(run.plan, run.targetSnapshot.inputs)) ||
       (replaySteps
         ? {
             rootId: 'recording',
@@ -139,18 +134,18 @@ export async function executeRun(
             await new TextCompiler(model).compile(
               {
                 goal: run.goal,
-                url: (run.targetSnapshot ? targetUrl(run.targetSnapshot) : run.url) || undefined,
+                url: targetUrl(run.targetSnapshot) || undefined,
                 context: {
-                  platform: run.targetSnapshot?.platform ?? 'web',
-                  ...(run.targetSnapshot && run.targetSnapshot.platform !== 'web'
+                  platform: run.targetSnapshot.platform,
+                  ...(run.targetSnapshot.platform !== 'web'
                     ? { appId: run.targetSnapshot.appId }
                     : {}),
-                  inputs: run.targetSnapshot?.inputs,
+                  inputs: run.targetSnapshot.inputs,
                 },
               },
               controller.signal,
             ),
-            run.targetSnapshot?.inputs,
+            run.targetSnapshot.inputs,
           ));
 
     await savePlan(run.id, plan);
@@ -164,9 +159,7 @@ export async function executeRun(
       model,
       run,
       plan,
-      expectedEnvironment: run.recordingSteps
-        ? run.replayEnvironmentSnapshot
-        : source?.environmentSnapshot,
+      expectedEnvironment: run.replayEnvironmentSnapshot,
       resource,
       signal: controller.signal,
       report,

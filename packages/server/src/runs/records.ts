@@ -1,6 +1,6 @@
 import type { testRuns, runSteps, runArtifacts } from '@testdog/server/db/schema';
 import type { TestRun, ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
-import { legacyWebTarget, targetUrl } from '@testdog/contracts/automation/platform/target';
+import { targetUrl } from '@testdog/contracts/automation/platform/target';
 
 const optional = <T>(value: T | null) => value ?? undefined;
 
@@ -19,13 +19,13 @@ export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
     sourceRunId: optional(row.sourceRunId),
     recordingVersionId: optional(row.recordingVersionId),
     recordingSteps: optional(row.recordingSteps),
-    targetSnapshot: row.targetSnapshot ?? legacyWebTarget(row.url),
+    targetSnapshot: row.targetSnapshot,
     environmentSnapshot: optional(row.environmentSnapshot),
     replayEnvironmentSnapshot: optional(row.replayEnvironmentSnapshot),
     capabilities: optional(row.capabilities),
     evidenceComplete: row.evidenceComplete,
     name: row.name,
-    url: row.targetSnapshot ? targetUrl(row.targetSnapshot) : row.url,
+    url: targetUrl(row.targetSnapshot),
     goal: row.goal,
     mode: row.mode,
     status: row.status,

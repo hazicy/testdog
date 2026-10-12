@@ -1,3 +1,4 @@
+import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
 import { expect, it } from 'vitest';
 import { verificationResult } from '@testdog/contracts/issues/lib/verification';
 import type { OccurrenceSnapshot } from '@testdog/contracts/issues/types';
@@ -27,6 +28,7 @@ const source: OccurrenceSnapshot = {
 };
 const run: TestRun = {
   id: 'run',
+  targetSnapshot: defaultWebTarget('https://example.com'),
   name: '',
   goal: '',
   url: '',

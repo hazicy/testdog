@@ -29,3 +29,5 @@ HTTP 路由必须调用 Web 应用中的 `requireUserId(request)`，并将返回
 构建登记与数据库校验在 `builds/repository.ts`；原生适配器通过运行时注入构建查询函数，执行引擎不导入本包。共享 HTTP 错误使用标准 `Response`，本包不依赖 Next.js。
 
 用例、执行和录制保存的输入校验统一在业务入口完成。执行 HTTP 提交使用 `runs/submission.ts` 的 `submitRun`，以规范化后的参数计算幂等指纹；内部调用继续使用 `createRun`。
+
+用例与执行的 URL 不单独存储，分别从必填的 `target` 和 `targetSnapshot` 派生；历史数据在迁移时补齐目标。重放执行只读取冻结快照，不在运行时回查源执行。

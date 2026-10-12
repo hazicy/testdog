@@ -46,7 +46,7 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
       .for('update', { skipLocked: true });
 
     for (const resource of available) {
-      const platform = sql`coalesce(${testRuns.targetSnapshot}->>'platform', 'web')`;
+      const platform = sql`${testRuns.targetSnapshot}->>'platform'`;
       const profile = sql`${testRuns.targetSnapshot}->>'deviceProfileId'`;
       const [run] = await tx
         .select()

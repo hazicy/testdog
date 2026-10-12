@@ -12,8 +12,6 @@ import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import {
   defaultWebTarget,
   executionTarget,
-  legacyWebTarget,
-  targetUrl,
   type TestTarget,
 } from '@testdog/contracts/automation/platform/target';
 import { isActiveRun, type ExecutionStep } from '@testdog/contracts/runs/types';
@@ -70,7 +68,6 @@ async function persistRun(
       name: string;
       goal: string;
       plan?: Plan | null;
-      url: string;
       sourceRunId?: string;
       recordingVersionId?: string;
       recordingSteps?: ExecutionStep[];
@@ -91,7 +88,6 @@ async function persistRun(
           url: identity.checkUrl,
         },
         name: `${identity.name} · 登录验证`,
-        url: identity.checkUrl,
         goal: '验证登录身份',
         plan: flow.plan,
         mode: 'record',
@@ -102,7 +98,6 @@ async function persistRun(
         goal: input.draft.goal,
         plan: input.draft.plan,
         targetSnapshot: input.draft.target,
-        url: targetUrl(input.draft.target),
         mode: 'record',
       };
     } else if (input.mode === 'replay') {
@@ -115,10 +110,7 @@ async function persistRun(
       if (source.authenticationVerification)
         throw new WorkspaceError('登录身份验证请在设置中重新发起。');
 
-      if (
-        input.target &&
-        !isDeepStrictEqual(input.target, source.targetSnapshot ?? legacyWebTarget(source.url))
-      )
+      if (input.target && !isDeepStrictEqual(input.target, source.targetSnapshot))
         throw new WorkspaceError('重放目标与原录制不兼容。', 409);
       const [version] = input.recordingVersionId
         ? await tx
@@ -138,10 +130,9 @@ async function persistRun(
       if (!version && (source.status !== 'passed' || !source.replayable))
         throw new WorkspaceError('该记录包含失败或无法稳定定位的步骤，不能重放操作。');
       snapshot = {
-        targetSnapshot: source.targetSnapshot ?? legacyWebTarget(source.url),
+        targetSnapshot: source.targetSnapshot,
         testId: source.testId ?? undefined,
         name: source.name,
-        url: source.targetSnapshot ? targetUrl(source.targetSnapshot) : source.url,
         goal: source.goal,
         mode: 'replay',
         sourceRunId: source.id,
@@ -165,25 +156,22 @@ async function persistRun(
         .where(and(eq(testCases.id, input.testId), ownedBy(testCases.userId, userId)));
 
       if (!test) throw new WorkspaceError('用例不存在。', 404);
-      const target = executionTarget(test.target ?? legacyWebTarget(test.url), input.target);
+      const target = executionTarget(test.target, input.target);
 
       snapshot = {
         targetSnapshot: target,
         testId: test.id,
         name: test.name,
-        url: targetUrl(target),
         goal: goalOverride ?? test.goal,
         plan: goalOverride ? undefined : test.plan,
         mode: 'record',
       };
     } else {
-      const target =
-        input.target ?? (input.url ? defaultWebTarget(input.url) : legacyWebTarget(''));
+      const target = input.target ?? defaultWebTarget(input.url!);
 
       snapshot = {
         targetSnapshot: target,
         name: '临时测试',
-        url: targetUrl(target),
         goal: input.case,
         mode: 'record',
       };

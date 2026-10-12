@@ -123,7 +123,6 @@ beforeEach(async () => {
     .insert(testRuns)
     .values({
       name: '测试',
-      url: target.url,
       goal: '检查订单',
       status: 'queued',
       targetSnapshot: target,

@@ -1,4 +1,3 @@
-import { legacyWebTarget } from '@testdog/contracts/automation/platform/target';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir, hostname } from 'node:os';
@@ -40,9 +39,10 @@ export async function recoverLocalResource(id: string, hostId: string) {
     if (resource.platform === 'web') {
       // A dead worker cannot issue commands. Verify the configured browser
       // provider can create and release a fresh isolated context.
+      if (run.targetSnapshot.platform !== 'web') return false;
       const connection = await openRunBrowser(
         run.id,
-        run.targetSnapshot?.platform === 'web' ? run.targetSnapshot : legacyWebTarget(run.url),
+        run.targetSnapshot,
         AbortSignal.timeout(30000),
       );
       const browser = connection.browser;

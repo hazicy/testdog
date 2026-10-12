@@ -25,10 +25,7 @@ export class DeviceRecorder {
   onEvent = async (event: SessionEvent, session: AutomationSession) => {
     const surface = {
       platform: session.platform,
-      id:
-        this.run.targetSnapshot?.platform !== 'web'
-          ? (this.run.targetSnapshot?.appId ?? session.id)
-          : session.id,
+      id: this.run.targetSnapshot.platform !== 'web' ? this.run.targetSnapshot.appId : session.id,
     };
 
     if (event.phase === 'start') {

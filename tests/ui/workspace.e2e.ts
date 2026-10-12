@@ -1,3 +1,4 @@
+import { WebTargetSchema } from '@testdog/contracts/automation/platform/target';
 import { expect, test, type Locator } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
@@ -53,6 +54,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 const saved: TestCase = {
+  target: WebTargetSchema.parse({
+    platform: 'web',
+    url: 'https://example.com',
+    deviceProfile: 'legacy-desktop',
+  }),
   id: '62534c46-a8eb-4991-993e-af6df14bece0',
   name: '验证登录',
   url: 'https://example.com',
@@ -62,6 +68,7 @@ const saved: TestCase = {
   updatedAt: '2026-10-01T00:00:00Z',
 };
 const run: TestRun = {
+  targetSnapshot: saved.target,
   id: '62534c46-a8eb-4991-993e-af6df14bece1',
   testId: saved.id,
   name: saved.name,

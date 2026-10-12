@@ -1,3 +1,4 @@
+import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -50,7 +51,11 @@ it.each([false, true])(
     );
 
     try {
-      const run = { id: 'remote-run', startedAt: new Date().toISOString() } as TestRun;
+      const run = {
+        id: 'remote-run',
+        startedAt: new Date().toISOString(),
+        targetSnapshot: defaultWebTarget('https://example.com'),
+      } as TestRun;
       const recorder = new RunRecorder(run);
       const context = await connection.browser.newContext({
         viewport: { width: 320, height: 240 },

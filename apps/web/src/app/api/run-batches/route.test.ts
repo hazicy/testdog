@@ -1,3 +1,4 @@
+import { TestTargetSchema } from '@testdog/contracts/automation/platform/target';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { afterAll, beforeEach, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
@@ -51,7 +52,7 @@ const target = {
 async function submit(fail: boolean) {
   const [test] = await db
     .insert(testCases)
-    .values({ name: 'matrix', goal: 'shared goal', url: target.url })
+    .values({ name: 'matrix', goal: 'shared goal', target: TestTargetSchema.parse(target) })
     .returning();
 
   fixture.failSecond = fail;

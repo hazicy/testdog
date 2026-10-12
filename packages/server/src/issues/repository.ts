@@ -85,9 +85,9 @@ async function sourceSnapshot(tx: Tx, input: z.infer<typeof occurrenceInput>, us
   const snapshot: OccurrenceSnapshot = {
     name: run.name,
     goal: run.goal,
-    url: run.targetSnapshot ? targetUrl(run.targetSnapshot) : run.url,
+    url: targetUrl(run.targetSnapshot),
     testId: run.testId ?? undefined,
-    target: run.targetSnapshot ?? undefined,
+    target: run.targetSnapshot,
     environment: run.environmentSnapshot ?? undefined,
     step: step
       ? (Object.fromEntries(

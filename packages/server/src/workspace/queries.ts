@@ -1,8 +1,8 @@
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
-import { and, desc, eq, getTableColumns, inArray, sql, type SQLWrapper } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql, type SQLWrapper } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases, testRuns } from '@testdog/server/db/schema';
-import { legacyWebTarget } from '@testdog/contracts/automation/platform/target';
+import { targetUrl } from '@testdog/contracts/automation/platform/target';
 import type { RunSummary } from '@testdog/contracts/runs/types';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
@@ -26,7 +26,7 @@ const summaryColumns = {
   id: testRuns.id,
   testId: testRuns.testId,
   name: testRuns.name,
-  url: effectiveUrl(testRuns.targetSnapshot, testRuns.url),
+  url: targetUrlColumn(testRuns.targetSnapshot),
   mode: testRuns.mode,
   status: testRuns.status,
   startedAt: testRuns.startedAt,
@@ -38,9 +38,8 @@ const summaryColumns = {
   cancelRequested: testRuns.cancelRequested,
 };
 
-// Read historical rows by their target as well; old URL columns may be stale.
-function effectiveUrl(target: SQLWrapper, url: SQLWrapper) {
-  return sql<string>`case when ${target}->>'platform' = 'web' then coalesce(${target}->>'url', ${url}) when ${target} is not null then '' else ${url} end`;
+function targetUrlColumn(target: SQLWrapper) {
+  return sql<string>`case when ${target}->>'platform' = 'web' then ${target}->>'url' else '' end`;
 }
 
 const summary = (row: typeof testRuns.$inferSelect | Record<string, unknown>) =>
@@ -65,7 +64,7 @@ export async function listRunPage(
       and(
         ownedBy(testRuns.userId, userId),
         q
-          ? sql`concat_ws(' ', ${testRuns.name}, ${effectiveUrl(testRuns.targetSnapshot, testRuns.url)}) ilike ${searchPattern(q)}`
+          ? sql`concat_ws(' ', ${testRuns.name}, ${targetUrlColumn(testRuns.targetSnapshot)}) ilike ${searchPattern(q)}`
           : undefined,
         status !== 'all' ? eq(testRuns.status, status as RunSummary['status']) : undefined,
         cursor
@@ -92,13 +91,13 @@ export async function listTestPage(
   // The latest execution is independent of the execution-list page.
   const latestStatus = sql`(select r.status from test_runs r where r."testId" = ${testCases.id} and r."userId" is not distinct from ${userId}::text order by r."startedAt" desc, r.id desc limit 1)`;
   const rows = await db
-    .select({ ...getTableColumns(testCases), url: effectiveUrl(testCases.target, testCases.url) })
+    .select()
     .from(testCases)
     .where(
       and(
         ownedBy(testCases.userId, userId),
         q
-          ? sql`concat_ws(' ', ${testCases.name}, ${effectiveUrl(testCases.target, testCases.url)}, ${testCases.tags}::text, ${testCases.target}->>'appId', ${testCases.target}->>'platform') ilike ${searchPattern(q)}`
+          ? sql`concat_ws(' ', ${testCases.name}, ${targetUrlColumn(testCases.target)}, ${testCases.tags}::text, ${testCases.target}->>'appId', ${testCases.target}->>'platform') ilike ${searchPattern(q)}`
           : undefined,
         status === 'none'
           ? sql`${latestStatus} is null`
@@ -131,7 +130,7 @@ export async function listTestPage(
   const last = page.at(-1);
 
   return {
-    tests: page.map((test) => ({ ...test, target: test.target ?? legacyWebTarget(test.url) })),
+    tests: page.map((test) => ({ ...test, url: targetUrl(test.target) })),
     latestRuns: latest.map(summary),
     nextCursor: rows.length > limit && last ? pageCursor(last.updatedAt, last.id) : null,
   };

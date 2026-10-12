@@ -7,7 +7,7 @@ export type TestCase = {
   url: string;
   goal: string;
   plan?: Plan | null;
-  target?: TestTarget;
+  target: TestTarget;
   tags: string[];
   createdAt: string;
   updatedAt: string;

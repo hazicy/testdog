@@ -1,3 +1,4 @@
+import { WebTargetSchema } from '@testdog/contracts/automation/platform/target';
 import { expect, test } from '@playwright/test';
 import type { Issue, IssueDetail, IssueOccurrence } from '@testdog/contracts/issues/types';
 import type { TestRun } from '@testdog/contracts/runs/types';
@@ -21,6 +22,11 @@ const initial: Issue = {
 };
 const run: TestRun = {
   id: runId,
+  targetSnapshot: WebTargetSchema.parse({
+    platform: 'web',
+    url: 'https://example.com',
+    deviceProfile: 'legacy-desktop',
+  }),
   name: '验证订单',
   goal: '订单金额为100',
   url: 'https://example.com',

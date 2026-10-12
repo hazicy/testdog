@@ -31,11 +31,10 @@ export function initialCaseSettings(test?: TestCase): CaseSettingsValue {
   const native = target && target.platform !== 'web' ? target : undefined;
 
   return {
-    url: target?.platform === 'web' ? target.url : (test?.url ?? ''),
+    url: target?.platform === 'web' ? target.url : '',
     loginIdentityId: target?.platform === 'web' ? (target.loginIdentityId ?? '') : '',
     platform: target?.platform ?? 'web',
-    webProfile:
-      target?.platform === 'web' ? target.deviceProfile : test ? 'legacy-desktop' : 'Pixel 7',
+    webProfile: target?.platform === 'web' ? target.deviceProfile : 'Pixel 7',
     appId: native?.appId ?? '',
     deviceProfileId: native?.deviceProfileId ?? '',
     buildArtifactId: native?.buildArtifactId ?? '',

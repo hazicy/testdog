@@ -58,7 +58,7 @@ beforeAll(async () => {
   database = await createTestDatabase();
   isolated.db = database.db;
   await database.client.query(
-    `INSERT INTO test_runs (id, name, url, goal, status) VALUES ($1, 'Live', 'https://example.com', 'Check', 'queued')`,
+    `INSERT INTO test_runs (id, name, "targetSnapshot", goal, status) VALUES ($1, 'Live', '{"schemaVersion":1,"platform":"web","url":"https://example.com","browser":"chromium","deviceProfile":"legacy-desktop"}', 'Check', 'queued')`,
     [runId],
   );
 }, 30000);

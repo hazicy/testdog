@@ -64,7 +64,7 @@ export async function saveRecordingVersion(runId: string, input: unknown, userId
 
   try {
     steps =
-      run.targetSnapshot && run.targetSnapshot.platform !== 'web'
+      run.targetSnapshot.platform !== 'web'
         ? parseDeviceRecordingScript(code, run.targetSnapshot.platform)
         : parseRecordingScript(code);
   } catch (error) {
@@ -86,7 +86,7 @@ export async function saveRecordingVersion(runId: string, input: unknown, userId
       runId,
       code,
       steps,
-      platform: run.targetSnapshot?.platform ?? 'web',
+      platform: run.targetSnapshot.platform,
       targetSnapshot: run.targetSnapshot,
     })
     .returning(recordingVersionFields);

@@ -68,13 +68,3 @@ export function executionTarget(base: TestTarget, override?: TestTarget): TestTa
 
   return { ...override, inputs: { ...base.inputs, ...override.inputs } };
 }
-
-export function legacyWebTarget(url: string): WebTarget {
-  return {
-    schemaVersion: 1,
-    platform: 'web',
-    url,
-    browser: 'chromium',
-    deviceProfile: 'legacy-desktop',
-  };
-}

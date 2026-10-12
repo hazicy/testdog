@@ -94,10 +94,9 @@ export const testCases = pgTable(
   'test_cases',
   {
     userId: text().references(() => authUsers.id),
-    target: jsonb().$type<TestTarget>(),
+    target: jsonb().$type<TestTarget>().notNull(),
     id: uuid().primaryKey().defaultRandom(),
     name: text().notNull(),
-    url: text().notNull(),
     goal: text().notNull(),
     plan: jsonb().$type<Plan>(),
     tags: jsonb().$type<string[]>().notNull().default([]),
@@ -120,14 +119,13 @@ export const testRuns = pgTable(
     }),
     recordingSteps: jsonb().$type<ExecutionStep[]>(),
     authenticationVerification: boolean().notNull().default(false),
-    targetSnapshot: jsonb().$type<TestTarget>(),
+    targetSnapshot: jsonb().$type<TestTarget>().notNull(),
     environmentSnapshot: jsonb().$type<Record<string, unknown>>(),
     replayEnvironmentSnapshot: jsonb().$type<Record<string, unknown>>(),
     capabilities: jsonb().$type<CapabilitySet>(),
     evidenceComplete: boolean().notNull().default(true),
     sourceRunId: uuid().references((): AnyPgColumn => testRuns.id, { onDelete: 'set null' }),
     name: text().notNull(),
-    url: text().notNull(),
     goal: text().notNull(),
     mode: text({ enum: ['record', 'replay'] })
       .notNull()

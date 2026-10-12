@@ -4,7 +4,7 @@ import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases } from '@testdog/server/db/schema';
-import { defaultWebTarget, legacyWebTarget } from '@testdog/contracts/automation/platform/target';
+import { defaultWebTarget, targetUrl } from '@testdog/contracts/automation/platform/target';
 import { testSchema, testValidationMessage } from '@testdog/contracts/test-cases/schemas';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 
@@ -16,16 +16,17 @@ export async function getTest(id: string, userId: UserScope) {
 
   if (!test) throw new WorkspaceError('用例不存在。', 404);
 
-  return { ...test, target: test.target ?? legacyWebTarget(test.url) };
+  return { ...test, url: targetUrl(test.target) };
 }
 
 export async function saveTest(raw: unknown, id?: string, userId: UserScope = null) {
   const parsed = testSchema.safeParse(raw);
 
   if (!parsed.success) throw new WorkspaceError(testValidationMessage(parsed.error));
+  const { url, ...values } = parsed.data;
   const input = {
-    ...parsed.data,
-    target: parsed.data.target ?? defaultWebTarget(parsed.data.url),
+    ...values,
+    target: parsed.data.target ?? defaultWebTarget(url),
   };
 
   return db.transaction(async (tx) => {
@@ -62,7 +63,7 @@ export async function saveTest(raw: unknown, id?: string, userId: UserScope = nu
 
     if (!test) throw new WorkspaceError('用例不存在。', 404);
 
-    return test;
+    return { ...test, url: targetUrl(test.target) };
   });
 }
 

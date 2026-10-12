@@ -15,7 +15,7 @@ import { NativeActionPlanner } from '@testdog/automation/platform/native/nativeP
 import { PlaywrightSession } from '@testdog/automation/platform/web/playwrightSession';
 import { WebActionPlanner } from '@testdog/automation/platform/web/webPlanner';
 import { resolveWebProfile } from '@testdog/automation/platform/web/mobile';
-import { legacyWebTarget, targetUrl } from '@testdog/contracts/automation/platform/target';
+import { targetUrl } from '@testdog/contracts/automation/platform/target';
 import { DeviceRecorder } from '@testdog/server/runs/deviceRecorder';
 import { RunRecorder } from '@testdog/server/runs/recorder';
 import { PersistenceQueue } from '@testdog/server/runs/persistenceQueue';
@@ -58,7 +58,7 @@ export async function openPlatformRuntime(input: {
 }): Promise<PlatformRuntime> {
   const { run, expectedEnvironment, resource, signal } = input;
   const model = input.model ?? modelClient;
-  const target = run.targetSnapshot ?? legacyWebTarget(run.url);
+  const target = run.targetSnapshot;
   const secrets = new SecretInputs(run.authenticationVerification ? {} : target.inputs);
 
   if (target.platform !== 'web') {

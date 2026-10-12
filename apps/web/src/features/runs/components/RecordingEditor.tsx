@@ -25,7 +25,7 @@ import { recordingCodeSchema, recordingInputMessage } from '@testdog/contracts/r
 export function RecordingEditor({ run }: { run: TestRun }) {
   const router = useRouter();
   const submit = useRunSubmission();
-  const platform = run.targetSnapshot?.platform ?? 'web';
+  const platform = run.targetSnapshot.platform;
   const original = useMemo(
     () =>
       platform === 'web'

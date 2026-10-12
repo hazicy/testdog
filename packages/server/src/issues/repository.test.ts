@@ -1,3 +1,4 @@
+import { defaultWebTarget, targetUrl } from '@testdog/contracts/automation/platform/target';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeEach, expect, it, vi } from 'vitest';
 
@@ -69,7 +70,7 @@ async function fixture(userId = 'alice') {
       userId,
       name: '订单',
       goal: '确认金额',
-      url: 'https://example.com',
+      target: defaultWebTarget('https://example.com'),
       plan: {
         rootId: 'amount',
         nodes: {
@@ -93,7 +94,7 @@ async function fixture(userId = 'alice') {
       testId: test.id,
       name: test.name,
       goal: test.goal,
-      url: test.url,
+      targetSnapshot: test.target,
       plan: test.plan,
       status: 'failed',
     })
@@ -111,7 +112,7 @@ async function fixture(userId = 'alice') {
       status: 'failed',
       startedAt: run.startedAt,
       pageId: 'page',
-      pageUrl: run.url,
+      pageUrl: targetUrl(run.targetSnapshot),
       error: '实际为120',
     })
     .returning();
@@ -123,7 +124,7 @@ async function fixture(userId = 'alice') {
     kind: 'screenshot',
     stage: 'after',
     pageId: 'page',
-    pageUrl: run.url,
+    pageUrl: targetUrl(run.targetSnapshot),
     capturedAt: run.startedAt,
     elapsedMs: 1000,
     path: '/private/evidence.png',
@@ -191,10 +192,7 @@ it.each(['web', 'ios'] as const)(
             resetPolicy: 'preserve' as const,
           };
 
-    await db
-      .update(testRuns)
-      .set({ targetSnapshot: target, url: 'https://stale.example.com' })
-      .where(eq(testRuns.id, source.run.id));
+    await db.update(testRuns).set({ targetSnapshot: target }).where(eq(testRuns.id, source.run.id));
     const issue = await fromFixture(source);
 
     expect((await getIssue(issue.id, 'alice')).occurrences[0].snapshot.url).toBe(
@@ -374,7 +372,7 @@ it('automatically creates an issue with evidence, deduplicates repeated calls an
       testId: source.test.id,
       name: source.run.name,
       goal: source.run.goal,
-      url: source.run.url,
+      targetSnapshot: source.run.targetSnapshot,
       status: 'failed',
     })
     .returning();
@@ -430,7 +428,7 @@ it('ignores successful and cancelled runs, creates execution failures, and respe
       testId: source.test.id,
       name: source.run.name,
       goal: source.run.goal,
-      url: source.run.url,
+      targetSnapshot: source.run.targetSnapshot,
       status: 'failed',
     })
     .returning();
@@ -450,7 +448,13 @@ it('ignores successful and cancelled runs, creates execution failures, and respe
       userId: 'alice',
       name: '设备启动',
       goal: '启动应用',
-      url: '',
+      targetSnapshot: {
+        schemaVersion: 1,
+        platform: 'ios',
+        appId: 'com.example.app',
+        deviceProfileId: 'phone',
+        resetPolicy: 'preserve',
+      },
       status: 'failed',
       error: '设备不可用',
     })

@@ -23,12 +23,14 @@ export const runRequestSchema = z.union([
     recordingVersionId: z.uuid().optional(),
     target: TestTargetSchema.optional(),
   }),
-  z.strictObject({
-    mode: z.literal('record').default('record'),
-    case: z.string().trim().min(1).max(20000),
-    url: HttpUrlSchema.optional(),
-    target: TestTargetSchema.optional(),
-  }),
+  z
+    .strictObject({
+      mode: z.literal('record').default('record'),
+      case: z.string().trim().min(1).max(20000),
+      url: HttpUrlSchema.optional(),
+      target: TestTargetSchema.optional(),
+    })
+    .refine((input) => input.target || input.url, '请提供测试目标'),
 ]);
 export type RunRequest = z.input<typeof runRequestSchema>;
 export const recordingCodeSchema = z.string().min(1).max(100000);

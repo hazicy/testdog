@@ -1,3 +1,4 @@
+import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
 import { chmod, copyFile, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -70,6 +71,7 @@ async function fixture() {
   const run: TestRun = {
     id: randomUUID(),
     name: 'Recording',
+    targetSnapshot: defaultWebTarget(page.url()),
     url: page.url(),
     goal: 'Check',
     mode: 'record',

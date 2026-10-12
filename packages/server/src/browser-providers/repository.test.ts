@@ -1,3 +1,4 @@
+import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isolated = vi.hoisted(() => ({
@@ -105,7 +106,7 @@ describe('browser provider configuration', () => {
         userId: 'alice',
         name: 'run',
         goal: 'test',
-        url: 'https://example.com',
+        targetSnapshot: defaultWebTarget('https://example.com'),
         status: 'queued',
       })
       .returning();
