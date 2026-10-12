@@ -36,6 +36,45 @@ function errorMessage(error: unknown): string {
   return error.cause ? `${error.message}\n${errorMessage(error.cause)}` : error.message;
 }
 
+async function resolveRunPlan(run: TestRun, compiler: TextCompiler, signal: AbortSignal) {
+  const { recordingSteps, targetSnapshot } = run;
+
+  // Replay preserves the recorded plan. A recording snapshot without a plan
+  // uses a minimal task node rather than invoking the model again.
+  if (run.mode === 'replay' && run.plan) return run.plan;
+  if (run.mode !== 'replay' && run.plan)
+    return resolvePlanInputs(run.plan, targetSnapshot.inputs);
+  if (recordingSteps)
+    return {
+      rootId: 'recording',
+      nodes: {
+        recording: {
+          id: 'recording',
+          kind: 'task' as const,
+          goal: run.goal || '编辑录制',
+          dependsOn: [],
+          requirementIds: [],
+          assertions: [],
+        },
+      },
+    };
+
+  const compiled = await compiler.compile(
+    {
+      goal: run.goal,
+      url: targetUrl(targetSnapshot) || undefined,
+      context: {
+        platform: targetSnapshot.platform,
+        ...(targetSnapshot.platform !== 'web' ? { appId: targetSnapshot.appId } : {}),
+        inputs: targetSnapshot.inputs,
+      },
+    },
+    signal,
+  );
+
+  return resolvePlanInputs(compiled, targetSnapshot.inputs);
+}
+
 export async function executeRun(
   run: TestRun,
   resource?: { deviceId: string | null; metadata: Record<string, unknown> },
@@ -93,41 +132,7 @@ export async function executeRun(
     if (run.mode === 'replay' && !replaySteps?.length)
       throw new Error('重放缺少操作快照，请重新录制');
     const report = (message: string) => appendEvent(run.id, message);
-    const plan =
-      (run.mode === 'replay'
-        ? run.plan
-        : run.plan && resolvePlanInputs(run.plan, run.targetSnapshot.inputs)) ||
-      (replaySteps
-        ? {
-            rootId: 'recording',
-            nodes: {
-              recording: {
-                id: 'recording',
-                kind: 'task' as const,
-                goal: run.goal || '编辑录制',
-                dependsOn: [],
-                requirementIds: [],
-                assertions: [],
-              },
-            },
-          }
-        : resolvePlanInputs(
-            await new TextCompiler(model).compile(
-              {
-                goal: run.goal,
-                url: targetUrl(run.targetSnapshot) || undefined,
-                context: {
-                  platform: run.targetSnapshot.platform,
-                  ...(run.targetSnapshot.platform !== 'web'
-                    ? { appId: run.targetSnapshot.appId }
-                    : {}),
-                  inputs: run.targetSnapshot.inputs,
-                },
-              },
-              controller.signal,
-            ),
-            run.targetSnapshot.inputs,
-          ));
+    const plan = await resolveRunPlan(run, new TextCompiler(model), controller.signal);
 
     await savePlan(run.id, plan);
     await report(
