@@ -19,6 +19,7 @@ type Props = {
   onChange: (value: string) => void;
   placeholder: string;
   busy: boolean;
+  onCancel: () => void;
   error: string;
   submitLabel: string;
   onSubmit: () => void | Promise<void>;
@@ -34,6 +35,7 @@ export function CasePrompt({
   onChange,
   placeholder,
   busy,
+  onCancel,
   error,
   submitLabel,
   onSubmit,
@@ -62,8 +64,10 @@ export function CasePrompt({
       open={open}
       onOpenChange={(open, details) => {
         if (!open) {
-          if (busy) details.cancel();
-          else onOpenChange(false);
+          if (busy) {
+            details.cancel();
+            onCancel();
+          } else onOpenChange(false);
         }
       }}
     >
@@ -90,9 +94,8 @@ export function CasePrompt({
                   size: 'icon-sm',
                   className: 'rounded-lg text-ink',
                 })}
-                aria-label="关闭描述输入"
-                title="关闭（Esc）"
-                disabled={busy}
+                aria-label={busy ? '取消生成' : '关闭描述输入'}
+                title={busy ? '取消生成（Esc）' : '关闭（Esc）'}
               >
                 <Icon icon={closeIcon} width="18" aria-hidden="true" />
               </Dialog.Close>

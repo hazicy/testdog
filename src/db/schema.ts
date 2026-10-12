@@ -121,6 +121,7 @@ export const testRuns = pgTable(
     recordingSteps: jsonb().$type<ExecutionStep[]>(),
     targetSnapshot: jsonb().$type<TestTarget>(),
     environmentSnapshot: jsonb().$type<Record<string, unknown>>(),
+    replayEnvironmentSnapshot: jsonb().$type<Record<string, unknown>>(),
     capabilities: jsonb().$type<CapabilitySet>(),
     evidenceComplete: boolean().notNull().default(true),
     sourceRunId: uuid().references((): AnyPgColumn => testRuns.id, { onDelete: 'set null' }),

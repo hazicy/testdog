@@ -15,7 +15,7 @@ async function within<T>(operation: Promise<T>, timeoutMs: number, message: stri
   }
 }
 
-// Evidence deadlines do not prove a browser is unsafe. Give cleanup its own
+// Evidence deadlines do not prove a session is unsafe. Give cleanup its own
 // deadline, including when archival is still blocked on external persistence.
 export async function finalizeRuntime(runtime: PlatformRuntime, interrupted: boolean) {
   const failures: unknown[] = [];
@@ -26,14 +26,21 @@ export async function finalizeRuntime(runtime: PlatformRuntime, interrupted: boo
     failures.push(error);
   }
 
-  if (runtime.cleanup) {
-    try {
-      await within(runtime.cleanup(), 10000, '浏览器清理超过 10 秒上限，资源将保持隔离');
-    } catch (error) {
-      runtime.healthy = false;
-      failures.push(error);
-    }
+  try {
+    await cleanupRuntime(runtime);
+  } catch (error) {
+    failures.push(error);
   }
 
   if (failures.length) throw new AggregateError(failures, '归档或资源清理失败');
+}
+
+export async function cleanupRuntime(runtime: Pick<PlatformRuntime, 'cleanup' | 'healthy'>) {
+  if (!runtime.cleanup) return;
+  try {
+    await within(runtime.cleanup(), 10000, '执行会话清理超过 10 秒上限，资源将保持隔离');
+  } catch (error) {
+    runtime.healthy = false;
+    throw error;
+  }
 }

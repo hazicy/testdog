@@ -1,5 +1,5 @@
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
-import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, inArray, sql, type SQLWrapper } from 'drizzle-orm';
 import { db } from '@/db';
 import { testCases, testRuns } from '@/db/schema';
 import { legacyWebTarget } from '@/automation/platform/target';
@@ -25,7 +25,7 @@ const summaryColumns = {
   id: testRuns.id,
   testId: testRuns.testId,
   name: testRuns.name,
-  url: testRuns.url,
+  url: effectiveUrl(testRuns.targetSnapshot, testRuns.url),
   mode: testRuns.mode,
   status: testRuns.status,
   startedAt: testRuns.startedAt,
@@ -36,6 +36,12 @@ const summaryColumns = {
   replayable: testRuns.replayable,
   cancelRequested: testRuns.cancelRequested,
 };
+
+// Read historical rows by their target as well; old URL columns may be stale.
+function effectiveUrl(target: SQLWrapper, url: SQLWrapper) {
+  return sql<string>`case when ${target}->>'platform' = 'web' then coalesce(${target}->>'url', ${url}) when ${target} is not null then '' else ${url} end`;
+}
+
 const summary = (row: typeof testRuns.$inferSelect | Record<string, unknown>) =>
   Object.fromEntries(
     Object.entries(row).map(([key, value]) => [key, value ?? undefined]),
@@ -58,7 +64,7 @@ export async function listRunPage(
       and(
         ownedBy(testRuns.userId, userId),
         q
-          ? sql`concat_ws(' ', ${testRuns.name}, ${testRuns.url}) ilike ${searchPattern(q)}`
+          ? sql`concat_ws(' ', ${testRuns.name}, ${effectiveUrl(testRuns.targetSnapshot, testRuns.url)}) ilike ${searchPattern(q)}`
           : undefined,
         status !== 'all' ? eq(testRuns.status, status as RunSummary['status']) : undefined,
         cursor
@@ -85,13 +91,13 @@ export async function listTestPage(
   // The latest execution is independent of the execution-list page.
   const latestStatus = sql`(select r.status from test_runs r where r."testId" = ${testCases.id} and r."userId" is not distinct from ${userId}::text order by r."startedAt" desc, r.id desc limit 1)`;
   const rows = await db
-    .select(getTableColumns(testCases))
+    .select({ ...getTableColumns(testCases), url: effectiveUrl(testCases.target, testCases.url) })
     .from(testCases)
     .where(
       and(
         ownedBy(testCases.userId, userId),
         q
-          ? sql`concat_ws(' ', ${testCases.name}, ${testCases.url}, ${testCases.tags}::text, ${testCases.target}->>'appId', ${testCases.target}->>'platform') ilike ${searchPattern(q)}`
+          ? sql`concat_ws(' ', ${testCases.name}, ${effectiveUrl(testCases.target, testCases.url)}, ${testCases.tags}::text, ${testCases.target}->>'appId', ${testCases.target}->>'platform') ilike ${searchPattern(q)}`
           : undefined,
         status === 'none'
           ? sql`${latestStatus} is null`

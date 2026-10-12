@@ -1,11 +1,18 @@
 import { createIssuesForFailedRun } from '@/server/issues/repository';
+import { validateInputReferences } from '@/automation/compiler/executionPlan';
 import type { Plan } from '@/automation/compiler/schema';
 import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { storeArtifactFile } from './artifactStorage';
 import { isDeepStrictEqual } from 'node:util';
 import { runWrite, leaseScope } from '@/server/scheduling/lease';
 import { activeRunStatuses, isActiveRun } from '@/features/runs/types';
-import { legacyWebTarget, type TestTarget } from '@/automation/platform/target';
+import {
+  defaultWebTarget,
+  executionTarget,
+  legacyWebTarget,
+  targetUrl,
+  type TestTarget,
+} from '@/automation/platform/target';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
@@ -39,10 +46,11 @@ export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
     recordingSteps: optional(row.recordingSteps),
     targetSnapshot: row.targetSnapshot ?? legacyWebTarget(row.url),
     environmentSnapshot: optional(row.environmentSnapshot),
+    replayEnvironmentSnapshot: optional(row.replayEnvironmentSnapshot),
     capabilities: optional(row.capabilities),
     evidenceComplete: row.evidenceComplete,
     name: row.name,
-    url: row.url,
+    url: row.targetSnapshot ? targetUrl(row.targetSnapshot) : row.url,
     goal: row.goal,
     mode: row.mode,
     status: row.status,
@@ -193,6 +201,7 @@ export async function createRun(
       sourceRunId?: string;
       recordingVersionId?: string;
       recordingSteps?: ExecutionStep[];
+      replayEnvironmentSnapshot?: Record<string, unknown> | null;
       mode: 'record' | 'replay';
     };
 
@@ -202,7 +211,7 @@ export async function createRun(
         goal: input.draft.goal,
         plan: input.draft.plan,
         targetSnapshot: input.draft.target,
-        url: input.draft.target.platform === 'web' ? input.draft.target.url : '',
+        url: targetUrl(input.draft.target),
         mode: 'record',
       };
     } else if (input.mode === 'replay') {
@@ -242,12 +251,22 @@ export async function createRun(
         targetSnapshot: source.targetSnapshot ?? legacyWebTarget(source.url),
         testId: optional(source.testId),
         name: source.name,
-        url: source.url,
+        url: source.targetSnapshot ? targetUrl(source.targetSnapshot) : source.url,
         goal: source.goal,
         mode: 'replay',
         sourceRunId: source.id,
         recordingVersionId: version?.id,
-        recordingSteps: version?.steps,
+        plan: source.plan,
+        replayEnvironmentSnapshot: source.environmentSnapshot,
+        recordingSteps:
+          version?.steps ??
+          (
+            await tx
+              .select()
+              .from(runSteps)
+              .where(eq(runSteps.runId, source.id))
+              .orderBy(asc(runSteps.sequence))
+          ).map(stepRecord),
       };
     } else if (input.testId) {
       const [test] = await tx
@@ -256,33 +275,36 @@ export async function createRun(
         .where(and(eq(testCases.id, input.testId), ownedBy(testCases.userId, userId)));
 
       if (!test) throw new WorkspaceError('用例不存在。', 404);
+      const target = executionTarget(test.target ?? legacyWebTarget(test.url), input.target);
+
       snapshot = {
-        targetSnapshot: input.target ?? test.target ?? legacyWebTarget(test.url),
+        targetSnapshot: target,
         testId: test.id,
         name: test.name,
-        url: input.target?.platform === 'web' ? input.target.url : input.target ? '' : test.url,
+        url: targetUrl(target),
         goal: input.goalOverride ?? test.goal,
         plan: input.goalOverride ? undefined : test.plan,
         mode: 'record',
       };
     } else {
+      const target =
+        input.target ?? (input.url ? defaultWebTarget(input.url) : legacyWebTarget(''));
+
       snapshot = {
-        targetSnapshot:
-          input.target ??
-          (input.url
-            ? {
-                schemaVersion: 1,
-                platform: 'web',
-                url: input.url,
-                browser: 'chromium',
-                deviceProfile: 'Pixel 7',
-              }
-            : legacyWebTarget('')),
+        targetSnapshot: target,
         name: '临时测试',
-        url: input.target?.platform === 'web' ? input.target.url : input.url || '',
+        url: targetUrl(target),
         goal: input.case || '',
         mode: 'record',
       };
+    }
+
+    if (snapshot.mode === 'record') {
+      try {
+        validateInputReferences(snapshot.goal, snapshot.plan, snapshot.targetSnapshot?.inputs);
+      } catch (error) {
+        throw new WorkspaceError(error instanceof Error ? error.message : String(error));
+      }
     }
 
     const [run] = await tx
@@ -353,7 +375,11 @@ export async function requestCancellation(id: string, userId?: UserScope) {
       .set({
         cancelRequested: true,
         ...(run.status === 'queued'
-          ? { status: 'cancelled' as const, finishedAt: new Date().toISOString() }
+          ? {
+              status: 'cancelled' as const,
+              errorCode: 'CANCELLED',
+              finishedAt: new Date().toISOString(),
+            }
           : {}),
       })
       .where(eq(testRuns.id, id));
@@ -365,6 +391,7 @@ export async function finishRun(
   status: TestRun['status'],
   startedAt: string,
   error?: string,
+  completion?: { evidenceComplete: boolean; errorCode: string | null },
 ) {
   return runWrite(id, async (tx) => {
     const steps = await tx
@@ -394,7 +421,9 @@ export async function finishRun(
         finishedAt,
         durationMs: Date.parse(finishedAt) - Date.parse(startedAt),
         error,
-        replayable: sql`not ${testRuns.cancelRequested} and ${status === 'passed' && run?.complete && compatible && steps.length > 0 && steps.every((step) => step.replayable && step.status === 'passed')}`,
+        ...(completion ? { evidenceComplete: completion.evidenceComplete } : {}),
+        errorCode: sql`case when ${testRuns.cancelRequested} or ${status === 'cancelled'} then 'CANCELLED' else ${completion ? completion.errorCode : testRuns.errorCode} end`,
+        replayable: sql`not ${testRuns.cancelRequested} and ${status === 'passed' && (completion?.evidenceComplete ?? run?.complete) && compatible && steps.length > 0 && steps.every((step) => step.replayable && step.status === 'passed')}`,
       })
       .where(and(eq(testRuns.id, id), inArray(testRuns.status, activeRunStatuses)));
     await tx

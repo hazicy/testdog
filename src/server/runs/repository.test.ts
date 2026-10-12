@@ -21,6 +21,7 @@ import {
   appendEvent as appendClaimedEvent,
   insertArtifact as insertClaimedArtifact,
   appendBrowserLogs,
+  finishRun as completeClaimedRun,
 } from './repository';
 import {
   finishRun as finishClaimedRun,
@@ -470,6 +471,56 @@ it('snapshots an authored tree and clears it for a text goal override', async ()
   expect(overridden.plan).toBeUndefined();
 });
 
+it('uses the validated target URL for new cases and native temporary runs', async () => {
+  const saved = await saveTest({ ...input, url: '  https://example.com/trimmed  ' });
+
+  expect(saved.url).toBe('https://example.com/trimmed');
+  expect(saved.target).toMatchObject({ url: saved.url, deviceProfile: 'Pixel 7' });
+  const native = await createQueuedRun({
+    case: 'Open app',
+    url: input.url,
+    target: {
+      platform: 'ios',
+      appId: 'com.example.app',
+      deviceProfileId: 'phone',
+    },
+  });
+
+  expect(native.url).toBe('');
+  expect(native.targetSnapshot?.platform).toBe('ios');
+});
+
+it('rejects missing inputs before saving cases or queuing target overrides', async () => {
+  const goal = 'Fill ${input.name}';
+
+  await expect(saveTest({ ...input, goal })).rejects.toThrow('缺少输入引用：name');
+  const saved = await saveTest({
+    ...input,
+    goal,
+    target: {
+      schemaVersion: 1,
+      platform: 'web',
+      url: input.url,
+      browser: 'chromium',
+      deviceProfile: 'Pixel 7',
+      inputs: { name: { value: 'Ada' } },
+    },
+  });
+
+  await expect(
+    createQueuedRun({
+      testId: saved.id,
+      goalOverride: 'Fill ${input.missing}',
+      target: {
+        platform: 'android',
+        appId: 'com.example.app',
+        deviceProfileId: 'phone',
+      },
+    }),
+  ).rejects.toThrow('缺少输入引用：missing');
+  expect(await listRuns()).toHaveLength(0);
+});
+
 it('commits an automatic issue when a failed run is finalized', async () => {
   const { issues, issueOccurrences } = await import('@/db/schema');
   const { db } = await import('@/db');
@@ -494,4 +545,125 @@ it('commits an automatic issue when a failed run is finalized', async () => {
   const [issue] = await db.select().from(issues).where(eq(issues.id, occurrence.issueId));
 
   expect(issue).toMatchObject({ title: '金额为100', category: 'product', status: 'open' });
+});
+
+it('inherits common inputs and freezes per-platform overrides without modifying the case', async () => {
+  const target = {
+    schemaVersion: 1 as const,
+    platform: 'web' as const,
+    url: input.url,
+    browser: 'chromium' as const,
+    deviceProfile: 'Pixel 7' as const,
+    inputs: { name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } },
+  };
+  const saved = await saveTest({
+    ...input,
+    target,
+    goal: 'Fill ${input.name} and ${input.password}',
+  });
+  const first = await createQueuedRun({
+    testId: saved.id,
+    target: {
+      platform: 'ios',
+      appId: 'com.example.app',
+      deviceProfileId: 'phone',
+      inputs: { name: { value: 'Grace' } },
+    },
+  });
+  const second = await createQueuedRun({
+    testId: saved.id,
+    target: {
+      platform: 'android',
+      appId: 'com.example.app',
+      deviceProfileId: 'phone',
+    },
+  });
+
+  expect(first.url).toBe('');
+  expect(first.targetSnapshot?.inputs).toEqual({
+    name: { value: 'Grace' },
+    password: { secretRef: 'PASSWORD' },
+  });
+  expect(second.targetSnapshot?.inputs).toEqual(target.inputs);
+  await saveTest(
+    {
+      ...input,
+      target: {
+        ...target,
+        inputs: { name: { value: 'Changed' }, password: { secretRef: 'UPDATED' } },
+      },
+    },
+    saved.id,
+  );
+  expect((await getRun(first.id)).targetSnapshot?.inputs).toEqual(first.targetSnapshot?.inputs);
+  expect((await getRun(second.id)).targetSnapshot?.inputs).toEqual(target.inputs);
+});
+
+it('commits cancellation, evidence completeness and error code together at finalization', async () => {
+  const run = await createRun({ case: 'Cancel while archiving', url: input.url });
+
+  await requestCancellation(run.id);
+  await withLease(testLeases.get(run.id)!, () =>
+    completeClaimedRun(run.id, 'failed', run.startedAt, 'archive failed', {
+      evidenceComplete: false,
+      errorCode: 'FINALIZATION_FAILED',
+    }),
+  );
+  expect(await getRun(run.id)).toMatchObject({
+    status: 'cancelled',
+    errorCode: 'CANCELLED',
+    evidenceComplete: false,
+    replayable: false,
+  });
+});
+
+it('freezes the replay plan and ordered steps when submitted', async () => {
+  const plan = {
+    rootId: 'task',
+    nodes: {
+      task: {
+        id: 'task',
+        kind: 'task' as const,
+        goal: '原计划',
+        dependsOn: [],
+        requirementIds: [],
+        assertions: [],
+      },
+    },
+  };
+  const saved = await saveTest({ ...input, plan });
+  const source = await createRun({ testId: saved.id });
+  const step = { ...pendingStep(source.id), status: 'passed' as const };
+
+  await insertStep(step);
+  await finishRun(source.id, 'passed');
+  await isolated.client!.query('UPDATE test_runs SET "environmentSnapshot" = $1 WHERE id = $2', [
+    JSON.stringify({ browserVersion: 'recorded-version' }),
+    source.id,
+  ]);
+  const recorded = await getRun(source.id);
+  const replay = await createQueuedRun({ mode: 'replay', sourceRunId: source.id });
+
+  expect(replay.plan).toEqual(recorded.plan);
+  expect(replay.recordingSteps).toEqual(recorded.steps);
+  expect(replay.replayEnvironmentSnapshot).toEqual(recorded.environmentSnapshot);
+  await isolated.client!.query(
+    'UPDATE test_runs SET plan = NULL, "environmentSnapshot" = NULL WHERE id = $1',
+    [source.id],
+  );
+  await isolated.client!.query('UPDATE run_steps SET title = $1 WHERE "runId" = $2', [
+    '修改后的动作',
+    source.id,
+  ]);
+  const frozen = await getRun(replay.id);
+
+  expect(frozen.plan).toEqual(plan);
+  expect(frozen.recordingSteps).toEqual(recorded.steps);
+  expect(frozen.replayEnvironmentSnapshot).toEqual(recorded.environmentSnapshot);
+  await isolated.client!.query('DELETE FROM test_runs WHERE id = $1', [source.id]);
+  const detached = await getRun(replay.id);
+
+  expect(detached.sourceRunId).toBeUndefined();
+  expect(detached.replayEnvironmentSnapshot).toEqual({ browserVersion: 'recorded-version' });
+  expect(detached.recordingSteps).toEqual(recorded.steps);
 });

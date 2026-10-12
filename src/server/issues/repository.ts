@@ -23,6 +23,7 @@ import {
 import { closeReasons, issueStatuses, type OccurrenceSnapshot } from '@/features/issues/types';
 import { verificationResult } from '@/features/issues/lib/verification';
 import { isActiveRun } from '@/features/runs/types';
+import { targetUrl } from '@/automation/platform/target';
 import type { z } from 'zod';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -79,7 +80,7 @@ async function sourceSnapshot(tx: Tx, input: z.infer<typeof occurrenceInput>, us
   const snapshot: OccurrenceSnapshot = {
     name: run.name,
     goal: run.goal,
-    url: run.url,
+    url: run.targetSnapshot ? targetUrl(run.targetSnapshot) : run.url,
     testId: run.testId ?? undefined,
     target: run.targetSnapshot ?? undefined,
     environment: run.environmentSnapshot ?? undefined,

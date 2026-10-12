@@ -3,7 +3,7 @@ import { listTestPage } from '@/server/workspace/queries';
 import { readPage } from '@/server/shared/pagination';
 import { NextResponse } from 'next/server';
 import { saveTest } from '@/server/test-cases/repository';
-import { testSchema, testInputMessage } from '@/features/test-cases/schemas';
+import { testSchema, testValidationMessage } from '@/features/test-cases/schemas';
 import { apiError } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
@@ -21,7 +21,8 @@ export async function POST(request: Request) {
     const userId = await requireUserId(request);
     const parsed = testSchema.safeParse(await request.json().catch(() => null));
 
-    if (!parsed.success) return NextResponse.json({ message: testInputMessage }, { status: 400 });
+    if (!parsed.success)
+      return NextResponse.json({ message: testValidationMessage(parsed.error) }, { status: 400 });
 
     return NextResponse.json(
       { test: await saveTest(parsed.data, undefined, userId) },

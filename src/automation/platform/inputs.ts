@@ -11,11 +11,17 @@ export const InputRefsSchema = z
   .refine((inputs) => Object.keys(inputs).length <= 50, 'Too many inputs');
 export type InputRefs = z.infer<typeof InputRefsSchema>;
 
+export class InputReferenceError extends Error {
+  constructor(public key: string) {
+    super(`缺少输入引用：${key}`);
+  }
+}
+
 export function inputGoal(goal: string, inputs: InputRefs = {}) {
   return goal.replace(/\$\{input\.([A-Za-z][A-Za-z0-9_]*)\}/g, (_match, key: string) => {
     const input = inputs[key];
 
-    if (!input) throw new Error(`Missing input reference: ${key}`);
+    if (!Object.hasOwn(inputs, key)) throw new InputReferenceError(key);
 
     return 'value' in input ? input.value : `\$\{secret:${input.secretRef}\}`;
   });

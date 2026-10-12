@@ -1,14 +1,18 @@
 import { InputRefsSchema } from './inputs';
 import { z } from 'zod';
 
-const httpUrl = z.url().refine((value) => /^https?:\/\//.test(value), '须为 HTTP(S) 地址');
+export const HttpUrlSchema = z
+  .string()
+  .trim()
+  .pipe(z.url())
+  .refine((value) => /^https?:\/\//i.test(value), '网站地址必须使用 http 或 https');
 
 export const WebTargetSchema = z
   .strictObject({
     schemaVersion: z.literal(1).default(1),
     platform: z.literal('web'),
     inputs: InputRefsSchema.optional(),
-    url: httpUrl,
+    url: HttpUrlSchema,
     browser: z.enum(['chromium', 'webkit']).default('chromium'),
     deviceProfile: z.enum(['Pixel 7', 'iPhone 13', 'legacy-desktop']).default('Pixel 7'),
     locale: z.string().min(1).optional(),
@@ -48,6 +52,21 @@ export const TestTargetSchema = z.discriminatedUnion('platform', [
 export type TestTarget = z.infer<typeof TestTargetSchema>;
 export type WebTarget = Extract<TestTarget, { platform: 'web' }>;
 export type NativeTarget = Exclude<TestTarget, WebTarget>;
+
+export function targetUrl(target: TestTarget): string {
+  return target.platform === 'web' ? target.url : '';
+}
+
+export function defaultWebTarget(url: string): WebTarget {
+  return WebTargetSchema.parse({ platform: 'web', url });
+}
+
+export function executionTarget(base: TestTarget, override?: TestTarget): TestTarget {
+  if (!override) return base;
+  if (!base.inputs && !override.inputs) return override;
+
+  return { ...override, inputs: { ...base.inputs, ...override.inputs } };
+}
 
 export function legacyWebTarget(url: string): WebTarget {
   return {

@@ -1,14 +1,18 @@
 import { api } from '@/client/api';
-import type { Plan } from '@/automation/compiler/schema';
+import { CompileRequestSchema, type CompileRequest } from '@/automation/compiler/request';
+import { ExecutablePlanSchema, type Plan } from '@/automation/compiler/schema';
 
-export async function compilePlan(goal: string, url?: string, currentPlan?: Plan): Promise<Plan> {
+export async function compilePlan(input: CompileRequest, signal?: AbortSignal): Promise<Plan> {
   const { plan } = await api
     .post('/api/tests/compile', {
-      json: { goal, ...(url ? { url } : {}), ...(currentPlan ? { currentPlan } : {}) },
+      json: CompileRequestSchema.parse(input),
+      signal,
       timeout: 100000,
       totalTimeout: 100000,
     })
     .json<{ plan: Plan }>();
 
-  return plan;
+  signal?.throwIfAborted();
+
+  return ExecutablePlanSchema.parse(plan);
 }

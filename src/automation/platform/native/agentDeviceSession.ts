@@ -28,7 +28,7 @@ export class AgentDeviceSession implements AutomationSession {
   private refsGeneration?: number;
   private nodes: SnapshotNode[] = [];
   private viewport?: { width: number; height: number };
-  private closed = false;
+  private closing?: Promise<void>;
   private secrets: SecretInputs;
   private diagnostics: NativeDiagnostics;
   private constructor(
@@ -211,6 +211,7 @@ export class AgentDeviceSession implements AutomationSession {
     return this.generation;
   }
   async observe(signal: AbortSignal): Promise<Observation> {
+    this.assertOpen();
     const result = await this.client.capture.snapshot({
       signal,
       timeoutMs: this.generation === 0 ? 90000 : 15000,
@@ -279,12 +280,14 @@ export class AgentDeviceSession implements AutomationSession {
     return { action, replayable: false };
   }
   async prepareReplayStep(step: ReplayStep, signal: AbortSignal) {
+    this.assertOpen();
     signal.throwIfAborted();
     if (step.event.action && step.event.action.platform !== this.platform)
       throw new Error('Platform mismatch');
     // Native runs stay attached to their leased device and app; there are no browser tabs to select.
   }
   async perform(supplied: PlatformAction, signal: AbortSignal) {
+    this.assertOpen();
     if (supplied.platform !== this.platform) throw new Error('Platform mismatch');
     const action = NativeActionSchema.parse(supplied.action);
 
@@ -424,6 +427,7 @@ export class AgentDeviceSession implements AutomationSession {
     };
   }
   async capture(request: CaptureRequest, signal: AbortSignal): Promise<ArtifactDescriptor[]> {
+    this.assertOpen();
     if (request.kind === 'snapshot')
       return [
         {
@@ -466,6 +470,7 @@ export class AgentDeviceSession implements AutomationSession {
     return this.onEvent(event, this);
   }
   async screenshot(path: string, signal: AbortSignal) {
+    this.assertOpen();
     if (this.secrets.enabled) {
       if (!this.observation) await this.observe(signal);
       if (
@@ -478,24 +483,35 @@ export class AgentDeviceSession implements AutomationSession {
         throw new Error('App exposed a secret in a visible control; screenshot withheld');
     }
 
+    this.assertOpen();
+
     return this.client.capture.screenshot({ path, signal });
   }
   get safeToRelease() {
     return this.diagnostics.safeToRelease;
   }
-  async close() {
-    if (this.closed) return;
-    let failure: unknown;
+  private assertOpen() {
+    if (this.closing) throw new Error('Native session is closing or closed');
+  }
+  close() {
+    return (this.closing ??= this.closeSession());
+  }
+  private async closeSession() {
+    const failures: unknown[] = [];
 
     try {
       await this.diagnostics.stop(AbortSignal.timeout(20000));
     } catch (error) {
-      failure = error;
+      failures.push(error);
     }
 
-    await this.client.sessions.close({ signal: AbortSignal.timeout(30000) });
-    this.closed = true;
-    await this.diagnostics.cleanup();
-    if (failure) throw failure;
+    try {
+      await this.client.sessions.close({ signal: AbortSignal.timeout(30000) });
+      await this.diagnostics.cleanup();
+    } catch (error) {
+      failures.push(error);
+    }
+
+    if (failures.length) throw new AggregateError(failures, 'Native session cleanup failed');
   }
 }

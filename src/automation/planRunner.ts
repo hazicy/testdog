@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { PlanNode } from './compiler/schema';
+import { ExecutablePlanSchema, type PlanNode } from './compiler/schema';
 import {
   PlatformActionSchema,
   ObservationSchema,
@@ -31,6 +31,7 @@ export class PlanRunner {
     return observation;
   }
   async record(initial?: PlatformAction) {
+    this.options.plan = ExecutablePlanSchema.parse(this.options.plan);
     if (initial) await this.action(initial);
     await this.visit(this.options.plan.rootId, new Set(), new Set());
   }

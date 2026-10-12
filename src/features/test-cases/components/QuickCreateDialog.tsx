@@ -3,7 +3,7 @@
 import { useState, type RefObject } from 'react';
 import { CasePrompt } from './CasePrompt';
 import { useRouter } from 'next/navigation';
-import { compilePlan } from '../lib/compilePlan';
+import { usePlanCompilation } from '../lib/usePlanCompilation';
 import { caseName, editablePlan, goalUrl } from '../lib/authoring';
 import { writeCaseDraft } from '../lib/caseDraft';
 
@@ -16,16 +16,18 @@ export function QuickCreateDialog({
 }) {
   const router = useRouter();
   const [goal, setGoal] = useState('');
-  const [busy, setBusy] = useState(false);
+  const compilation = usePlanCompilation();
+  const { busy } = compilation;
   const [error, setError] = useState('');
 
   async function create() {
     if (busy || !goal.trim()) return;
-    setBusy(true);
     setError('');
     try {
       const url = goalUrl(goal);
-      const source = await compilePlan(goal.trim(), url);
+      const source = await compilation.compile({ goal: goal.trim(), url });
+
+      if (!source) return;
       const root = source.nodes[source.rootId];
       const name = caseName(root.kind === 'branch' ? goal : root.goal);
       const plan = editablePlan(source, name);
@@ -35,7 +37,6 @@ export function QuickCreateDialog({
       router.push(`/cases/editor/${id}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '生成失败，请重试');
-      setBusy(false);
     }
   }
 
@@ -51,6 +52,10 @@ export function QuickCreateDialog({
       onChange={setGoal}
       placeholder="描述测试步骤和预期结果，可附上网站地址…"
       busy={busy}
+      onCancel={() => {
+        compilation.cancel();
+        setError('已取消生成，描述已保留。');
+      }}
       error={error}
       submitLabel="生成"
       onSubmit={create}

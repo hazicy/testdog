@@ -29,6 +29,28 @@ beforeEach(async () => {
 afterAll(() => isolated.client!.close());
 const input = { name: 'Login', url: 'https://example.com', goal: 'Click login', tags: ['SMOKE'] };
 
+it('uses target URLs consistently in historical detail, summaries and search', async () => {
+  const native = await createRun({
+    case: 'Native snapshot',
+    target: {
+      platform: 'ios',
+      appId: 'com.example.app',
+      deviceProfileId: 'phone',
+    },
+  });
+  const web = await createRun({ case: 'Web snapshot', url: 'https://example.com/current' });
+
+  await db.update(testRuns).set({ url: 'https://stale.example.com' });
+  expect((await getRun(native.id)).url).toBe('');
+  expect((await getRun(web.id)).url).toBe('https://example.com/current');
+  const summaries = (await listRunPage(page())).runs;
+
+  expect(summaries.find((run) => run.id === native.id)?.url).toBe('');
+  expect(summaries.find((run) => run.id === web.id)?.url).toBe('https://example.com/current');
+  expect((await listRunPage(page('q=stale'))).runs).toHaveLength(0);
+  expect((await listRunPage(page('q=current'))).runs.map((run) => run.id)).toEqual([web.id]);
+});
+
 it('preserves microsecond cursor precision and does not duplicate or skip tied timestamps', async () => {
   const runs = await Promise.all(
     Array.from({ length: 4 }, (_, i) => createRun({ case: `Run ${i}`, url: input.url })),

@@ -133,7 +133,65 @@ beforeEach(async () => {
     };
   });
 });
-describe('recording and replay with real PostgreSQL and Chromium', () => {
+describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30000 }, () => {
+  it('fails a replay without recorded actions before compiling or opening the browser', async () => {
+    const run = await createRun({ case: 'Missing recording', url });
+
+    await mocks.client!.query('UPDATE test_runs SET mode = $1 WHERE id = $2', ['replay', run.id]);
+    await executeRun(await getRun(run.id));
+    const result = await getRun(run.id);
+
+    expect(result.status).toBe('failed');
+    expect(result.error).toContain('重放缺少操作快照');
+    expect(result.artifacts).toHaveLength(0);
+    expect(result.steps).toHaveLength(0);
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
+  it('compiles text with target context and resolves generated input references before execution', async () => {
+    const implementation = mocks.generate.getMockImplementation()!;
+
+    mocks.generate.mockImplementation(async (input) => {
+      const result = await implementation(input);
+
+      if (input.responseFormat?.name === 'plan') {
+        const task = result.structuredContent.nodes[0];
+
+        task.goal = 'Fill ${input.name} and submit';
+        task.assertions = [{ description: 'Welcome ${input.name} is visible' }];
+      }
+
+      return result;
+    });
+    const run = await createRun({
+      case: 'Fill ${input.name} and submit',
+      target: {
+        schemaVersion: 1,
+        platform: 'web',
+        url,
+        browser: 'chromium',
+        deviceProfile: 'Pixel 7',
+        inputs: { name: { value: 'Ada' } },
+      },
+    });
+
+    await executeRun(run);
+    const recorded = await getRun(run.id);
+
+    expect(recorded.status, recorded.error).toBe('passed');
+    expect(recorded.plan?.nodes.task).toMatchObject({
+      goal: 'Fill Ada and submit',
+      assertions: [{ description: 'Welcome Ada is visible' }],
+    });
+    const compile = mocks.generate.mock.calls.find(
+      ([input]) => input.responseFormat?.name === 'plan',
+    )!;
+
+    expect(JSON.parse(compile[0].messages[0].content.text)).toMatchObject({
+      goal: 'Fill ${input.name} and submit',
+      url,
+      context: { platform: 'web', inputs: { name: { value: 'Ada' } } },
+    });
+  });
   it('executes an authored tree with inputs without compiling its text again', async () => {
     const saved = await saveTest({
       name: 'Board case',
@@ -268,6 +326,19 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     expect(mocks.generate).toHaveBeenCalledTimes(1);
     expect(mocks.generate.mock.calls[0][0].responseFormat.name).toBe('assertion_result');
     expect(mocks.generate.mock.calls[0][0].messages[0].content.text).toContain('Welcome Ada');
+    const detached = await createRun({ mode: 'replay', sourceRunId: run.id });
+
+    await mocks.client!.query('DELETE FROM test_runs WHERE id = $1', [run.id]);
+    mocks.generate.mockClear();
+    await executeRun(await getRun(detached.id));
+    const detachedResult = await getRun(detached.id);
+
+    expect(detachedResult.status, detachedResult.error).toBe('passed');
+    expect(detachedResult.sourceRunId).toBeUndefined();
+    expect(detachedResult.steps).toHaveLength(5);
+    expect(detachedResult.replayEnvironmentSnapshot).toEqual(recorded.environmentSnapshot);
+    expect(mocks.generate).toHaveBeenCalledTimes(1);
+    expect(mocks.generate.mock.calls[0][0].responseFormat.name).toBe('assertion_result');
   }, 30000);
   it('preserves failed assertion evidence and its after screenshot', async () => {
     const implementation = mocks.generate.getMockImplementation()!;
@@ -453,12 +524,59 @@ describe('recording and replay with real PostgreSQL and Chromium', () => {
     const result = await getRun(run.id);
 
     expect(result.status).toBe('cancelled');
+    expect(result.errorCode).toBe('CANCELLED');
     expect(result.browserLogs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: 'console', message: 'browser console' }),
       ]),
     );
     expect(result.artifacts.some((item) => item.kind === 'video')).toBe(true);
+  });
+
+  it('retains the primary failure and redacts secrets in an additional archive error', async () => {
+    vi.stubEnv('CASEFORGE_SECRET_ARCHIVE', 'archive-secret-value');
+    const original = RunRecorder.prototype.stop;
+    const archive = vi.spyOn(RunRecorder.prototype, 'stop').mockImplementation(async function (
+      this: RunRecorder,
+      ...args
+    ) {
+      await original.apply(this, args);
+      throw new Error('archive failed: archive-secret-value');
+    });
+    const implementation = mocks.generate.getMockImplementation()!;
+
+    mocks.generate.mockImplementation(async (input) =>
+      input.responseFormat?.name === 'assertion_result'
+        ? { structuredContent: { passed: false, evidence: 'primary assertion failed' } }
+        : implementation(input),
+    );
+    try {
+      const run = await createRun({
+        case: 'Fail with archive error',
+        target: {
+          schemaVersion: 1,
+          platform: 'web',
+          url,
+          browser: 'chromium',
+          deviceProfile: 'Pixel 7',
+          inputs: { password: { secretRef: 'ARCHIVE' } },
+        },
+      });
+
+      await executeRun(run);
+      const result = await getRun(run.id);
+
+      expect(result).toMatchObject({
+        status: 'failed',
+        errorCode: 'EXECUTION_FAILED',
+        evidenceComplete: false,
+      });
+      expect(result.error).toContain('primary assertion failed');
+      expect(result.error).toContain('archive failed: [redacted]');
+      expect(result.error).not.toContain('archive-secret-value');
+    } finally {
+      archive.mockRestore();
+    }
   });
 
   it('stops before model or browser work when another worker owns the execution', async () => {

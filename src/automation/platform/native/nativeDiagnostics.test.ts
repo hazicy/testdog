@@ -70,3 +70,46 @@ it('rejects an exported file outside the exact capture directory', async () => {
     await rm(outside, { recursive: true, force: true });
   }
 });
+
+it('shares a pending video export with concurrent finalization', async () => {
+  let path = '';
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const record = vi.fn(async (options: { action: string; path?: string }) => {
+    if (options.action === 'start') {
+      path = options.path!;
+      await writeFile(path, 'owned video');
+
+      return { recording: 'started', outPath: path };
+    }
+
+    await pending;
+
+    return { recording: 'stopped', recorder: 'confirmed', outPath: path };
+  });
+  const diagnostics = new NativeDiagnostics(
+    { recording: { record } } as unknown as AgentDeviceClient,
+    'owned-session',
+    { video: true },
+  );
+  const signal = new AbortController().signal;
+
+  try {
+    await diagnostics.start(signal);
+    const capturing = diagnostics.capture({ kind: 'video' }, signal);
+    const stopping = diagnostics.stop(signal);
+
+    release();
+    const artifacts = await capturing;
+
+    await stopping;
+    expect(record.mock.calls.filter(([options]) => options.action === 'stop')).toHaveLength(1);
+    expect(artifacts[0].bytes.toString()).toBe('owned video');
+    expect(await diagnostics.capture({ kind: 'video' }, signal)).toEqual(artifacts);
+    expect(diagnostics.safeToRelease).toBe(true);
+  } finally {
+    await diagnostics.cleanup();
+  }
+});

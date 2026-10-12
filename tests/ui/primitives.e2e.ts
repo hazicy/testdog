@@ -168,6 +168,59 @@ test('native setup validates required selection and submits custom checkbox valu
   await expect(dialog).toHaveCount(0);
 });
 
+test('native text conversion includes application and inputs before selecting a device', async ({
+  page,
+}) => {
+  let submitted: Record<string, unknown> | undefined;
+
+  await page.route('**/api/tests/compile', (route) => {
+    submitted = route.request().postDataJSON();
+
+    return route.fulfill({
+      json: {
+        plan: {
+          rootId: 'check',
+          nodes: {
+            check: {
+              id: 'check',
+              kind: 'task',
+              actionType: 'assert',
+              goal: '显示 ${input.name}',
+              dependsOn: [],
+              requirementIds: [],
+              assertions: [{ description: '显示 ${input.name}' }],
+            },
+          },
+        },
+      },
+    });
+  });
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  const editor = page.locator('.case-canvas-page');
+
+  await openSettings(editor);
+  await editor.getByLabel('平台', { exact: true }).click();
+  await page.getByRole('option', { name: 'iOS · 原生应用', exact: true }).click();
+  await editor.getByLabel('应用标识', { exact: true }).fill('com.example.app');
+  await editor
+    .getByLabel('输入引用（JSON，可选）', { exact: true })
+    .fill(JSON.stringify({ name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } }));
+  await editor.getByRole('button', { name: '描述生成', exact: true }).click();
+  await page.getByLabel('测试步骤与预期结果').fill('验证显示 ${input.name}');
+  await page.getByRole('button', { name: '生成', exact: true }).click();
+  await page.getByRole('button', { name: '全部接受', exact: true }).click();
+  expect(submitted).toEqual({
+    goal: '验证显示 ${input.name}',
+    context: {
+      platform: 'ios',
+      appId: 'com.example.app',
+      inputs: { name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } },
+    },
+  });
+  await expect(editor.locator('[data-step-type=assert]')).toContainText('显示 ${input.name}');
+});
+
 test('example tabs navigate with arrow keys and expose the matching panel', async ({ page }) => {
   await page.goto('/');
   const tabs = page.getByRole('tablist', { name: '用例示例' });
@@ -188,7 +241,7 @@ test('example tabs navigate with arrow keys and expose the matching panel', asyn
   );
 });
 
-test('compact panel defaults closed and Run saves before submission without duplicating on retry', async ({
+test('compact panel defaults closed and Run retries the draft without saving the case', async ({
   page,
 }) => {
   const testId = '62534c46-a8eb-4991-993e-af6df14bece0';
@@ -228,7 +281,9 @@ test('compact panel defaults closed and Run saves before submission without dupl
   });
   await page.route(/\/api\/runs(?:\?.*)?$/, (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { runs: [] } });
-    expect(route.request().postDataJSON()).toEqual({ testId });
+    expect(route.request().postDataJSON()).toMatchObject({
+      draft: { name: '验证首页', target: { platform: 'web', url: 'https://example.com/' } },
+    });
     expect(route.request().headers()['idempotency-key']).toBeTruthy();
     attempts++;
 
@@ -238,6 +293,9 @@ test('compact panel defaults closed and Run saves before submission without dupl
         : { json: { run: { id: runId } } },
     );
   });
+  await page.route(`**/api/runs/${runId}`, (route) =>
+    route.fulfill({ status: 404, json: { message: '执行详情尚未就绪' } }),
+  );
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
   const panel = page.getByRole('complementary', { name: '测试面板' });
@@ -269,7 +327,7 @@ test('compact panel defaults closed and Run saves before submission without dupl
   await panel.getByRole('button', { name: '描述生成', exact: true }).click();
   await expect(page.getByLabel('测试步骤与预期结果')).toHaveAttribute(
     'placeholder',
-    '登录后，验证账号名称',
+    '描述测试步骤和预期结果，可附上网站地址…',
   );
   await expect(viewport).toHaveAttribute('style', transform!);
   expect(await canvas.boundingBox()).toEqual(bounds);
@@ -292,8 +350,9 @@ test('compact panel defaults closed and Run saves before submission without dupl
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('alert')).toHaveText('运行暂时失败');
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/runs/${runId}$`));
-  expect(writes).toEqual(['POST', 'PATCH']);
+  await expect(page.getByRole('dialog', { name: /草稿试跑/ })).toBeVisible();
+  expect(attempts).toBe(2);
+  expect(writes).toEqual([]);
 });
 
 test('reviews generated edits, additions and deletions individually before saving the mixed board', async ({
@@ -314,6 +373,10 @@ test('reviews generated edits, additions and deletions individually before savin
 
   await page.route('**/api/tests/compile', (route) => {
     generation++;
+    const request = route.request().postDataJSON();
+
+    expect(request.context).toEqual({ platform: 'web', inputs: {} });
+    if (generation === 2) expect(request.currentPlan.nodes).toHaveProperty('a');
     const tasks =
       generation === 1
         ? [task('a', '打开首页'), task('b', '点击登录')]

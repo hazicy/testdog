@@ -57,6 +57,41 @@ function session(reobserveAfterAction = true) {
   } satisfies AutomationSession;
 }
 
+it('rejects conditional dependency escapes before dispatching an initial action', async () => {
+  const driver = session();
+  const planner = { plan: vi.fn() };
+  const unsafe = {
+    rootId: 'root',
+    nodes: {
+      root: {
+        id: 'root',
+        kind: 'group' as const,
+        goal: '测试',
+        children: ['branch', 'after'],
+        dependsOn: [],
+      },
+      branch: {
+        id: 'branch',
+        kind: 'branch' as const,
+        condition: '条件',
+        then: 'task',
+        dependsOn: [],
+      },
+      task: plan.nodes.task,
+      after: { ...plan.nodes.task, id: 'after', dependsOn: ['task'] },
+    },
+  };
+
+  await expect(
+    new PlanRunner({ evaluator, session: driver, planner, signal, plan: unsafe }).record({
+      platform: 'ios',
+      action: { type: 'tap', target: { kind: 'identifier', value: 'submit' } },
+    }),
+  ).rejects.toThrow('请依赖分支节点');
+  expect(driver.perform).not.toHaveBeenCalled();
+  expect(planner.plan).not.toHaveBeenCalled();
+});
+
 it('never invokes action planning when replaying a deterministic platform check', async () => {
   const driver = session();
   const planner = {
@@ -225,7 +260,7 @@ it('uses an injected evaluator to select a branch and validate its semantic asse
       .mockResolvedValueOnce({ passed: true, evidence: 'Registration offered' }),
   };
   const planner = { plan: vi.fn<ActionPlanner['plan']>(async () => ({ done: true, steps: [] })) };
-  const assertion = { id: 'register', description: 'Registration offered' };
+  const assertion = { description: 'Registration offered' };
   const branchPlan = {
     rootId: 'branch',
     nodes: {

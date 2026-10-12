@@ -43,6 +43,49 @@ function client(
 }
 
 describe('native session invariants', () => {
+  it('shares an in-flight close between callers without closing the SDK session twice', async () => {
+    const sdk = client();
+    const session = await AgentDeviceSession.open(
+      'concurrent-close',
+      target,
+      'udid',
+      signal,
+      async () => {},
+      sdk as unknown as AgentDeviceClient,
+    );
+    let complete!: () => void;
+
+    sdk.sessions.close.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          complete = () => resolve({});
+        }),
+    );
+    const first = session.close();
+    const second = session.close();
+
+    expect(second).toBe(first);
+    await expect(session.observe(signal)).rejects.toThrow('closing or closed');
+    await expect(session.capture({ kind: 'snapshot' }, signal)).rejects.toThrow(
+      'closing or closed',
+    );
+    await expect(
+      session.perform(
+        {
+          platform: 'ios',
+          action: { type: 'tap', target: { kind: 'identifier', value: 'submit' } },
+        },
+        signal,
+      ),
+    ).rejects.toThrow('closing or closed');
+    expect(sdk.capture.snapshot).not.toHaveBeenCalled();
+    expect(sdk.interactions.press).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(sdk.sessions.close).toHaveBeenCalledOnce());
+    complete();
+    await Promise.all([first, second]);
+    await session.close();
+    expect(sdk.sessions.close).toHaveBeenCalledOnce();
+  });
   it('invalidates refs after a device command fails because the UI may have changed', async () => {
     const sdk = client();
     const session = await AgentDeviceSession.open(

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import type { TestCase } from '@/features/test-cases/types';
 import { api } from '@/client/api';
-import { compilePlan } from '../lib/compilePlan';
+import { usePlanCompilation } from '../lib/usePlanCompilation';
 import { Icon } from '@iconify/react/offline';
 import { PlanBoard } from '@/features/runs/components/PlanBoard';
 import type { NodeReview } from '@/features/runs/components/PlanNodes';
@@ -23,7 +23,12 @@ import { writeCaseDraft, type CaseDraft } from '../lib/caseDraft';
 import { CaseSettings } from './CaseSettings';
 import { CasePrompt } from './CasePrompt';
 import { TrialRunDialog } from './TrialRunDialog';
-import { initialCaseSettings, caseTarget, type CaseSettingsValue } from '../lib/caseSettings';
+import {
+  initialCaseSettings,
+  caseTarget,
+  parseCaseInputs,
+  type CaseSettingsValue,
+} from '../lib/caseSettings';
 import playIcon from '@iconify-icons/lucide/play';
 import saveIcon from '@iconify-icons/lucide/save';
 import { useRunSubmission } from '@/client/useRunSubmission';
@@ -51,11 +56,15 @@ export function TestEditor({
     initialDraft?.name ?? (test ? `${test.name}${duplicate ? '（副本）' : ''}` : caseName('')),
   );
   const nameChanged = useRef(!!test || (!!initialDraft && initialDraft.name !== caseName('')));
-  const [configuration, setConfiguration] = useState<CaseSettingsValue>(() => ({
-    ...initialCaseSettings(test),
-    ...initialDraft?.settings,
-    url: initialDraft?.url ?? test?.url ?? '',
-  }));
+  const [configuration, setConfiguration] = useState<CaseSettingsValue>(() => {
+    const settings = initialCaseSettings(test);
+
+    return {
+      ...settings,
+      ...initialDraft?.settings,
+      url: initialDraft?.url ?? settings.url,
+    };
+  });
   const { url, platform, webProfile, appId, deviceProfileId, inputRefs, tags } = configuration;
 
   function changeSettings(patch: Partial<CaseSettingsValue>) {
@@ -79,7 +88,8 @@ export function TestEditor({
   }>();
   const [previous, setPrevious] = useState<{ plan: Plan; name: string; url: string }>();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [compiling, setCompiling] = useState(false);
+  const compilation = usePlanCompilation();
+  const compiling = compilation.busy;
   const [saving, setSaving] = useState(false);
   const [trialId, setTrialId] = useState<string>();
   const [trialOpen, setTrialOpen] = useState(false);
@@ -116,11 +126,23 @@ export function TestEditor({
 
   async function compile() {
     if (editingLocked || !goal.trim()) return;
-    setCompiling(true);
     setFormError('');
     try {
       const startUrl = platform === 'web' ? url.trim() || goalUrl(goal) : undefined;
-      const source = await compilePlan(goal, startUrl, hasSteps ? plan : undefined);
+      const source = await compilation.compile({
+        goal,
+        url: startUrl,
+        currentPlan: hasSteps ? plan : undefined,
+        context: {
+          platform,
+          ...(platform !== 'web' && configuration.appId.trim()
+            ? { appId: configuration.appId.trim() }
+            : {}),
+          inputs: parseCaseInputs(configuration.inputRefs),
+        },
+      });
+
+      if (!source) return;
       const root = source.nodes[source.rootId];
       const title =
         !hasSteps && !nameChanged.current
@@ -142,8 +164,6 @@ export function TestEditor({
       setComposerOpen(false);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : '转换失败，请重试');
-    } finally {
-      setCompiling(false);
     }
   }
 
@@ -234,7 +254,7 @@ export function TestEditor({
     let inputs: unknown;
 
     try {
-      inputs = JSON.parse(inputRefs);
+      inputs = parseCaseInputs(inputRefs);
     } catch {
       setFormError('请在测试设置中填写有效的输入引用 JSON。');
       setSettingsOpen(true);
@@ -267,7 +287,10 @@ export function TestEditor({
               ? '设备配置'
               : '测试目标、输入引用和标签';
 
-      setFormError(`请在测试设置中检查${missing}。`);
+      setFormError(
+        parsed.error.issues.find((issue) => issue.code === 'custom')?.message ??
+          `请在测试设置中检查${missing}。`,
+      );
       setSettingsOpen(true);
       setComposerOpen(false);
 
@@ -473,6 +496,10 @@ export function TestEditor({
             : '描述测试步骤和预期结果，可附上网站地址…'
         }
         busy={busy}
+        onCancel={() => {
+          compilation.cancel();
+          setFormError('已取消生成，画板和描述已保留。');
+        }}
         error={formError}
         submitLabel={hasSteps ? '预览' : '生成'}
         onSubmit={compile}

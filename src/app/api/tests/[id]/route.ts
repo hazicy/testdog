@@ -1,7 +1,7 @@
 import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
 import { saveTest, deleteTest } from '@/server/test-cases/repository';
-import { testSchema, testInputMessage } from '@/features/test-cases/schemas';
+import { testSchema, testValidationMessage } from '@/features/test-cases/schemas';
 import { apiError, validId } from '@/server/shared/http';
 
 export const runtime = 'nodejs';
@@ -12,7 +12,8 @@ export async function PATCH(request: Request, context: Context) {
     const { id } = await context.params;
     const parsed = testSchema.safeParse(await request.json().catch(() => null));
 
-    if (!parsed.success) return NextResponse.json({ message: testInputMessage }, { status: 400 });
+    if (!parsed.success)
+      return NextResponse.json({ message: testValidationMessage(parsed.error) }, { status: 400 });
     validId(id);
 
     return NextResponse.json({

@@ -1,4 +1,13 @@
 import type { TestCase } from '../types';
+import { InputRefsSchema } from '@/automation/platform/inputs';
+
+export function parseCaseInputs(value: string) {
+  try {
+    return InputRefsSchema.parse(JSON.parse(value.trim() || '{}'));
+  } catch {
+    throw new Error('请在测试设置中填写有效的输入引用 JSON，使用 value 或 secretRef 定义输入。');
+  }
+}
 
 export type CaseSettingsValue = {
   url: string;
@@ -21,7 +30,7 @@ export function initialCaseSettings(test?: TestCase): CaseSettingsValue {
   const native = target && target.platform !== 'web' ? target : undefined;
 
   return {
-    url: test?.url ?? '',
+    url: target?.platform === 'web' ? target.url : (test?.url ?? ''),
     platform: target?.platform ?? 'web',
     webProfile:
       target?.platform === 'web' ? target.deviceProfile : test ? 'legacy-desktop' : 'Pixel 7',

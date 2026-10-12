@@ -37,7 +37,7 @@ it('keeps an unconfirmed browser cleanup quarantined and bounds its wait', async
   const rejected = expect(finishing).rejects.toMatchObject({
     errors: [
       expect.objectContaining({ message: 'evidence failed' }),
-      expect.objectContaining({ message: '浏览器清理超过 10 秒上限，资源将保持隔离' }),
+      expect.objectContaining({ message: '执行会话清理超过 10 秒上限，资源将保持隔离' }),
     ],
   });
 

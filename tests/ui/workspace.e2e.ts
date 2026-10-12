@@ -452,10 +452,10 @@ test('history loads and refreshes without depending on the case library', async 
   await expect(
     page.getByRole('table').getByRole('link', { name: saved.name, exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: '刷新', exact: true }).click();
+  await page.reload();
   await expect.poll(() => runReads).toBeGreaterThan(1);
   expect(caseReads).toBe(0);
-  await page.getByRole('link', { name: '前往测试', exact: true }).click();
+  await page.getByRole('link', { name: '测试用例', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: '用例库暂时不可用' })).toBeVisible();
   // SWR may revalidate on navigation; the library is requested only after opening it.
   expect(caseReads).toBeGreaterThanOrEqual(1);
@@ -592,6 +592,77 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   expect(payload).toEqual({ goal, url: 'https://example.com/' });
 });
 
+for (const mode of ['quick', 'canvas'] as const) {
+  test(`${mode} generation can be cancelled and retried without applying a late response`, async ({
+    page,
+  }) => {
+    await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
+      route.fulfill({ json: { tests: [], nextCursor: null } }),
+    );
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let requests = 0;
+
+    await page.route('**/api/tests/compile', async (route) => {
+      const first = ++requests === 1;
+
+      if (first) await pending;
+      await route
+        .fulfill({
+          json: {
+            plan: {
+              rootId: 'task',
+              nodes: {
+                task: {
+                  id: 'task',
+                  kind: 'task',
+                  goal: first ? '过期生成结果' : '当前生成结果',
+                  dependsOn: [],
+                  requirementIds: [],
+                  assertions: [],
+                },
+              },
+            },
+          },
+        })
+        .catch(() => {});
+    });
+    await page.goto('/cases');
+    if (mode === 'quick') await page.getByRole('button', { name: '快速创建', exact: true }).click();
+    else {
+      await page.getByRole('button', { name: '新建测试', exact: true }).click();
+      await page.getByRole('button', { name: '描述生成', exact: true }).click();
+    }
+
+    const prompt = page.getByRole('dialog');
+    const input = prompt.getByRole('textbox', { name: '测试步骤与预期结果' });
+    const goal = '打开 https://example.com 检查页面';
+
+    await input.fill(goal);
+    await prompt.getByRole('button', { name: '生成', exact: true }).click();
+    await expect(prompt.getByRole('button', { name: '取消生成', exact: true })).toBeEnabled();
+    await expect.poll(() => requests).toBe(1);
+    if (mode === 'quick') await page.keyboard.press('Escape');
+    else await prompt.getByRole('button', { name: '取消生成', exact: true }).click();
+    await expect(prompt).toBeVisible();
+    await expect(input).toBeEnabled();
+    await expect(input).toHaveValue(goal);
+    await expect(prompt.getByRole('alert')).toContainText('已取消生成');
+    await prompt.getByRole('button', { name: '生成', exact: true }).click();
+    await expect.poll(() => requests).toBe(2);
+    release();
+    await expect(page.getByRole('region', { name: '测试画板' })).toContainText('当前生成结果');
+    await expect(page.getByText('过期生成结果', { exact: true })).toHaveCount(0);
+    if (mode === 'canvas') {
+      await page.getByRole('button', { name: '全部拒绝', exact: true }).click();
+      await page.getByRole('button', { name: '描述生成', exact: true }).click();
+      await expect(input).toHaveValue(goal);
+    }
+  });
+}
+
 test('canvas trials run the draft without saving and reopen an active run', async ({ page }) => {
   const draftId = 'trial-draft';
   const plan: NonNullable<TestRun['plan']> = {
@@ -602,10 +673,10 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
         id: 'step',
         kind: 'task',
         actionType: 'assert',
-        goal: '验证未保存的修改',
+        goal: '验证未保存的修改：${input.name}',
         dependsOn: [],
         requirementIds: [],
-        assertions: [{ description: '修改生效' }],
+        assertions: [{ description: '修改 ${input.name} 生效' }],
       },
     },
   };
@@ -647,7 +718,12 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
       draft: {
         name: draft.name,
         plan,
-        target: { platform: 'web', url: draft.url, deviceProfile: 'legacy-desktop' },
+        target: {
+          platform: 'web',
+          url: draft.url,
+          deviceProfile: 'legacy-desktop',
+          inputs: { name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } },
+        },
       },
     });
     expect(payload.testId).toBeUndefined();
@@ -673,6 +749,12 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
   const canvas = page.getByRole('region', { name: '测试画板' });
   const start = canvas.getByRole('button', { name: 'Run', exact: true });
 
+  await start.click();
+  await expect(canvas.getByRole('alert')).toHaveText('缺少输入引用：name');
+  expect(submissions).toBe(0);
+  await canvas
+    .getByLabel('输入引用（JSON，可选）', { exact: true })
+    .fill(JSON.stringify({ name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } }));
   await start.click();
   await expect(canvas.getByRole('alert')).toHaveText('试跑暂时失败');
   expect(testWrites).toBe(0);
@@ -720,6 +802,43 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
       ),
     )
     .toBe('未保存修改');
+});
+
+test('editing a historical case uses its target URL for settings and compilation', async ({
+  page,
+}) => {
+  const historical: TestCase = {
+    ...saved,
+    url: 'https://stale.example.com',
+    target: {
+      schemaVersion: 1,
+      platform: 'web',
+      url: 'https://actual.example.com',
+      browser: 'chromium',
+      deviceProfile: 'Pixel 7',
+    },
+  };
+
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
+    route.fulfill({ json: { tests: [historical] } }),
+  );
+  await page.route('**/api/tests/compile', (route) =>
+    route.fulfill({ status: 502, json: { message: '保留编辑' } }),
+  );
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '更多操作：验证登录', exact: true }).click();
+  await page.getByRole('menuitem', { name: '编辑 验证登录', exact: true }).click();
+  const canvas = page.getByRole('region', { name: '测试画板' });
+
+  await openSettings(canvas);
+  await expect(canvas.getByLabel('网站地址', { exact: true })).toHaveValue(
+    historical.target!.platform === 'web' ? historical.target!.url : '',
+  );
+  await canvas.getByRole('button', { name: '描述生成', exact: true }).click();
+  const request = page.waitForRequest('**/api/tests/compile');
+
+  await page.getByRole('dialog').getByRole('button', { name: '生成', exact: true }).click();
+  expect((await request).postDataJSON().url).toBe('https://actual.example.com');
 });
 
 test('web settings toggle mobile emulation without changing platform', async ({ page }) => {
@@ -1469,6 +1588,14 @@ test('bottom logs start collapsed and expand on tab selection', async ({ page })
   await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Network', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeVisible();
+  for (const name of ['Console', 'Network', 'Console', 'Network']) {
+    const tab = page.getByRole('button', { name, exact: true });
+
+    await tab.focus();
+    await tab.press('Enter');
+    await expect(tab).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('region', { name: `${name} 记录`, exact: true })).toBeVisible();
+  }
 });
 
 test('group header actions maximize restore and collapse each group', async ({ page }) => {
@@ -1633,6 +1760,12 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await openSettings(dialog);
   await expect(dialog.getByLabel('网站地址', { exact: true })).toHaveValue(
     'https://github.com/tester-army/e2e',
+  );
+  await dialog.getByLabel('输入引用（JSON，可选）', { exact: true }).fill(
+    JSON.stringify({
+      email: { value: 'tester@example.com' },
+      password: { secretRef: 'TEST_PASSWORD' },
+    }),
   );
   await page.screenshot({ path: 'artifacts/ui/case-canvas-settings.png' });
   await dialog.getByRole('button', { name: '收起面板' }).click();

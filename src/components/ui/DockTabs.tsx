@@ -34,7 +34,7 @@ const ContentContext = createContext<{
   visited: Set<string>;
   badges: Record<string, number>;
   collapsedGroups: Set<string>;
-  select: (id: string) => void;
+  select: (id: string, wasActive?: boolean) => void;
   collapse: (api: DockviewGroupPanelApi, collapsed: boolean) => void;
 }>({
   render: () => null,
@@ -65,6 +65,7 @@ function Content({ api }: IDockviewPanelProps) {
 function Header({ api }: IDockviewPanelHeaderProps) {
   const { select, collapsedGroups, badges } = useContext(ContentContext);
   const [active, setActive] = useState(api.isVisible);
+  const beforeActivation = useRef<boolean | undefined>(undefined);
 
   useEffect(() => {
     const subscription = api.onDidVisibilityChange(() => setActive(api.isVisible));
@@ -78,7 +79,16 @@ function Header({ api }: IDockviewPanelHeaderProps) {
       className="dock-tab-button"
       aria-pressed={active}
       aria-expanded={!collapsedGroups.has(api.group.id)}
-      onClick={() => select(api.id)}
+      onPointerDownCapture={() => {
+        beforeActivation.current = api.isVisible;
+      }}
+      onKeyDownCapture={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') beforeActivation.current = api.isVisible;
+      }}
+      onClick={() => {
+        select(api.id, beforeActivation.current ?? api.isVisible);
+        beforeActivation.current = undefined;
+      }}
     >
       {api.title}
       {!!badges[api.id] && (
@@ -228,14 +238,14 @@ export function DockTabs<T extends string>({
     });
   }
 
-  function select(id: string) {
+  function select(id: string, wasActive?: boolean) {
     const panel = dock.current?.getPanel(id);
 
     if (!panel) return;
     const group = panel.group;
 
     if (collapsedGroups.has(group.id)) collapse(group.api, false);
-    else if (expandedHeights.current.has(group.id) && group.activePanel?.id === id)
+    else if (expandedHeights.current.has(group.id) && (wasActive ?? group.activePanel?.id === id))
       collapse(group.api, true);
 
     setVisited((previous) => (previous.has(id) ? previous : new Set([...previous, id])));

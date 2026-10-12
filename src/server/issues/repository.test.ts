@@ -170,6 +170,39 @@ it('creates immutable evidence snapshots and rejects foreign executions or misma
   expect(await db.select().from(issueOccurrences)).toHaveLength(1);
 });
 
+it.each(['web', 'ios'] as const)(
+  'uses the %s target URL in historical issue snapshots',
+  async (platform) => {
+    const source = await fixture();
+    const target =
+      platform === 'web'
+        ? {
+            schemaVersion: 1 as const,
+            platform,
+            url: 'https://actual.example.com',
+            browser: 'chromium' as const,
+            deviceProfile: 'Pixel 7' as const,
+          }
+        : {
+            schemaVersion: 1 as const,
+            platform,
+            appId: 'com.example.app',
+            deviceProfileId: 'fixture',
+            resetPolicy: 'preserve' as const,
+          };
+
+    await db
+      .update(testRuns)
+      .set({ targetSnapshot: target, url: 'https://stale.example.com' })
+      .where(eq(testRuns.id, source.run.id));
+    const issue = await fromFixture(source);
+
+    expect((await getIssue(issue.id, 'alice')).occurrences[0].snapshot.url).toBe(
+      platform === 'web' ? target.url : '',
+    );
+  },
+);
+
 it('deduplicates links, validates closure and prevents stale updates from losing comments', async () => {
   const source = await fixture();
   const issue = await fromFixture(source);

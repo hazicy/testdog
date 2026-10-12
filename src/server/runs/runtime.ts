@@ -11,10 +11,11 @@ import { NativeActionPlanner } from '@/automation/platform/native/nativePlanner'
 import { PlaywrightSession } from '@/automation/platform/web/playwrightSession';
 import { WebActionPlanner } from '@/automation/platform/web/webPlanner';
 import { launchWebBrowser, resolveWebProfile } from '@/automation/platform/web/mobile';
-import { legacyWebTarget } from '@/automation/platform/target';
+import { legacyWebTarget, targetUrl } from '@/automation/platform/target';
 import { DeviceRecorder } from '@/server/runs/deviceRecorder';
 import { RunRecorder } from '@/server/runs/recorder';
 import { PersistenceQueue } from '@/server/runs/persistenceQueue';
+import { cleanupRuntime, finalizeRuntime } from './finalizeRuntime';
 import type { TestRun } from '@/features/runs/types';
 import type {
   AutomationSession,
@@ -33,16 +34,25 @@ export interface PlatformRuntime {
   healthy: boolean;
 }
 
+export class RuntimeOpenError extends Error {
+  constructor(
+    cause: unknown,
+    public healthy: boolean,
+  ) {
+    super('执行环境准备失败', { cause });
+  }
+}
+
 export async function openPlatformRuntime(input: {
   model?: ModelClient;
   run: TestRun;
   plan: Plan;
-  source?: TestRun;
+  expectedEnvironment?: Record<string, unknown>;
   resource?: { deviceId: string | null; metadata: Record<string, unknown> };
   signal: AbortSignal;
   report: (message: string) => Promise<void>;
 }): Promise<PlatformRuntime> {
-  const { run, source, resource, signal } = input;
+  const { run, expectedEnvironment, resource, signal } = input;
   const model = input.model ?? modelClient;
   const target = run.targetSnapshot ?? legacyWebTarget(run.url);
   const secrets = new SecretInputs(target.inputs);
@@ -57,34 +67,39 @@ export async function openPlatformRuntime(input: {
       signal,
       recorder.onEvent,
       undefined,
-      source?.environmentSnapshot,
-    );
+      expectedEnvironment,
+    ).catch((error) => {
+      throw new RuntimeOpenError(error, false);
+    });
     let live: ReturnType<typeof setInterval> | undefined;
+    let closing: Promise<void> | undefined;
     const runtime: PlatformRuntime = {
       session,
       evaluator: new SemanticEvaluator(model),
       planner: new NativeActionPlanner(model, target.platform, signal),
       environment: session.environment,
       healthy: false,
+      cleanup() {
+        clearInterval(live);
+
+        return (closing ??= session.close().then(() => {
+          runtime.healthy = session.safeToRelease;
+        }));
+      },
       async finalize() {
         clearInterval(live);
         const failures: unknown[] = [];
 
-        try {
-          for (const job of [
-            () => recorder.drain(),
-            () => recorder.capture(session, 'final'),
-            () => recorder.finalizeDiagnostics(session),
-          ]) {
-            try {
-              await job();
-            } catch (error) {
-              failures.push(error);
-            }
+        for (const job of [
+          () => recorder.drain(),
+          () => recorder.capture(session, 'final'),
+          () => recorder.finalizeDiagnostics(session),
+        ]) {
+          try {
+            await job();
+          } catch (error) {
+            failures.push(error);
           }
-        } finally {
-          await session.close();
-          runtime.healthy = session.safeToRelease;
         }
 
         if (failures.length) throw new AggregateError(failures, 'Native evidence incomplete');
@@ -94,19 +109,15 @@ export async function openPlatformRuntime(input: {
     try {
       const observation = await session.observe(signal);
 
-      if (source?.environmentSnapshot) {
+      if (expectedEnvironment) {
         for (const key of ['osVersion', 'driverVersion', 'buildSha256']) {
-          if (
-            !source.environmentSnapshot[key] ||
-            source.environmentSnapshot[key] !== session.environment[key]
-          )
+          if (!expectedEnvironment[key] || expectedEnvironment[key] !== session.environment[key])
             throw new Error(`设备 ${key} 与录制不兼容，请重新录制`);
         }
 
         if (
-          source.environmentSnapshot.viewport &&
-          JSON.stringify(source.environmentSnapshot.viewport) !==
-            JSON.stringify(observation.viewport)
+          expectedEnvironment.viewport &&
+          JSON.stringify(expectedEnvironment.viewport) !== JSON.stringify(observation.viewport)
         )
           throw new Error('设备屏幕与录制不兼容');
       }
@@ -116,13 +127,21 @@ export async function openPlatformRuntime(input: {
 
       return runtime;
     } catch (error) {
-      await runtime.finalize(true).catch(() => {});
-      throw error;
+      try {
+        await finalizeRuntime(runtime, true);
+      } catch (cleanupError) {
+        throw new RuntimeOpenError(
+          new AggregateError([error, cleanupError], '准备与归档或清理失败'),
+          runtime.healthy,
+        );
+      }
+
+      throw new RuntimeOpenError(error, runtime.healthy);
     }
   }
 
-  const profile = source?.environmentSnapshot?.profile
-    ? (source.environmentSnapshot.profile as BrowserContextOptions)
+  const profile = expectedEnvironment?.profile
+    ? (expectedEnvironment.profile as BrowserContextOptions)
     : resolveWebProfile(target);
   let browser: Browser | undefined;
   let context: BrowserContext | undefined;
@@ -136,8 +155,8 @@ export async function openPlatformRuntime(input: {
     browser = await launchWebBrowser(target);
     signal.throwIfAborted();
     if (
-      source?.environmentSnapshot?.browserVersion &&
-      source.environmentSnapshot.browserVersion !== browser.version()
+      expectedEnvironment?.browserVersion &&
+      expectedEnvironment.browserVersion !== browser.version()
     )
       throw new Error('浏览器版本与录制不兼容，请重新录制');
     const persistence = new PersistenceQueue();
@@ -186,13 +205,13 @@ export async function openPlatformRuntime(input: {
         profile,
         driverVersion: '1.63.0',
       },
-      initial: run.url
+      initial: targetUrl(target)
         ? {
             platform: 'web',
             action: {
               type: 'navigate',
               target: { kind: 'css', value: '', name: '' },
-              value: run.url,
+              value: targetUrl(target),
             },
           }
         : undefined,
@@ -204,12 +223,8 @@ export async function openPlatformRuntime(input: {
       },
       async finalize(interrupted) {
         signal.removeEventListener('abort', stop);
-        try {
-          await session.close();
-          await recorder!.stop(context!, interrupted);
-        } finally {
-          await runtime.cleanup!();
-        }
+        await session.close();
+        await recorder!.stop(context!, interrupted);
 
         evidence.assertComplete();
       },
@@ -218,8 +233,23 @@ export async function openPlatformRuntime(input: {
     return runtime;
   } catch (error) {
     signal.removeEventListener('abort', stop);
-    await context?.close().catch(() => {});
-    await browser?.close().catch(() => {});
-    throw error;
+    const cleanup = {
+      healthy: !browser,
+      cleanup: async () => {
+        await browser?.close();
+        cleanup.healthy = true;
+      },
+    };
+
+    try {
+      await cleanupRuntime(cleanup);
+    } catch (cleanupError) {
+      throw new RuntimeOpenError(
+        new AggregateError([error, cleanupError], '准备与清理失败'),
+        cleanup.healthy,
+      );
+    }
+
+    throw new RuntimeOpenError(error, cleanup.healthy);
   }
 }

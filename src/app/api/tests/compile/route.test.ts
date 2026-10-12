@@ -11,6 +11,48 @@ vi.mock('@/automation/compiler/textCompiler', () => ({
 }));
 import { POST } from './route';
 
+it('reports request cancellation distinctly from model failure', async () => {
+  const controller = new AbortController();
+
+  controller.abort();
+  mocks.compile.mockRejectedValueOnce(new Error('aborted'));
+  const response = await POST(
+    new Request('http://localhost/api/tests/compile', {
+      method: 'POST',
+      signal: controller.signal,
+      body: JSON.stringify({ goal: '点击登录' }),
+    }),
+  );
+
+  expect(response.status).toBe(408);
+  expect((await response.json()).message).toContain('已取消');
+});
+
+it('passes native authoring context without requiring a selected execution device', async () => {
+  mocks.compile.mockResolvedValueOnce({});
+  const input = {
+    goal: '填写 ${input.name}',
+    context: { platform: 'android', appId: 'com.example.app', inputs: { name: { value: 'Ada' } } },
+  };
+  const response = await POST(
+    new Request('http://localhost/api/tests/compile', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(mocks.compile).toHaveBeenLastCalledWith(input, expect.any(AbortSignal));
+  const invalid = await POST(
+    new Request('http://localhost/api/tests/compile', {
+      method: 'POST',
+      body: JSON.stringify({ ...input, url: 'https://example.com' }),
+    }),
+  );
+
+  expect(invalid.status).toBe(400);
+});
+
 it('includes the current board when compiling an adjustment', async () => {
   const plan = {
     rootId: 'root',
@@ -27,14 +69,9 @@ it('includes the current board when compiling an adjustment', async () => {
 
   expect(result.status).toBe(200);
   expect(mocks.compile).toHaveBeenLastCalledWith(
-    expect.stringContaining('当前计划：'),
-    undefined,
+    { goal: '补充账号名称验证', currentPlan: plan },
     expect.any(AbortSignal),
   );
-  const prompt = mocks.compile.mock.lastCall?.[0] as string;
-
-  expect(JSON.parse(prompt.split('当前计划：')[1].split('\n修改要求：')[0])).toEqual(plan);
-  expect(prompt).toContain('补充账号名称验证');
 });
 
 it('authenticates, validates input and compiles text without saving a case', async () => {
@@ -64,8 +101,7 @@ it('authenticates, validates input and compiles text without saving a case', asy
   expect(await result.json()).toEqual({ plan });
   expect(mocks.auth).toHaveBeenCalled();
   expect(mocks.compile).toHaveBeenCalledWith(
-    '点击登录',
-    'https://example.com',
+    { goal: '点击登录', url: 'https://example.com' },
     expect.any(AbortSignal),
   );
   const invalid = await POST(

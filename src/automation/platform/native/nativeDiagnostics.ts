@@ -11,6 +11,7 @@ export class NativeDiagnostics {
   private trace = false;
   private logs = false;
   private exported = new Map<string, ArtifactDescriptor[]>();
+  private exporting = new Map<string, Promise<ArtifactDescriptor[]>>();
   safeToRelease = true;
   constructor(
     private client: AgentDeviceClient,
@@ -54,12 +55,19 @@ export class NativeDiagnostics {
     return readFile(resolved);
   }
   async capture(request: CaptureRequest, signal: AbortSignal): Promise<ArtifactDescriptor[]> {
-    try {
-      return await this.captureArtifacts(request, signal);
-    } catch (error) {
-      if (this.video || this.trace || this.logs) this.safeToRelease = false;
-      throw error;
-    }
+    const pending = this.exporting.get(request.kind);
+
+    if (pending) return pending;
+    const job = this.captureArtifacts(request, signal)
+      .catch((error) => {
+        if (this.video || this.trace || this.logs) this.safeToRelease = false;
+        throw error;
+      })
+      .finally(() => this.exporting.delete(request.kind));
+
+    this.exporting.set(request.kind, job);
+
+    return job;
   }
   private async captureArtifacts(
     request: CaptureRequest,

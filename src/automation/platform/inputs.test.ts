@@ -24,7 +24,7 @@ test('public inputs resolve while secret values stay outside compiler and record
 });
 test('missing references and worker credentials fail without dispatching a value', () => {
   vi.stubEnv('CASEFORGE_SECRET_PASSWORD', '');
-  expect(() => inputGoal('${input.missing}')).toThrow('Missing input');
+  expect(() => inputGoal('${input.missing}')).toThrow('缺少输入引用');
   expect(() => new SecretInputs({ password: { secretRef: 'PASSWORD' } })).toThrow(
     'Missing worker secret',
   );

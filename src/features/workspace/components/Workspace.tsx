@@ -8,6 +8,7 @@ import type { TestCase } from '@/features/test-cases/types';
 import type { TestRun, RunSummary } from '@/features/runs/types';
 import { downloadRunReport } from '@/client/download';
 import { writeCaseDraft } from '@/features/test-cases/lib/caseDraft';
+import { targetUrl } from '@/automation/platform/target';
 import { editablePlan, emptyPlan, caseName } from '@/features/test-cases/lib/authoring';
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
 import { RunMatrixDialog } from '@/features/test-cases/components/RunMatrixDialog';
@@ -47,7 +48,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       test,
       duplicate,
       name,
-      url: test?.url ?? '',
+      url: test?.target ? targetUrl(test.target) : (test?.url ?? ''),
       goal: test?.goal ?? '',
       plan: test?.plan ? editablePlan(test.plan, name) : emptyPlan(name),
     });

@@ -2,9 +2,9 @@ import { ownedBy, type UserScope } from '@/server/shared/ownership';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { testCases } from '@/db/schema';
-import { legacyWebTarget } from '@/automation/platform/target';
+import { defaultWebTarget, legacyWebTarget, targetUrl } from '@/automation/platform/target';
 import type { TestCase } from '@/features/test-cases/types';
-import { testSchema } from '@/features/test-cases/schemas';
+import { testSchema, testValidationMessage } from '@/features/test-cases/schemas';
 import { WorkspaceError } from '@/server/shared/errors';
 
 export const listTests = async (userId: UserScope = null) =>
@@ -17,6 +17,7 @@ export const listTests = async (userId: UserScope = null) =>
       .limit(50)
   ).map((test) => ({
     ...test,
+    url: test.target ? targetUrl(test.target) : test.url,
     target: test.target ?? legacyWebTarget(test.url),
   }));
 
@@ -27,16 +28,10 @@ export async function saveTest(
 ) {
   const parsed = testSchema.safeParse(input);
 
-  if (!parsed.success) throw new WorkspaceError('请填写有效的名称、测试目标和测试步骤。');
+  if (!parsed.success) throw new WorkspaceError(testValidationMessage(parsed.error));
   input = {
     ...parsed.data,
-    target: input.target ?? {
-      schemaVersion: 1,
-      platform: 'web',
-      url: input.url,
-      browser: 'chromium',
-      deviceProfile: 'Pixel 7',
-    },
+    target: parsed.data.target ?? defaultWebTarget(parsed.data.url),
   };
   const [test] = id
     ? await db

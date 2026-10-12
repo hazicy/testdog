@@ -92,6 +92,7 @@ export type TestRun = {
 
   targetSnapshot?: TestTarget;
   environmentSnapshot?: Record<string, unknown>;
+  replayEnvironmentSnapshot?: Record<string, unknown>;
   capabilities?: CapabilitySet;
   evidenceComplete?: boolean;
   id: string;

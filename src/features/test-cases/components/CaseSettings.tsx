@@ -3,6 +3,7 @@
 import { Label } from '@/components/ui/Label';
 import useSWR from 'swr';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { fetchJson } from '@/client/api';
@@ -248,6 +249,21 @@ export function CaseSettings({
           </p>
         </>
       )}
+      <Label>
+        输入引用（JSON，可选）
+        <Textarea
+          aria-label="输入引用（JSON，可选）"
+          value={value.inputRefs}
+          disabled={busy}
+          spellCheck={false}
+          className="min-h-24 font-mono"
+          onChange={(event) => onChange({ inputRefs: event.target.value })}
+          placeholder={'{"name":{"value":"Ada"},"password":{"secretRef":"PASSWORD"}}'}
+        />
+        <span className="mt-2 block text-xs text-page-muted">
+          步骤中使用 {'${input.name}'} 引用输入；密码等敏感值使用 secretRef。
+        </span>
+      </Label>
       <Label>
         标签 <span className="font-normal text-text-subtle">（可选，逗号分隔）</span>
         <Input

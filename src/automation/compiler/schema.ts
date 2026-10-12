@@ -104,6 +104,76 @@ export function nodeChildren(node: PlanNode): string[] {
   return [];
 }
 
+// Drafts may contain empty groups. Persisted and compiled cases must do work,
+// and an assertion task must never silently pass without checking anything.
+export const ExecutablePlanSchema = PlanSchema.superRefine((plan, ctx) => {
+  const reachable = new Set<string>();
+  const visit = (id: string) => {
+    if (reachable.has(id) || !Object.hasOwn(plan.nodes, id)) return;
+    reachable.add(id);
+    nodeReferences(plan.nodes[id]).forEach(visit);
+  };
+
+  visit(plan.rootId);
+  if (![...reachable].some((id) => plan.nodes[id].kind === 'task'))
+    ctx.addIssue({ code: 'custom', message: '请添加至少一个可执行步骤' });
+  for (const id of Object.keys(plan.nodes))
+    if (!reachable.has(id))
+      ctx.addIssue({ code: 'custom', message: `步骤未连接到测试入口：${id}` });
+  for (const id of reachable) {
+    const node = plan.nodes[id];
+
+    if (node.kind === 'task' && node.actionType === 'assert' && !node.assertions.length)
+      ctx.addIssue({ code: 'custom', message: `验证步骤缺少预期结果：${id}` });
+  }
+
+  // Dependencies must not pull work out of an unselected conditional path.
+  // Shared descendants remain valid; only exclusive path membership is gated.
+  const descendants = (root?: string) => {
+    const result = new Set<string>();
+    const visit = (id: string) => {
+      if (result.has(id) || !Object.hasOwn(plan.nodes, id)) return;
+      result.add(id);
+      nodeChildren(plan.nodes[id]).forEach(visit);
+    };
+
+    if (root) visit(root);
+
+    return result;
+  };
+
+  for (const id of reachable) {
+    const branch = plan.nodes[id];
+
+    if (branch.kind !== 'branch') continue;
+    const then = descendants(branch.then);
+    const otherwise = descendants(branch.otherwise);
+
+    for (const nodeId of reachable) {
+      const node = plan.nodes[nodeId];
+
+      for (const dependency of nodeReferences(node)) {
+        const path =
+          then.has(dependency) && !otherwise.has(dependency)
+            ? then
+            : otherwise.has(dependency) && !then.has(dependency)
+              ? otherwise
+              : undefined;
+
+        if (
+          path &&
+          !path.has(nodeId) &&
+          !(nodeId === id && nodeChildren(node).includes(dependency))
+        )
+          ctx.addIssue({
+            code: 'custom',
+            message: `节点 ${nodeId} 不能直接引用条件分支 ${id} 中的互斥步骤 ${dependency}，请依赖分支节点`,
+          });
+      }
+    }
+  }
+});
+
 export function nodeReferences(node: PlanNode): string[] {
   return [...node.dependsOn, ...nodeChildren(node)];
 }
