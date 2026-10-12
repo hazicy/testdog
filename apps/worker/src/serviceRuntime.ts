@@ -16,9 +16,10 @@ const starters = {
 
 type Service = keyof typeof starters;
 type Role = 'worker' | 'maintenance' | 'notifications';
+const standardServices: readonly Service[] = ['maintenance', 'notifications', 'outbox'];
 const defaults: Record<Role, readonly Service[]> = {
-  worker: ['maintenance', 'notifications', 'outbox'],
-  maintenance: ['maintenance', 'notifications', 'outbox'],
+  worker: standardServices,
+  maintenance: standardServices,
   notifications: ['notifications'],
 };
 
