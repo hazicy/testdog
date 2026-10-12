@@ -8,6 +8,10 @@ const mocks = vi.hoisted(() => ({
   drain: vi.fn(),
   capture: vi.fn(),
   diagnostics: vi.fn(),
+  webSessionClose: vi.fn(),
+  webRecorderStart: vi.fn(),
+  webRecorderStop: vi.fn(),
+  webEvidenceCheck: vi.fn(),
 }));
 
 vi.mock('@testdog/server/shared/model', () => ({ modelClient: {} }));
@@ -23,6 +27,22 @@ vi.mock('@testdog/server/login-identities/runtime', () => ({ prepareRunLogin: as
 vi.mock('@testdog/server/runs/recorder', () => ({
   RunRecorder: class {
     directory = '/tmp';
+    start = mocks.webRecorderStart;
+    stop = mocks.webRecorderStop;
+    onPage = vi.fn();
+    onStep = vi.fn();
+  },
+}));
+vi.mock('@testdog/automation/platform/web/playwrightSession', () => ({
+  PlaywrightSession: class {
+    capabilities = { artifacts: [] };
+    close = mocks.webSessionClose;
+  },
+}));
+vi.mock('@testdog/server/runs/evidenceSink', () => ({
+  EvidenceSink: class {
+    assertComplete = mocks.webEvidenceCheck;
+    capture = vi.fn();
   },
 }));
 vi.mock('@testdog/server/runs/deviceRecorder', () => ({
@@ -43,6 +63,10 @@ beforeEach(() => {
   mocks.drain.mockResolvedValue(undefined);
   mocks.capture.mockResolvedValue(undefined);
   mocks.diagnostics.mockResolvedValue(undefined);
+  mocks.webSessionClose.mockResolvedValue(undefined);
+  mocks.webRecorderStart.mockResolvedValue(undefined);
+  mocks.webRecorderStop.mockResolvedValue(undefined);
+  mocks.webEvidenceCheck.mockReturnValue(undefined);
 });
 afterEach(() => vi.useRealTimers());
 
@@ -147,4 +171,77 @@ it('retains both the web preparation and cleanup errors and quarantines an unclo
     'context failed',
     'browser close failed',
   ]);
+});
+
+function webRuntimeFixture() {
+  const context = {
+    setDefaultTimeout: vi.fn(),
+    newPage: vi.fn().mockResolvedValue({}),
+  };
+  const browser = {
+    version: () => 'fixture',
+    newContext: vi.fn().mockResolvedValue(context),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+
+  mocks.browser.mockResolvedValue(browserConnection(browser as unknown as Browser, 'local'));
+  const request = input();
+
+  request.run = {
+    ...run,
+    targetSnapshot: {
+      schemaVersion: 1,
+      platform: 'web',
+      url: 'https://example.com',
+      browser: 'chromium',
+      deviceProfile: 'Pixel 7',
+    },
+  };
+
+  return { request, browser };
+}
+
+it('archives web evidence and closes the browser even when session disposal fails', async () => {
+  const { request, browser } = webRuntimeFixture();
+  const runtime = await openPlatformRuntime(request);
+
+  mocks.webSessionClose.mockRejectedValue(new Error('session close failed'));
+
+  await expect(finalizeRuntime(runtime, false)).rejects.toMatchObject({
+    errors: [
+      expect.objectContaining({
+        errors: [expect.objectContaining({ message: 'session close failed' })],
+      }),
+    ],
+  });
+  expect(mocks.webSessionClose).toHaveBeenCalledOnce();
+  expect(mocks.webRecorderStop).toHaveBeenCalledOnce();
+  expect(mocks.webEvidenceCheck).toHaveBeenCalledOnce();
+  expect(browser.close).toHaveBeenCalledOnce();
+  expect(runtime.healthy).toBe(true);
+});
+
+it('checks evidence completeness and closes the browser when web archival fails', async () => {
+  const { request, browser } = webRuntimeFixture();
+  const runtime = await openPlatformRuntime(request);
+
+  mocks.webRecorderStop.mockRejectedValue(new Error('video archive failed'));
+  mocks.webEvidenceCheck.mockImplementation(() => {
+    throw new Error('evidence incomplete');
+  });
+
+  await expect(finalizeRuntime(runtime, true)).rejects.toMatchObject({
+    errors: [
+      expect.objectContaining({
+        errors: [
+          expect.objectContaining({ message: 'video archive failed' }),
+          expect.objectContaining({ message: 'evidence incomplete' }),
+        ],
+      }),
+    ],
+  });
+  expect(mocks.webSessionClose).toHaveBeenCalledOnce();
+  expect(mocks.webEvidenceCheck).toHaveBeenCalledOnce();
+  expect(browser.close).toHaveBeenCalledOnce();
+  expect(runtime.healthy).toBe(true);
 });
