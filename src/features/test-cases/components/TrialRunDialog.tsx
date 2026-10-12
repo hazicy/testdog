@@ -56,9 +56,6 @@ export function TrialRunDialog({
           <h2 id={titleId} className="text-base font-semibold">
             草稿试跑{run ? ` · ${statuses[run.status]}` : ''}
           </h2>
-          <p className="mt-1 text-xs text-page-muted">
-            执行本次草稿快照，不保存用例。关闭窗口后执行继续。
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
