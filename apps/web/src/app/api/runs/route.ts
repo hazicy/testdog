@@ -1,11 +1,9 @@
 import { requireUserId } from '@/server/shared/auth';
-import { submitOnce } from '@testdog/server/shared/idempotency';
 import { listRunPage } from '@testdog/server/workspace/queries';
 import { readPage } from '@testdog/server/shared/pagination';
 import { NextResponse } from 'next/server';
-import { createRun } from '@testdog/server/runs/submission';
+import { submitRun } from '@testdog/server/runs/submission';
 import { apiError } from '@testdog/server/shared/http';
-import { runRequestSchema } from '@testdog/contracts/runs/schemas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -21,23 +19,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const userId = await requireUserId(request);
-    const parsed = runRequestSchema.safeParse(await request.json().catch(() => null));
-
-    if (!parsed.success)
-      return NextResponse.json(
-        { success: false, message: '请提供用例 ID，或重放来源 ID，或测试描述与网站地址。' },
-        { status: 400 },
-      );
-
-    const body = await submitOnce(
-      request,
-      parsed.data,
-      async (tx) => ({
-        success: true,
-        run: await createRun(parsed.data, tx, userId),
-      }),
-      userId,
-    );
+    const body = await submitRun(request, await request.json().catch(() => null), userId);
 
     return NextResponse.json(body, { status: 202 });
   } catch (error) {

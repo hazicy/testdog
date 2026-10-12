@@ -30,7 +30,7 @@ import type { RunRequest } from '@testdog/contracts/runs/schemas';
 
 import {
   claimRun,
-  registerWorker,
+  registerResources,
   recoverLeases,
   withLease,
 } from '@testdog/server/scheduling/scheduler';
@@ -47,7 +47,7 @@ const testLeases = new Map<string, RunLease>();
 async function createRun(...args: Parameters<typeof createQueuedRun>) {
   const run = await createQueuedRun(...args);
 
-  await registerWorker('repository-test', 'test', [
+  await registerResources([
     { id: `test:${run.id}`, hostId: 'test', platform: 'web', profileId: 'mobile' },
   ]);
   const claim = (await claimRun('repository-test', 'test', run.id))!;
@@ -82,7 +82,7 @@ async function insertArtifact(...args: Parameters<typeof insertClaimedArtifact>)
 
 beforeEach(async () => {
   await isolated.client!.exec(
-    'TRUNCATE automation_resources, automation_workers, automation_run_events, run_artifacts, run_steps, test_runs, test_cases CASCADE',
+    'TRUNCATE automation_resources, automation_run_events, run_artifacts, run_steps, test_runs, test_cases CASCADE',
   );
 });
 afterAll(() => isolated.client!.close());
@@ -240,7 +240,6 @@ describe('PostgreSQL workspace repository', () => {
       'artifacts',
       'recordingSteps',
       'workerId',
-      'heartbeatAt',
     ])
       expect(summary).not.toHaveProperty(field);
     expect(JSON.stringify(summary).length).toBeLessThan(1000);

@@ -27,7 +27,7 @@ import { saveLoginIdentity } from '@testdog/server/login-identities/repository';
 import { saveRecordingVersion } from '@testdog/server/runs/recordings';
 import { requestCancellation } from '@testdog/server/runs/lifecycle';
 import { recordingScript } from '@testdog/contracts/runs/lib/recordingScript';
-import { claimRun, registerWorker } from '@testdog/server/scheduling/scheduler';
+import { claimRun, registerResources } from '@testdog/server/scheduling/scheduler';
 import { executeRun, cancelRun } from '@testdog/server/runs/run';
 import { RunRecorder } from '@testdog/server/runs/recorder';
 import { listResources } from '@testdog/server/scheduling/scheduler';
@@ -643,7 +643,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
   it('stops before model or browser work when another worker owns the execution', async () => {
     const run = await createRun({ case: 'Ownership changed', url });
 
-    await registerWorker('replacement-worker', 'replacement-host', [
+    await registerResources([
       { id: 'replacement-web', hostId: 'replacement-host', platform: 'web', profileId: 'mobile' },
     ]);
     const claim = await claimRun('replacement-worker', 'replacement-host', run.id);

@@ -4,6 +4,64 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { expect, it } from 'vitest';
 
+it('removes unused worker tracking while preserving leases and realtime updates', async () => {
+  const client = new PGlite();
+  const directory = join(process.cwd(), 'drizzle');
+  const cleanup = '20261012133220_remove_unused_worker_tracking';
+  const runId = randomUUID();
+
+  try {
+    for (const entry of (await readdir(directory)).filter((name) => /^\d{14}_/.test(name)).sort()) {
+      if (entry >= cleanup) break;
+      await client.exec(await readFile(join(directory, entry, 'migration.sql'), 'utf8'));
+    }
+
+    await client.exec(
+      "INSERT INTO automation_workers (id,\"hostId\",platforms) VALUES ('worker','host','[\"web\"]')",
+    );
+    await client.query(
+      `INSERT INTO test_runs (id,name,url,goal,status,"workerId","resourceId","fencingToken","leaseUntil","preparingAt","executingAt")
+       VALUES ($1,'Run','https://example.com','Check','running','worker','slot',7,now() + interval '1 minute',now(),now())`,
+      [runId],
+    );
+    await client.query(
+      `INSERT INTO automation_resources (id,"hostId",platform,"profileId",status,owner,"runId","fencingToken","leaseUntil")
+       VALUES ('slot','host','web','mobile','busy','worker',$1,7,now() + interval '1 minute')`,
+      [runId],
+    );
+    const before = (
+      await client.query<Record<string, unknown>>('SELECT * FROM test_runs WHERE id=$1', [runId])
+    ).rows[0];
+
+    await client.exec(await readFile(join(directory, cleanup, 'migration.sql'), 'utf8'));
+    const after = (
+      await client.query<Record<string, unknown>>('SELECT * FROM test_runs WHERE id=$1', [runId])
+    ).rows[0];
+    const { heartbeatAt, preparingAt, executingAt, finalizingAt, ...preserved } = before;
+
+    void [heartbeatAt, preparingAt, executingAt, finalizingAt];
+    expect(after).toEqual(preserved);
+    expect(
+      (await client.query("SELECT to_regclass('automation_workers') AS table_name")).rows[0],
+    ).toEqual({ table_name: null });
+    expect(
+      (await client.query('SELECT status,owner,"fencingToken" FROM automation_resources')).rows,
+    ).toEqual([{ status: 'busy', owner: 'worker', fencingToken: 7 }]);
+    await client.exec('DELETE FROM realtime_outbox');
+    await client.query(
+      `UPDATE test_runs SET "leaseUntil" = now() + interval '2 minutes' WHERE id=$1`,
+      [runId],
+    );
+    expect((await client.query('SELECT * FROM realtime_outbox')).rows).toHaveLength(0);
+    await client.query("UPDATE test_runs SET status='finalizing' WHERE id=$1", [runId]);
+    expect((await client.query('SELECT kind,revision,summary FROM realtime_outbox')).rows).toEqual([
+      { kind: 'run', revision: Number(before.realtimeRevision) + 1, summary: true },
+    ]);
+  } finally {
+    await client.close();
+  }
+}, 30000);
+
 it.each(['empty', 'populated', 'missing'])(
   'removes only empty legacy users tables (%s)',
   async (state) => {

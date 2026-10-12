@@ -32,5 +32,4 @@ export const runRequestSchema = z.union([
 ]);
 export type RunRequest = z.input<typeof runRequestSchema>;
 export const recordingCodeSchema = z.string().min(1).max(100000);
-export const recordingRequestSchema = z.object({ code: recordingCodeSchema });
 export const recordingInputMessage = '请提供有效脚本（最多 100,000 字符）。';

@@ -12,7 +12,7 @@
 - `runs/replay.ts`：将历史执行步骤转换为引擎使用的重放步骤，调用平台适配器。
 - `runs/recordings.ts`：录制版本查询、解析校验和保存；其他录制与附件模块负责证据采集和归档。
 - `issues/repository.ts`：问题查询、事务写入、执行证据快照与回归关联。
-- `scheduling`：worker 与资源登记、任务领取、租约校验、续约和恢复。
+- `scheduling`：资源登记、任务领取、租约校验、续约和恢复。
 - `realtime`：数据库事件发布、实时通知与画面预览；SSE HTTP 入口位于 Web 应用。
 - `browser-providers`：浏览器服务注册、按用户隔离的配置和统一连接入口；目前支持本地浏览器与 Browserless。
 - `shared`：业务错误、HTTP 响应、Redis 连接、模型选择、凭据加密和进程身份。
@@ -27,3 +27,5 @@ HTTP 路由必须调用 Web 应用中的 `requireUserId(request)`，并将返回
 执行模块的依赖方向为：生命周期 → 问题业务 → 任务提交／证据读写 → 数据映射。证据仓库不调用问题业务或调度器；任务续约与超时回收直接调用 `scheduling`，列表统一调用 `workspace/queries.ts`。`tests/moduleGraph.test.ts` 检查生产模块的静态与动态运行时依赖，阻止循环依赖。
 
 构建登记与数据库校验在 `builds/repository.ts`；原生适配器通过运行时注入构建查询函数，执行引擎不导入本包。共享 HTTP 错误使用标准 `Response`，本包不依赖 Next.js。
+
+用例、执行和录制保存的输入校验统一在业务入口完成。执行 HTTP 提交使用 `runs/submission.ts` 的 `submitRun`，以规范化后的参数计算幂等指纹；内部调用继续使用 `createRun`。

@@ -39,10 +39,11 @@ export async function listRecordingVersions(runId: string, userId?: UserScope) {
     .orderBy(desc(recordingVersions.createdAt), desc(recordingVersions.id));
 }
 
-export async function saveRecordingVersion(runId: string, code: string, userId?: UserScope) {
-  const parsed = recordingCodeSchema.safeParse(code);
+export async function saveRecordingVersion(runId: string, input: unknown, userId?: UserScope) {
+  const parsed = recordingCodeSchema.safeParse(input);
 
   if (!parsed.success) throw new WorkspaceError(recordingInputMessage);
+  const code = parsed.data;
   const [run] = await db
     .select({
       status: testRuns.status,

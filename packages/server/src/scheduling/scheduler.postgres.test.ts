@@ -34,7 +34,7 @@ vi.mock('@testdog/server/db', async (original) => {
 import {
   claimRun,
   recoverLeases,
-  registerWorker,
+  registerResources,
   releaseLease,
   withLease,
 } from '@testdog/server/scheduling/scheduler';
@@ -80,8 +80,7 @@ it.skipIf(!live)(
       deviceId: `udid-${id}`,
     }));
 
-    await registerWorker('worker-a', 'host', registrations);
-    await registerWorker('worker-b', 'host', []);
+    await registerResources(registrations);
     const target = {
       schemaVersion: 1 as const,
       platform: 'ios' as const,
@@ -131,7 +130,7 @@ it.skipIf(!live)(
       .where(eq(automationResources.id, old.resource.id));
 
     expect(quarantined.status).toBe('quarantined');
-    await registerWorker('replacement', 'host', registrations);
+    await registerResources(registrations);
     expect(await claimRun('replacement', 'host')).toBeUndefined();
     const healthy = claimed[1];
 
@@ -165,7 +164,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
     expect(ownerProcessStopped(owner, host)).toBe(true);
     const resourceId = `recovery-device-${randomUUID()}`;
 
-    await registerWorker(owner, host, [
+    await registerResources([
       {
         id: resourceId,
         hostId: host,

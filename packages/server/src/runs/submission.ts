@@ -19,23 +19,50 @@ import {
 import { isActiveRun, type ExecutionStep } from '@testdog/contracts/runs/types';
 import { runRequestSchema, type RunRequest } from '@testdog/contracts/runs/schemas';
 import { WorkspaceError } from '@testdog/server/shared/errors';
+import { submitOnce } from '@testdog/server/shared/idempotency';
+import type { z } from 'zod';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { runRecord, stepRecord } from '@testdog/server/runs/records';
 
-export async function createRun(
-  request: RunRequest & {
-    batchId?: string;
-    goalOverride?: string;
-  },
-  transaction?: Parameters<Parameters<typeof db.transaction>[0]>[0],
-  userId: UserScope = null,
-) {
-  const { batchId, goalOverride, ...inputRequest } = request;
-  const parsed = runRequestSchema.safeParse(inputRequest);
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type RunOptions = { batchId?: string; goalOverride?: string };
+
+function parseRunRequest(raw: unknown) {
+  const parsed = runRequestSchema.safeParse(raw);
 
   if (!parsed.success) throw new WorkspaceError('执行参数无效，请指定用例、测试描述或重放来源。');
-  const input = parsed.data;
-  const persist = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => {
+
+  return parsed.data;
+}
+
+export async function submitRun(request: Request, raw: unknown, userId: UserScope) {
+  const input = parseRunRequest(raw);
+
+  return submitOnce(
+    request,
+    input,
+    async (tx) => ({ success: true, run: await persistRun(input, {}, tx, userId) }),
+    userId,
+  );
+}
+
+export async function createRun(
+  request: RunRequest & RunOptions,
+  transaction?: Tx,
+  userId: UserScope = null,
+) {
+  const { batchId, goalOverride, ...raw } = request;
+
+  return persistRun(parseRunRequest(raw), { batchId, goalOverride }, transaction, userId);
+}
+
+async function persistRun(
+  input: z.output<typeof runRequestSchema>,
+  { batchId, goalOverride }: RunOptions,
+  transaction: Tx | undefined,
+  userId: UserScope,
+) {
+  const persist = async (tx: Tx) => {
     let snapshot: {
       authenticationVerification?: boolean;
       targetSnapshot: TestTarget;

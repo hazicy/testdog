@@ -55,9 +55,6 @@ export async function setRunPhase(
       .update(testRuns)
       .set({
         status: phase,
-        ...(phase === 'running'
-          ? { executingAt: new Date().toISOString() }
-          : { finalizingAt: new Date().toISOString() }),
         ...(environmentSnapshot ? { environmentSnapshot } : {}),
         ...(capabilities ? { capabilities } : {}),
       })

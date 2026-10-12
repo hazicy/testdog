@@ -1,6 +1,6 @@
 import {
   claimRun,
-  registerWorker,
+  registerResources,
   recoverLeases,
   withLease,
   releaseLease,
@@ -31,7 +31,7 @@ beforeEach(async () => {
 afterAll(() => isolated.client!.close());
 
 async function finishClaimed(...args: Parameters<typeof finishRun>) {
-  await registerWorker('store-test', 'test', [
+  await registerResources([
     { id: 'store-web', hostId: 'test', platform: 'web', profileId: 'mobile' },
   ]);
   const claim = (await claimRun('store-test', 'test', args[0]))!;
@@ -70,7 +70,7 @@ describe('PostgreSQL workspace repository', () => {
 
     await recoverLeases();
     expect((await getRun(run.id)).status).toBe('queued');
-    await registerWorker('recovery', 'test', [
+    await registerResources([
       { id: 'recovery-web', hostId: 'test', platform: 'web', profileId: 'mobile' },
     ]);
     const claim = (await claimRun('recovery', 'test', run.id))!;
@@ -90,7 +90,7 @@ describe('PostgreSQL workspace repository', () => {
       }),
     );
     await isolated.client!.query(
-      'UPDATE test_runs SET "leaseUntil" = now() - interval \'2 minutes\' , "heartbeatAt" = now() - interval \'2 minutes\'  , "startedAt" = now() - interval \'2 minutes\' WHERE id = $1',
+      'UPDATE test_runs SET "leaseUntil" = now() - interval \'2 minutes\', "startedAt" = now() - interval \'2 minutes\' WHERE id = $1',
       [run.id],
     );
     // claimRun moves the run to preparing; the in-flight step marks active work.

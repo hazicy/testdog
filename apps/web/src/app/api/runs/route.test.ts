@@ -153,6 +153,10 @@ it('deduplicates concurrent submissions and rejects conflicting reuse of the req
   const results = await Promise.all(responses.map((response) => response.json()));
 
   expect(results[0].run.id).toBe(results[1].run.id);
+  const normalizedRetry = await submit({ ...body, case: '  Idempotent  ', mode: 'record' });
+
+  expect(normalizedRetry.status).toBe(202);
+  expect((await normalizedRetry.json()).run.id).toBe(results[0].run.id);
   expect((await (await GET(new Request('http://localhost/api/runs'))).json()).runs).toHaveLength(1);
   expect((await submit({ ...body, case: 'Different' })).status).toBe(409);
 });

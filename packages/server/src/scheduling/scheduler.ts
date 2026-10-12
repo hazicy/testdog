@@ -1,12 +1,7 @@
 import { hostname } from 'node:os';
 import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
-import {
-  automationResources as resources,
-  automationWorkers as workers,
-  testRuns,
-  runSteps,
-} from '@testdog/server/db/schema';
+import { automationResources as resources, testRuns, runSteps } from '@testdog/server/db/schema';
 import { getRun } from '@testdog/server/runs/repository';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { leaseScope, type RunLease } from '@testdog/server/scheduling/lease';
@@ -17,15 +12,7 @@ type ResourceRegistration = Pick<
   'id' | 'hostId' | 'platform' | 'profileId' | 'deviceId' | 'metadata'
 >;
 
-export async function registerWorker(
-  id: string,
-  hostId: string,
-  registrations: ResourceRegistration[],
-) {
-  await db
-    .insert(workers)
-    .values({ id, hostId, platforms: [...new Set(registrations.map((r) => r.platform))] })
-    .onConflictDoUpdate({ target: workers.id, set: { heartbeatAt: new Date().toISOString() } });
+export async function registerResources(registrations: ResourceRegistration[]) {
   for (const resource of registrations) {
     // Registration must never clear an existing claim or quarantine.
     const [inserted] = await db
@@ -99,8 +86,6 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
           workerId,
           resourceId: resource.id,
           fencingToken: token,
-          heartbeatAt: new Date().toISOString(),
-          preparingAt: new Date().toISOString(),
           leaseUntil,
         })
         .where(eq(testRuns.id, run.id));
@@ -142,10 +127,7 @@ export async function renewLease(lease: RunLease) {
     if (!run) return;
     const leaseUntil = new Date(Date.now() + 60000).toISOString();
 
-    await tx
-      .update(testRuns)
-      .set({ leaseUntil, heartbeatAt: new Date().toISOString() })
-      .where(eq(testRuns.id, run.id));
+    await tx.update(testRuns).set({ leaseUntil }).where(eq(testRuns.id, run.id));
     await tx
       .update(resources)
       .set({ leaseUntil })
@@ -157,10 +139,6 @@ export async function renewLease(lease: RunLease) {
           eq(resources.status, 'busy'),
         ),
       );
-    await tx
-      .update(workers)
-      .set({ heartbeatAt: new Date().toISOString() })
-      .where(eq(workers.id, lease.workerId));
 
     return { cancelRequested: run.cancelRequested };
   });

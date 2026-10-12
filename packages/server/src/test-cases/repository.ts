@@ -5,7 +5,6 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases } from '@testdog/server/db/schema';
 import { defaultWebTarget, legacyWebTarget } from '@testdog/contracts/automation/platform/target';
-import type { TestCase } from '@testdog/contracts/test-cases/types';
 import { testSchema, testValidationMessage } from '@testdog/contracts/test-cases/schemas';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 
@@ -20,15 +19,11 @@ export async function getTest(id: string, userId: UserScope) {
   return { ...test, target: test.target ?? legacyWebTarget(test.url) };
 }
 
-export async function saveTest(
-  input: Pick<TestCase, 'name' | 'url' | 'goal' | 'tags' | 'target' | 'plan'>,
-  id?: string,
-  userId: UserScope = null,
-) {
-  const parsed = testSchema.safeParse(input);
+export async function saveTest(raw: unknown, id?: string, userId: UserScope = null) {
+  const parsed = testSchema.safeParse(raw);
 
   if (!parsed.success) throw new WorkspaceError(testValidationMessage(parsed.error));
-  input = {
+  const input = {
     ...parsed.data,
     target: parsed.data.target ?? defaultWebTarget(parsed.data.url),
   };

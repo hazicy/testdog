@@ -14,7 +14,7 @@ vi.mock('@testdog/server/db', async () => {
 });
 import {
   claimRun,
-  registerWorker,
+  registerResources,
   recoverLeases,
   listResources,
   withLease,
@@ -28,7 +28,7 @@ import { finishRun, requestCancellation } from '@testdog/server/runs/lifecycle';
 afterAll(() => isolated.client!.close());
 beforeEach(async () => {
   await isolated.client!.exec(
-    'TRUNCATE automation_resources, automation_workers, automation_run_events, run_artifacts, run_steps, test_runs, test_cases CASCADE',
+    'TRUNCATE automation_resources, automation_run_events, run_artifacts, run_steps, test_runs, test_cases CASCADE',
   );
 });
 const target = {
@@ -40,10 +40,9 @@ const target = {
 } as const;
 
 async function setup() {
-  await registerWorker('worker-a', 'host', [
+  await registerResources([
     { id: 'host:iphone', hostId: 'host', platform: 'ios', profileId: 'iphone', deviceId: 'udid' },
   ]);
-  await registerWorker('worker-b', 'host', []);
 }
 
 it('persists queued work and grants only one worker a device; completed release allows the next run', async () => {
@@ -117,7 +116,7 @@ it('cancels queued work without dispatch and runs different devices independentl
   await requestCancellation(queued.id);
   expect((await getRun(queued.id)).status).toBe('cancelled');
   expect(await claimRun('worker-a', 'host')).toBeUndefined();
-  await registerWorker('worker-c', 'host', [
+  await registerResources([
     {
       id: 'host:android',
       hostId: 'host',
@@ -140,7 +139,7 @@ it('cancels queued work without dispatch and runs different devices independentl
 it('rejects re-registering a physical device under a new resource or changing an existing binding', async () => {
   await setup();
   await expect(
-    registerWorker('worker-b', 'host', [
+    registerResources([
       {
         id: 'different-id',
         hostId: 'host',
@@ -151,7 +150,7 @@ it('rejects re-registering a physical device under a new resource or changing an
     ]),
   ).rejects.toThrow('绑定');
   await expect(
-    registerWorker('worker-b', 'host', [
+    registerResources([
       {
         id: 'host:iphone',
         hostId: 'host',

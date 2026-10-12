@@ -145,12 +145,8 @@ export const testRuns = pgTable(
     fencingToken: integer().notNull().default(0),
     leaseUntil: timestamp({ withTimezone: true, mode: 'string' }),
     queuedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
-    preparingAt: timestamp({ withTimezone: true, mode: 'string' }),
-    executingAt: timestamp({ withTimezone: true, mode: 'string' }),
-    finalizingAt: timestamp({ withTimezone: true, mode: 'string' }),
     errorCode: text(),
     realtimeRevision: integer().notNull().default(0),
-    heartbeatAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     startedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     finishedAt: timestamp({ withTimezone: true, mode: 'string' }),
     durationMs: integer(),
@@ -285,12 +281,6 @@ export const recordingVersions = pgTable(
   (table) => [index('recording_versions_run_idx').on(table.runId, table.createdAt, table.id)],
 );
 
-export const automationWorkers = pgTable('automation_workers', {
-  id: text().primaryKey(),
-  hostId: text().notNull(),
-  platforms: jsonb().$type<string[]>().notNull(),
-  heartbeatAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
-});
 export const automationResources = pgTable(
   'automation_resources',
   {

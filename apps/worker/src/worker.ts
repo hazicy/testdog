@@ -7,7 +7,7 @@ import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { executeRun } from '@testdog/server/runs/run';
-import { claimRun, registerWorker, withLease } from '@testdog/server/scheduling/scheduler';
+import { claimRun, registerResources, withLease } from '@testdog/server/scheduling/scheduler';
 import { pool } from '@testdog/server/db';
 import { cancelRun } from '@testdog/server/runs/run';
 
@@ -49,11 +49,7 @@ for (const signal of ['SIGINT', 'SIGTERM'])
     stopping = true;
     for (const id of activeIds) cancelRun(id);
   });
-await registerWorker(
-  workerId,
-  hostId,
-  configs.map((config) => ({ ...config, hostId })),
-);
+await registerResources(configs.map((config) => ({ ...config, hostId })));
 process.stdout.write(`Worker ${workerId} ready with ${configs.length} resources\n`);
 const concurrency = Number(process.env.CASEFORGE_WORKER_CONCURRENCY || configs.length);
 
@@ -74,7 +70,6 @@ async function consume() {
         activeIds.delete(claimed.run.id);
       }
     } else {
-      await registerWorker(workerId, hostId, []);
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }

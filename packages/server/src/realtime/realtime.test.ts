@@ -33,9 +33,9 @@ afterAll(async () => {
   await database.client.close();
 });
 
-it('commits ordered deltas with business writes, ignores heartbeats, strips artifact paths and rolls back events', async () => {
+it('commits ordered deltas with business writes, ignores lease renewals, strips artifact paths and rolls back events', async () => {
   await database.client.query(
-    `UPDATE test_runs SET "heartbeatAt" = now(), "leaseUntil" = now() + interval '1 minute' WHERE id = $1`,
+    `UPDATE test_runs SET "leaseUntil" = now() + interval '1 minute' WHERE id = $1`,
     [runId],
   );
   const stepId = randomUUID();

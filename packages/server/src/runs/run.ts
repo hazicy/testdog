@@ -7,7 +7,7 @@ import { hostname } from 'node:os';
 import { leaseScope, setRunPhase } from '@testdog/server/scheduling/lease';
 import {
   claimRun,
-  registerWorker,
+  registerResources,
   releaseLease,
   renewLease,
   withLease,
@@ -53,7 +53,7 @@ export async function executeRun(
   if (!lease) {
     const hostId = process.env.CASEFORGE_HOST_ID || hostname();
 
-    await registerWorker(owner, hostId, [
+    await registerResources([
       { id: `${hostId}:web:inline`, hostId, platform: 'web', profileId: 'mobile' },
     ]);
     const claim = await claimRun(owner, hostId, run.id);

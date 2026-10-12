@@ -3,7 +3,6 @@ import { listTestPage } from '@testdog/server/workspace/queries';
 import { readPage } from '@testdog/server/shared/pagination';
 import { NextResponse } from 'next/server';
 import { saveTest } from '@testdog/server/test-cases/repository';
-import { testSchema, testValidationMessage } from '@testdog/contracts/test-cases/schemas';
 import { apiError } from '@testdog/server/shared/http';
 
 export const runtime = 'nodejs';
@@ -19,13 +18,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const userId = await requireUserId(request);
-    const parsed = testSchema.safeParse(await request.json().catch(() => null));
-
-    if (!parsed.success)
-      return NextResponse.json({ message: testValidationMessage(parsed.error) }, { status: 400 });
 
     return NextResponse.json(
-      { test: await saveTest(parsed.data, undefined, userId) },
+      { test: await saveTest(await request.json().catch(() => null), undefined, userId) },
       { status: 201 },
     );
   } catch (error) {
