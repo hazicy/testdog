@@ -64,7 +64,7 @@ beforeAll(async () => {
 }, 30000);
 afterAll(async () => {
   if (!binary) return;
-  stopOutboxPublisher();
+  await stopOutboxPublisher();
   await closeRedis();
   server?.kill();
   await database?.client.close();

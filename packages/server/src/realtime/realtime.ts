@@ -12,20 +12,26 @@ const state = globalThis as typeof globalThis & {
     listeners: Map<string, Set<Listener>>;
     subscribed?: Promise<void>;
     publisher?: ReturnType<typeof setInterval>;
-    busy: boolean;
+    pending?: Promise<void>;
     cleanedAt: number;
   };
 };
 const shared: NonNullable<typeof state.caseforgeRealtime> = (state.caseforgeRealtime ??= {
   listeners: new Map(),
-  busy: false,
   cleanedAt: 0,
 });
 
 // PostgreSQL owns reliability; Redis carries only wake-ups after committed writes.
-export async function flushOutbox() {
-  if (shared.busy) return;
-  shared.busy = true;
+export function flushOutbox(): Promise<void> {
+  if (shared.pending) return shared.pending;
+  shared.pending = publishOutbox().finally(() => {
+    shared.pending = undefined;
+  });
+
+  return shared.pending;
+}
+
+async function publishOutbox() {
   try {
     if (Date.now() - shared.cleanedAt > 60000) {
       await db.delete(realtimeOutbox).where(sql`
@@ -74,8 +80,6 @@ export async function flushOutbox() {
     });
   } catch {
     // Recent unpublished rows remain durable; retention gaps recover from snapshots.
-  } finally {
-    shared.busy = false;
   }
 }
 
@@ -86,9 +90,10 @@ export function startOutboxPublisher() {
   shared.publisher.unref();
 }
 
-export function stopOutboxPublisher() {
+export async function stopOutboxPublisher() {
   clearInterval(shared.publisher);
   shared.publisher = undefined;
+  await shared.pending;
 }
 
 export async function subscribeRealtime(channel: string, listener: Listener) {

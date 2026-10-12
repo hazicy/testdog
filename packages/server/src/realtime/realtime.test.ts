@@ -16,7 +16,12 @@ vi.mock('@testdog/server/shared/redis', () => ({
   redisClient: vi.fn(),
 }));
 import { createTestDatabase as createDatabase } from '@testdog/server/testing/testDatabase';
-import { flushOutbox, readRunUpdates } from '@testdog/server/realtime/realtime';
+import {
+  flushOutbox,
+  readRunUpdates,
+  startOutboxPublisher,
+  stopOutboxPublisher,
+} from '@testdog/server/realtime/realtime';
 
 let database: Awaited<ReturnType<typeof createTestDatabase>>;
 const runId = randomUUID();
@@ -138,6 +143,36 @@ it('acknowledges only the published batch and leaves the remaining entries for t
       .rows,
   ).toHaveLength(1);
   await flushOutbox();
+  expect(
+    (await database.client.query('SELECT id FROM realtime_outbox WHERE "publishedAt" IS NULL'))
+      .rows,
+  ).toHaveLength(0);
+});
+
+it('drains an in-flight publication before the publisher finishes stopping', async () => {
+  let release!: () => void;
+  const blocked = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  redis.publish.mockImplementationOnce(() => blocked);
+  await database.client.exec(
+    `INSERT INTO realtime_outbox (kind,data,summary) VALUES ('tests','{}'::jsonb,true)`,
+  );
+  startOutboxPublisher();
+  const pending = flushOutbox();
+
+  expect(flushOutbox()).toBe(pending);
+  await vi.waitFor(() => expect(redis.publish.mock.results.at(-1)?.value).toBe(blocked));
+  let stopped = false;
+  const stopping = stopOutboxPublisher().then(() => {
+    stopped = true;
+  });
+
+  await Promise.resolve();
+  expect(stopped).toBe(false);
+  release();
+  await stopping;
   expect(
     (await database.client.query('SELECT id FROM realtime_outbox WHERE "publishedAt" IS NULL'))
       .rows,

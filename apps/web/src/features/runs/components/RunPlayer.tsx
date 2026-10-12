@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Slider } from '@base-ui/react/slider';
 import { useEffect, useState } from 'react';
-import type { useRunPlayback } from '@/features/runs/hooks/useRunPlayback';
+import type { useRunStudio } from '@/features/runs/hooks/useRunStudio';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Icon } from '@iconify/react/offline';
@@ -23,7 +23,7 @@ type Props = {
   previewUrl?: string;
   clearPreview: () => void;
   durationMs: number;
-  playback: ReturnType<typeof useRunPlayback>;
+  playback: ReturnType<typeof useRunStudio>['playback'];
 };
 
 export function RunPlayer({
@@ -249,7 +249,6 @@ export function RunPlayer({
               value={video?.id || ''}
               onValueChange={(value) => {
                 setVideoDuration(0);
-                setElapsedMs(0);
                 playback.setVideoId(value);
               }}
               className="w-auto"

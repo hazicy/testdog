@@ -20,9 +20,9 @@ import { StepList } from '@/features/runs/components/StepList';
 import { stepAtTime } from '@/features/runs/lib/boardResults';
 import { indexRun } from '@/features/runs/lib/runIndex';
 import { useRunData } from '@/features/runs/hooks/useRunData';
-import { useRunPlayback } from '@/features/runs/hooks/useRunPlayback';
+import { useRunStudio } from '@/features/runs/hooks/useRunStudio';
+import type { EvidenceSource, PanelId } from '@/features/runs/lib/runStudio';
 import { RunHeader } from '@/features/runs/components/RunHeader';
-import type { RunLayout } from '@/features/runs/components/RunLayoutPopover';
 import { RunPlayer } from '@/features/runs/components/RunPlayer';
 import { BrowserLogPanel } from '@/features/runs/components/BrowserLogPanel';
 import { RunLogs } from '@/features/runs/components/RunLogs';
@@ -62,9 +62,6 @@ const workspaceTabs = [
   { id: 'network', label: 'Network', reference: 'logs' },
 ] as const satisfies readonly DockTab[];
 
-type PanelId = (typeof workspaceTabs)[number]['id'];
-type View = Exclude<PanelId, 'steps' | 'issues' | 'logs' | 'console' | 'network'>;
-
 const emptySteps: ExecutionStep[] = [];
 
 const PlanBoard = dynamic(
@@ -102,29 +99,20 @@ export function RunDetail({
 }) {
   const router = useRouter();
   const submit = useRunSubmission();
-  const [issueOpen, setIssueOpen] = useState(false);
-  const [issueStep, setIssueStep] = useState<ExecutionStep>();
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [layoutVersion, setLayoutVersion] = useState(0);
-  const [layout, setLayout] = useState<RunLayout>('default');
-  const playback = useRunPlayback();
+  const { state, act, playback } = useRunStudio();
   const {
-    follow,
-    evidenceIndex,
-    stepId,
-    videoId,
-    videoElement,
-    elapsedMs,
-    setPlaying,
-    showFrame,
-    seek,
-    selectStep: selectPlaybackStep,
-  } = playback;
-  const [inspectedStepId, setInspectedStepId] = useState<string>();
-  const [view, setView] = useState<View>('execution');
-  const [logTab, setLogTab] = useState<'logs' | 'console' | 'network'>('logs');
-  const [revealPanels, setRevealPanels] = useState<readonly PanelId[]>([]);
+    layoutVersion,
+    layout,
+    inspectedStepId,
+    view,
+    logTab,
+    revealPanels,
+    selectedIssueId,
+    issueStepId,
+  } = state;
+  const { follow, evidenceIndex, stepId, videoId, elapsedMs } = playback;
   const { run, error, setError, unavailable, previewUrl, clearPreview, refresh } = useRunData(
     id,
     follow && view === 'execution',
@@ -133,7 +121,6 @@ export function RunDetail({
   useEffect(() => {
     if (run) onRunChange?.(run);
   }, [run, onRunChange]);
-  const [selectedIssueId, setSelectedIssueId] = useState<string>();
   const {
     data: issuePages,
     error: issuesError,
@@ -192,57 +179,58 @@ export function RunDetail({
 
   const durationMs = Math.max(run?.durationMs || 0, frames.at(-1)?.elapsedMs || 0);
 
-  useEffect(() => {
-    if (view !== 'execution') videoElement.current?.pause();
-  }, [view, videoElement]);
   const selectStep = useCallback(
-    (step: ExecutionStep) => {
-      setInspectedStepId(step.id);
-      setSelectedIssueId(
-        runIssues.find((entry) => entry.occurrence.stepId === step.id)?.occurrence.id,
-      );
-      setView('execution');
-      setRevealPanels(['execution', 'steps']);
+    (step: ExecutionStep, source: EvidenceSource = 'steps') => {
       const positions = stepFrames.get(step.id);
-
       const index = positions ? (positions.after ?? positions.first) : undefined;
 
-      selectPlaybackStep(
-        step.id,
-        index === undefined
-          ? Math.max(0, Date.parse(step.startedAt) - Date.parse(run?.startedAt || step.startedAt))
-          : frames[index].elapsedMs,
-        index,
-      );
+      act({
+        type: 'inspect',
+        source,
+        stepId: step.id,
+        issueId: runIssues.find((entry) => entry.occurrence.stepId === step.id)?.occurrence.id,
+        cursor: { kind: 'evidence', stepId: step.id, index },
+        elapsedMs:
+          index === undefined
+            ? Math.max(0, Date.parse(step.startedAt) - Date.parse(run?.startedAt || step.startedAt))
+            : frames[index].elapsedMs,
+      });
     },
-    [stepFrames, selectPlaybackStep, frames, run?.startedAt, runIssues],
+    [stepFrames, act, frames, run?.startedAt, runIssues],
   );
 
   const selectRunIssue = useCallback(
     (entry: RunIssueEntry) => {
       if (!run) return;
-      setSelectedIssueId(entry.occurrence.id);
-      const step = run.steps.find((item) => item.id === entry.occurrence.stepId);
-
-      if (step) setInspectedStepId(step.id);
-      setView('execution');
-      setRevealPanels(['execution', 'issues']);
-      seek(issuePosition(run, entry.occurrence));
+      act({
+        type: 'inspect',
+        source: 'issues',
+        stepId: entry.occurrence.stepId ?? undefined,
+        issueId: entry.occurrence.id,
+        cursor: { kind: 'timeline' },
+        elapsedMs: issuePosition(run, entry.occurrence),
+      });
     },
-    [run, seek],
+    [run, act],
   );
 
-  const showIssueFrame = useCallback(
-    (frame: RunArtifact) => {
+  const showFrame = useCallback(
+    (frame: RunArtifact, source: EvidenceSource) => {
       const index = frames.findIndex((item) => item.id === frame.id);
 
       if (index < 0) return;
-      setInspectedStepId(frame.stepId);
-      setView('execution');
-      setRevealPanels(['execution', 'issues']);
-      showFrame(index, frame.elapsedMs);
+      act({
+        type: 'inspect',
+        source,
+        stepId: frame.stepId,
+        issueId:
+          (source === 'issues' ? selectedIssueId : undefined) ??
+          runIssues.find((entry) => entry.occurrence.stepId === frame.stepId)?.occurrence.id,
+        cursor: { kind: 'evidence', index },
+        elapsedMs: frame.elapsedMs,
+      });
     },
-    [frames, showFrame],
+    [frames, runIssues, selectedIssueId, act],
   );
 
   const renderStepIssue = useCallback(
@@ -274,31 +262,12 @@ export function RunDetail({
     [run, runIssues, selectRunIssue],
   );
 
-  const selectBoardStep = useCallback(
+  const openIssue = useCallback(
     (step: ExecutionStep) => {
-      selectStep(step);
-      setRevealPanels(['execution', 'plan']);
+      act({ type: 'issue', stepId: step.id });
     },
-    [selectStep],
+    [act],
   );
-
-  const showBoardFrame = useCallback(
-    (frame: RunArtifact) => {
-      const index = frames.findIndex((item) => item.id === frame.id);
-
-      if (index < 0) return;
-      setInspectedStepId(frame.stepId);
-      setView('execution');
-      setRevealPanels(['execution', 'plan']);
-      showFrame(index, frame.elapsedMs);
-    },
-    [frames, showFrame],
-  );
-
-  const openIssue = useCallback((step: ExecutionStep) => {
-    setIssueStep(step);
-    setIssueOpen(true);
-  }, []);
 
   const renderStepDetails = useCallback(
     (step: ExecutionStep) => (
@@ -308,52 +277,43 @@ export function RunDetail({
         stepFrames={stepFrames}
         onIssue={openIssue}
         onShowFrame={(index) => {
-          setView('execution');
-          showFrame(index, frames[index].elapsedMs);
+          showFrame(frames[index], 'steps');
         }}
       />
     ),
     [run?.error, stepFrames, frames, showFrame, openIssue],
   );
 
-  async function start(mode: 'record' | 'replay') {
-    if (!run) return;
-    setBusy(true);
-    try {
-      const data = await submit<{ run: TestRun }>(
-        '/api/runs',
-        mode === 'replay' ? { mode, sourceRunId: id } : { testId: run.testId },
-      );
+  async function perform(action: 'record' | 'replay' | 'cancel' | 'export') {
+    if ((action === 'record' || action === 'replay') && !run) return;
+    const setPending = action === 'export' ? setExporting : setBusy;
+    const failure =
+      action === 'export' ? '导出失败' : action === 'cancel' ? '停止失败' : '启动失败';
 
-      if (onRunCreated) onRunCreated(data.run);
-      else router.push(`/runs/${data.run.id}`);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '启动失败');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function cancel() {
-    setBusy(true);
+    setPending(true);
     try {
-      await api.delete(`/api/runs/${id}`);
-      await refresh();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '停止失败');
-    } finally {
-      setBusy(false);
-    }
-  }
+      switch (action) {
+        case 'export':
+          await downloadRunReport(id);
+          break;
+        case 'cancel':
+          await api.delete(`/api/runs/${id}`);
+          await refresh();
+          break;
+        default: {
+          const data = await submit<{ run: TestRun }>(
+            '/api/runs',
+            action === 'replay' ? { mode: action, sourceRunId: id } : { testId: run!.testId },
+          );
 
-  async function exportReport() {
-    setExporting(true);
-    try {
-      await downloadRunReport(id);
+          if (onRunCreated) onRunCreated(data.run);
+          else router.push(`/runs/${data.run.id}`);
+        }
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '导出失败');
+      setError(cause instanceof Error ? cause.message : failure);
     } finally {
-      setExporting(false);
+      setPending(false);
     }
   }
 
@@ -367,7 +327,7 @@ export function RunDetail({
               steps={run?.steps || emptySteps}
               selectedId={selectedStep?.id}
               running={run?.status === 'running'}
-              onSelect={selectStep}
+              onSelect={(step) => selectStep(step)}
               renderDetails={renderStepDetails}
               renderIssue={renderStepIssue}
             />
@@ -383,7 +343,7 @@ export function RunDetail({
               runIssues.find((entry) => entry.occurrence.stepId === selectedStep?.id)?.occurrence.id
             }
             onSelect={selectRunIssue}
-            onFrame={showIssueFrame}
+            onFrame={(frame) => showFrame(frame, 'issues')}
             onUpdated={refreshIssues}
             error={issuesError?.message}
             loading={issuesLoading}
@@ -400,8 +360,8 @@ export function RunDetail({
             artifacts={run?.artifacts}
             results
             currentStepId={playbackStep?.id}
-            onStep={selectBoardStep}
-            onFrame={showBoardFrame}
+            onStep={(step) => selectStep(step, 'plan')}
+            onFrame={(frame) => showFrame(frame, 'plan')}
             onIssue={openIssue}
           />
         );
@@ -441,23 +401,6 @@ export function RunDetail({
     }
   }
 
-  function changePanel(panel: PanelId) {
-    switch (panel) {
-      case 'steps':
-      case 'issues':
-        return;
-      case 'logs':
-      case 'console':
-      case 'network':
-        setLogTab(panel);
-
-        return;
-      default:
-        setView(panel);
-        setPlaying(false);
-    }
-  }
-
   if (unavailable || (!run && error))
     return (
       <ErrorState
@@ -476,18 +419,12 @@ export function RunDetail({
         embedded={embedded}
         run={run}
         layout={layout}
-        changeLayout={(next) => {
-          setLayout(next);
-          setView('execution');
-          setLogTab('logs');
-          setRevealPanels([]);
-          setLayoutVersion((version) => version + 1);
-        }}
+        changeLayout={(layout) => act({ type: 'layout', layout })}
         busy={busy}
         exporting={exporting}
-        start={start}
-        cancel={cancel}
-        exportReport={exportReport}
+        start={(mode) => perform(mode)}
+        cancel={() => perform('cancel')}
+        exportReport={() => perform('export')}
       />
       {run?.targetSnapshot?.platform === 'web' && run.targetSnapshot.loginIdentityId && (
         <div className="studio-alert" role="status">
@@ -511,8 +448,7 @@ export function RunDetail({
                 type="button"
                 size="sm"
                 onClick={() => {
-                  setLogTab('logs');
-                  setRevealPanels(['logs']);
+                  act({ type: 'logs' });
                 }}
               >
                 查看失败信息
@@ -538,14 +474,14 @@ export function RunDetail({
           </Button>
         </div>
       )}
-      {issueOpen && run && (
+      {issueStepId && run && (
         <IssueEditor
           run={run}
-          step={issueStep}
-          onDismiss={() => setIssueOpen(false)}
+          step={steps.get(issueStepId)}
+          onDismiss={() => act({ type: 'issue' })}
           onSaved={(issue) => {
             if (embedded) {
-              setIssueOpen(false);
+              act({ type: 'issue' });
               window.open(`/issues/${issue.id}`, '_blank', 'noopener,noreferrer');
             } else router.push(`/issues/${issue.id}`);
           }}
@@ -620,7 +556,7 @@ export function RunDetail({
           })}
         revealPanels={revealPanels}
         value={view}
-        onChange={changePanel}
+        onChange={(panel) => act({ type: 'panel', panel })}
       >
         {renderPanel}
       </DockTabs>

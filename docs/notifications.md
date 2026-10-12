@@ -31,6 +31,8 @@ SMTP 解析后固定连接目标 IP，默认禁止私网、回环和链路本地
 pnpm notifications
 ```
 
+默认部署仅需 Web + worker。分离部署时，用 `CASEFORGE_BACKGROUND_SERVICES=none pnpm worker` 运行执行节点，`pnpm maintenance` 集中运行维护、通知和 outbox。若另启独立 notifications，则将 maintenance 设置为 `CASEFORGE_BACKGROUND_SERVICES=maintenance,outbox`，避免重复配置。所有入口共用启动与退出逻辑，退出时等待已领取的通知批次结束后关闭连接。
+
 多个进程通过行锁和 `SKIP LOCKED` 领取任务。网络发送在数据库事务外进行，不阻塞测试执行。领取租约为两分钟，进程异常后可重新领取；自动最多尝试三次，失败后可在集成页面手动重试。更改配置会取消旧配置下的待发通知，已开始发送的请求可能已经到达原目标。
 
 外部渠道不提供统一的端到端幂等承诺：进程在外部服务接受消息后、数据库确认前中断时，恢复可能重复发送。Email 使用固定的投递 Message-ID，飞书签名使用当前时间戳。邮件发送成功表示 SMTP 服务接受请求，最终收件状态依赖邮件服务。

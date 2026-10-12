@@ -2199,6 +2199,10 @@ test('result board shows assertion evidence and links screenshots to the existin
   );
   await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:02 / 00:05');
   await expect(capture).toHaveAttribute('data-current', 'true');
+  await page.getByRole('button', { name: '播放回看', exact: true }).click();
+  await expect(page.getByRole('button', { name: '暂停回看', exact: true })).toBeVisible();
+  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:03 / 00:05');
+  await page.getByRole('button', { name: '暂停回看', exact: true }).click();
   await page.getByRole('slider', { name: '画面时间轴' }).fill('3500');
   await expect(assertion).toHaveAttribute('data-current', 'true');
   await expect(assertion).toHaveAttribute('data-result', 'failed');

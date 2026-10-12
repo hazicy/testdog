@@ -19,8 +19,7 @@ pnpm exec playwright install chromium webkit
 pnpm dev
 # 另一个终端启动执行 worker：
 pnpm worker
-# 可独立常驻维护服务，确保 worker 离线时仍回收超时任务：
-pnpm maintenance
+# 默认 worker 已包含维护、通知和 outbox 服务。
 ```
 
 打开 http://localhost:3000，进入工作台：
@@ -104,6 +103,15 @@ docs/                  数据模型、API 与部署文档
 ## 独立部署
 
 仓库使用 pnpm workspace。Web 提交任务，worker 通过 PostgreSQL 领取并执行；两端共享数据库、Redis 和证据存储，不需要部署在同一主机。worker 是执行节点，平台 provider 在 `packages/automation` 中。
+
+默认部署组合是 Web + worker；worker 同时运行租约维护、通知发送和实时 outbox 发布，无需再启动 maintenance 或 notifications。需要让设备 worker 离线时后台服务继续运行，可改用 Web + 独立 maintenance + 执行 worker：
+
+```bash
+pnpm maintenance                              # 维护 + 通知 + outbox，不领取执行任务
+CASEFORGE_BACKGROUND_SERVICES=none pnpm worker # 只执行任务
+```
+
+所有后台入口共用 `CASEFORGE_BACKGROUND_SERVICES`：未配置时使用入口默认组合；`none` 关闭后台服务，或用逗号分隔的 `maintenance,notifications,outbox` 选择子集。独立通知进程仍可通过 `pnpm notifications` 运行，默认只发送通知；例如将 maintenance 配置为 `CASEFORGE_BACKGROUND_SERVICES=maintenance,outbox` 即可单独扩容通知。多个进程仍通过数据库锁协调，不需要将同一服务重复配置到每个执行 worker。SIGINT/SIGTERM 会停止领取任务、取消并等待当前执行、等待后台批次结束，再关闭 Redis 和数据库；启动或退出失败也会执行清理。
 
 依赖版本统一维护在 `pnpm-workspace.yaml` 的 `catalog` 中，各应用和包通过 `catalog:` 声明自己的依赖；仓库内依赖继续使用 `workspace:*`。根 `package.json` 只声明仓库工具、配置及根目录测试直接使用的依赖。升级时修改 catalog 并运行 `pnpm install`，提交更新后的锁文件。
 

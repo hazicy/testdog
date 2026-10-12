@@ -1,14 +1,11 @@
 import './environment';
-import { startNotificationDispatcher } from '@testdog/server/integrations/dispatcher';
-import { startLeaseMaintenance } from '@testdog/server/scheduling/maintenance';
-import { startOutboxPublisher, stopOutboxPublisher } from '@testdog/server/realtime/realtime';
-import { closeRedis } from '@testdog/server/shared/redis';
+import { runServiceProcess } from './serviceRuntime';
+import { setTimeout as delay } from 'node:timers/promises';
 import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { executeRun } from '@testdog/server/runs/run';
 import { claimRun, registerResources, withLease } from '@testdog/server/scheduling/scheduler';
-import { pool } from '@testdog/server/db';
 import { cancelRun } from '@testdog/server/runs/run';
 
 const configSchema = z
@@ -38,49 +35,63 @@ for (const resource of configs) {
     throw new Error('Local iOS worker requires macOS');
 }
 
-startOutboxPublisher();
-const stopMaintenance = startLeaseMaintenance();
-const stopNotifications = startNotificationDispatcher();
-let stopping = false;
-const activeIds = new Set<string>();
-
-for (const signal of ['SIGINT', 'SIGTERM'])
-  process.on(signal, () => {
-    stopping = true;
-    for (const id of activeIds) cancelRun(id);
-  });
-await registerResources(configs.map((config) => ({ ...config, hostId })));
-process.stdout.write(`Worker ${workerId} ready with ${configs.length} resources\n`);
 const concurrency = Number(process.env.CASEFORGE_WORKER_CONCURRENCY || configs.length);
 
 if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > configs.length)
   throw new Error('Worker concurrency must be between 1 and the number of resources');
 
-async function consume() {
-  while (!stopping) {
-    const claimed = await claimRun(workerId, hostId);
+await runServiceProcess('worker', async ({ signal, stop }) => {
+  const activeIds = new Set<string>();
 
-    if (claimed) {
-      activeIds.add(claimed.run.id);
-      try {
-        await withLease(claimed.lease, () => executeRun(claimed.run, claimed.resource));
-      } catch (error) {
-        process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-      } finally {
-        activeIds.delete(claimed.run.id);
+  signal.addEventListener(
+    'abort',
+    () => {
+      for (const id of activeIds) cancelRun(id);
+    },
+    { once: true },
+  );
+  await registerResources(configs.map((config) => ({ ...config, hostId })));
+  if (signal.aborted) return;
+  process.stdout.write(`Worker ${workerId} ready with ${configs.length} resources\n`);
+
+  async function consume() {
+    while (!signal.aborted) {
+      const claimed = await claimRun(workerId, hostId);
+
+      if (claimed) {
+        activeIds.add(claimed.run.id);
+        try {
+          const execution = withLease(claimed.lease, () =>
+            executeRun(claimed.run, claimed.resource),
+          );
+
+          // A signal may arrive while the database claim is in flight.
+          if (signal.aborted) cancelRun(claimed.run.id);
+          await execution;
+        } catch (error) {
+          process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+        } finally {
+          activeIds.delete(claimed.run.id);
+        }
+      } else {
+        try {
+          await delay(1000, undefined, { signal });
+        } catch (error) {
+          if (!signal.aborted) throw error;
+        }
       }
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
-}
 
-try {
-  await Promise.all(Array.from({ length: concurrency }, () => consume()));
-} finally {
-  await stopNotifications();
-  await stopMaintenance();
-  stopOutboxPublisher();
-  await closeRedis();
-  await pool.end();
-}
+  const results = await Promise.allSettled(
+    Array.from({ length: concurrency }, () =>
+      consume().catch((error) => {
+        stop();
+        throw error;
+      }),
+    ),
+  );
+  const errors = results.flatMap((result) => (result.status === 'rejected' ? [result.reason] : []));
+
+  if (errors.length) throw new AggregateError(errors, 'Worker consumers failed');
+});
