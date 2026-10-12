@@ -10,6 +10,7 @@
 - `issues/repository.ts`：问题查询、事务写入、执行证据快照与回归关联。
 - `scheduling`：worker 与资源登记、任务领取、租约校验、续约和恢复。
 - `realtime`：数据库事件发布、SSE 和实时画面预览。
+- `browser-providers`：浏览器服务注册、按用户隔离的配置和统一连接入口；目前支持本地浏览器与 Browserless。
 - `shared`：鉴权、业务错误、HTTP 响应、Redis 连接、模型选择和进程身份。
 - `testing`：隔离的 PGlite 测试数据库辅助代码，不用于生产运行。
 

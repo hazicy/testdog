@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/auth/get-session', (route) => route.fulfill({ json: null }));
   await page.route('**/api/integrations', (route) =>
-    route.fulfill({ json: { integrations: [], deliveries: [] } }),
+    route.fulfill({ json: { browserProviders: [], integrations: [], deliveries: [] } }),
   );
   await page.route('**/api/issues*', (route) =>
     route.fulfill({ json: { issues: [], nextCursor: null } }),

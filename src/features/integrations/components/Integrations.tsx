@@ -9,6 +9,8 @@ import {
   TableCell,
 } from '@/components/ui/Table';
 
+import { browserProviderForms } from './browserProviderForms';
+import globeIcon from '@iconify-icons/lucide/globe';
 import { Input } from '@/components/ui/Input';
 import { DialogHeader } from '@/components/ui/Dialog';
 import { useId, useState } from 'react';
@@ -276,12 +278,17 @@ function ChannelForm({
 export function Integrations() {
   const historyTitleId = useId();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [configuringBrowser, setConfiguringBrowser] = useState<string>();
   const { data, error, mutate } = useSWR<IntegrationsResponse>('/api/integrations', fetchJson, {
     refreshInterval: (current) =>
       current?.deliveries.some((item) => item.status === 'pending' || item.status === 'sending')
         ? 3000
         : 30000,
   });
+  const selectedBrowser = data?.browserProviders.find(
+    (item) => item.provider === configuringBrowser,
+  );
+  const BrowserForm = selectedBrowser ? browserProviderForms[selectedBrowser.provider] : undefined;
   const [configuring, setConfiguring] = useState<NotificationChannel>();
   const selectedIntegration = data?.integrations.find((item) => item.channel === configuring);
   const [retrying, setRetrying] = useState<string>();
@@ -309,9 +316,58 @@ export function Integrations() {
         </p>
       )}
       {!data ? (
-        <p role="status">正在加载通知配置…</p>
+        <p role="status">正在加载集成配置…</p>
       ) : (
         <>
+          <section aria-labelledby="browser-services-title" className="mb-8">
+            <h2 id="browser-services-title" className="text-sm font-medium">
+              浏览器服务
+            </h2>
+            <div className="mt-4 divide-y divide-page-line border-y border-page-line">
+              {data.browserProviders.map((integration) => (
+                <div key={integration.provider} className="flex items-center gap-4 px-3 py-5">
+                  <Icon icon={globeIcon} width="22" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-medium">{integration.name}</h3>
+                      {integration.configurationError ? (
+                        <span className="text-xs text-error-ink">配置异常</span>
+                      ) : (
+                        integration.configured && (
+                          <span className="text-xs text-step-success">
+                            {integration.enabled ? '已启用' : '已配置'}
+                          </span>
+                        )
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-page-muted">
+                      {integration.description}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`配置${integration.name}`}
+                    aria-haspopup="dialog"
+                    disabled={!browserProviderForms[integration.provider]}
+                    onClick={() => setConfiguringBrowser(integration.provider)}
+                  >
+                    <Icon icon={settingsIcon} width="14" aria-hidden="true" />
+                    配置
+                    <Icon icon={chevronRightIcon} width="14" aria-hidden="true" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </section>
+          {selectedBrowser && BrowserForm && (
+            <BrowserForm
+              key={selectedBrowser.provider}
+              integration={selectedBrowser}
+              onSaved={mutate}
+              onDismiss={() => setConfiguringBrowser(undefined)}
+            />
+          )}
           <section aria-labelledby="communication-title">
             <div className="flex items-center justify-between gap-4">
               <h2 id="communication-title" className="text-sm font-medium">

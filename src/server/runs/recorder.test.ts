@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -49,7 +49,11 @@ async function fixture() {
     off: vi.fn(),
     url: () => 'https://example.com',
     screenshot: vi.fn(async () => Buffer.from('jpeg')),
-    video: () => ({ path: async () => video }),
+    video: () => ({
+      saveAs: async (path: string) => {
+        await copyFile(video, path);
+      },
+    }),
   };
   const context = {
     pages: () => [page],
@@ -214,7 +218,11 @@ describe('recorder cleanup and partial archive recovery', () => {
     context.tracing.stop.mockRejectedValue(new Error('trace failed'));
     const validVideo = page.video();
 
-    page.video = () => ({ path: async () => join(directory, 'missing.webm') });
+    page.video = () => ({
+      saveAs: async () => {
+        throw new Error('Video download failed');
+      },
+    });
     recorder.onPage({
       ...page,
       video: () => validVideo,
@@ -224,7 +232,7 @@ describe('recorder cleanup and partial archive recovery', () => {
     await expect(stopping).rejects.toMatchObject({
       errors: expect.arrayContaining([
         expect.objectContaining({ message: 'trace failed' }),
-        expect.objectContaining({ code: 'ENOENT' }),
+        expect.objectContaining({ message: 'Video download failed' }),
       ]),
     });
     expect(store.insertArtifact.mock.calls.map(([artifact]) => artifact.kind)).toEqual([

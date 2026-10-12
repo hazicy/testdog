@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir, hostname } from 'node:os';
 import { join } from 'node:path';
 import { createAgentDeviceClient } from 'agent-device';
-import { launchWebBrowser } from '@/automation/platform/web/mobile';
+import { openRunBrowser } from '@/server/browser-providers/runtime';
 import { recoverResource } from './scheduler';
 import { getRun } from '@/server/runs/repository';
 
@@ -38,11 +38,14 @@ export async function recoverLocalResource(id: string, hostId: string) {
     const run = await getRun(resource.runId);
 
     if (resource.platform === 'web') {
-      // Web slots have isolated process-local browser contexts. A dead worker
-      // cannot issue commands; prove a fresh browser can start and stop.
-      const browser = await launchWebBrowser(
+      // A dead worker cannot issue commands. Verify the configured browser
+      // provider can create and release a fresh isolated context.
+      const connection = await openRunBrowser(
+        run.id,
         run.targetSnapshot?.platform === 'web' ? run.targetSnapshot : legacyWebTarget(run.url),
+        AbortSignal.timeout(30000),
       );
+      const browser = connection.browser;
 
       try {
         const page = await browser.newPage();
@@ -50,7 +53,7 @@ export async function recoverLocalResource(id: string, hostId: string) {
         await page.setContent('<title>CaseForge recovery</title>');
         if ((await page.title()) !== 'CaseForge recovery') return false;
       } finally {
-        await browser.close();
+        await connection.close();
       }
 
       return true;

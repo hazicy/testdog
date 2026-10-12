@@ -7,16 +7,12 @@ function key() {
   const secret = process.env.CASEFORGE_INTEGRATION_SECRET || process.env.BETTER_AUTH_SECRET;
 
   if (!secret || secret.length < 32)
-    throw new WorkspaceError('通知密钥未配置，请先配置服务端集成密钥。');
+    throw new WorkspaceError('集成密钥未配置，请先配置服务端集成密钥。');
 
   return createHash('sha256').update(`testdog:notification:v1:${secret}`).digest();
 }
 
-export function encryptConfig(
-  config: NotificationConfig,
-  userId: UserScope,
-  channel: NotificationChannel,
-) {
+export function encryptSecret(config: unknown, userId: UserScope, channel: string) {
   const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', key(), iv);
 
@@ -31,11 +27,7 @@ export function encryptConfig(
   ].join('.');
 }
 
-export function decryptConfig(
-  value: string,
-  userId: UserScope,
-  channel: NotificationChannel,
-): NotificationConfig {
+export function decryptSecret(value: string, userId: UserScope, channel: string): unknown {
   try {
     const [version, iv, tag, data] = value.split('.');
 
@@ -49,6 +41,22 @@ export function decryptConfig(
       Buffer.concat([decipher.update(Buffer.from(data, 'base64url')), decipher.final()]).toString(),
     );
   } catch {
-    throw new WorkspaceError('通知配置无法解密，请重新填写并保存配置。');
+    throw new WorkspaceError('集成配置无法解密，请重新填写并保存配置。');
   }
+}
+
+export function encryptConfig(
+  config: NotificationConfig,
+  userId: UserScope,
+  channel: NotificationChannel,
+) {
+  return encryptSecret(config, userId, channel);
+}
+
+export function decryptConfig(
+  value: string,
+  userId: UserScope,
+  channel: NotificationChannel,
+): NotificationConfig {
+  return decryptSecret(value, userId, channel) as NotificationConfig;
 }

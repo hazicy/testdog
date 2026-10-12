@@ -1,3 +1,5 @@
+import { openRunBrowser } from '@/server/browser-providers/runtime';
+import type { BrowserConnection } from '@/automation/platform/web/providers/contracts';
 import type { ModelClient } from '@/automation/llm/contracts';
 import { SemanticEvaluator, type Evaluator } from '@/automation/evaluator';
 import { modelClient } from '@/server/shared/model';
@@ -10,7 +12,7 @@ import { AgentDeviceSession } from '@/automation/platform/native/agentDeviceSess
 import { NativeActionPlanner } from '@/automation/platform/native/nativePlanner';
 import { PlaywrightSession } from '@/automation/platform/web/playwrightSession';
 import { WebActionPlanner } from '@/automation/platform/web/webPlanner';
-import { launchWebBrowser, resolveWebProfile } from '@/automation/platform/web/mobile';
+import { resolveWebProfile } from '@/automation/platform/web/mobile';
 import { legacyWebTarget, targetUrl } from '@/automation/platform/target';
 import { DeviceRecorder } from '@/server/runs/deviceRecorder';
 import { RunRecorder } from '@/server/runs/recorder';
@@ -144,15 +146,20 @@ export async function openPlatformRuntime(input: {
     ? (expectedEnvironment.profile as BrowserContextOptions)
     : resolveWebProfile(target);
   let browser: Browser | undefined;
+  let connection: BrowserConnection | undefined;
   let context: BrowserContext | undefined;
   let recorder: RunRecorder | undefined;
   const stop = () => {
-    void browser?.close().catch(() => {});
+    // Close the context to interrupt actions but keep the transport alive until
+    // the recorder has downloaded remote video artifacts.
+    if (context) void context.close().catch(() => {});
+    else void connection?.close().catch(() => {});
   };
 
   signal.addEventListener('abort', stop, { once: true });
   try {
-    browser = await launchWebBrowser(target);
+    connection = await openRunBrowser(run.id, target, signal);
+    browser = connection.browser;
     signal.throwIfAborted();
     if (
       expectedEnvironment?.browserVersion &&
@@ -164,14 +171,14 @@ export async function openPlatformRuntime(input: {
     recorder = new RunRecorder(run, persistence);
     context = await browser.newContext({
       ...profile,
-      ...(secrets.enabled
+      ...(secrets.enabled || !connection.artifacts.includes('video')
         ? {}
         : { recordVideo: { dir: recorder.directory, size: profile.viewport ?? undefined } }),
     });
     context.setDefaultTimeout(15000);
     const page = await context.newPage();
 
-    await recorder.start(context);
+    await recorder.start(context, connection.artifacts);
     recorder.onPage(page);
     const hooks = { signal, onPage: recorder.onPage, onStep: recorder.onStep };
     const evidence = new EvidenceSink(run, persistence);
@@ -190,8 +197,9 @@ export async function openPlatformRuntime(input: {
         ),
     );
 
-    if (secrets.enabled)
-      session.capabilities.artifacts = ['screenshot', 'snapshot', 'console', 'network'];
+    session.capabilities.artifacts = connection.artifacts.filter(
+      (artifact) => !secrets.enabled || !['video', 'trace'].includes(artifact),
+    );
     let browserCleanup: Promise<void> | undefined;
 
     const runtime: PlatformRuntime = {
@@ -200,6 +208,7 @@ export async function openPlatformRuntime(input: {
       planner: new WebActionPlanner(model, signal),
       environment: {
         platform: 'web',
+        browserProvider: connection.provider,
         browser: target.browser,
         browserVersion: browser.version(),
         profile,
@@ -217,7 +226,7 @@ export async function openPlatformRuntime(input: {
         : undefined,
       healthy: false,
       cleanup() {
-        return (browserCleanup ??= browser!.close().then(() => {
+        return (browserCleanup ??= connection!.close().then(() => {
           runtime.healthy = true;
         }));
       },
@@ -236,7 +245,7 @@ export async function openPlatformRuntime(input: {
     const cleanup = {
       healthy: !browser,
       cleanup: async () => {
-        await browser?.close();
+        await connection?.close();
         cleanup.healthy = true;
       },
     };

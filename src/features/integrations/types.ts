@@ -32,7 +32,20 @@ export type Delivery = {
   createdAt: string;
   sentAt: string | null;
 };
+export type BrowserlessConfig = { endpoint: string; token?: string };
+export type BrowserProviderIntegration = {
+  provider: string;
+  name: string;
+  description: string;
+  supportedBrowsers: ('chromium' | 'webkit')[];
+  version: number;
+  enabled: boolean;
+  configured: boolean;
+  hasCredentials: boolean;
+  configurationError?: string;
+};
 export type IntegrationsResponse = {
+  browserProviders: BrowserProviderIntegration[];
   integrations: Integration[];
   deliveries: Delivery[];
   emailAvailable: boolean;

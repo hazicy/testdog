@@ -562,3 +562,28 @@ export const notificationDeliveries = pgTable(
     ),
   ],
 );
+
+export const browserProviderIntegrations = pgTable(
+  'browser_provider_integrations',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: text().references(() => authUsers.id),
+    provider: text().notNull(),
+    enabled: boolean().notNull().default(false),
+    encryptedConfig: text().notNull(),
+    version: integer().notNull().default(1),
+    updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('browser_provider_integrations_owner_idx').on(table.userId, table.provider),
+    uniqueIndex('browser_provider_integrations_active_owner_idx')
+      .on(table.userId)
+      .where(sql`${table.enabled} = true`),
+    uniqueIndex('browser_provider_integrations_active_legacy_idx')
+      .on(sql`(1)`)
+      .where(sql`${table.userId} is null and ${table.enabled} = true`),
+    uniqueIndex('browser_provider_integrations_legacy_idx')
+      .on(table.provider)
+      .where(sql`${table.userId} is null`),
+  ],
+);

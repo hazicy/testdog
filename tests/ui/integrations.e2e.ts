@@ -27,6 +27,18 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
     integrations: structuredClone(defaults),
     deliveries: [],
     emailAvailable: true,
+    browserProviders: [
+      {
+        provider: 'browserless',
+        name: 'Browserless',
+        description: '远程 Chromium',
+        supportedBrowsers: ['chromium'],
+        version: 0,
+        enabled: false,
+        configured: false,
+        hasCredentials: false,
+      },
+    ],
   };
   const payloads: Record<string, unknown>[] = [];
 
@@ -118,6 +130,18 @@ test('configures email recipients without SMTP fields and retries failed deliver
     integrations: structuredClone(defaults),
     deliveries: [],
     emailAvailable: true,
+    browserProviders: [
+      {
+        provider: 'browserless',
+        name: 'Browserless',
+        description: '远程 Chromium',
+        supportedBrowsers: ['chromium'],
+        version: 0,
+        enabled: false,
+        configured: false,
+        hasCredentials: false,
+      },
+    ],
   };
   let lastInput: Record<string, unknown> = {};
 
@@ -207,6 +231,18 @@ test('saves email preferences while platform mail is unavailable and disables te
     integrations: structuredClone(defaults),
     deliveries: [],
     emailAvailable: false,
+    browserProviders: [
+      {
+        provider: 'browserless',
+        name: 'Browserless',
+        description: '远程 Chromium',
+        supportedBrowsers: ['chromium'],
+        version: 0,
+        enabled: false,
+        configured: false,
+        hasCredentials: false,
+      },
+    ],
   };
 
   await page.route('**/api/integrations', (route) => route.fulfill({ json: data }));
@@ -252,7 +288,23 @@ test('saves email preferences while platform mail is unavailable and disables te
 test('outline buttons use the theme border without a persistent outline', async ({ page }) => {
   await page.route('**/api/integrations', (route) =>
     route.fulfill({
-      json: { integrations: structuredClone(defaults), deliveries: [], emailAvailable: true },
+      json: {
+        integrations: structuredClone(defaults),
+        deliveries: [],
+        emailAvailable: true,
+        browserProviders: [
+          {
+            provider: 'browserless',
+            name: 'Browserless',
+            description: '远程 Chromium',
+            supportedBrowsers: ['chromium'],
+            version: 0,
+            enabled: false,
+            configured: false,
+            hasCredentials: false,
+          },
+        ],
+      },
     }),
   );
   await page.goto('/integrations');
@@ -271,4 +323,113 @@ test('outline buttons use the theme border without a persistent outline', async 
   await expect(button).toHaveCSS('border-color', border);
   await expect(button).toHaveCSS('border-width', '1px');
   await expect(button).toHaveCSS('outline-style', 'none');
+});
+
+test('configures Browserless through generic provider APIs and keeps credentials hidden', async ({
+  page,
+}) => {
+  const data: IntegrationsResponse = {
+    integrations: structuredClone(defaults),
+    deliveries: [],
+    emailAvailable: true,
+    browserProviders: [
+      {
+        provider: 'browserless',
+        name: 'Browserless',
+        description: '远程 Chromium',
+        supportedBrowsers: ['chromium'],
+        version: 0,
+        enabled: false,
+        configured: false,
+        hasCredentials: false,
+      },
+    ],
+  };
+  const payloads: Record<string, unknown>[] = [];
+
+  await page.route('**/api/integrations', (route) => route.fulfill({ json: data }));
+  await page.route('**/api/integrations/browser-providers/browserless', (route) => {
+    const input = route.request().postDataJSON();
+
+    payloads.push(input);
+    data.browserProviders[0] = {
+      ...data.browserProviders[0],
+      version: input.version + 1,
+      enabled: input.enabled,
+      configured: true,
+      hasCredentials:
+        !input.clearToken && (Boolean(input.token) || data.browserProviders[0].hasCredentials),
+    };
+
+    return route.fulfill({ json: { integration: data.browserProviders[0] } });
+  });
+  await page.route('**/api/integrations/browser-providers/browserless/test', (route) =>
+    route.fulfill({ json: { success: true, browserVersion: '123.0.0' } }),
+  );
+  await page.goto('/integrations');
+  await page.getByRole('button', { name: '配置Browserless', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Browserless', exact: true });
+
+  await expect(dialog.getByRole('button', { name: '测试连接' })).toBeDisabled();
+  await dialog.getByLabel('WebSocket 地址', { exact: true }).fill('wss://host/chromium/playwright');
+  await dialog.getByLabel('Token（可选）').fill('private-token');
+  await dialog.getByRole('checkbox', { name: '启用 Browserless' }).check();
+  await dialog.getByRole('button', { name: '保存配置' }).click();
+  await expect(dialog.getByRole('status')).toHaveText('配置已保存。');
+  await expect(dialog.getByLabel('WebSocket 地址', { exact: true })).toHaveValue('');
+  await expect(dialog.getByLabel('Token（可选）')).toHaveValue('');
+  expect(payloads[0]).toMatchObject({
+    enabled: true,
+    token: 'private-token',
+    endpoint: 'wss://host/chromium/playwright',
+  });
+  await dialog.getByRole('button', { name: '测试连接' }).click();
+  await expect(dialog.getByRole('status')).toContainText('连接测试成功');
+  await dialog.getByRole('checkbox', { name: '启用 Browserless' }).uncheck();
+  await expect(dialog.getByRole('button', { name: '测试连接' })).toBeDisabled();
+  await dialog.getByRole('button', { name: '保存配置' }).click();
+  await expect(dialog.getByRole('status')).toHaveText('配置已保存。');
+  expect(payloads[1]).not.toHaveProperty('endpoint');
+  expect(payloads[1]).not.toHaveProperty('token');
+  await dialog.getByRole('checkbox', { name: '清除已保存的 Token' }).check();
+  await dialog.getByRole('button', { name: '保存配置' }).click();
+  await expect(dialog.getByRole('checkbox', { name: '清除已保存的 Token' })).toHaveCount(0);
+  await dialog.getByRole('button', { name: '关闭配置' }).click();
+  await expect(page.getByRole('button', { name: '配置Browserless', exact: true })).toBeFocused();
+});
+
+test('shows Browserless connection errors and leaves saved configuration editable', async ({
+  page,
+}) => {
+  await page.route('**/api/integrations', (route) =>
+    route.fulfill({
+      json: {
+        integrations: defaults,
+        deliveries: [],
+        emailAvailable: false,
+        browserProviders: [
+          {
+            provider: 'browserless',
+            name: 'Browserless',
+            description: '远程 Chromium',
+            supportedBrowsers: ['chromium'],
+            version: 1,
+            enabled: true,
+            configured: true,
+            hasCredentials: true,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route('**/api/integrations/browser-providers/browserless/test', (route) =>
+    route.fulfill({ status: 502, json: { message: '浏览器服务连接测试失败。' } }),
+  );
+  await page.goto('/integrations');
+  await page.getByRole('button', { name: '配置Browserless', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Browserless', exact: true });
+
+  await dialog.getByRole('button', { name: '测试连接' }).click();
+  await expect(dialog.getByRole('alert')).toHaveText('浏览器服务连接测试失败。');
+  await expect(dialog.getByRole('button', { name: '保存配置' })).toBeEnabled();
 });

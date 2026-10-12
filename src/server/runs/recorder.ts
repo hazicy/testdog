@@ -25,6 +25,7 @@ export class RunRecorder {
   private livePending = false;
   private lastCapturedAt = 0;
   private stopping?: Promise<void>;
+  private recordTrace = true;
   readonly directory: string;
   constructor(
     private run: TestRun,
@@ -61,12 +62,13 @@ export class RunRecorder {
     await mkdir(this.directory, { recursive: true, mode: 0o700 });
     await chmod(this.directory, 0o700);
   }
-  async start(context: BrowserContext) {
+  async start(context: BrowserContext, artifacts?: string[]) {
+    this.recordTrace = !artifacts || artifacts.includes('trace');
     await this.prepare();
     this.logs.start(context);
     context.pages().forEach(this.onPage);
     context.on('page', this.onPage);
-    if (!this.secrets.enabled)
+    if (!this.secrets.enabled && this.recordTrace)
       await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
     this.timer = setInterval(() => {
       const page = this.activePage();
@@ -232,7 +234,7 @@ export class RunRecorder {
     await attempt(() => logsStopped);
     const trace = join(this.directory, 'trace.zip');
 
-    if (!interrupted && !this.secrets.enabled) {
+    if (!interrupted && !this.secrets.enabled && this.recordTrace) {
       await attempt(async () => {
         await context.tracing.stop({ path: trace });
         await this.addFile(
@@ -254,7 +256,12 @@ export class RunRecorder {
     await attempt(() => context.close());
     for (const { video, id, url } of videos)
       if (video)
-        await attempt(async () => this.addFile(await video.path(), 'video', 'video/webm', id, url));
+        await attempt(async () => {
+          const path = join(this.directory, `${id}.webm`);
+
+          await video.saveAs(path);
+          await this.addFile(path, 'video', 'video/webm', id, url);
+        });
     if (errors.length) throw new AggregateError(errors, '执行附件归档失败', { cause: errors[0] });
   }
   private async addFile(

@@ -1,3 +1,4 @@
+import { readBrowserProviders } from '@/server/browser-providers/repository';
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
@@ -107,6 +108,7 @@ export async function readIntegrations(userId: UserScope) {
     }),
     deliveries: history,
     emailAvailable: !!platformSmtpConfig(),
+    browserProviders: await readBrowserProviders(userId),
   };
 }
 
