@@ -7,6 +7,7 @@ const [app, target] = process.argv.slice(2);
 if (!['web', 'worker'].includes(app) || !target)
   throw new Error('Usage: node tools/package-deployment.mjs <web|worker> <new-output-directory>');
 const destination = resolve(target);
+const envFilePattern = /(?:^|\/)\.env(?:\.[^/]*)?$/;
 
 // Never overwrite an existing deployment or workspace directory.
 await mkdir(destination, { recursive: false });
@@ -26,7 +27,7 @@ if (app === 'worker') {
   await cp(standalone, destination, {
     recursive: true,
     verbatimSymlinks: true,
-    filter: (path) => !/(?:^|\/)\.env(?:\.[^/]*)?$/.test(path),
+    filter: (path) => !envFilePattern.test(path),
   });
   await cp('apps/web/.next/static', resolve(destination, 'apps/web/.next/static'), {
     recursive: true,
