@@ -47,7 +47,7 @@ import {
   retryDelivery,
 } from '@testdog/server/integrations/repository';
 import { dispatchNotifications } from '@testdog/server/integrations/dispatcher';
-import { decryptConfig, encryptConfig } from '@testdog/server/integrations/secrets';
+import { decryptSecret, encryptSecret } from '@testdog/server/shared/secrets';
 import { POST as testEndpoint } from '../../../../apps/web/src/app/api/integrations/[channel]/test/route';
 import { PUT as saveEndpoint } from '../../../../apps/web/src/app/api/integrations/[channel]/route';
 
@@ -100,10 +100,10 @@ it('encrypts credentials, retains blank secrets, rejects stale configuration and
   expect(row.encryptedConfig).not.toContain('test-hook');
   expect(row.encryptedConfig).not.toContain('test-signing-secret');
   expect(JSON.stringify(view)).not.toContain('test-hook');
-  expect(decryptConfig(row.encryptedConfig, 'alice', 'feishu')).toMatchObject({
+  expect(decryptSecret(row.encryptedConfig, 'alice', 'feishu')).toMatchObject({
     webhookUrl: input.webhookUrl,
   });
-  expect(() => decryptConfig(row.encryptedConfig, 'bob', 'feishu')).toThrow('无法解密');
+  expect(() => decryptSecret(row.encryptedConfig, 'bob', 'feishu')).toThrow('无法解密');
   expect((await readIntegrations('bob')).integrations.every((item) => !item.configured)).toBe(true);
   const saved = await saveIntegration(
     'feishu',
@@ -142,7 +142,7 @@ it('stores only email preferences and rejects user-supplied SMTP parameters', as
   expect(view.email).toEqual({ recipients: emailInput.recipients });
   const [row] = await db.select().from(notificationIntegrations);
 
-  expect(decryptConfig(row.encryptedConfig, 'alice', 'email')).toEqual({
+  expect(decryptSecret(row.encryptedConfig, 'alice', 'email')).toEqual({
     recipients: emailInput.recipients,
   });
   expect((await readIntegrations('alice')).emailAvailable).toBe(false);
@@ -182,7 +182,7 @@ it('reads legacy recipients without exposing SMTP settings and removes legacy cr
     version: 3,
     enabled: true,
     events: ['run.failed'],
-    encryptedConfig: encryptConfig(legacy, 'alice', 'email'),
+    encryptedConfig: encryptSecret(legacy, 'alice', 'email'),
   });
   const result = await readIntegrations('alice');
 
@@ -198,7 +198,7 @@ it('reads legacy recipients without exposing SMTP settings and removes legacy cr
   await saveIntegration('email', { ...emailInput, version: 3 }, 'alice');
   const [row] = await db.select().from(notificationIntegrations);
 
-  expect(decryptConfig(row.encryptedConfig, 'alice', 'email')).toEqual({
+  expect(decryptSecret(row.encryptedConfig, 'alice', 'email')).toEqual({
     recipients: legacy.recipients,
   });
 });

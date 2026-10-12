@@ -1,6 +1,6 @@
 # 多平台架构实施记录
 
-已实现 [多平台自动化架构](automation-architecture.md) 的首期范围，完成当前代码、迁移与真实浏览器/模拟设备验收。生产部署与按需真机接入需在对应环境执行。
+历史状态：本文保存首期多平台实现及当时的验收证据，测试数量、SDK 能力与“未操作生产数据库”等结论仅适用于该批工作，不表示当前代码或部署环境的状态。首期范围见 [架构设计](automation-architecture.md)；当前操作统一见 [部署指南](deployment.md) 和 [测试指南](testing.md)。
 
 | 范围       | 实现与证据                                                                                                                                                                                                              |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -14,25 +14,10 @@
 | 存储和授权 | 私有本地/S3 附件、归属校验、Range、生产认证默认开启、secret 引用与脱敏。S3 协议 fixture Put/Get/Delete 与归属测试、认证和密钥测试通过                                                                                   |
 | 迁移       | expand/backfill/cutover、历史 legacy desktop/录制/附件保留、旧未完成执行安全终结。隔离迁移与 PostgreSQL 全迁移通过，未操作生产数据库                                                                                    |
 
-最终全量默认测试 133 通过、8 跳过；随后新增的设备命令失败后 refs 失效测试与原生会话回归共 8 项通过。独立 PostgreSQL 与真实 Android 恢复 3 项通过；生产 UI 1 项通过；最后共享 Web 回归 9 项通过。最后 Android/iOS 实测 2 项通过，耗时 210.68 秒。TypeScript、ESLint、格式、diff 检查与生产构建通过。
+当时最终全量默认测试 133 通过、8 跳过；随后新增的设备命令失败后 refs 失效测试与原生会话回归共 8 项通过。独立 PostgreSQL 与真实 Android 恢复 3 项通过；生产 UI 1 项通过；最后共享 Web 回归 9 项通过。最后 Android/iOS 实测 2 项通过，耗时 210.68 秒。TypeScript、ESLint、格式、diff 检查与生产构建通过。
 
-本次 Android SDK 提供视频和应用日志，不提供普通 device trace；显式请求不支持的附件会失败。原生 trace 使用独立 producer/format，不能当作 Playwright Trace 打开。真机属于按需范围，签名、授权和后端能力未实测。
+当时 Android SDK 提供视频和应用日志，不提供普通 device trace；显式请求不支持的附件会失败。原生 trace 使用独立 producer/format，不能当作 Playwright Trace 打开。真机属于按需范围，签名、授权和后端能力未实测。
 
-## 可重复验证
+## 当前操作入口
 
-```bash
-pnpm test
-pnpm lint
-pnpm typecheck
-pnpm format:check
-pnpm build
-RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/sdk pnpm exec vitest run packages/automation/src/platform/native/agentDevice.live.test.ts
-CASEFORGE_TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/caseforge_test_scheduler pnpm exec vitest run packages/server/src/scheduling/scheduler.postgres.test.ts
-CASEFORGE_UI_URL=http://127.0.0.1:3015 pnpm exec vitest run apps/web/src/features/workspace/workspace.live.test.ts
-```
-
-PostgreSQL 测试只接受本地、名称以 caseforge_test_ 开头的数据库，使用独立临时 schema 并清理，不读取 DATABASE_URL。同时设置 CASEFORGE_ANDROID_SERIAL 可验证原生健康恢复，设备必须专用于测试。
-
-## 部署切换
-
-先停止旧 API 接收执行，等待或停止旧后台执行进程，再运行 pnpm db:migrate、部署新 API 并启动 pnpm worker。cutover 迁移终结旧租约缺失的未完成任务，不能代替停止旧进程。历史录制与附件保持原值。设备 worker 需要对应 SDK/Xcode 与明确资源配置；跨主机附件使用私有 S3，应用构建在 worker 主机登记或放置于共享构建目录。
+重新验证请使用 [测试指南](testing.md)，部署及升级切换请使用 [部署指南](deployment.md#数据库迁移与升级)。本文不再维护命令副本。

@@ -32,13 +32,13 @@ erDiagram
 
 ## 接口
 
-target 是目标配置的事实来源，Web URL 由 target.url 推导，原生 URL 统一为空；历史无 target 的记录继续使用旧 URL。列表、详情、搜索与 worker 使用同一目标语义，旧 URL 列与 target 冲突时以 target 为准。网站地址的校验与空白处理由同一 schema 提供，默认 Web 目标从校验后的地址生成。保存用例及入队前检查描述、计划和预期中的输入引用；缺失时返回具体键名，不创建任务。切换执行目标时继承用例的公共输入，同名的平台输入覆盖公共值，合并结果冻结到运行快照。重放仍要求目标与原录制完全兼容。
+target 是目标配置的事实来源，Web URL 由 target.url 推导，原生 URL 统一为空；历史缺失的 target 由迁移回填，旧 URL 列已移除。列表、详情、搜索与 worker 使用同一目标语义。网站地址的校验与空白处理由同一 schema 提供，默认 Web 目标从校验后的地址生成。保存用例及入队前检查描述、计划和预期中的输入引用；缺失时返回具体键名，不创建任务。切换执行目标时继承用例的公共输入，同名的平台输入覆盖公共值，合并结果冻结到运行快照。重放仍要求目标与原录制完全兼容。
 
 平台使用版本化 target：Web 包含 URL/browser/deviceProfile，原生包含 appId/deviceProfileId/buildArtifactId/resetPolicy/launchUrl。可选 inputs 保存普通值或 secretRef，原生 evidence 按能力请求 video/trace/logs。运行详情提供冻结 target、实际 environment、capabilities 和 evidenceComplete。
 
 `POST /api/run-batches` 接收 testId 与 variants（每项 target 和可选 goal），事务内创建独立 run 并返回 batchId。`GET /api/resources` 返回共享资源容量目录（不含任务归属、执行 ID、租约及 worker 详情），`GET /api/builds` 返回构建身份与摘要，均不暴露私有路径。原生录制编辑保存版本化 JSON IR，支持 structured check、semantic assertion 和分支。
 
-生产模式默认要求认证，附件也受认证与运行归属校验保护。跨主机附件可使用私有 S3。部署切换与实测证据见 [实施记录](automation-implementation.md)。
+生产模式默认要求认证，附件也受认证与运行归属校验保护。跨主机附件可使用私有 S3。部署切换见 [部署指南](deployment.md)，首期实测的历史证据见 [实施记录](automation-implementation.md)。
 
 所有响应为 JSON，附件接口除外。创建和更新字段均在服务器用 Zod 校验。错误响应含 `message`：400 参数错误或不符合重放条件，404 记录不存在，409 平台/录制不兼容或停止已结束的记录，503 数据库不可用。发起执行返回 202，表示后台工作已接受，不表示测试通过。
 
@@ -56,7 +56,7 @@ target 是目标配置的事实来源，Web URL 由 target.url 推导，原生 U
 
 草稿结构使用 `PlanSchema`，允许空分组；编译结果、保存用例和草稿试跑共用 `ExecutablePlanSchema`，要求根节点可到达至少一个任务，纯验证任务必须包含预期结果。条件路径外不得直接引用分支中独有的步骤，包括依赖和重复的子节点引用；分支后的任务应依赖分支节点，路径内依赖和两条路径共用的节点仍有效。所有节点必须通过子节点或依赖连接到根节点，断开的步骤不能保存或执行。worker 通过 `resolvePlanInputs` 一次性解析树中的分组描述、任务、分支条件与预期，保留节点 ID、依赖和需求引用；缺少输入时在打开执行环境前失败，密钥仍以不透明引用传给模型。
 
-重放入队时在事务中复制来源计划、环境信息和按序号排列的步骤，指定录制版本时复制该版本的步骤。worker 按重放模式使用本次快照并检查环境兼容性，不再随来源变化；来源删除后仍可执行已提交的重放。历史未保存快照的重放保留来源读取兼容，缺少操作时明确失败，不降级为重新录制。新增 replayEnvironmentSnapshot 字段需运行 `pnpm db:migrate` 应用迁移。
+重放入队时在事务中复制来源计划、环境信息和按序号排列的步骤，指定录制版本时复制该版本的步骤。worker 按重放模式使用本次快照并检查环境兼容性，不再随来源变化；来源删除后仍可执行已提交的重放。历史未保存快照的重放由迁移回填；执行器仅使用冻结快照，不降级为重新录制。相关数据库变更按 [迁移流程](deployment.md#数据库迁移与升级) 应用。
 
 - `GET /api/tests` → `{ tests: TestCase[], latestRuns: RunSummary[], nextCursor: string | null }`，按更新时间与 ID 倒序。
 - `POST /api/tests` → HTTP 201 `{ test: TestCase }`。
@@ -89,7 +89,9 @@ target 是目标配置的事实来源，Web URL 由 target.url 推导，原生 U
 - `GET /api/runs/:id/events?preview=1`：详情 SSE。`snapshot` 提供完整一致性快照，`updates` 按运行版本发送步骤、运行字段、证据增量或 `logs` 日志失效通知（保留版本号，不推送日志正文），`preview` 提供画面版本和采集时间，`ready` 表示连接可用，`done` 表示已同步终态。重连重新获取快照；连接期间按版本补齐漏失事件，事件缺口重置快照。
 - `GET /api/runs/:id/preview?v=<version>`：读取当前最新预览二进制，`v` 用于刷新图片地址，不承诺历史版本；404 表示运行或预览不存在。响应禁止缓存，遵循工作区鉴权。
 
-数据库触发器将业务变更与 `realtime_outbox` 一起提交；发布器经 Redis Pub/Sub 唤醒 API，各 API 共享一个 Redis 订阅连接并分发到浏览器。详情带 `realtimeRevision`，重复事件按版本忽略。Redis 不参与任务领取或执行租约。观看者租约独立登记，页面隐藏、关闭跟随或切换视图后停止续约。
+数据库触发器将业务变更与 `realtime_outbox` 一起提交；发布器每 500 ms 经 Redis Pub/Sub 唤醒 API，各 API 共享一个 Redis 订阅连接并分发到浏览器。成功发布记录保留一小时用于增量恢复，未发布记录最多保留 24 小时；超过保留范围通过快照恢复。详情带 `realtimeRevision`，重复事件按版本忽略，心跳不生成业务事件。Redis 不参与任务领取或执行租约。
+
+SSE 连接中每 15 秒核对运行版本或列表事件标记并补齐漏失通知，出现事件缺口则重取快照。每页共用一条连接，隐藏后关闭，恢复可见时重新同步；终态关闭详情连接。Redis 不可用时，运行中详情每 5 秒、活动列表每 10 秒、空闲列表每 30 秒降级轮询，历史详情不自动轮询。
 
 详情响应带有按完整 JSON 内容计算的 `ETag`。发送匹配的 `If-None-Match` 时返回无响应体的 304；执行详情轮询按页面独立保留上一份数据，304 时复用对象。数据库读取最新记录；查询和 SSE 均不执行租约恢复。状态、步骤、画面或日志版本变化都会产生新 ETag。报告导出始终读取完整 JSON。
 
@@ -128,7 +130,7 @@ target 是目标配置的事实来源，Web URL 由 target.url 推导，原生 U
 
 `GET /api/runs/:id/artifacts/:artifactId` 根据元数据读取私有附件，支持视频 `Range` 请求（206 / 416）。`?download` 返回可下载的附件；Trace 默认作为下载文件。
 
-截图元数据包含 `stage`（`before`、`after`、`live`、`final`）、页面编号、页面 URL、采样时间和执行起点后的 `elapsedMs`。历史 `live` 附件继续兼容；新执行的实时预览仅在有观看者时默认每 3 秒采集，最新帧在 Redis 中保留 60 秒，不写入永久附件或回放时间线。操作前后截图独立记录；截图不是视频帧精度的直播。WebM 视频按页面录制，页面关闭或执行结束后可播放。
+截图元数据包含 `stage`（`before`、`after`、`live`、`final`）、页面编号、页面 URL、采样时间和执行起点后的 `elapsedMs`。历史 `live` 附件继续兼容；新执行的实时预览仅在有观看者时默认每 3 秒采集，只有处于执行视图、跟随最新画面且选择截图模式的可见页面才申请观看租约；每位观看者独立登记，45 秒到期，多位观看者共享采集，页面隐藏、关闭跟随或切换视图后停止续约。最新帧在 Redis 中保留 60 秒，单帧最多 2 MB，不写入永久附件或回放时间线。操作前后截图独立记录；截图不是视频帧精度的直播。WebM 视频按页面录制，页面关闭或执行结束后可播放。
 
 采样器从已有页面开始采集，跟随运行器最近选择的页面；当前页面关闭时，回退到最近登记且仍打开的页面，继续采集实时画面和最终截图。页面编号始终保留，关闭标签页不会改变后续重放映射。
 
@@ -183,7 +185,7 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 - `POST /api/runs/:id/recording`，`{code}`：校验后保存独立版本，返回 201，版本字段与列表一致。解析步骤保留在数据库，用于重放快照。
 - `POST /api/runs`，`{mode:"replay",sourceRunId,recordingVersionId}`：重放选中的编辑版本，返回 202。
 
-需运行 `pnpm db:migrate` 应用新增的版本表与节点、原生断言、重放快照字段。
+版本表、节点、原生断言和重放快照字段的数据库变更统一按 [迁移流程](deployment.md#数据库迁移与升级) 应用。
 
 ## 多平台扩展（实施中）
 
@@ -211,7 +213,7 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 
 执行详情增加 targetSnapshot、environmentSnapshot、capabilities、resourceId、batchId 和 evidenceComplete。原生步骤使用 platformAction，旧 Web action/pageId/pageUrl 可继续读取。原生截图 MIME 为 image/png，附件下载保留正确扩展名。
 
-当前实现与尚未完成的项目见 [实施记录](automation-implementation.md)。
+首期验收范围的历史记录见 [实施记录](automation-implementation.md)，不表示当前部署或验证状态。
 
 ### 游标分页与统计
 
@@ -221,9 +223,13 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 
 ### 日志按需读取
 
-`GET /api/runs/:id/logs?kind=console` 返回 `{ logs, nextCursor }`。支持 `kind=console|network`、`q`、`errors=true`、`stepId`、`untilMs`、`limit`（默认 50，上限 100）和 `cursor`。按持久化序号前进，兼容旧版 JSON 日志；页面打开对应面板才读取，筛选在服务端完成，展开单条记录后才生成 JSON。
+`GET /api/runs/:id/logs?kind=console` 返回 `{ logs, nextCursor }`。支持 `kind=console|network`、`q`、`errors=true`、`stepId`、`untilMs`、`limit`（默认 50，上限 100）和 `cursor`。按独立日志表的持久化序号前进；页面打开对应面板才读取，筛选在服务端完成，展开单条记录后才生成 JSON。
 
 `GET /api/runs/:id?include=logs` 返回带完整浏览器日志的报告；导出使用此接口。步骤和附件元数据仍用于时间线与播放器。
+
+Console 与 Network 日志在录制和重放中均会采集，失败或停止后保留已采集记录；每次执行最多 2000 条，单条文本最多 16000 字符。记录请求方法、URL、状态码、耗时、请求/响应头和失败原因，认证、Cookie 与 token 字段隐藏，不采集请求/响应正文。历史执行不会补录。
+
+操作前后同步采集截图和快照，附件入库使用最多 16 项的共享队列；队列满时执行等待，保存失败会在后续操作或归档时报错。步骤执行或证据入库繁忙时跳过实时预览采集；归档停止周期性日志刷新并等待证据队列排空后才确认完成。
 
 ### 执行提交幂等
 
@@ -231,7 +237,7 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 
 ### 租约维护与模型预算
 
-租约恢复由每个 worker 独立的 15 秒维护任务处理，消费循环与页面读取不执行恢复。PostgreSQL 事务级 advisory lock 防止维护任务同时处理过期记录。可以另启 `pnpm maintenance`，使所有执行 worker 离线时仍能回收超时队列与租约。部署后运行新迁移，重启 API、worker，并建议常驻 maintenance 服务。
+租约恢复由每个 worker 独立的 15 秒维护任务处理，消费循环与页面读取不执行恢复。PostgreSQL 事务级 advisory lock 防止维护任务同时处理过期记录。默认与分离服务组合统一见 [部署指南](deployment.md#默认服务组合)。
 
 模型 SDK 在进程内复用，关闭 SDK 隐式重试；每条测试的编译、动作规划和断言共用预算。默认单次调用（包括重试）60 秒、最多 60 次请求（重试计入）、累计模型耗时 300 秒、已知 token 总量 200000、单次输出最多 8192 tokens、临时错误最多重试 1 次。可用 `.env.example` 中的 `CASEFORGE_AI_*` 调整。
 
@@ -239,4 +245,4 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 
 ## 用户数据归属
 
-业务 API 从 Better Auth 会话读取当前用户 ID；用例与执行记录保存 userId，所有 HTTP 调用显式传递用户范围。子资源通过所属执行记录校验权限，跨用户访问返回 404。后台 worker 的内部读取可以访问已领取的任务，不接受浏览器传入的用户身份。幂等键使用用户与请求 ID 的唯一约束，实时 outbox 保存归属，workspace 通知使用每用户频道。历史无归属数据不向普通用户展示，认领方式见 README。
+业务 API 从 Better Auth 会话读取当前用户 ID；用例与执行记录保存 userId，所有 HTTP 调用显式传递用户范围。子资源通过所属执行记录校验权限，跨用户访问返回 404。后台 worker 的内部读取可以访问已领取的任务，不接受浏览器传入的用户身份。幂等键使用用户与请求 ID 的唯一约束，实时 outbox 保存归属，workspace 通知使用每用户频道。历史无归属数据不向普通用户展示，认领方式见 [运维操作](deployment.md#显式运维操作)。

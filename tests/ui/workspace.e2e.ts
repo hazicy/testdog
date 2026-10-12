@@ -1,8 +1,9 @@
-import { WebTargetSchema } from '@testdog/contracts/automation/platform/target';
 import { expect, test, type Locator } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { makeCase, makeRun, makeStep, makeScreenshot, summarizeRun } from './fixtures/workspace';
+import { mockWorkspaceSupport, mockRun, mockLists, mockScreenshots } from './fixtures/routes';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
-import type { TestRun, RunSummary } from '@testdog/contracts/runs/types';
+import type { TestRun } from '@testdog/contracts/runs/types';
 
 async function openSettings(editor: Locator) {
   await expect(editor.getByRole('complementary', { name: '测试面板' })).toBeVisible();
@@ -13,134 +14,29 @@ async function openSettings(editor: Locator) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/login-identities', (route) =>
-    route.fulfill({ json: { identities: [], flows: [] } }),
-  );
-  await page.route('**/api/workspace/stats', (route) =>
-    route.fulfill({
-      json: {
-        testCount: 1,
-        runCount: 1,
-        counts: {
-          queued: 0,
-          preparing: 0,
-          running: 0,
-          finalizing: 0,
-          passed: 1,
-          failed: 0,
-          cancelled: 0,
-        },
-      },
-    }),
-  );
-  await page.route('**/model-usage', (route) =>
-    route.fulfill({
-      json: {
-        usage: {
-          calls: 0,
-          failures: 0,
-          retries: 0,
-          durationMs: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-          unknownUsage: 0,
-        },
-        calls: [],
-      },
-    }),
-  );
-  await page.route('**/api/builds', (route) => route.fulfill({ json: { builds: [] } }));
-  await page.route('**/api/resources', (route) => route.fulfill({ json: { resources: [] } }));
+  await mockWorkspaceSupport(page);
 });
 
-const saved: TestCase = {
-  target: WebTargetSchema.parse({
-    platform: 'web',
-    url: 'https://example.com',
-    deviceProfile: 'legacy-desktop',
-  }),
-  id: '62534c46-a8eb-4991-993e-af6df14bece0',
-  name: '验证登录',
-  url: 'https://example.com',
-  goal: '验证登录按钮',
-  tags: ['登录'],
-  createdAt: '2026-10-01T00:00:00Z',
-  updatedAt: '2026-10-01T00:00:00Z',
-};
-const run: TestRun = {
-  targetSnapshot: saved.target,
-  id: '62534c46-a8eb-4991-993e-af6df14bece1',
-  testId: saved.id,
-  name: saved.name,
-  url: saved.url,
-  goal: saved.goal,
-  mode: 'record',
-  status: 'passed',
-  startedAt: saved.createdAt,
-  finishedAt: saved.createdAt,
-  durationMs: 1000,
-  replayable: true,
-  cancelRequested: false,
-  events: [],
-  artifacts: [],
-  steps: [
-    {
-      id: '62534c46-a8eb-4991-993e-af6df14bece2',
-      runId: '62534c46-a8eb-4991-993e-af6df14bece1',
-      sequence: 1,
-      kind: 'navigate',
-      title: '打开网站',
-      status: 'passed',
-      startedAt: saved.createdAt,
-      pageId: 'page-1',
-      pageUrl: saved.url,
-      replayable: true,
-      action: { type: 'navigate', value: saved.url, target: { kind: 'css', value: '', name: '' } },
-    },
-  ],
-};
-
-const summary: RunSummary = {
-  id: run.id,
-  testId: run.testId,
-  name: run.name,
-  url: run.url,
-  mode: run.mode,
-  status: run.status,
-  startedAt: run.startedAt,
-  finishedAt: run.finishedAt,
-  durationMs: run.durationMs,
-  replayable: run.replayable,
-  cancelRequested: run.cancelRequested,
-};
+const saved = makeCase();
+const run = makeRun({}, saved);
+const summary = summarizeRun(run);
 
 test('frame playback and step selection keep the matching evidence visible', async ({ page }) => {
-  const secondStep = { ...run.steps[0], id: 'second-step', sequence: 2, title: '检查页面' };
+  const secondStep = makeStep(run, { id: 'second-step', sequence: 2, title: '检查页面' });
   const artifacts = [run.steps[0], secondStep].flatMap((step, index) =>
-    (['before', 'after'] as const).map((stage, offset) => ({
-      id: `frame-${index}-${stage}`,
-      runId: run.id,
-      stepId: step.id,
-      kind: 'screenshot' as const,
-      stage,
-      pageId: 'page-1',
-      pageUrl: `${saved.url}/${index}/${stage}`,
-      capturedAt: saved.createdAt,
-      elapsedMs: (index * 2 + offset) * 1000,
-      contentType: 'image/svg+xml',
-      size: 100,
-    })),
+    (['before', 'after'] as const).map((stage, offset) =>
+      makeScreenshot(run, {
+        id: `frame-${index}-${stage}`,
+        stepId: step.id,
+        stage,
+        pageUrl: `${saved.url}/${index}/${stage}`,
+        elapsedMs: (index * 2 + offset) * 1000,
+      }),
+    ),
   );
 
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
-    route.fulfill({ json: { run: { ...run, steps: [...run.steps, secondStep], artifacts } } }),
-  );
-  await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) =>
-    route.fulfill({
-      contentType: 'image/svg+xml',
-      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800"/>',
-    }),
-  );
+  await mockRun(page, makeRun({ steps: [...run.steps, secondStep], artifacts }));
+  await mockScreenshots(page, run.id);
   await page.goto(`/runs/${run.id}`);
   const image = page.getByRole('img', { name: /^执行画面/ });
 
@@ -179,30 +75,23 @@ test('uses one replay player and pauses video when leaving execution', async ({
   page,
   browser,
 }) => {
-  const frames = [0, 1, 2].map((index) => ({
-    id: `paused-frame-${index}`,
-    runId: run.id,
-    kind: 'screenshot',
-    stage: 'live',
-    pageId: 'page-1',
-    pageUrl: saved.url,
-    capturedAt: saved.createdAt,
-    elapsedMs: index * 1000,
-    contentType: 'image/jpeg',
-    size: 1,
-  }));
+  const frames = [0, 1, 2].map((index) =>
+    makeScreenshot(run, {
+      id: `paused-frame-${index}`,
+      stage: 'live',
+      elapsedMs: index * 1000,
+      contentType: 'image/jpeg',
+      size: 1,
+    }),
+  );
 
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
-    route.fulfill({
-      json: {
-        run: {
-          ...run,
-          artifacts: [
-            ...frames,
-            { ...frames[0], id: 'video', kind: 'video', contentType: 'video/webm' },
-          ],
-        },
-      },
+  await mockRun(
+    page,
+    makeRun({
+      artifacts: [
+        ...frames,
+        { ...frames[0], id: 'video', kind: 'video', contentType: 'video/webm' },
+      ],
     }),
   );
   const recordingContext = await browser.newContext({
@@ -299,7 +188,7 @@ test('fallback polling keeps unchanged details and receives the completed execut
       return route.fulfill({ status: 304, headers: { ETag: '"running"' } });
 
     return route.fulfill({
-      json: { run: { ...run, status: completed ? 'passed' : 'running' } },
+      json: { run: makeRun({ status: completed ? 'passed' : 'running' }) },
       headers: { ETag: completed ? '"done"' : '"running"' },
     });
   });
@@ -382,12 +271,11 @@ test('invalid execution addresses render the custom 404 page', async ({ page }) 
 test('case search combines tags and latest status while history uses each execution status', async ({
   page,
 }) => {
-  const untouched = {
-    ...saved,
+  const untouched = makeCase({
     id: '62534c46-a8eb-4991-993e-af6df14bece8',
     name: '未运行用例',
     tags: ['SMOKE'],
-  };
+  });
   const older = {
     ...summary,
     id: '62534c46-a8eb-4991-993e-af6df14bece9',
@@ -476,12 +364,8 @@ test('exports complete reports from both history and detail, and allows retry af
 }) => {
   let rejectExport = true;
 
-  await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
-    route.fulfill({ json: { tests: [saved] } }),
-  );
-  await page.route(/\/api\/runs(?:\?.*)?$/, (route) =>
-    route.fulfill({ json: { runs: [summary] } }),
-  );
+  await mockLists(page, { tests: [saved] });
+  await mockLists(page, { runs: [summary] });
   await page.route(`**/api/runs/${run.id}{,?*}`, (route) => {
     if (rejectExport) {
       rejectExport = false;
@@ -526,9 +410,7 @@ test('exports complete reports from both history and detail, and allows retry af
 test('quick creation preserves failed prompts and opens generated nodes in the canvas', async ({
   page,
 }) => {
-  await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
-    route.fulfill({ json: { tests: [saved] } }),
-  );
+  await mockLists(page, { tests: [saved] });
   let fail = true;
   let payload: unknown;
 
@@ -606,9 +488,7 @@ for (const mode of ['quick', 'canvas'] as const) {
   test(`${mode} generation can be cancelled and retried without applying a late response`, async ({
     page,
   }) => {
-    await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
-      route.fulfill({ json: { tests: [], nextCursor: null } }),
-    );
+    await mockLists(page, { tests: [], nextCursor: null });
     let release!: () => void;
     const pending = new Promise<void>((resolve) => {
       release = resolve;
@@ -706,14 +586,13 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
   let submissions = 0;
   let testWrites = 0;
   let failed = true;
-  let trial: TestRun = {
-    ...run,
+  let trial: TestRun = makeRun({
     status: 'queued',
     testId: undefined,
     steps: [],
     plan,
     name: '未保存修改 · 草稿试跑',
-  };
+  });
 
   await page.route(/\/api\/tests(?:\/[^/?]+)?(?:\?.*)?$/, (route) => {
     if (route.request().method() !== 'GET') testWrites++;
@@ -817,8 +696,7 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
 test('editing a historical case uses its target URL for settings and compilation', async ({
   page,
 }) => {
-  const historical: TestCase = {
-    ...saved,
+  const historical: TestCase = makeCase({
     url: 'https://stale.example.com',
     target: {
       schemaVersion: 1,
@@ -827,11 +705,9 @@ test('editing a historical case uses its target URL for settings and compilation
       browser: 'chromium',
       deviceProfile: 'Pixel 7',
     },
-  };
+  });
 
-  await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
-    route.fulfill({ json: { tests: [historical] } }),
-  );
+  await mockLists(page, { tests: [historical] });
   await page.route('**/api/tests/compile', (route) =>
     route.fulfill({ status: 502, json: { message: '保留编辑' } }),
   );
@@ -852,7 +728,7 @@ test('editing a historical case uses its target URL for settings and compilation
 });
 
 test('web settings toggle mobile emulation without changing platform', async ({ page }) => {
-  await page.route(/\/api\/tests(?:\?.*)?$/, (route) => route.fulfill({ json: { tests: [] } }));
+  await mockLists(page, { tests: [] });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).click();
   const canvas = page.getByRole('region', { name: '测试画板' });
@@ -875,23 +751,9 @@ test('replay contains portrait landscape square and ultrawide media within the p
 }) => {
   let width = 390;
   let height = 844;
-  const artifact = {
-    id: 'ratio-frame',
-    runId: run.id,
-    stepId: run.steps[0].id,
-    kind: 'screenshot',
-    stage: 'after',
-    pageId: 'page-1',
-    pageUrl: saved.url,
-    capturedAt: saved.createdAt,
-    elapsedMs: 1000,
-    contentType: 'image/svg+xml',
-    size: 100,
-  };
+  const artifact = makeScreenshot(run, { id: 'ratio-frame', stepId: run.steps[0].id });
 
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
-    route.fulfill({ json: { run: { ...run, artifacts: [artifact] } } }),
-  );
+  await mockRun(page, makeRun({ artifacts: [artifact] }));
   await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) =>
     route.fulfill({
       contentType: 'image/svg+xml',
@@ -923,12 +785,8 @@ test('replay contains portrait landscape square and ultrawide media within the p
 });
 
 test('dialogs support keyboard entry, Escape dismissal and focus restoration', async ({ page }) => {
-  await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
-    route.fulfill({ json: { tests: [saved] } }),
-  );
-  await page.route(/\/api\/runs(?:\?.*)?$/, (route) =>
-    route.fulfill({ json: { runs: [summary] } }),
-  );
+  await mockLists(page, { tests: [saved] });
+  await mockLists(page, { runs: [summary] });
   await page.goto('/cases');
   const create = page.getByRole('button', { name: '新建测试', exact: true });
 
@@ -1013,14 +871,12 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
 
     writes.push({ method: request.method(), body });
     if (request.method() === 'POST')
-      tests = [{ ...saved, ...body, id: `${saved.id.slice(0, -1)}${writes.length}` }, ...tests];
+      tests = [makeCase({ ...body, id: `${saved.id.slice(0, -1)}${writes.length}` }), ...tests];
     else tests = tests.map((item) => (item.id === saved.id ? { ...item, ...body } : item));
 
     return route.fulfill({ json: { test: tests[0] } });
   });
-  await page.route(/\/api\/runs(?:\?.*)?$/, (route) =>
-    route.fulfill({ json: { runs: [summary] } }),
-  );
+  await mockLists(page, { runs: [summary] });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).click();
   const dialog = page.locator('.case-canvas-page, [role=dialog]:not(#case-prompt-section)');
@@ -1102,13 +958,7 @@ test('nested plans keep node evidence and dependency navigation through zoom and
     },
   };
 
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
-    route.fulfill({
-      json: {
-        run: { ...run, plan, steps: [{ ...run.steps[0], planNodeId: 'open' }] },
-      },
-    }),
-  );
+  await mockRun(page, makeRun({ plan, steps: [{ ...run.steps[0], planNodeId: 'open' }] }));
   await page.goto(`/runs/${run.id}`);
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
   const dependency = page.locator('.react-flow__edge[aria-label="依赖：open → check"]');
@@ -1163,7 +1013,7 @@ test('validates the current draft and locks editing while saving a version', asy
   });
   let submitted = '';
 
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/recording`, async (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { versions: [] } });
     submitted = route.request().postDataJSON().code;
@@ -1216,7 +1066,7 @@ test('loads recording versions only when opened and keeps the draft across view 
 }) => {
   let versionReads = 0;
 
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/recording`, (route) => {
     versionReads++;
 
@@ -1246,13 +1096,13 @@ test('plan subflows retain both branch paths, shared references and external dep
 }) => {
   const task = (id: string) => ({
     id,
-    kind: 'task',
+    kind: 'task' as const,
     goal: id,
     dependsOn: [],
     requirementIds: [],
     assertions: [],
   });
-  const plan = {
+  const plan: NonNullable<TestRun['plan']> = {
     rootId: 'root',
     nodes: {
       root: {
@@ -1285,12 +1135,9 @@ test('plan subflows retain both branch paths, shared references and external dep
   const errors: string[] = [];
 
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
-    route.fulfill({
-      json: {
-        run: { ...run, plan, steps: [{ ...run.steps[0], planNodeId: 'shared', status: 'failed' }] },
-      },
-    }),
+  await mockRun(
+    page,
+    makeRun({ plan, steps: [{ ...run.steps[0], planNodeId: 'shared', status: 'failed' }] }),
   );
   await page.goto(`/runs/${run.id}`);
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
@@ -1342,14 +1189,13 @@ test('plan subflows retain both branch paths, shared references and external dep
 test('preserves SSE updates across stale reads and resumes polling after disconnect', async ({
   page,
 }) => {
-  const activeRun = {
-    ...run,
+  const activeRun = makeRun({
     status: 'running' as const,
     finishedAt: undefined,
     durationMs: undefined,
     steps: [],
     realtimeRevision: 1,
-  };
+  });
   let reads = 0;
   let release!: () => void;
   const pending = new Promise<void>((resolve) => {
@@ -1440,7 +1286,7 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
   const logReads: string[] = [];
 
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) => {
     logReads.push(new URL(route.request().url()).searchParams.get('kind')!);
 
@@ -1476,7 +1322,7 @@ test('layout popover switches presets and restores the default', async ({ page }
   const errors: string[] = [];
 
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
     route.fulfill({ json: { logs: [], nextCursor: null } }),
   );
@@ -1505,7 +1351,7 @@ test('layout popover switches presets and restores the default', async ({ page }
 });
 
 test('execution studio opens a full height three pane layout', async ({ page }) => {
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await mockRun(page, run);
   await page.goto(`/runs/${run.id}`);
   const studio = page.getByLabel('执行工作台', { exact: true });
 
@@ -1545,7 +1391,7 @@ test('execution studio opens a full height three pane layout', async ({ page }) 
 });
 
 test('snapshot and step details fold into the left execution panel', async ({ page }) => {
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await mockRun(page, run);
   await page.goto(`/runs/${run.id}`);
   await expect(page.getByRole('tab', { name: '用例快照', exact: true })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: '步骤详情', exact: true })).toHaveCount(0);
@@ -1577,7 +1423,7 @@ test('snapshot and step details fold into the left execution panel', async ({ pa
 });
 
 test('bottom logs start collapsed and expand on tab selection', async ({ page }) => {
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
     route.fulfill({ json: { logs: [], nextCursor: null } }),
   );
@@ -1609,7 +1455,7 @@ test('bottom logs start collapsed and expand on tab selection', async ({ page })
 });
 
 test('group header actions maximize restore and collapse each group', async ({ page }) => {
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) => route.fulfill({ json: { run } }));
+  await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
     route.fulfill({ json: { logs: [], nextCursor: null } }),
   );
@@ -1659,7 +1505,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
 
   await page.route('**/api/tests*', async (route) => {
     if (route.request().method() === 'POST') {
-      stored = { ...saved, ...route.request().postDataJSON() };
+      stored = makeCase({ ...route.request().postDataJSON() });
       await route.fulfill({ json: { test: stored }, status: 201 });
     } else await route.fulfill({ json: { tests: stored ? [stored] : [], nextCursor: null } });
   });
@@ -2019,7 +1865,7 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
     requirementIds: [],
     assertions: [],
   });
-  const plan = {
+  const plan: NonNullable<TestRun['plan']> = {
     rootId: 'root',
     nodes: {
       root: { id: 'root', kind: 'group', goal: '选择测试', children: ['a', 'b'], dependsOn: [] },
@@ -2028,11 +1874,7 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
     },
   };
 
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
-    route.fulfill({
-      json: { run: { ...run, plan } },
-    }),
-  );
+  await mockRun(page, makeRun({ plan }));
   await page.goto(`/runs/${run.id}`);
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
   const board = page.locator('.plan-viewport');
@@ -2095,16 +1937,15 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
 test('result board shows assertion evidence and links screenshots to the existing timeline', async ({
   page,
 }) => {
-  const screenshotStep = {
-    ...run.steps[0],
+  const screenshotStep = makeStep(run, {
     id: 'capture-step',
     planNodeId: 'capture',
     title: '保存订单截图',
     startedAt: '2026-10-01T00:00:01Z',
     finishedAt: '2026-10-01T00:00:02Z',
     durationMs: 1000,
-  };
-  const assertionStep = {
+  });
+  const assertionStep = makeStep(run, {
     ...screenshotStep,
     id: 'assert-step',
     planNodeId: 'check',
@@ -2117,8 +1958,8 @@ test('result board shows assertion evidence and links screenshots to the existin
     assertion: { description: '订单金额为 100' },
     evidence: '页面显示金额 120',
     error: '金额不符合预期',
-  };
-  const plan = {
+  });
+  const plan: NonNullable<TestRun['plan']> = {
     rootId: 'root',
     nodes: {
       root: {
@@ -2149,40 +1990,26 @@ test('result board shows assertion evidence and links screenshots to the existin
       },
     },
   };
-  const artifacts = [screenshotStep, assertionStep].map((step, index) => ({
-    id: `board-frame-${index}`,
-    runId: run.id,
-    stepId: step.id,
-    kind: 'screenshot',
-    stage: 'after',
-    pageId: 'page-1',
-    pageUrl: saved.url,
-    capturedAt: step.finishedAt,
-    elapsedMs: (index + 1) * 2000,
-    contentType: 'image/svg+xml',
-    size: 100,
-  }));
+  const artifacts = [screenshotStep, assertionStep].map((step, index) =>
+    makeScreenshot(run, {
+      id: `board-frame-${index}`,
+      stepId: step.id,
+      capturedAt: step.finishedAt,
+      elapsedMs: (index + 1) * 2000,
+    }),
+  );
 
-  await page.route(`**/api/runs/${run.id}{,?*}`, (route) =>
-    route.fulfill({
-      json: {
-        run: {
-          ...run,
-          status: 'failed',
-          durationMs: 5000,
-          plan,
-          steps: [screenshotStep, assertionStep],
-          artifacts,
-        },
-      },
+  await mockRun(
+    page,
+    makeRun({
+      status: 'failed',
+      durationMs: 5000,
+      plan,
+      steps: [screenshotStep, assertionStep],
+      artifacts,
     }),
   );
-  await page.route(`**/api/runs/${run.id}/artifacts/*`, (route) =>
-    route.fulfill({
-      contentType: 'image/svg+xml',
-      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800"/>',
-    }),
-  );
+  await mockScreenshots(page, run.id);
   await page.goto(`/runs/${run.id}`);
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
   const assertion = page.locator('[data-plan-node="check"]');

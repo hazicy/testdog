@@ -6,13 +6,13 @@
 
 飞书使用群自定义机器人 Webhook，支持可选签名密钥。通知文字包含 `[testdog]`，若机器人限制关键词，可使用 `testdog`。地址仅接受 `https://open.feishu.cn/open-apis/bot/v2/hook/...`，不跟随重定向。配置参考[飞书自定义机器人文档](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)。
 
-Email 由平台统一发送，用户只填写最多 10 个收件邮箱、选择通知事件并设置启用开关。管理员在 API 和通知发送进程配置 `CASEFORGE_SMTP_HOST`、`CASEFORGE_SMTP_PORT`、`CASEFORGE_SMTP_USERNAME`、`CASEFORGE_SMTP_PASSWORD` 和 `CASEFORGE_SMTP_FROM`，全部有效时邮件服务才可用。支持 465 TLS 和 587 STARTTLS，并验证服务器证书；多个收件人通过 BCC 收件。实现参考 [Nodemailer SMTP 文档](https://nodemailer.com/smtp)。
+Email 由平台统一发送，用户只填写最多 10 个收件邮箱、选择通知事件并设置启用开关。管理员按 [环境配置](deployment.md#环境配置) 设置平台 SMTP，全部有效时邮件服务才可用。支持 465 TLS 和 587 STARTTLS，并验证服务器证书；多个收件人通过 BCC 收件。实现参考 [Nodemailer SMTP 文档](https://nodemailer.com/smtp)。
 
-SMTP 参数不通过用户接口接收或返回，也不写入用户渠道配置。Webhook 和飞书签名不会通过读取接口返回；飞书表单中的空密钥字段表示保留原配置，可明确清除签名密钥。飞书配置和邮件收件设置使用 AES-256-GCM 加密，并绑定用户和渠道。使用 `CASEFORGE_INTEGRATION_SECRET`（至少 32 字符），未配置时使用 `BETTER_AUTH_SECRET`；API 与发送服务需要相同密钥。变更密钥后需重新配置通知渠道。
+SMTP 参数不通过用户接口接收或返回，也不写入用户渠道配置。Webhook 和飞书签名不会通过读取接口返回；飞书表单中的空密钥字段表示保留原配置，可明确清除签名密钥。飞书配置和邮件收件设置使用 AES-256-GCM 加密，并绑定用户和渠道。密钥配置和更换要求统一见 [部署指南](deployment.md#环境配置)。
 
-SMTP 解析后固定连接目标 IP，默认禁止私网、回环和链路本地地址。管理员可以通过 `CASEFORGE_ALLOW_PRIVATE_SMTP=true` 允许可信内网 SMTP；TLS 验证仍然开启。通知仅包含标题、状态摘要与工作台链接，不发送原始日志、密钥、截图附件或错误堆栈。
+SMTP 解析后固定连接目标 IP，默认禁止私网、回环和链路本地地址。内网 SMTP 的管理员启用条件见部署指南；TLS 验证仍然开启。通知仅包含标题、状态摘要与工作台链接，不发送原始日志、密钥、截图附件或错误堆栈。
 
-邮件服务未配置或参数无效时，用户仍可保存收件设置，测试通知和手动重试不可用，接口返回 HTTP 503。自动通知仍按订阅入队，并由发送服务按既有重试规则处理；服务恢复后可重试失败记录。`GET /api/integrations` 的 `emailAvailable` 表示服务端参数完整有效，不代表已验证邮件服务连接。旧邮件配置仅使用收件邮箱，原 SMTP 参数不再参与发信且不通过接口返回，下次保存自动清除；无需数据库结构迁移。修改平台 SMTP 配置后重启 API 和发送进程。
+邮件服务未配置或参数无效时，用户仍可保存收件设置，测试通知和手动重试不可用，接口返回 HTTP 503。自动通知仍按订阅入队，并由发送服务按既有重试规则处理；服务恢复后可重试失败记录。`GET /api/integrations` 的 `emailAvailable` 表示服务端参数完整有效，不代表已验证邮件服务连接。旧邮件配置仅使用收件邮箱，原 SMTP 参数不再参与发信且不通过接口返回，下次保存自动清除；无需数据库结构迁移。配置变更后的服务更新按部署指南执行。
 
 ## 通知事件
 
@@ -25,13 +25,7 @@ SMTP 解析后固定连接目标 IP，默认禁止私网、回环和链路本地
 
 ## 后台发送
 
-先执行 `pnpm db:migrate`，然后重启 `pnpm worker` 或 `pnpm maintenance`。这两个进程均消费通知队列，也可单独运行：
-
-```bash
-pnpm notifications
-```
-
-默认部署仅需 Web + worker。分离部署时，用 `CASEFORGE_BACKGROUND_SERVICES=none pnpm worker` 运行执行节点，`pnpm maintenance` 集中运行维护、通知和 outbox。若另启独立 notifications，则将 maintenance 设置为 `CASEFORGE_BACKGROUND_SERVICES=maintenance,outbox`，避免重复配置。所有入口共用启动与退出逻辑，退出时等待已领取的通知批次结束后关闭连接。
+服务默认组合、独立通知入口及退出顺序统一见 [部署指南](deployment.md#默认服务组合)。
 
 多个进程通过行锁和 `SKIP LOCKED` 领取任务。网络发送在数据库事务外进行，不阻塞测试执行。领取租约为两分钟，进程异常后可重新领取；自动最多尝试三次，失败后可在集成页面手动重试。更改配置会取消旧配置下的待发通知，已开始发送的请求可能已经到达原目标。
 

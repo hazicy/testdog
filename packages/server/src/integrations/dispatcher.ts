@@ -1,3 +1,4 @@
+import type { NotificationConfig } from '@testdog/contracts/integrations/types';
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
@@ -6,7 +7,7 @@ import {
   notificationDeliveries as deliveries,
   notificationEventRecords as events,
 } from '@testdog/server/db/schema';
-import { decryptConfig } from '@testdog/server/integrations/secrets';
+import { decryptSecret } from '@testdog/server/shared/secrets';
 import { sendNotification } from '@testdog/server/integrations/delivery';
 
 const MAX_ATTEMPTS = 3;
@@ -96,11 +97,11 @@ export async function dispatchNotifications(limit = 10) {
       }
 
       try {
-        const config = decryptConfig(
+        const config = decryptSecret(
           integration.encryptedConfig,
           integration.userId,
           integration.channel,
-        );
+        ) as NotificationConfig;
 
         await sendNotification(integration.channel, config, event.payload, job.id);
         await db

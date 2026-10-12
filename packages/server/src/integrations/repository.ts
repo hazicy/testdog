@@ -9,7 +9,7 @@ import {
 } from '@testdog/server/db/schema';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
-import { encryptConfig, decryptConfig } from '@testdog/server/integrations/secrets';
+import { encryptSecret, decryptSecret } from '@testdog/server/shared/secrets';
 import { platformSmtpConfig, requirePlatformSmtp } from '@testdog/server/integrations/smtp';
 import { emailInput, feishuInput } from '@testdog/contracts/integrations/schemas';
 import type {
@@ -26,7 +26,7 @@ function integrationView(row: typeof integrations.$inferSelect): Integration {
   let config: NotificationConfig;
 
   try {
-    config = decryptConfig(row.encryptedConfig, row.userId, row.channel);
+    config = decryptSecret(row.encryptedConfig, row.userId, row.channel) as NotificationConfig;
   } catch {
     return {
       channel: row.channel,
@@ -131,7 +131,7 @@ export async function saveIntegration(
 
     if (row) {
       try {
-        previous = decryptConfig(row.encryptedConfig, userId, channel);
+        previous = decryptSecret(row.encryptedConfig, userId, channel) as NotificationConfig;
       } catch {
         const complete = channel === 'feishu' ? !!feishuInput.parse(raw).webhookUrl : true;
 
@@ -165,7 +165,7 @@ export async function saveIntegration(
       enabled: input.enabled,
       events: input.events,
       version: input.version + 1,
-      encryptedConfig: encryptConfig(config, userId, channel),
+      encryptedConfig: encryptSecret(config, userId, channel),
       updatedAt: new Date().toISOString(),
     };
     const [saved] = row

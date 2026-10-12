@@ -14,18 +14,10 @@
 
 上表中 automation 路径相对于 `packages/automation/src`，服务端路径相对于 `packages/server/src`，编辑逻辑相对于 `apps/web/src/features/test-cases`。接口与兼容细节见 [工作台文档](workspace.md)。
 
-验证命令：
+验证命令及默认/按需测试的启用条件统一见 [测试指南](testing.md)，数据库升级见 [部署指南](deployment.md#数据库迁移与升级)。
 
-```bash
-pnpm format:check
-pnpm lint
-pnpm typecheck
-pnpm test --testTimeout=30000
-pnpm test:ui --workers=2
-```
+## 历史验收记录
 
-代码测试使用隔离 PostgreSQL 引擎并实际应用全部迁移；执行测试使用真实 Chromium 和本地测试页面，模型返回由 fixture 控制。UI 使用生产构建和隔离接口响应，验证用户交互。外部模型、独立 PostgreSQL、多平台设备及真实存储服务的按需测试不属于默认测试，启用方式见 [多平台实施记录](automation-implementation.md)。本次原生收尾改动以 SDK 合同测试验证，不将它等同于最新代码的真机验收。
-
-部署现有数据库前执行 `pnpm db:migrate`，包括新增的重放环境快照字段；迁移文件已生成在工作树中，未操作生产数据库。
+以下为 2026-10-12 该批工作的历史结果，不代表当前测试数量或设备验收状态。该批原生收尾改动使用 SDK 合同测试，不等同于最新代码的真机验收；未操作生产数据库。
 
 2026-10-12 完成验收：全量代码测试 419 通过、12 按配置跳过；最终生产构建的 UI 回归 63 通过。类型检查、ESLint、格式与 diff 检查通过。历史目标地址、断开步骤、来源删除后的重放、生成取消和日志标签切换均有回归证据；无待完成的默认验收项。

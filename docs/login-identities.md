@@ -26,9 +26,9 @@
 
 此版本仅支持 Web。依赖 sessionStorage 的登录、验证码或人工 MFA 暂不提供自动复用。独立 context 不隔离服务端账号数据；修改同一账号数据或限制单一有效会话的网站，应串行执行相应测试，后续可扩展账号池。
 
-## 部署与接口
+## 接口与配置边界
 
-功能部署时运行 `pnpm db:migrate` 并更新 API 和 worker。API 与 worker 配置相同的 `CASEFORGE_INTEGRATION_SECRET`，未配置时使用 `BETTER_AUTH_SECRET`（至少 32 字符）。这是部署时的加密密钥，用户账号密码在页面维护。原有环境变量引用保持兼容，登录身份表单不再要求用户配置环境变量。
+部署迁移和共享加密密钥统一按 [部署指南](deployment.md) 配置；用户账号密码在页面维护，登录身份表单不要求用户配置环境变量。原有目标输入的环境变量引用保持兼容。
 
 - `GET /api/login-identities`：当前用户的身份、关联用例和可选登录流程。
 - `POST /api/login-identities`、`PATCH /api/login-identities/:id`：保存身份；编辑携带 `version`，冲突返回 409。通过 `secrets: { password: "..." }` 提交敏感输入，字段名须对应所选流程定义的敏感输入；所有流程输入均须提交，名称和类型由流程决定；省略表示保留已保存密码。响应返回身份状态、关联用例及 `configuredSecrets` 字段名，不返回密码或密文。校验失败返回 `fieldErrors`，按配置字段或 `inputs.<key>` 定位问题。输入定义可包含用于页面展示的可选 `label`；运行时仍按稳定的输入键解析引用。

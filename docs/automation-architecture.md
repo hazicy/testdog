@@ -1,6 +1,6 @@
 # 多平台自动化架构
 
-状态：首期实现与验收完成，验证证据和部署切换见 [实施记录](automation-implementation.md)。目标：Web 使用 Playwright mobile emulation；Android 和 iOS 使用 Callstack agent-device。本文中的接口是 testdog 内部契约，不是第三方 SDK 的直接签名。
+本文保留首期架构决策、改造前基线和目标契约；首期验收的历史证据见 [实施记录](automation-implementation.md)。当前代码组织见 [Monorepo 结构](monorepo.md)，配置与升级操作见 [部署指南](deployment.md)。目标：Web 使用 Playwright mobile emulation；Android 和 iOS 使用 Callstack agent-device。本文中的接口是 testdog 内部契约，不是第三方 SDK 的直接签名。
 
 ## 架构决策
 
@@ -31,9 +31,9 @@ flowchart TB
   API --> O
 ```
 
-图中的编排器在各 worker 内运行，不增加单独的编排网络服务。首期继续使用现有 PostgreSQL，不引入 Redis、Kafka 或 Kubernetes。
+图中的编排器在各 worker 内运行，不增加单独的编排网络服务。首期调度设计使用 PostgreSQL；后续实现使用 Redis 提供实时通知与预览，当前协议见 [工作台文档](workspace.md)。
 
-## 当前代码与迁移边界
+## 首期改造前的基线与目标
 
 | 当前入口                                             | 现状                                     | 目标职责                                            |
 | ---------------------------------------------------- | ---------------------------------------- | --------------------------------------------------- |
@@ -145,7 +145,7 @@ Next.js API 仅校验、保存快照、入队并返回 202，独立长驻 Node w
 5. recording_versions 增加 schemaVersion、platform、targetSnapshot 和兼容性要求。Web 继续受限 Playwright 编辑；原生使用结构化动作编辑/生成预览，统一保存经 schema 校验的 IR。
 6. API 的 target 使用 discriminated union；原生无需 url。运行详情返回 resolved target、阶段、能力和完整性；新增 worker/resource 查询供设备选择。附件通过授权 API 读取，共享对象存储生产化，本地单机可保留磁盘。
 
-迁移分 expand/backfill/cutover：为历史记录回填 `web + legacy desktop Chromium`，保留原录制/附件及现有 GET 响应，部署双读后切换新写。不能把历史执行回填成 mobile。更新 docs/workspace.md 和前端状态筛选，再收紧新字段约束。
+首期采用 expand/backfill/cutover 数据兼容策略，为历史记录回填 `web + legacy desktop Chromium`，保留原录制与附件，不将历史执行改为 mobile。当前迁移执行顺序统一见 [数据库迁移与升级](deployment.md#数据库迁移与升级)。
 
 ## 录制与重放规则
 
@@ -167,7 +167,7 @@ Next.js API 仅校验、保存快照、入队并返回 202，独立长驻 Node w
 
 共享合同测试验证动作 schema、能力拒绝、revision、事件顺序及关闭幂等；adapter 集成测试用真实浏览器和本地测试 app。调度测试必须包含旧 worker 存活的租约超时，证明不会并发控制同一设备。CI 的模拟 adapter 不能作为 Android/iOS 实际可用的验收证据。
 
-实施进度以 [实施记录](automation-implementation.md) 为准。验收需要核对当前代码、迁移与真实浏览器/设备结果，不能用合同模拟测试替代设备验证。
+首期实施的历史进度保存在 [实施记录](automation-implementation.md)。验收需要核对当前代码、迁移与真实浏览器/设备结果，不能用合同模拟测试替代设备验证。
 
 ### Web 实现目录
 

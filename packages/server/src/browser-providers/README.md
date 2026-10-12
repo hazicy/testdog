@@ -13,8 +13,8 @@ Web 执行调用 `openRunBrowser`，不依赖任何具体远程服务。默认�
 
 ## Browserless
 
-迁移数据库后，在集成页填写 `ws://` 或 `wss://` 的 `/chromium/playwright` 端点，以及可选 Token。原生协议服务需兼容项目的 Playwright 1.63.0。地址中的 `token` 参数会提取为独立凭据；显式 Token 优先，清除操作会同时清除地址中的 Token。地址和凭据均加密存储且不回显，留空保留已保存值。
+在集成页填写 `ws://` 或 `wss://` 的 `/chromium/playwright` 端点，以及可选 Token。原生协议服务需兼容项目的 Playwright 1.63.0。地址中的 `token` 参数会提取为独立凭据；显式 Token 优先，清除操作会同时清除地址中的 Token。地址和凭据均加密存储且不回显，留空保留已保存值。
 
-API 和 worker 使用相同的 `CASEFORGE_INTEGRATION_SECRET`（未设置时使用 `BETTER_AUTH_SECRET`，至少 32 字符）。复用现有集成加密格式，并以用户和 provider 绑定密文，不改变通知配置格式。
+共享加密密钥及迁移配置统一见 [部署指南](../../../../docs/deployment.md#环境配置)。密文绑定用户和 provider，复用通知配置的加密格式。
 
 连接测试创建独立页面并在结束时释放会话；不访问用例网站。原生远程执行的视频通过 `video.saveAs()` 下载归档，截图、日志、实时预览及 trace 沿用现有流程。含敏感输入的执行仍禁止视频和 trace。
