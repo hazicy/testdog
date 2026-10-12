@@ -395,3 +395,43 @@ it('executes standalone assertions and screenshot steps without asking the actio
   expect(planner.plan).not.toHaveBeenCalled();
   expect(driver.perform).toHaveBeenCalledTimes(2);
 });
+
+
+it('bounds repeated wait-only planning even when the planner never finishes', async () => {
+  const driver = session();
+  driver.capabilities.actions.push('wait');
+  const planner = { plan: vi.fn(async () => ({
+    done: false,
+    steps: [{ platform: 'ios' as const, action: { type: 'wait' as const, text: 'Ready', timeoutMs: 1000 } }],
+  })) };
+  const runner = new PlanRunner({ evaluator, session: driver, planner, signal, plan });
+
+  await expect(runner.record()).rejects.toThrow('Wait budget exceeded');
+  expect(planner.plan).toHaveBeenCalledTimes(16);
+});
+
+it('bounds stale observations when revision changes during every planner call', async () => {
+  const driver = session();
+  const planner = { plan: vi.fn(async () => {
+    await driver.observe();
+    return { done: false, steps: [] };
+  }) };
+  const runner = new PlanRunner({ evaluator, session: driver, planner, signal, plan });
+
+  await expect(runner.record()).rejects.toThrow('Observation changed too often during planning');
+  expect(planner.plan).toHaveBeenCalledTimes(11);
+  expect(driver.perform).not.toHaveBeenCalled();
+});
+
+it('bounds planning iterations even when the planner returns no progress-producing actions', async () => {
+  const driver = session();
+  driver.capabilities.actions.push('screenshot');
+  const planner = { plan: vi.fn(async () => ({
+    done: false,
+    steps: [{ platform: 'ios' as const, action: { type: 'screenshot' as const } }],
+  })) };
+  const runner = new PlanRunner({ evaluator, session: driver, planner, signal, plan });
+
+  await expect(runner.record()).rejects.toThrow('Exceeded 20 actions');
+  expect(driver.perform).toHaveBeenCalledTimes(20);
+});
