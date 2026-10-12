@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import {
   testRuns,
@@ -8,7 +8,7 @@ import {
   automationRunEvents,
 } from '@testdog/server/db/schema';
 import type { TestRun, ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
-import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
+import { assertUserScope, ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { runWrite } from '@testdog/server/scheduling/lease';
 import { storeArtifactFile } from '@testdog/server/runs/artifactStorage';
@@ -16,19 +16,28 @@ import { runRecord, stepRecord, artifactRecord } from '@testdog/server/runs/reco
 
 export async function getRun(
   id: string,
-  options: { includeLogs?: boolean; userId?: UserScope } = {},
+  options: { includeLogs?: boolean; userId: UserScope },
+): Promise<TestRun> {
+  assertUserScope(options?.userId);
+
+  return readRun(id, and(eq(testRuns.id, id), ownedBy(testRuns.userId, options.userId))!, options);
+}
+
+export function getRunInternal(
+  id: string,
+  options: { includeLogs?: boolean } = {},
+): Promise<TestRun> {
+  return readRun(id, eq(testRuns.id, id), options);
+}
+
+async function readRun(
+  id: string,
+  filter: SQL,
+  options: { includeLogs?: boolean },
 ): Promise<TestRun> {
   return db.transaction(
     async (tx) => {
-      const [row] = await tx
-        .select()
-        .from(testRuns)
-        .where(
-          and(
-            eq(testRuns.id, id),
-            options.userId === undefined ? undefined : ownedBy(testRuns.userId, options.userId),
-          ),
-        );
+      const [row] = await tx.select().from(testRuns).where(filter);
 
       if (!row) throw new WorkspaceError('执行记录不存在。', 404);
       const run = runRecord(row);
@@ -127,8 +136,13 @@ export async function insertArtifact(artifact: RunArtifact, path: string) {
   }
 }
 
-export async function getArtifact(runId: string, id: string, userId?: UserScope) {
-  if (userId !== undefined) await assertRunAccess(runId, userId);
+export async function getArtifact(runId: string, id: string, userId: UserScope) {
+  await assertRunAccess(runId, userId);
+
+  return getArtifactInternal(runId, id);
+}
+
+export async function getArtifactInternal(runId: string, id: string) {
   const [artifact] = await db
     .select()
     .from(runArtifacts)
@@ -153,7 +167,7 @@ export async function appendBrowserLogs(
   });
 }
 
-// Worker reads are internal; every HTTP caller must pass the authenticated scope.
+// User-facing reads always require an explicit authenticated scope.
 export async function assertRunAccess(id: string, userId: UserScope) {
   const [run] = await db
     .select({ id: testRuns.id })

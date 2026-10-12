@@ -32,7 +32,7 @@ export const PlatformActionSchema = z.discriminatedUnion('platform', [
   z.strictObject({
     schemaVersion: z.literal(1).optional(),
     platform: z.literal('web'),
-    action: StepSchema,
+    action: StepSchema.and(z.object({ sensitive: z.boolean().optional() })),
   }),
   z.strictObject({
     schemaVersion: z.literal(1).optional(),
@@ -128,7 +128,6 @@ export type SessionEvent = {
   action?: PlatformAction;
   assertion?: Assertion;
   platformAssertion?: PlatformAssertion;
-  playwrightAssertion?: import('@testdog/contracts/runs/types').PlaywrightAssertion;
   condition?: string;
   decision?: boolean;
   evidence?: string;

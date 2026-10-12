@@ -231,10 +231,7 @@ export class PlaywrightSession implements AutomationSession {
     const page = this.session.page;
 
     this.hooks.onPage?.(page);
-    await this.hooks.onStep?.(
-      { ...event, action: event.action?.platform === 'web' ? event.action.action : undefined },
-      page,
-    );
+    await this.hooks.onStep?.(event, page);
     await this.captureEvidence?.(this, event);
   }
   async close() {

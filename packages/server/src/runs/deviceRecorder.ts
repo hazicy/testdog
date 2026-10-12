@@ -48,7 +48,7 @@ export class DeviceRecorder {
         pageUrl: '',
         surface,
         observationRevision: session.revision,
-        platformAction: binding ? { ...binding.action, schemaVersion: 1 } : undefined,
+        action: binding ? { ...binding.action, schemaVersion: 1 } : undefined,
         assertion: event.assertion,
         platformAssertion: event.platformAssertion,
         condition: event.condition,

@@ -36,12 +36,16 @@ const request = (body: unknown) =>
 
 describe('execution API with PostgreSQL persistence', () => {
   it('persists a draft plan and target as an independent run without modifying cases', async () => {
-    const saved = await saveTest({
-      name: 'Saved',
-      goal: 'Original',
-      url: 'https://example.com',
-      tags: [],
-    });
+    const saved = await saveTest(
+      {
+        name: 'Saved',
+        goal: 'Original',
+        url: 'https://example.com',
+        tags: [],
+      },
+      undefined,
+      null,
+    );
     const draft = {
       name: 'Edited draft',
       goal: 'Check the draft',
@@ -71,7 +75,7 @@ describe('execution API with PostgreSQL persistence', () => {
 
     expect(response.status).toBe(202);
     const { run } = await response.json();
-    const persisted = await getRun(run.id);
+    const persisted = await getRun(run.id, { userId: null });
 
     expect(persisted.testId).toBeUndefined();
     expect(persisted.name).toBe('Edited draft · 草稿试跑');
@@ -101,19 +105,23 @@ describe('execution API with PostgreSQL persistence', () => {
     ).toBe(400);
   });
   it('returns 202 only after persisting a run and schedules its background job', async () => {
-    const test = await saveTest({
-      name: 'Login',
-      goal: 'Check login',
-      url: 'https://example.com',
-      tags: [],
-    });
+    const test = await saveTest(
+      {
+        name: 'Login',
+        goal: 'Check login',
+        url: 'https://example.com',
+        tags: [],
+      },
+      undefined,
+      null,
+    );
     const response = await POST(request({ testId: test.id }));
 
     expect(response.status).toBe(202);
     const { run } = await response.json();
 
-    expect((await getRun(run.id)).goal).toBe('Check login');
-    expect((await getRun(run.id)).status).toBe('queued');
+    expect((await getRun(run.id, { userId: null })).goal).toBe('Check login');
+    expect((await getRun(run.id, { userId: null })).status).toBe('queued');
     expect(mocks.after).not.toHaveBeenCalled();
     expect(mocks.execute).not.toHaveBeenCalled();
     expect((await POST(request({ testId: test.id }))).status).toBe(202);
@@ -173,12 +181,16 @@ it('rolls back failed reservations so the same request can be retried', async ()
     );
 
   expect((await submit(randomUUID())).status).toBe(404);
-  const test = await saveTest({
-    name: 'Retry',
-    goal: 'Retry',
-    url: 'https://example.com',
-    tags: [],
-  });
+  const test = await saveTest(
+    {
+      name: 'Retry',
+      goal: 'Retry',
+      url: 'https://example.com',
+      tags: [],
+    },
+    undefined,
+    null,
+  );
 
   expect((await submit(test.id)).status).toBe(202);
 });

@@ -1,4 +1,4 @@
-import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
+import { assertUserScope, ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { createHash } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -21,8 +21,9 @@ export async function submitOnce<T extends Record<string, unknown>>(
   request: Request,
   payload: unknown,
   create: (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => Promise<T>,
-  userId: UserScope = null,
+  userId: UserScope,
 ): Promise<T> {
+  assertUserScope(userId);
   const key = request.headers.get('Idempotency-Key');
 
   if (key && !z.uuid().safeParse(key).success) throw new WorkspaceError('提交请求 ID 无效。');

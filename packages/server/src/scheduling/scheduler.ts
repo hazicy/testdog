@@ -2,7 +2,7 @@ import { hostname } from 'node:os';
 import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { automationResources as resources, testRuns, runSteps } from '@testdog/server/db/schema';
-import { getRun } from '@testdog/server/runs/repository';
+import { getRunInternal } from '@testdog/server/runs/repository';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { leaseScope, type RunLease } from '@testdog/server/scheduling/lease';
 import { activeRunStatuses } from '@testdog/contracts/runs/types';
@@ -95,7 +95,7 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
   });
 
   if (!claimed) return;
-  const run = await getRun(claimed.runId);
+  const run = await getRunInternal(claimed.runId);
 
   return {
     run,

@@ -33,7 +33,7 @@ async function createRun(...args: Parameters<typeof createQueuedRun>) {
   testLeases.set(run.id, claim.lease);
   await withLease(claim.lease, () => setRunPhase(run.id, 'running'));
 
-  return getRun(run.id);
+  return getRun(run.id, { userId: null });
 }
 
 async function finishRun(
@@ -42,7 +42,7 @@ async function finishRun(
   error?: string,
 ) {
   return withLease(testLeases.get(id)!, async () =>
-    finishClaimedRun(id, status, (await getRun(id)).startedAt, error),
+    finishClaimedRun(id, status, (await getRun(id, { userId: null })).startedAt, error),
   );
 }
 
@@ -59,23 +59,23 @@ afterAll(() => isolated.client!.close());
 const input = { url: 'https://example.com' };
 
 it('leaves lease recovery to maintenance when reading or editing recording versions', async () => {
-  const run = await createRun({ case: 'Expired lease', url: input.url });
+  const run = await createRun({ case: 'Expired lease', url: input.url }, undefined, null);
 
   await isolated.client!.query(
     'UPDATE test_runs SET "leaseUntil" = now() - interval \'1 minute\' WHERE id = $1',
     [run.id],
   );
-  expect(await listRecordingVersions(run.id)).toEqual([]);
+  expect(await listRecordingVersions(run.id, null)).toEqual([]);
   await expect(
-    saveRecordingVersion(run.id, 'await page1.goto("https://example.com");'),
+    saveRecordingVersion(run.id, 'await page1.goto("https://example.com");', null),
   ).rejects.toThrow('结束');
-  expect((await getRun(run.id)).status).toBe('running');
+  expect((await getRun(run.id, { userId: null })).status).toBe('running');
 });
 
 it.each(['constructor', 'toString', '__proto__'])(
   'rejects inherited object properties as plan node links: %s',
   async (nodeId) => {
-    const run = await createRun({ case: 'Node links', url: input.url });
+    const run = await createRun({ case: 'Node links', url: input.url }, undefined, null);
 
     await savePlan(run.id, {
       rootId: 'task',
@@ -92,18 +92,27 @@ it.each(['constructor', 'toString', '__proto__'])(
     });
     await finishRun(run.id, 'passed');
     await expect(
-      saveRecordingVersion(run.id, `// @node ${nodeId}\nawait page1.goto("https://example.com");`),
+      saveRecordingVersion(
+        run.id,
+        `// @node ${nodeId}\nawait page1.goto("https://example.com");`,
+        null,
+      ),
     ).rejects.toThrow(`计划节点 ${nodeId} 不存在`);
-    expect(await listRecordingVersions(run.id)).toEqual([]);
+    expect(await listRecordingVersions(run.id, null)).toEqual([]);
     const version = await saveRecordingVersion(
       run.id,
       '// @node task\nawait page1.goto("https://example.com");',
+      null,
     );
-    const replay = await createRun({
-      mode: 'replay',
-      sourceRunId: run.id,
-      recordingVersionId: version.id,
-    });
+    const replay = await createRun(
+      {
+        mode: 'replay',
+        sourceRunId: run.id,
+        recordingVersionId: version.id,
+      },
+      undefined,
+      null,
+    );
 
     expect(replay.recordingSteps?.[0].planNodeId).toBe('task');
   },
@@ -112,7 +121,7 @@ it.each(['constructor', 'toString', '__proto__'])(
 it.each(['', ' '.repeat(100001)])(
   'rejects invalid script size before reading or writing records',
   async (code) => {
-    await expect(saveRecordingVersion(randomUUID(), code)).rejects.toMatchObject({
+    await expect(saveRecordingVersion(randomUUID(), code, null)).rejects.toMatchObject({
       status: 400,
       message: '请提供有效脚本（最多 100,000 字符）。',
     });
@@ -120,68 +129,86 @@ it.each(['', ' '.repeat(100001)])(
 );
 
 it('preserves scripts exactly at the length limit', async () => {
-  const run = await createRun({ case: 'Script boundary', url: input.url });
+  const run = await createRun({ case: 'Script boundary', url: input.url }, undefined, null);
 
   await finishRun(run.id, 'passed');
   const statement = 'await page1.goto("https://example.com");\n//';
   const code = statement + 'x'.repeat(100000 - statement.length);
-  const version = await saveRecordingVersion(run.id, code);
+  const version = await saveRecordingVersion(run.id, code, null);
 
   expect(version.code).toBe(code);
-  expect((await listRecordingVersions(run.id))[0].code).toBe(code);
+  expect((await listRecordingVersions(run.id, null))[0].code).toBe(code);
 });
 
 it('distinguishes missing recordings from recordings without edited versions', async () => {
   const missing = randomUUID();
 
-  await expect(listRecordingVersions(missing)).rejects.toMatchObject({ status: 404 });
+  await expect(listRecordingVersions(missing, null)).rejects.toMatchObject({ status: 404 });
   await expect(
-    saveRecordingVersion(missing, 'await page1.goto("https://example.com");'),
+    saveRecordingVersion(missing, 'await page1.goto("https://example.com");', null),
   ).rejects.toMatchObject({ status: 404 });
-  const run = await createRun({ case: 'Check title', url: input.url });
+  const run = await createRun({ case: 'Check title', url: input.url }, undefined, null);
 
-  expect(await listRecordingVersions(run.id)).toEqual([]);
+  expect(await listRecordingVersions(run.id, null)).toEqual([]);
   await finishRun(run.id, 'passed');
   await expect(
-    saveRecordingVersion(run.id, '// @node unknown\nawait page1.goto("https://example.com");'),
+    saveRecordingVersion(
+      run.id,
+      '// @node unknown\nawait page1.goto("https://example.com");',
+      null,
+    ),
   ).rejects.toThrow('计划节点 unknown 不存在');
-  expect(await listRecordingVersions(run.id)).toEqual([]);
+  expect(await listRecordingVersions(run.id, null)).toEqual([]);
 });
 
 it('saves independent versions and claims an immutable replay snapshot from a repaired failed recording', async () => {
-  const original = await createRun({ case: 'Original goal', url: input.url });
+  const original = await createRun({ case: 'Original goal', url: input.url }, undefined, null);
 
   await expect(
-    saveRecordingVersion(original.id, 'await page1.goto("https://example.com");'),
+    saveRecordingVersion(original.id, 'await page1.goto("https://example.com");', null),
   ).rejects.toThrow('结束');
   await finishRun(original.id, 'failed', 'Original failure');
-  await expect(saveRecordingVersion(original.id, 'process.exit();')).rejects.toThrow('第 1 行');
+  await expect(saveRecordingVersion(original.id, 'process.exit();', null)).rejects.toThrow(
+    '第 1 行',
+  );
   const version = await saveRecordingVersion(
     original.id,
     'await page1.goto("https://example.com");\nawait expect(page1).toHaveURL("https://example.com/");',
+    null,
   );
-  const versions = await listRecordingVersions(original.id);
+  const versions = await listRecordingVersions(original.id, null);
 
   expect(versions).toHaveLength(1);
   expect(versions[0]).toEqual(version);
   expect(version).not.toHaveProperty('steps');
   expect(versions[0]).not.toHaveProperty('steps');
-  const replay = await createRun({
-    mode: 'replay',
-    sourceRunId: original.id,
-    recordingVersionId: version.id,
-  });
+  const replay = await createRun(
+    {
+      mode: 'replay',
+      sourceRunId: original.id,
+      recordingVersionId: version.id,
+    },
+    undefined,
+    null,
+  );
 
   expect(replay.recordingVersionId).toBe(version.id);
   expect(replay.recordingSteps).toHaveLength(2);
-  await saveRecordingVersion(original.id, 'await page1.goto("https://other.example.com");');
-  expect((await getRun(replay.id)).recordingSteps?.[0].action?.value).toBe('https://example.com');
-  expect((await getRun(original.id)).error).toBe('Original failure');
+  await saveRecordingVersion(original.id, 'await page1.goto("https://other.example.com");', null);
+  expect((await getRun(replay.id, { userId: null })).recordingSteps?.[0].action).toMatchObject({
+    platform: 'web',
+    action: { value: 'https://example.com' },
+  });
+  expect((await getRun(original.id, { userId: null })).error).toBe('Original failure');
   await finishRun(replay.id, 'passed');
-  const unrelated = await createRun({ case: 'Other run', url: input.url });
+  const unrelated = await createRun({ case: 'Other run', url: input.url }, undefined, null);
 
   await finishRun(unrelated.id, 'failed');
   await expect(
-    createRun({ mode: 'replay', sourceRunId: unrelated.id, recordingVersionId: version.id }),
+    createRun(
+      { mode: 'replay', sourceRunId: unrelated.id, recordingVersionId: version.id },
+      undefined,
+      null,
+    ),
   ).rejects.toThrow('不属于');
 });

@@ -43,7 +43,10 @@ export function makeStep(
     pageId: 'page-1',
     pageUrl: run.url,
     replayable: true,
-    action: { type: 'navigate', value: run.url, target: { kind: 'css', value: '', name: '' } },
+    action: {
+      platform: 'web',
+      action: { type: 'navigate', value: run.url, target: { kind: 'css', value: '', name: '' } },
+    },
     ...overrides,
   };
 }

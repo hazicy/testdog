@@ -46,7 +46,6 @@ export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
 export function stepRecord(row: typeof runSteps.$inferSelect): ExecutionStep {
   return {
     ...row,
-    platformAction: optional(row.platformAction),
     surface: optional(row.surface),
     observationRevision: optional(row.observationRevision),
     finishedAt: optional(row.finishedAt),
@@ -55,7 +54,6 @@ export function stepRecord(row: typeof runSteps.$inferSelect): ExecutionStep {
     action: optional(row.action),
     assertion: optional(row.assertion),
     platformAssertion: optional(row.platformAssertion),
-    playwrightAssertion: optional(row.playwrightAssertion),
     condition: optional(row.condition),
     decision: optional(row.decision),
     evidence: optional(row.evidence),

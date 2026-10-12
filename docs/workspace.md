@@ -211,7 +211,7 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 - `POST /api/run-batches`：`{testId, variants:[{target, goal?}]}`，在同一事务创建各平台独立执行并以 batchId 关联。
 - 原生录制版本使用 `{schemaVersion:1, platform, steps}` JSON，保留语义断言与分支，拒绝临时 refs 和坐标手势。
 
-执行详情增加 targetSnapshot、environmentSnapshot、capabilities、resourceId、batchId 和 evidenceComplete。原生步骤使用 platformAction，旧 Web action/pageId/pageUrl 可继续读取。原生截图 MIME 为 image/png，附件下载保留正确扩展名。
+执行详情增加 targetSnapshot、environmentSnapshot、capabilities、resourceId、batchId 和 evidenceComplete。Web 与原生步骤统一使用带平台标记的 action 和 platformAssertion，保留 pageId/pageUrl 用于证据展示；旧字段经迁移后删除。原生截图 MIME 为 image/png，附件下载保留正确扩展名。
 
 首期验收范围的历史记录见 [实施记录](automation-implementation.md)，不表示当前部署或验证状态。
 

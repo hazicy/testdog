@@ -47,10 +47,10 @@ async function setup() {
 
 it('persists queued work and grants only one worker a device; completed release allows the next run', async () => {
   await setup();
-  const first = await createRun({ case: 'Check', target });
-  const second = await createRun({ case: 'Check', target });
+  const first = await createRun({ case: 'Check', target }, undefined, null);
+  const second = await createRun({ case: 'Check', target }, undefined, null);
 
-  expect((await getRun(first.id)).status).toBe('queued');
+  expect((await getRun(first.id, { userId: null })).status).toBe('queued');
   const claims = await Promise.all([claimRun('worker-a', 'host'), claimRun('worker-b', 'host')]);
 
   expect(claims.filter(Boolean)).toHaveLength(1);
@@ -68,7 +68,7 @@ it('persists queued work and grants only one worker a device; completed release 
 });
 it('quarantines expired devices even while the old owner lives; rejects stale and unscoped evidence writes', async () => {
   await setup();
-  await createRun({ case: 'Check', target });
+  await createRun({ case: 'Check', target }, undefined, null);
   const claim = (await claimRun('worker-a', 'host'))!;
 
   await expect(appendEvent(claim.run.id, 'unowned')).rejects.toThrow('lease lost');
@@ -80,9 +80,9 @@ it('quarantines expired devices even while the old owner lives; rejects stale an
     'UPDATE automation_resources SET "leaseUntil" = now() - interval \'1 second\'',
   );
   await recoverLeases();
-  expect((await getRun(claim.run.id)).status).toBe('failed');
+  expect((await getRun(claim.run.id, { userId: null })).status).toBe('failed');
   expect((await listResources())[0].status).toBe('quarantined');
-  await createRun({ case: 'Another', target });
+  await createRun({ case: 'Another', target }, undefined, null);
   expect(await claimRun('worker-b', 'host')).toBeUndefined();
   await expect(
     withLease(claim.lease, () =>
@@ -111,10 +111,10 @@ it('quarantines expired devices even while the old owner lives; rejects stale an
 });
 it('cancels queued work without dispatch and runs different devices independently', async () => {
   await setup();
-  const queued = await createRun({ case: 'Check', target });
+  const queued = await createRun({ case: 'Check', target }, undefined, null);
 
-  await requestCancellation(queued.id);
-  expect((await getRun(queued.id)).status).toBe('cancelled');
+  await requestCancellation(queued.id, null);
+  expect((await getRun(queued.id, { userId: null })).status).toBe('cancelled');
   expect(await claimRun('worker-a', 'host')).toBeUndefined();
   await registerResources([
     {
@@ -125,11 +125,15 @@ it('cancels queued work without dispatch and runs different devices independentl
       deviceId: 'serial',
     },
   ]);
-  await createRun({ case: 'Check', target });
-  await createRun({
-    case: 'Check',
-    target: { ...target, platform: 'android', deviceProfileId: 'pixel' },
-  });
+  await createRun({ case: 'Check', target }, undefined, null);
+  await createRun(
+    {
+      case: 'Check',
+      target: { ...target, platform: 'android', deviceProfileId: 'pixel' },
+    },
+    undefined,
+    null,
+  );
   expect(
     (await Promise.all([claimRun('worker-a', 'host'), claimRun('worker-c', 'host')])).filter(
       Boolean,

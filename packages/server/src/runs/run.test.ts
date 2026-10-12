@@ -146,33 +146,37 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     );
     vi.stubEnv('CASEFORGE_SECRET_LOGIN_PASSWORD', '');
     mocks.generate.mockResolvedValue({ content: { text: 'DONE' }, toolCalls: [] });
-    const flow = await saveTest({
-      name: 'Login',
-      url,
-      goal: 'Use ${input.password}',
-      tags: [],
-      target: {
-        schemaVersion: 1,
-        platform: 'web',
+    const flow = await saveTest(
+      {
+        name: 'Login',
         url,
-        browser: 'chromium',
-        deviceProfile: 'legacy-desktop',
-        inputs: { password: { secretRef: 'LOGIN_PASSWORD' } },
-      },
-      plan: {
-        rootId: 'login',
-        nodes: {
-          login: {
-            id: 'login',
-            kind: 'task',
-            goal: 'Use ${input.password}',
-            dependsOn: [],
-            requirementIds: [],
-            assertions: [],
+        goal: 'Use ${input.password}',
+        tags: [],
+        target: {
+          schemaVersion: 1,
+          platform: 'web',
+          url,
+          browser: 'chromium',
+          deviceProfile: 'legacy-desktop',
+          inputs: { password: { secretRef: 'LOGIN_PASSWORD' } },
+        },
+        plan: {
+          rootId: 'login',
+          nodes: {
+            login: {
+              id: 'login',
+              kind: 'task',
+              goal: 'Use ${input.password}',
+              dependsOn: [],
+              requirementIds: [],
+              assertions: [],
+            },
           },
         },
       },
-    });
+      undefined,
+      null,
+    );
     const identity = await saveLoginIdentity(
       {
         name: 'Admin',
@@ -186,10 +190,10 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       },
       null,
     );
-    const run = await createRun({ loginIdentityId: identity.id });
+    const run = await createRun({ loginIdentityId: identity.id }, undefined, null);
 
     await executeRun(run);
-    const result = await getRun(run.id);
+    const result = await getRun(run.id, { userId: null });
 
     expect(result.status, result.error).toBe('passed');
     expect(result.steps).toHaveLength(0);
@@ -197,11 +201,11 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     expect(JSON.stringify(mocks.generate.mock.calls)).not.toContain('saved-ui-password');
   });
   it('fails a replay without recorded actions before compiling or opening the browser', async () => {
-    const run = await createRun({ case: 'Missing recording', url });
+    const run = await createRun({ case: 'Missing recording', url }, undefined, null);
 
     await mocks.client!.query('UPDATE test_runs SET mode = $1 WHERE id = $2', ['replay', run.id]);
-    await executeRun(await getRun(run.id));
-    const result = await getRun(run.id);
+    await executeRun(await getRun(run.id, { userId: null }));
+    const result = await getRun(run.id, { userId: null });
 
     expect(result.status).toBe('failed');
     expect(result.error).toContain('重放缺少操作快照');
@@ -224,20 +228,24 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
 
       return result;
     });
-    const run = await createRun({
-      case: 'Fill ${input.name} and submit',
-      target: {
-        schemaVersion: 1,
-        platform: 'web',
-        url,
-        browser: 'chromium',
-        deviceProfile: 'Pixel 7',
-        inputs: { name: { value: 'Ada' } },
+    const run = await createRun(
+      {
+        case: 'Fill ${input.name} and submit',
+        target: {
+          schemaVersion: 1,
+          platform: 'web',
+          url,
+          browser: 'chromium',
+          deviceProfile: 'Pixel 7',
+          inputs: { name: { value: 'Ada' } },
+        },
       },
-    });
+      undefined,
+      null,
+    );
 
     await executeRun(run);
-    const recorded = await getRun(run.id);
+    const recorded = await getRun(run.id, { userId: null });
 
     expect(recorded.status, recorded.error).toBe('passed');
     expect(recorded.plan?.nodes.task).toMatchObject({
@@ -255,37 +263,41 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     });
   });
   it('executes an authored tree with inputs without compiling its text again', async () => {
-    const saved = await saveTest({
-      name: 'Board case',
-      url,
-      goal: 'Original text',
-      tags: [],
-      target: {
-        schemaVersion: 1,
-        platform: 'web',
+    const saved = await saveTest(
+      {
+        name: 'Board case',
         url,
-        browser: 'chromium',
-        deviceProfile: 'Pixel 7',
-        inputs: { name: { value: 'Ada' } },
-      },
-      plan: {
-        rootId: 'authored',
-        nodes: {
-          authored: {
-            id: 'authored',
-            kind: 'task',
-            goal: 'Fill ${input.name} and submit',
-            dependsOn: [],
-            requirementIds: [],
-            assertions: [{ description: 'Welcome ${input.name} is visible' }],
+        goal: 'Original text',
+        tags: [],
+        target: {
+          schemaVersion: 1,
+          platform: 'web',
+          url,
+          browser: 'chromium',
+          deviceProfile: 'Pixel 7',
+          inputs: { name: { value: 'Ada' } },
+        },
+        plan: {
+          rootId: 'authored',
+          nodes: {
+            authored: {
+              id: 'authored',
+              kind: 'task',
+              goal: 'Fill ${input.name} and submit',
+              dependsOn: [],
+              requirementIds: [],
+              assertions: [{ description: 'Welcome ${input.name} is visible' }],
+            },
           },
         },
       },
-    });
-    const run = await createRun({ testId: saved.id });
+      undefined,
+      null,
+    );
+    const run = await createRun({ testId: saved.id }, undefined, null);
 
     await executeRun(run);
-    const recorded = await getRun(run.id);
+    const recorded = await getRun(run.id, { userId: null });
 
     expect(recorded.status, recorded.error).toBe('passed');
     expect(recorded.plan?.nodes.authored).toMatchObject({
@@ -303,10 +315,14 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
   });
 
   it('records each action, screenshots, video and trace, then replays without calling the planner', async () => {
-    const run = await createRun({ case: 'Enter Ada, submit and verify welcome', url });
+    const run = await createRun(
+      { case: 'Enter Ada, submit and verify welcome', url },
+      undefined,
+      null,
+    );
 
     await executeRun(run);
-    const recorded = await getRun(run.id);
+    const recorded = await getRun(run.id, { userId: null });
 
     expect(recorded.status, recorded.error).toBe('passed');
     expect(recorded.browserLogs).toEqual(
@@ -338,7 +354,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       'wait',
       'assertion',
     ]);
-    expect(recorded.steps[1].action).toMatchObject({
+    expect(recorded.steps[1].action?.action).toMatchObject({
       type: 'fill',
       target: { kind: 'testId', value: 'name' },
       value: 'Ada',
@@ -354,6 +370,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     const video = await getArtifact(
       run.id,
       recorded.artifacts.find((item) => item.kind === 'video')!.id,
+      null,
     );
 
     expect((await readFile(video.path)).subarray(0, 4).toString('hex')).toBe('1a45dfa3');
@@ -371,10 +388,10 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
 
     expect(assertion![0].messages[0].content.text).toContain('Welcome Ada');
     mocks.generate.mockClear();
-    const replay = await createRun({ mode: 'replay', sourceRunId: run.id });
+    const replay = await createRun({ mode: 'replay', sourceRunId: run.id }, undefined, null);
 
     await executeRun(replay);
-    const result = await getRun(replay.id);
+    const result = await getRun(replay.id, { userId: null });
 
     expect(result.browserLogs).toEqual(
       expect.arrayContaining([
@@ -388,12 +405,12 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     expect(mocks.generate).toHaveBeenCalledTimes(1);
     expect(mocks.generate.mock.calls[0][0].responseFormat.name).toBe('assertion_result');
     expect(mocks.generate.mock.calls[0][0].messages[0].content.text).toContain('Welcome Ada');
-    const detached = await createRun({ mode: 'replay', sourceRunId: run.id });
+    const detached = await createRun({ mode: 'replay', sourceRunId: run.id }, undefined, null);
 
     await mocks.client!.query('DELETE FROM test_runs WHERE id = $1', [run.id]);
     mocks.generate.mockClear();
-    await executeRun(await getRun(detached.id));
-    const detachedResult = await getRun(detached.id);
+    await executeRun(await getRun(detached.id, { userId: null }));
+    const detachedResult = await getRun(detached.id, { userId: null });
 
     expect(detachedResult.status, detachedResult.error).toBe('passed');
     expect(detachedResult.sourceRunId).toBeUndefined();
@@ -410,10 +427,10 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
         ? { structuredContent: { passed: false, evidence: 'Expected welcome message is missing' } }
         : implementation(input),
     );
-    const run = await createRun({ case: 'Verify welcome', url });
+    const run = await createRun({ case: 'Verify welcome', url }, undefined, null);
 
     await executeRun(run);
-    const saved = await getRun(run.id);
+    const saved = await getRun(run.id, { userId: null });
 
     expect(saved.status).toBe('failed');
     expect(saved.error).toContain('Expected welcome message is missing');
@@ -485,10 +502,10 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
         ],
       };
     });
-    const run = await createRun({ case: 'Open popup and verify', url });
+    const run = await createRun({ case: 'Open popup and verify', url }, undefined, null);
 
     await executeRun(run);
-    const record = await getRun(run.id);
+    const record = await getRun(run.id, { userId: null });
 
     expect(record.status, record.error).toBe('passed');
     expect(record.steps.at(-1)?.pageId).toBe('page-2');
@@ -498,10 +515,10 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
         ([input]) => input.responseFormat?.name === 'assertion_result',
       )![0].messages[0].content.text,
     ).toContain('Popup ready');
-    const replay = await createRun({ mode: 'replay', sourceRunId: record.id });
+    const replay = await createRun({ mode: 'replay', sourceRunId: record.id }, undefined, null);
 
     await executeRun(replay);
-    const result = await getRun(replay.id);
+    const result = await getRun(replay.id, { userId: null });
 
     expect(result.status, result.error).toBe('passed');
     expect(result.steps.at(-1)?.pageId).toBe('page-2');
@@ -533,10 +550,10 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     });
 
     try {
-      const run = await createRun({ case: 'Archive failure', url });
+      const run = await createRun({ case: 'Archive failure', url }, undefined, null);
 
       await executeRun(run);
-      const result = await getRun(run.id);
+      const result = await getRun(run.id, { userId: null });
 
       expect(result.status).toBe('failed');
       expect(result.evidenceComplete).toBe(false);
@@ -545,10 +562,10 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       expect(
         (await listResources()).find((resource) => resource.id === result.resourceId)?.status,
       ).toBe('available');
-      const next = await createRun({ case: 'Next browser run', url });
+      const next = await createRun({ case: 'Next browser run', url }, undefined, null);
 
       await executeRun(next);
-      expect((await getRun(next.id)).status).toBe('passed');
+      expect((await getRun(next.id, { userId: null })).status).toBe('passed');
     } finally {
       archive.mockRestore();
     }
@@ -566,7 +583,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
           )
         : original(input),
     );
-    const run = await createRun({ case: 'Cancel active browser', url });
+    const run = await createRun({ case: 'Cancel active browser', url }, undefined, null);
     const job = executeRun(run);
 
     try {
@@ -580,10 +597,10 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       throw error;
     }
 
-    await requestCancellation(run.id);
+    await requestCancellation(run.id, null);
     cancelRun(run.id);
     await job;
-    const result = await getRun(run.id);
+    const result = await getRun(run.id, { userId: null });
 
     expect(result.status).toBe('cancelled');
     expect(result.errorCode).toBe('CANCELLED');
@@ -613,20 +630,24 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
         : implementation(input),
     );
     try {
-      const run = await createRun({
-        case: 'Fail with archive error',
-        target: {
-          schemaVersion: 1,
-          platform: 'web',
-          url,
-          browser: 'chromium',
-          deviceProfile: 'Pixel 7',
-          inputs: { password: { secretRef: 'ARCHIVE' } },
+      const run = await createRun(
+        {
+          case: 'Fail with archive error',
+          target: {
+            schemaVersion: 1,
+            platform: 'web',
+            url,
+            browser: 'chromium',
+            deviceProfile: 'Pixel 7',
+            inputs: { password: { secretRef: 'ARCHIVE' } },
+          },
         },
-      });
+        undefined,
+        null,
+      );
 
       await executeRun(run);
-      const result = await getRun(run.id);
+      const result = await getRun(run.id, { userId: null });
 
       expect(result).toMatchObject({
         status: 'failed',
@@ -642,7 +663,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
   });
 
   it('requires a matching lease without registering resources or claiming the run', async () => {
-    const run = await createRun({ case: 'Requires a lease', url });
+    const run = await createRun({ case: 'Requires a lease', url }, undefined, null);
     const resources = await listResources();
 
     await expect(executeClaimedRun(run)).rejects.toThrow('执行租约');
@@ -651,7 +672,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
         executeClaimedRun(run),
       ),
     ).rejects.toThrow('执行租约');
-    const current = await getRun(run.id);
+    const current = await getRun(run.id, { userId: null });
 
     expect(current.status).toBe('queued');
     expect(current.workerId).toBeUndefined();
@@ -662,7 +683,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
   });
 
   it('stops before model or browser work when another worker owns the execution', async () => {
-    const run = await createRun({ case: 'Ownership changed', url });
+    const run = await createRun({ case: 'Ownership changed', url }, undefined, null);
 
     await registerResources([
       { id: 'replacement-web', hostId: 'replacement-host', platform: 'web', profileId: 'mobile' },
@@ -671,7 +692,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
 
     expect(claim).toBeDefined();
     await expect(executeClaimedRun(run)).rejects.toThrow('执行租约');
-    const current = await getRun(run.id);
+    const current = await getRun(run.id, { userId: null });
 
     expect(current.status).toBe('preparing');
     expect(current.cancelRequested).toBe(false);
@@ -687,22 +708,22 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
           input.signal.addEventListener('abort', () => reject(input.signal.reason), { once: true });
         }),
     );
-    const run = await createRun({ case: 'Wait for model', url });
+    const run = await createRun({ case: 'Wait for model', url }, undefined, null);
     const job = executeRun(run);
 
     await vi.waitFor(() => expect(mocks.generate).toHaveBeenCalled());
-    await requestCancellation(run.id);
+    await requestCancellation(run.id, null);
     cancelRun(run.id);
     await job;
-    expect((await getRun(run.id)).status).toBe('cancelled');
+    expect((await getRun(run.id, { userId: null })).status).toBe('cancelled');
   });
 });
 
 it('executes edited input and real Playwright expectations without planning, and records assertion failure', async () => {
-  const original = await createRun({ case: 'Enter Ada and welcome', url });
+  const original = await createRun({ case: 'Enter Ada and welcome', url }, undefined, null);
 
   await executeRun(original);
-  const saved = await getRun(original.id);
+  const saved = await getRun(original.id, { userId: null });
 
   expect(saved.steps[1].planNodeId).toBe('task');
   const script = recordingScript(saved.steps).replaceAll('Ada', 'Grace');
@@ -711,41 +732,54 @@ it('executes edited input and real Playwright expectations without planning, and
     original.id,
     actions +
       '\n// @node task\nawait expect(page1.getByRole("heading")).toHaveText("Welcome Grace");\nawait expect(page1.getByTestId("name")).toHaveValue("Grace");',
+    null,
   );
 
   mocks.generate.mockClear();
-  const edited = await createRun({
-    mode: 'replay',
-    sourceRunId: original.id,
-    recordingVersionId: version.id,
-  });
+  const edited = await createRun(
+    {
+      mode: 'replay',
+      sourceRunId: original.id,
+      recordingVersionId: version.id,
+    },
+    undefined,
+    null,
+  );
 
   await executeRun(edited);
-  const result = await getRun(edited.id);
+  const result = await getRun(edited.id, { userId: null });
 
   expect(result.status, result.error).toBe('passed');
   expect(mocks.generate).not.toHaveBeenCalled();
-  expect(result.steps[1].action?.value).toBe('Grace');
-  expect(result.steps.at(-2)?.playwrightAssertion?.value).toBe('Welcome Grace');
+  expect(result.steps[1].action).toMatchObject({ platform: 'web', action: { value: 'Grace' } });
+  expect(result.steps.at(-2)?.platformAssertion?.value).toBe('Welcome Grace');
   expect(result.steps.at(-2)?.planNodeId).toBe('task');
-  expect((await getRun(original.id)).steps[1].action?.value).toBe('Ada');
+  expect((await getRun(original.id, { userId: null })).steps[1].action).toMatchObject({
+    platform: 'web',
+    action: { value: 'Ada' },
+  });
   const incorrect = await saveRecordingVersion(
     original.id,
     version.code.replace('toHaveText("Welcome Grace")', 'toHaveText("Welcome Ada")'),
+    null,
   );
-  const failing = await createRun({
-    mode: 'replay',
-    sourceRunId: original.id,
-    recordingVersionId: incorrect.id,
-  });
+  const failing = await createRun(
+    {
+      mode: 'replay',
+      sourceRunId: original.id,
+      recordingVersionId: incorrect.id,
+    },
+    undefined,
+    null,
+  );
 
   await executeRun(failing);
-  const failure = await getRun(failing.id);
+  const failure = await getRun(failing.id, { userId: null });
 
   expect(failure.status).toBe('failed');
   expect(failure.error).toContain('Welcome Ada');
   const step = failure.steps.find((s) => s.status === 'failed')!;
 
-  expect(step.playwrightAssertion?.type).toBe('toHaveText');
+  expect(step.platformAssertion?.type).toBe('text');
   expect(failure.artifacts.some((a) => a.stepId === step.id && a.stage === 'after')).toBe(true);
 }, 30000);

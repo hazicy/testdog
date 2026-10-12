@@ -4,21 +4,14 @@ import type {
   Observation,
   CapabilitySet,
 } from '@testdog/contracts/automation/platform/contracts';
-import type { RecordedAction } from '@testdog/contracts/automation/platform/web/types';
 import type { TestTarget } from '@testdog/contracts/automation/platform/target';
-import type { Assertion, Plan, Step, Target } from '@testdog/contracts/automation/compiler/schema';
+import type { Assertion, Plan } from '@testdog/contracts/automation/compiler/schema';
 
 export type RunStatus =
   'queued' | 'preparing' | 'running' | 'finalizing' | 'passed' | 'failed' | 'cancelled';
 export const activeRunStatuses: RunStatus[] = ['queued', 'preparing', 'running', 'finalizing'];
 export const isActiveRun = (status: RunStatus) => activeRunStatuses.includes(status);
 export type RunEvent = { at: string; message: string };
-export type PlaywrightAssertion = {
-  target?: Target;
-  type: 'toBeVisible' | 'toHaveText' | 'toContainText' | 'toHaveValue' | 'toHaveURL';
-  value?: string;
-  negate?: boolean;
-};
 /** Replayable operations, without execution identity, timing, status or evidence. */
 export type RecordingOperation = {
   kind: 'navigate' | 'action' | 'assertion' | 'wait' | 'branch';
@@ -26,11 +19,9 @@ export type RecordingOperation = {
   pageId: string;
   surface?: Observation['surface'];
   planNodeId?: string;
-  action?: RecordedAction;
-  platformAction?: PlatformAction;
+  action?: PlatformAction;
   assertion?: Assertion;
   platformAssertion?: PlatformAssertion;
-  playwrightAssertion?: PlaywrightAssertion;
   condition?: string;
   decision?: boolean;
 };
@@ -144,10 +135,9 @@ export type StepSignal = {
   planNodeId?: string;
   kind: ExecutionStep['kind'];
   title: string;
-  action?: Step;
+  action?: PlatformAction;
   assertion?: Assertion;
   platformAssertion?: PlatformAssertion;
-  playwrightAssertion?: PlaywrightAssertion;
   condition?: string;
   decision?: boolean;
   evidence?: string;

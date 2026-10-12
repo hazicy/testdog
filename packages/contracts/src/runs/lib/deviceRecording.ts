@@ -47,9 +47,7 @@ export function deviceRecordingScript(platform: 'android' | 'ios', steps: Record
       steps: steps.map((step) => ({
         title: step.title,
         ...(step.planNodeId ? { planNodeId: step.planNodeId } : {}),
-        ...(step.platformAction?.platform !== 'web' && step.platformAction
-          ? { action: step.platformAction.action }
-          : {}),
+        ...(step.action?.platform !== 'web' && step.action ? { action: step.action.action } : {}),
         ...(step.platformAssertion ? { check: step.platformAssertion } : {}),
         ...(step.assertion ? { assertion: step.assertion } : {}),
         ...(step.condition ? { condition: step.condition, decision: step.decision } : {}),
@@ -84,7 +82,7 @@ export function parseDeviceRecordingScript(
     title: entry.title,
     pageId: 'app',
     planNodeId: entry.planNodeId,
-    platformAction: entry.action ? { schemaVersion: 1, platform, action: entry.action } : undefined,
+    action: entry.action ? { schemaVersion: 1, platform, action: entry.action } : undefined,
     assertion: entry.assertion,
     platformAssertion: entry.check,
     condition: entry.condition,

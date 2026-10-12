@@ -35,13 +35,14 @@ await expect(page2).toHaveURL("https://example.com/welcome");`;
     }
 
     expect(steps[1].planNodeId).toBe('signup');
-    expect(steps[1].action).toMatchObject({
+    expect(steps[1].action?.action).toMatchObject({
       type: 'fill',
       value: 'Grace',
       target: { index: 0, name: 'Name' },
     });
-    expect(steps[8].playwrightAssertion).toMatchObject({
-      type: 'toBeVisible',
+    expect(steps[8].platformAssertion).toMatchObject({
+      platform: 'web',
+      type: 'visible',
       target: { kind: 'text' },
     });
     expect(parseRecordingScript(recordingScript(steps))).toEqual(steps);

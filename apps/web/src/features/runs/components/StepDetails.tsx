@@ -17,6 +17,8 @@ export function StepDetails({
   onShowFrame: (index: number) => void;
   onIssue?: (step: ExecutionStep) => void;
 }) {
+  const action = step.action?.action;
+
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
@@ -34,28 +36,18 @@ export function StepDetails({
           {JSON.stringify(step.platformAssertion, null, 2)}
         </pre>
       )}
-      {step.playwrightAssertion && (
-        <pre className="mt-4 whitespace-pre-wrap break-all border border-page-line p-4 text-xs leading-6">
-          {JSON.stringify(step.playwrightAssertion, null, 2)}
-        </pre>
-      )}
-      {step.platformAction && (
-        <pre className="whitespace-pre-wrap break-all text-xs">
-          {JSON.stringify(step.platformAction, null, 2)}
-        </pre>
-      )}
-      {step.action && (
+      {action && (
         <div className="mt-4 border border-page-line bg-page p-4 font-mono text-xs leading-6">
-          <p>action: {step.action.type}</p>
-          {'target' in step.action && (
+          <p>action: {action.type}</p>
+          {'target' in action && (
             <p className="break-all">
-              target: {step.action.target.kind} /{' '}
-              {step.action.target.name || step.action.target.value}
+              target: {action.target.kind} /{' '}
+              {('name' in action.target && action.target.name) || action.target.value}
             </p>
           )}
-          {step.action.value && (
+          {'value' in action && action.value && (
             <p className="break-all">
-              value: {step.action.sensitive ? '••••••••' : step.action.value}
+              value: {'sensitive' in action && action.sensitive ? '••••••••' : action.value}
             </p>
           )}
         </div>

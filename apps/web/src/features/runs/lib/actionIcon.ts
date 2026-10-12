@@ -9,7 +9,7 @@ import scrollIcon from '@iconify-icons/lucide/move-vertical';
 import pointerIcon from '@iconify-icons/lucide/mouse-pointer-2';
 
 export function actionIcon(step: ExecutionStep) {
-  const action = step.platformAction?.action.type || step.action?.type;
+  const action = step.action?.action.type;
 
   if (step.kind === 'assertion') return checkIcon;
   if (step.kind === 'branch') return branchIcon;

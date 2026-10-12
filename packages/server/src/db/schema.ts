@@ -20,13 +20,8 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import type { RecordedAction } from '@testdog/contracts/automation/platform/web/types';
 import type { Plan, Assertion } from '@testdog/contracts/automation/compiler/schema';
-import type {
-  BrowserLog,
-  RecordingOperation,
-  PlaywrightAssertion,
-} from '@testdog/contracts/runs/types';
+import type { BrowserLog, RecordingOperation } from '@testdog/contracts/runs/types';
 
 export const authUsers = pgTable('auth_users', {
   id: text().primaryKey(),
@@ -192,7 +187,6 @@ export const runSteps = pgTable(
     runId: uuid()
       .notNull()
       .references(() => testRuns.id, { onDelete: 'cascade' }),
-    platformAction: jsonb().$type<PlatformAction>(),
     surface: jsonb().$type<Observation['surface']>(),
     observationRevision: integer(),
     sequence: integer().notNull(),
@@ -205,10 +199,9 @@ export const runSteps = pgTable(
     pageId: text().notNull(),
     pageUrl: text().notNull(),
     planNodeId: text(),
-    action: jsonb().$type<RecordedAction>(),
+    action: jsonb().$type<PlatformAction>(),
     assertion: jsonb().$type<Assertion>(),
     platformAssertion: jsonb().$type<PlatformAssertion>(),
-    playwrightAssertion: jsonb().$type<PlaywrightAssertion>(),
     condition: text(),
     decision: boolean(),
     evidence: text(),

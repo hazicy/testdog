@@ -51,26 +51,30 @@ afterAll(async () => {
 it.skipIf(!enabled)(
   'compiles a real natural language case, records browser actions and replays with the real model',
   async () => {
-    const test = await saveTest({
-      name: '订阅表单 · 真实模型验证',
-      url,
-      goal: '在当前网页的「姓名」输入框中填写 Ada，在「邮箱」输入框中填写 ada@example.com，然后点击「订阅更新」按钮。验证页面显示「订阅成功，Ada」，并显示邮箱 ada@example.com。',
-      tags: ['smoke', 'form'],
-    });
-    const run = await createRun({ testId: test.id });
+    const test = await saveTest(
+      {
+        name: '订阅表单 · 真实模型验证',
+        url,
+        goal: '在当前网页的「姓名」输入框中填写 Ada，在「邮箱」输入框中填写 ada@example.com，然后点击「订阅更新」按钮。验证页面显示「订阅成功，Ada」，并显示邮箱 ada@example.com。',
+        tags: ['smoke', 'form'],
+      },
+      undefined,
+      null,
+    );
+    const run = await createRun({ testId: test.id }, undefined, null);
 
     await executeRun(run);
-    const recorded = await getRun(run.id);
+    const recorded = await getRun(run.id, { userId: null });
 
     expect(recorded.status, recorded.error).toBe('passed');
     expect(recorded.steps.some((step) => step.kind === 'action')).toBe(true);
     expect(recorded.steps.some((step) => step.kind === 'assertion')).toBe(true);
     expect(recorded.artifacts.some((artifact) => artifact.kind === 'video')).toBe(true);
     expect(recorded.replayable).toBe(true);
-    const replay = await createRun({ mode: 'replay', sourceRunId: run.id });
+    const replay = await createRun({ mode: 'replay', sourceRunId: run.id }, undefined, null);
 
     await executeRun(replay);
-    const result = await getRun(replay.id);
+    const result = await getRun(replay.id, { userId: null });
 
     expect(result.status, result.error).toBe('passed');
     expect(result.steps.length).toBe(recorded.steps.length);
@@ -84,7 +88,7 @@ it.skipIf(!enabled)(
       );
       for (const item of [recorded, result])
         for (const artifact of item.artifacts) {
-          const file = await getArtifact(item.id, artifact.id);
+          const file = await getArtifact(item.id, artifact.id, null);
 
           await copyFile(file.path, join(preview, artifact.id));
         }

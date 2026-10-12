@@ -1,6 +1,6 @@
 import { assertLoginIdentityReference } from '@testdog/server/login-identities/repository';
 import { loginIdentities } from '@testdog/server/db/schema';
-import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
+import { assertUserScope, ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases } from '@testdog/server/db/schema';
@@ -19,7 +19,8 @@ export async function getTest(id: string, userId: UserScope) {
   return { ...test, url: targetUrl(test.target) };
 }
 
-export async function saveTest(raw: unknown, id?: string, userId: UserScope = null) {
+export async function saveTest(raw: unknown, id: string | undefined, userId: UserScope) {
+  assertUserScope(userId);
   const parsed = testSchema.safeParse(raw);
 
   if (!parsed.success) throw new WorkspaceError(testValidationMessage(parsed.error));
@@ -67,7 +68,7 @@ export async function saveTest(raw: unknown, id?: string, userId: UserScope = nu
   });
 }
 
-export async function deleteTest(id: string, userId: UserScope = null) {
+export async function deleteTest(id: string, userId: UserScope) {
   const [identity] = await db
     .select({ id: loginIdentities.id })
     .from(loginIdentities)

@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { normalizeReplaySteps } from '@testdog/server/runs/replay';
-import type { ExecutionStep, PlaywrightAssertion } from '@testdog/contracts/runs/types';
+import type { ExecutionStep } from '@testdog/contracts/runs/types';
+import type { PlatformAssertion } from '@testdog/contracts/automation/platform/contracts';
 
 function step(fields: Partial<ExecutionStep>): ExecutionStep {
   return {
@@ -18,14 +19,17 @@ function step(fields: Partial<ExecutionStep>): ExecutionStep {
   };
 }
 
-it('normalizes legacy actions without changing recorded metadata or sensitive input placeholders', () => {
+it('passes canonical actions without changing recorded metadata or sensitive input placeholders', () => {
   const recorded = step({
     planNodeId: 'login',
     action: {
-      type: 'fill',
-      target: { kind: 'testId', value: 'password', name: '' },
-      value: '${secret:PASSWORD}',
-      sensitive: true,
+      platform: 'web',
+      action: {
+        type: 'fill',
+        target: { kind: 'testId', value: 'password', name: '' },
+        value: '${secret:PASSWORD}',
+        sensitive: true,
+      },
     },
   });
   const before = structuredClone(recorded);
@@ -33,36 +37,28 @@ it('normalizes legacy actions without changing recorded metadata or sensitive in
 
   expect(normalized).toMatchObject({
     surfaceId: 'page-1',
-    event: { planNodeId: 'login', action: { platform: 'web', action: recorded.action } },
+    event: { planNodeId: 'login', action: recorded.action },
   });
   expect(recorded).toEqual(before);
 });
 
-it.each([
-  ['toBeVisible', 'visible'],
-  ['toHaveText', 'text'],
-  ['toContainText', 'containsText'],
-  ['toHaveValue', 'value'],
-  ['toHaveURL', 'url'],
-] as const)('normalizes %s while preserving legacy assertion evidence metadata', (type, mapped) => {
-  const legacy: PlaywrightAssertion = {
-    type,
-    target: type === 'toHaveURL' ? undefined : { kind: 'testId', value: 'welcome', name: '' },
-    value: 'Welcome Ada',
-    negate: true,
-  };
-  const [normalized] = normalizeReplaySteps([
-    step({ kind: 'assertion', playwrightAssertion: legacy }),
-  ]);
+it.each(['visible', 'text', 'containsText', 'value', 'url'] as const)(
+  'passes canonical %s assertions unchanged',
+  (type) => {
+    const assertion: PlatformAssertion = {
+      platform: 'web',
+      type,
+      target: type === 'url' ? undefined : { kind: 'testId', value: 'welcome', name: '' },
+      value: 'Welcome Ada',
+      negate: true,
+    };
+    const [normalized] = normalizeReplaySteps([
+      step({ kind: 'assertion', platformAssertion: assertion }),
+    ]);
 
-  expect(normalized.event.platformAssertion).toMatchObject({
-    platform: 'web',
-    type: mapped,
-    value: legacy.value,
-    negate: true,
-  });
-  expect(normalized.event.playwrightAssertion).toEqual(legacy);
-});
+    expect(normalized.event.platformAssertion).toBe(assertion);
+  },
+);
 
 it('preserves modern native actions and prefers the recorded surface over a legacy page ID', () => {
   const action = {
@@ -70,7 +66,7 @@ it('preserves modern native actions and prefers the recorded surface over a lega
     action: { type: 'tap' as const, target: { kind: 'identifier' as const, value: 'submit' } },
   };
   const [normalized] = normalizeReplaySteps([
-    step({ platformAction: action, surface: { id: 'native-app', platform: 'ios' } }),
+    step({ action, surface: { id: 'native-app', platform: 'ios' } }),
   ]);
 
   expect(normalized).toMatchObject({ surfaceId: 'native-app', event: { action } });

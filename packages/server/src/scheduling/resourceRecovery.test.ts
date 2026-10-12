@@ -19,7 +19,7 @@ vi.mock('@testdog/server/scheduling/scheduler', () => ({
   ) => verify(fixture.resource),
 }));
 vi.mock('@testdog/server/runs/repository', () => ({
-  getRun: async () => ({ id: 'run', attempt: 1 }),
+  getRunInternal: async () => ({ id: 'run', attempt: 1 }),
 }));
 const sdk = vi.hoisted(() => ({ create: vi.fn(), capabilities: vi.fn() }));
 

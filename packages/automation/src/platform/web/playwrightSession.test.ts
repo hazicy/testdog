@@ -78,7 +78,10 @@ it('rejects transient ARIA references before replay dispatch', async () => {
     pageId: 'page-1',
     kind: 'action',
     title: 'Click recorded ref',
-    action: { type: 'click', target: { kind: 'ariaRef', value: 'e1', name: '' }, value: '' },
+    action: {
+      platform: 'web',
+      action: { type: 'click', target: { kind: 'ariaRef', value: 'e1', name: '' }, value: '' },
+    },
   } as ExecutionStep;
 
   await expect(runner.replay(normalizeReplaySteps([step]))).rejects.toThrow('没有稳定定位器');

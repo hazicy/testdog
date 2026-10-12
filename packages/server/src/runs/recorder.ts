@@ -100,9 +100,10 @@ export class RunRecorder {
     this.persistence.assertComplete();
     if (event.phase === 'start') {
       this.activeSteps.set(page, event.id);
-      const recorded = event.action
-        ? await recordAction(page, event.action).catch(() => ({
-            action: event.action!,
+      const action = event.action?.platform === 'web' ? event.action.action : undefined;
+      const recorded = action
+        ? await recordAction(page, action).catch(() => ({
+            action,
             replayable: false,
           }))
         : undefined;
@@ -120,11 +121,10 @@ export class RunRecorder {
         startedAt: new Date().toISOString(),
         pageId: this.pageId(page),
         pageUrl: page.url(),
-        action: recorded?.action,
+        action: recorded ? { platform: 'web', action: recorded.action } : undefined,
         replayable: recorded?.replayable ?? true,
         assertion: event.assertion,
         platformAssertion: event.platformAssertion,
-        playwrightAssertion: event.playwrightAssertion,
         condition: event.condition,
       };
 

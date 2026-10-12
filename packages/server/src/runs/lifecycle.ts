@@ -7,17 +7,12 @@ import { runWrite } from '@testdog/server/scheduling/lease';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 
-export async function requestCancellation(id: string, userId?: UserScope) {
+export async function requestCancellation(id: string, userId: UserScope) {
   await db.transaction(async (tx) => {
     const [run] = await tx
       .select()
       .from(testRuns)
-      .where(
-        and(
-          eq(testRuns.id, id),
-          userId === undefined ? undefined : ownedBy(testRuns.userId, userId),
-        ),
-      )
+      .where(and(eq(testRuns.id, id), ownedBy(testRuns.userId, userId)))
       .for('update');
 
     if (!run) throw new WorkspaceError('执行记录不存在。', 404);

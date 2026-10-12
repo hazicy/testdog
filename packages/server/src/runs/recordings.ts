@@ -19,16 +19,11 @@ const recordingVersionFields = {
   schemaVersion: recordingVersions.schemaVersion,
 };
 
-export async function listRecordingVersions(runId: string, userId?: UserScope) {
+export async function listRecordingVersions(runId: string, userId: UserScope) {
   const [run] = await db
     .select({ id: testRuns.id })
     .from(testRuns)
-    .where(
-      and(
-        eq(testRuns.id, runId),
-        userId === undefined ? undefined : ownedBy(testRuns.userId, userId),
-      ),
-    );
+    .where(and(eq(testRuns.id, runId), ownedBy(testRuns.userId, userId)));
 
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
 
@@ -39,7 +34,7 @@ export async function listRecordingVersions(runId: string, userId?: UserScope) {
     .orderBy(desc(recordingVersions.createdAt), desc(recordingVersions.id));
 }
 
-export async function saveRecordingVersion(runId: string, input: unknown, userId?: UserScope) {
+export async function saveRecordingVersion(runId: string, input: unknown, userId: UserScope) {
   const parsed = recordingCodeSchema.safeParse(input);
 
   if (!parsed.success) throw new WorkspaceError(recordingInputMessage);
@@ -51,12 +46,7 @@ export async function saveRecordingVersion(runId: string, input: unknown, userId
       targetSnapshot: testRuns.targetSnapshot,
     })
     .from(testRuns)
-    .where(
-      and(
-        eq(testRuns.id, runId),
-        userId === undefined ? undefined : ownedBy(testRuns.userId, userId),
-      ),
-    );
+    .where(and(eq(testRuns.id, runId), ownedBy(testRuns.userId, userId)));
 
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
   if (isActiveRun(run.status)) throw new WorkspaceError('请等待录制结束后编辑。', 409);

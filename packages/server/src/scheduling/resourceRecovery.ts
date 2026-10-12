@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { createAgentDeviceClient } from 'agent-device';
 import { openRunBrowser } from '@testdog/server/browser-providers/runtime';
 import { recoverResource } from '@testdog/server/scheduling/scheduler';
-import { getRun } from '@testdog/server/runs/repository';
+import { getRunInternal } from '@testdog/server/runs/repository';
 
 export function ownerProcessStopped(owner: string | null, hostId: string): boolean {
   if (!owner?.startsWith(`${hostId}:`)) return false;
@@ -34,7 +34,7 @@ export async function recoverLocalResource(id: string, hostId: string) {
       !resource.runId
     )
       return false;
-    const run = await getRun(resource.runId);
+    const run = await getRunInternal(resource.runId);
 
     if (resource.platform === 'web') {
       // A dead worker cannot issue commands. Verify the configured browser

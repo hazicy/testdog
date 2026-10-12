@@ -44,10 +44,10 @@ const input = { name: 'Login', url: 'https://example.com', goal: 'Verify login',
 
 describe('PostgreSQL workspace repository', () => {
   it('queues concurrent runs and preserves execution snapshots after edit and delete', async () => {
-    const test = await saveTest(input);
+    const test = await saveTest(input, undefined, null);
     const results = await Promise.allSettled([
-      createRun({ testId: test.id }),
-      createRun({ testId: test.id }),
+      createRun({ testId: test.id }, undefined, null),
+      createRun({ testId: test.id }, undefined, null),
     ]);
 
     expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(2);
@@ -57,19 +57,19 @@ describe('PostgreSQL workspace repository', () => {
       >
     ).value;
 
-    await saveTest({ ...input, goal: 'Changed test' }, test.id);
-    await deleteTest(test.id);
-    const saved = await getRun(run.id);
+    await saveTest({ ...input, goal: 'Changed test' }, test.id, null);
+    await deleteTest(test.id, null);
+    const saved = await getRun(run.id, { userId: null });
 
     expect(saved.goal).toBe('Verify login');
     expect(saved.testId).toBeUndefined();
   });
   it('recovers an expired lease, but leaves live workers running', async () => {
-    const test = await saveTest(input);
-    const run = await createRun({ testId: test.id });
+    const test = await saveTest(input, undefined, null);
+    const run = await createRun({ testId: test.id }, undefined, null);
 
     await recoverLeases();
-    expect((await getRun(run.id)).status).toBe('queued');
+    expect((await getRun(run.id, { userId: null })).status).toBe('queued');
     await registerResources([
       { id: 'recovery-web', hostId: 'test', platform: 'web', profileId: 'mobile' },
     ]);
@@ -94,9 +94,9 @@ describe('PostgreSQL workspace repository', () => {
       [run.id],
     );
     // claimRun moves the run to preparing; the in-flight step marks active work.
-    expect((await getRun(run.id)).status).toBe('preparing');
+    expect((await getRun(run.id, { userId: null })).status).toBe('preparing');
     await recoverLeases();
-    const recovered = await getRun(run.id);
+    const recovered = await getRun(run.id, { userId: null });
 
     expect(recovered.status).toBe('failed');
     expect(recovered.error).toContain('连接中断');
@@ -104,49 +104,65 @@ describe('PostgreSQL workspace repository', () => {
     expect(recovered.steps[0].status).toBe('failed');
     expect(recovered.steps[0].durationMs).toBeGreaterThanOrEqual(120000);
     expect(recovered.finishedAt).toBeDefined();
-    expect((await createRun({ testId: test.id })).status).toBe('queued');
+    expect((await createRun({ testId: test.id }, undefined, null)).status).toBe('queued');
   });
   it('stores cancellation intent and rejects replay of an incomplete recording', async () => {
-    const run = await createRun({ case: 'Check title', url: input.url });
+    const run = await createRun({ case: 'Check title', url: input.url }, undefined, null);
 
-    await requestCancellation(run.id);
-    expect((await getRun(run.id)).cancelRequested).toBe(true);
-    expect((await getRun(run.id)).status).toBe('cancelled');
+    await requestCancellation(run.id, null);
+    expect((await getRun(run.id, { userId: null })).cancelRequested).toBe(true);
+    expect((await getRun(run.id, { userId: null })).status).toBe('cancelled');
     await expect(finishRun(run.id, 'cancelled', run.startedAt)).rejects.toThrow('claimed');
-    await expect(createRun({ mode: 'replay', sourceRunId: run.id })).rejects.toThrow('不能重放');
+    await expect(
+      createRun({ mode: 'replay', sourceRunId: run.id }, undefined, null),
+    ).rejects.toThrow('不能重放');
   });
 });
 
 it('saves independent versions and claims an immutable replay snapshot from a repaired failed recording', async () => {
-  const original = await createRun({ case: 'Original goal', url: input.url });
+  const original = await createRun({ case: 'Original goal', url: input.url }, undefined, null);
 
   await expect(
-    saveRecordingVersion(original.id, 'await page1.goto("https://example.com");'),
+    saveRecordingVersion(original.id, 'await page1.goto("https://example.com");', null),
   ).rejects.toThrow('结束');
   await finishClaimed(original.id, 'failed', original.startedAt, 'Original failure');
-  await expect(saveRecordingVersion(original.id, 'process.exit();')).rejects.toThrow('第 1 行');
+  await expect(saveRecordingVersion(original.id, 'process.exit();', null)).rejects.toThrow(
+    '第 1 行',
+  );
   const version = await saveRecordingVersion(
     original.id,
     'await page1.goto("https://example.com");\nawait expect(page1).toHaveURL("https://example.com/");',
+    null,
   );
 
-  expect(await listRecordingVersions(original.id)).toHaveLength(1);
-  const replay = await createRun({
-    mode: 'replay',
-    sourceRunId: original.id,
-    recordingVersionId: version.id,
-  });
+  expect(await listRecordingVersions(original.id, null)).toHaveLength(1);
+  const replay = await createRun(
+    {
+      mode: 'replay',
+      sourceRunId: original.id,
+      recordingVersionId: version.id,
+    },
+    undefined,
+    null,
+  );
 
   expect(replay.recordingVersionId).toBe(version.id);
   expect(replay.recordingSteps).toHaveLength(2);
-  await saveRecordingVersion(original.id, 'await page1.goto("https://other.example.com");');
-  expect((await getRun(replay.id)).recordingSteps?.[0].action?.value).toBe('https://example.com');
-  expect((await getRun(original.id)).error).toBe('Original failure');
+  await saveRecordingVersion(original.id, 'await page1.goto("https://other.example.com");', null);
+  expect((await getRun(replay.id, { userId: null })).recordingSteps?.[0].action).toMatchObject({
+    platform: 'web',
+    action: { value: 'https://example.com' },
+  });
+  expect((await getRun(original.id, { userId: null })).error).toBe('Original failure');
   await finishClaimed(replay.id, 'passed', replay.startedAt);
-  const unrelated = await createRun({ case: 'Other run', url: input.url });
+  const unrelated = await createRun({ case: 'Other run', url: input.url }, undefined, null);
 
   await finishClaimed(unrelated.id, 'failed', unrelated.startedAt);
   await expect(
-    createRun({ mode: 'replay', sourceRunId: unrelated.id, recordingVersionId: version.id }),
+    createRun(
+      { mode: 'replay', sourceRunId: unrelated.id, recordingVersionId: version.id },
+      undefined,
+      null,
+    ),
   ).rejects.toThrow('不属于');
 });

@@ -52,10 +52,7 @@ function validateStatus(status: string, tests = false) {
     throw new WorkspaceError('状态筛选参数无效。');
 }
 
-export async function listRunPage(
-  { limit, q, status, cursor }: PageQuery,
-  userId: UserScope = null,
-) {
+export async function listRunPage({ limit, q, status, cursor }: PageQuery, userId: UserScope) {
   validateStatus(status);
   const rows = await db
     .select(summaryColumns)
@@ -83,10 +80,7 @@ export async function listRunPage(
   };
 }
 
-export async function listTestPage(
-  { limit, q, status, cursor }: PageQuery,
-  userId: UserScope = null,
-) {
+export async function listTestPage({ limit, q, status, cursor }: PageQuery, userId: UserScope) {
   validateStatus(status, true);
   // The latest execution is independent of the execution-list page.
   const latestStatus = sql`(select r.status from test_runs r where r."testId" = ${testCases.id} and r."userId" is not distinct from ${userId}::text order by r."startedAt" desc, r.id desc limit 1)`;
@@ -136,7 +130,7 @@ export async function listTestPage(
   };
 }
 
-export async function workspaceStats(userId: UserScope = null): Promise<WorkspaceStats> {
+export async function workspaceStats(userId: UserScope): Promise<WorkspaceStats> {
   return db.transaction(
     async (tx) => {
       const [tests, runs] = await Promise.all([

@@ -9,10 +9,8 @@ export function recordingOperation(step: RecordingOperation): RecordingOperation
     surface: step.surface,
     planNodeId: step.planNodeId,
     action: step.action,
-    platformAction: step.platformAction,
     assertion: step.assertion,
     platformAssertion: step.platformAssertion,
-    playwrightAssertion: step.playwrightAssertion,
     condition: step.condition,
     decision: step.decision,
   };

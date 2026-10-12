@@ -44,7 +44,7 @@ async function replayThroughRunner(
     kind: action.action.type === 'wait' ? 'wait' : 'action',
     title: action.action.type,
     pageId: 'app',
-    platformAction: action,
+    action,
   }));
 
   steps.push({

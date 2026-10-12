@@ -19,7 +19,7 @@ import { runRequestSchema, type RunRequest } from '@testdog/contracts/runs/schem
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { submitOnce } from '@testdog/server/shared/idempotency';
 import type { z } from 'zod';
-import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
+import { assertUserScope, ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { recordingOperation } from '@testdog/contracts/runs/lib/recordingOperation';
 import { runRecord, stepRecord } from '@testdog/server/runs/records';
 
@@ -47,9 +47,10 @@ export async function submitRun(request: Request, raw: unknown, userId: UserScop
 
 export async function createRun(
   request: RunRequest & RunOptions,
-  transaction?: Tx,
-  userId: UserScope = null,
+  transaction: Tx | undefined,
+  userId: UserScope,
 ) {
+  assertUserScope(userId);
   const { batchId, goalOverride, ...raw } = request;
 
   return persistRun(parseRunRequest(raw), { batchId, goalOverride }, transaction, userId);

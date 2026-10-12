@@ -97,14 +97,18 @@ beforeEach(async () => {
       },
     },
   };
-  const flow = await saveTest({
-    name: '登录流程',
-    url: plainTarget.url,
-    goal: '登录',
-    target: plainTarget,
-    tags: [],
-    plan,
-  });
+  const flow = await saveTest(
+    {
+      name: '登录流程',
+      url: plainTarget.url,
+      goal: '登录',
+      target: plainTarget,
+      tags: [],
+      plan,
+    },
+    undefined,
+    null,
+  );
   const identity = await saveLoginIdentity(
     {
       version: 0,
@@ -182,6 +186,7 @@ it('loads saved passwords and refreshes after a UI password update without resta
       },
     },
     flow.id,
+    null,
   );
   const config = {
     name: identity.name,

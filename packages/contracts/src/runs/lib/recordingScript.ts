@@ -1,5 +1,9 @@
 import { parse, type Node } from 'acorn';
 import { StepSchema, type Target } from '@testdog/contracts/automation/compiler/schema';
+import {
+  PlatformAssertionSchema,
+  type PlatformAssertion,
+} from '@testdog/contracts/automation/platform/contracts';
 import type { RecordingOperation } from '@testdog/contracts/runs/types';
 
 // A validated Playwright call dialect. Parsed into operations, never evaluated as JavaScript.
@@ -24,6 +28,20 @@ export class ScriptError extends Error {
     super(`第 ${line} 行：${message}`);
   }
 }
+const assertionMethods = {
+  visible: 'toBeVisible',
+  text: 'toHaveText',
+  containsText: 'toContainText',
+  value: 'toHaveValue',
+  url: 'toHaveURL',
+} as const;
+const assertionTypes: Record<string, Extract<PlatformAssertion, { platform: 'web' }>['type']> = {
+  toBeVisible: 'visible',
+  toHaveText: 'text',
+  toContainText: 'containsText',
+  toHaveValue: 'value',
+  toHaveURL: 'url',
+};
 const quote = JSON.stringify;
 const pageName = (id: string) => `page${id.replace('page-', '')}`;
 
@@ -60,13 +78,14 @@ export function recordingScript(steps: RecordingOperation[]) {
 
     lines.push(`// ${step.title.replace(/[\r\n]/g, ' ')}`);
     if (step.planNodeId) lines.push(`// @node ${step.planNodeId}`);
-    const action = step.action;
+    const action = step.action?.platform === 'web' ? step.action.action : undefined;
 
-    if (step.playwrightAssertion) {
-      const a = step.playwrightAssertion;
+    if (step.platformAssertion?.platform === 'web') {
+      const a = step.platformAssertion;
+      const method = assertionMethods[a.type];
 
       lines.push(
-        `await expect(${a.target ? locator(page, a.target) : page}).${a.negate ? 'not.' : ''}${a.type}(${a.type === 'toBeVisible' ? '' : quote(a.value)});`,
+        `await expect(${a.target ? locator(page, a.target) : page}).${a.negate ? 'not.' : ''}${method}(${a.type === 'visible' ? '' : quote(a.value)});`,
       );
     } else if (step.kind === 'assertion' && step.assertion)
       lines.push(`await expectPage(${page}, ${quote(step.assertion.description)});`);
@@ -139,7 +158,7 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
     if (!result.success)
       return fail('操作参数无效；等待条件支持 observe/newPage/url/text，时间为 1000–5000 毫秒');
 
-    return result.data;
+    return { platform: 'web' as const, action: result.data };
   };
 
   const str = (node?: Ast) => {
@@ -298,13 +317,14 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
 
         step.pageId = target ? target.page : pageId(subject);
         step.kind = 'assertion';
-        step.playwrightAssertion = {
-          type: method as NonNullable<RecordingOperation['playwrightAssertion']>['type'],
+        step.platformAssertion = PlatformAssertionSchema.parse({
+          platform: 'web',
+          type: assertionTypes[method],
           target: target?.target,
           negate,
           ...(method !== 'toBeVisible' ? { value: str(args[0]) } : {}),
-        };
-        step.title = `${negate ? 'not.' : ''}${method} ${step.playwrightAssertion.value || target?.target.value || ''}`;
+        });
+        step.title = `${negate ? 'not.' : ''}${method} ${step.platformAssertion.value || target?.target.value || ''}`;
       } else if (method === 'goto' && args.length === 1) {
         const url = str(args[0]);
 
@@ -316,19 +336,19 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
 
         step.pageId = pageId(object);
         step.kind = 'navigate';
-        step.action = {
+        step.action = action({
           type: 'navigate',
           target: { kind: 'css', value: '', name: '' },
           value: url,
-        };
+        });
       } else if (method === 'screenshot' && args.length === 0) {
         step.pageId = pageId(object);
         step.kind = 'action';
-        step.action = {
+        step.action = action({
           type: 'screenshot',
           target: { kind: 'css', value: '', name: '' },
           value: '',
-        };
+        });
       } else if (method === 'waitForTimeout' && args.length === 1) {
         step.pageId = pageId(object);
         step.kind = 'wait';
@@ -353,11 +373,15 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
       } else fail('支持 goto、click、fill、press、waitForTimeout');
     }
 
-    if (step.action)
+    if (step.action?.platform === 'web') {
+      const recorded = step.action.action;
+
       step.title =
-        step.action.type === 'wait'
-          ? `等待 ${step.action.condition}`
-          : `${step.action.type} ${step.action.type === 'navigate' ? step.action.value : step.action.target.name || step.action.target.value}`;
+        recorded.type === 'wait'
+          ? `等待 ${recorded.condition}`
+          : `${recorded.type} ${recorded.type === 'navigate' ? recorded.value : recorded.target.name || recorded.target.value}`;
+    }
+
     steps.push(step);
     if (steps.length > 500) fail('脚本最多 500 个步骤');
   }

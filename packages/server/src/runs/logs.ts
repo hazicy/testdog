@@ -16,7 +16,7 @@ const querySchema = z.object({
   errors: z.enum(['true', 'false']).default('false'),
 });
 
-export async function listBrowserLogs(id: string, request: Request, userId?: UserScope) {
+export async function listBrowserLogs(id: string, request: Request, userId: UserScope) {
   const parsed = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
 
   if (!parsed.success) throw new WorkspaceError('日志筛选参数无效。');
@@ -24,9 +24,7 @@ export async function listBrowserLogs(id: string, request: Request, userId?: Use
   const [run] = await db
     .select({ id: testRuns.id })
     .from(testRuns)
-    .where(
-      and(eq(testRuns.id, id), userId === undefined ? undefined : ownedBy(testRuns.userId, userId)),
-    );
+    .where(and(eq(testRuns.id, id), ownedBy(testRuns.userId, userId)));
 
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
   const rows = await db

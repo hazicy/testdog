@@ -89,7 +89,7 @@ it.skipIf(!live)(
       resetPolicy: 'preserve' as const,
     };
     const queued = await Promise.all(
-      Array.from({ length: 5 }, () => createRun({ case: 'concurrent', target })),
+      Array.from({ length: 5 }, () => createRun({ case: 'concurrent', target }, undefined, null)),
     );
     const contenders = await Promise.all(
       Array.from({ length: 8 }, (_, index) => claimRun(`worker-${index}`, 'host')),
@@ -123,7 +123,7 @@ it.skipIf(!live)(
     await expect(withLease(old.lease, () => appendEvent(old.run.id, 'late write'))).rejects.toThrow(
       'lease lost',
     );
-    expect((await getRun(old.run.id)).errorCode).toBe('WORKER_LOST');
+    expect((await getRun(old.run.id, { userId: null })).errorCode).toBe('WORKER_LOST');
     const [quarantined] = await db
       .select()
       .from(automationResources)
@@ -149,7 +149,7 @@ it.skipIf(!live)(
 it.skipIf(!live)(
   'does not allow evidence writes before a worker has claimed a queued run',
   async () => {
-    const run = await createRun({ case: 'unclaimed', url: 'https://example.com' });
+    const run = await createRun({ case: 'unclaimed', url: 'https://example.com' }, undefined, null);
 
     await expect(appendEvent(run.id, randomUUID())).rejects.toThrow('claimed');
   },
@@ -173,16 +173,20 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         deviceId: process.env.CASEFORGE_ANDROID_SERIAL!,
       },
     ]);
-    const run = await createRun({
-      case: 'Recovery health',
-      target: {
-        schemaVersion: 1,
-        platform: 'android',
-        appId: 'com.caseforge.fixture',
-        deviceProfileId: 'recovery-fixture',
-        resetPolicy: 'preserve',
+    const run = await createRun(
+      {
+        case: 'Recovery health',
+        target: {
+          schemaVersion: 1,
+          platform: 'android',
+          appId: 'com.caseforge.fixture',
+          deviceProfileId: 'recovery-fixture',
+          resetPolicy: 'preserve',
+        },
       },
-    });
+      undefined,
+      null,
+    );
     const claim = (await claimRun(owner, host))!;
 
     expect(claim.run.id).toBe(run.id);

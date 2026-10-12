@@ -190,7 +190,7 @@ it('backfills existing desktop recordings and terminates only unfinished legacy 
           [stepId],
         )
       ).rows[0],
-    ).toMatchObject({ status: 'failed', action });
+    ).toMatchObject({ status: 'failed', action: { platform: 'web', action } });
     expect(
       (
         await client.query<{ path: string }>('SELECT path FROM run_artifacts WHERE id=$1', [
