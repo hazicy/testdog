@@ -252,10 +252,22 @@ export async function openPlatformRuntime(input: {
       },
       async finalize(interrupted) {
         signal.removeEventListener('abort', stop);
-        await session.close();
-        await recorder!.stop(context!, interrupted);
+        const failures: unknown[] = [];
 
-        evidence.assertComplete();
+        // Session disposal must not prevent video/trace archival from running.
+        for (const operation of [
+          () => session.close(),
+          () => recorder!.stop(context!, interrupted),
+          () => evidence.assertComplete(),
+        ]) {
+          try {
+            await operation();
+          } catch (error) {
+            failures.push(error);
+          }
+        }
+
+        if (failures.length) throw new AggregateError(failures, 'Web evidence finalization failed');
       },
     };
 
