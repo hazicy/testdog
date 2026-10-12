@@ -2,7 +2,7 @@ import { normalizeReplaySteps } from '@testdog/server/runs/replay';
 import { SemanticEvaluator } from '@testdog/automation/evaluator';
 import { deepseekClient } from '@testdog/automation/llm/deepseek';
 import { PlanRunner } from '@testdog/automation/planRunner';
-import type { ExecutionStep } from '@testdog/contracts/runs/types';
+import type { RecordingOperation } from '@testdog/contracts/runs/types';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { cp, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -40,37 +40,23 @@ async function replayThroughRunner(
   bindings: PlatformAction[],
   signal: AbortSignal,
 ) {
-  const steps: ExecutionStep[] = bindings.map((action, index) => ({
-    id: `action-${index}`,
-    runId: '',
-    sequence: index,
+  const steps: RecordingOperation[] = bindings.map((action) => ({
     kind: action.action.type === 'wait' ? 'wait' : 'action',
     title: action.action.type,
-    status: 'passed',
-    startedAt: new Date(0).toISOString(),
     pageId: 'app',
-    pageUrl: '',
     platformAction: action,
-    replayable: true,
   }));
 
   steps.push({
-    id: 'check',
-    runId: '',
-    sequence: steps.length,
     kind: 'assertion',
     title: 'Welcome Ada',
-    status: 'passed',
-    startedAt: new Date(0).toISOString(),
     pageId: 'app',
-    pageUrl: '',
     platformAssertion: {
       platform: session.platform,
       type: 'text',
       target: { kind: 'label', value: 'Welcome Ada' },
       value: 'Welcome Ada',
     },
-    replayable: true,
   });
   await new PlanRunner({
     session,

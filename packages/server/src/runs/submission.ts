@@ -14,12 +14,13 @@ import {
   executionTarget,
   type TestTarget,
 } from '@testdog/contracts/automation/platform/target';
-import { isActiveRun, type ExecutionStep } from '@testdog/contracts/runs/types';
+import { isActiveRun, type RecordingOperation } from '@testdog/contracts/runs/types';
 import { runRequestSchema, type RunRequest } from '@testdog/contracts/runs/schemas';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { submitOnce } from '@testdog/server/shared/idempotency';
 import type { z } from 'zod';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
+import { recordingOperation } from '@testdog/contracts/runs/lib/recordingOperation';
 import { runRecord, stepRecord } from '@testdog/server/runs/records';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -70,7 +71,7 @@ async function persistRun(
       plan?: Plan | null;
       sourceRunId?: string;
       recordingVersionId?: string;
-      recordingSteps?: ExecutionStep[];
+      recordingSteps?: RecordingOperation[];
       replayEnvironmentSnapshot?: Record<string, unknown> | null;
       mode: 'record' | 'replay';
     };
@@ -140,14 +141,14 @@ async function persistRun(
         plan: source.plan,
         replayEnvironmentSnapshot: source.environmentSnapshot,
         recordingSteps:
-          version?.steps ??
+          version?.steps.map(recordingOperation) ??
           (
             await tx
               .select()
               .from(runSteps)
               .where(eq(runSteps.runId, source.id))
               .orderBy(asc(runSteps.sequence))
-          ).map(stepRecord),
+          ).map((row) => recordingOperation(stepRecord(row))),
       };
     } else if ('testId' in input) {
       const [test] = await tx

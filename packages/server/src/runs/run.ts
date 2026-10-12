@@ -3,16 +3,8 @@ import { budgetedModel, modelBudgetFromEnv } from '@testdog/automation/llm/budge
 import { recordModelCall } from '@testdog/server/runs/modelUsage';
 import { targetUrl } from '@testdog/contracts/automation/platform/target';
 import { SecretInputs } from '@testdog/contracts/automation/platform/inputs';
-import { hostname } from 'node:os';
-import { leaseScope, setRunPhase } from '@testdog/server/scheduling/lease';
-import {
-  claimRun,
-  registerResources,
-  releaseLease,
-  renewLease,
-  withLease,
-} from '@testdog/server/scheduling/scheduler';
-import { owner } from '@testdog/server/shared/workerIdentity';
+import { leaseScope, LostLeaseError, setRunPhase } from '@testdog/server/scheduling/lease';
+import { releaseLease, renewLease } from '@testdog/server/scheduling/scheduler';
 import { appendEvent, getRun, savePlan } from '@testdog/server/runs/repository';
 import { finishRun } from '@testdog/server/runs/lifecycle';
 import { normalizeReplaySteps } from '@testdog/server/runs/replay';
@@ -50,18 +42,7 @@ export async function executeRun(
 ): Promise<void> {
   const lease = leaseScope.getStore();
 
-  if (!lease) {
-    const hostId = process.env.CASEFORGE_HOST_ID || hostname();
-
-    await registerResources([
-      { id: `${hostId}:web:inline`, hostId, platform: 'web', profileId: 'mobile' },
-    ]);
-    const claim = await claimRun(owner, hostId, run.id);
-
-    if (!claim) throw new Error('没有匹配的可用执行资源；请启动平台 worker');
-
-    return withLease(claim.lease, () => executeRun(claim.run, claim.resource));
-  }
+  if (!lease || lease.runId !== run.id) throw new LostLeaseError('执行器需要当前任务的执行租约');
 
   const controller = new AbortController();
 

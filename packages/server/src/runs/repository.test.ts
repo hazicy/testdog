@@ -1,3 +1,4 @@
+import { recordingOperation } from '@testdog/contracts/runs/lib/recordingOperation';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -653,7 +654,12 @@ it('freezes the replay plan and ordered steps when submitted', async () => {
   const replay = await createQueuedRun({ mode: 'replay', sourceRunId: source.id });
 
   expect(replay.plan).toEqual(recorded.plan);
-  expect(replay.recordingSteps).toEqual(recorded.steps);
+  expect(replay.recordingSteps).toEqual(recorded.steps.map(recordingOperation));
+  for (const operation of replay.recordingSteps!) {
+    for (const field of ['id', 'runId', 'status', 'startedAt', 'evidence'])
+      expect(operation).not.toHaveProperty(field);
+  }
+
   expect(replay.replayEnvironmentSnapshot).toEqual(recorded.environmentSnapshot);
   await isolated.client!.query(
     'UPDATE test_runs SET plan = NULL, "environmentSnapshot" = NULL WHERE id = $1',
@@ -666,12 +672,12 @@ it('freezes the replay plan and ordered steps when submitted', async () => {
   const frozen = await getRun(replay.id);
 
   expect(frozen.plan).toEqual(plan);
-  expect(frozen.recordingSteps).toEqual(recorded.steps);
+  expect(frozen.recordingSteps).toEqual(recorded.steps.map(recordingOperation));
   expect(frozen.replayEnvironmentSnapshot).toEqual(recorded.environmentSnapshot);
   await isolated.client!.query('DELETE FROM test_runs WHERE id = $1', [source.id]);
   const detached = await getRun(replay.id);
 
   expect(detached.sourceRunId).toBeUndefined();
   expect(detached.replayEnvironmentSnapshot).toEqual({ browserVersion: 'recorded-version' });
-  expect(detached.recordingSteps).toEqual(recorded.steps);
+  expect(detached.recordingSteps).toEqual(recorded.steps.map(recordingOperation));
 });

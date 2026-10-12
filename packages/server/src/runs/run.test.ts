@@ -27,8 +27,9 @@ import { saveLoginIdentity } from '@testdog/server/login-identities/repository';
 import { saveRecordingVersion } from '@testdog/server/runs/recordings';
 import { requestCancellation } from '@testdog/server/runs/lifecycle';
 import { recordingScript } from '@testdog/contracts/runs/lib/recordingScript';
-import { claimRun, registerResources } from '@testdog/server/scheduling/scheduler';
-import { executeRun, cancelRun } from '@testdog/server/runs/run';
+import { claimRun, registerResources, withLease } from '@testdog/server/scheduling/scheduler';
+import { cancelRun, executeRun as executeClaimedRun } from '@testdog/server/runs/run';
+import { executeTestRun as executeRun } from '@testdog/server/testing/executeTestRun';
 import { RunRecorder } from '@testdog/server/runs/recorder';
 import { listResources } from '@testdog/server/scheduling/scheduler';
 import { GET as serveArtifact } from '../../../../apps/web/src/app/api/runs/[id]/artifacts/[artifactId]/route';
@@ -640,6 +641,26 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     }
   });
 
+  it('requires a matching lease without registering resources or claiming the run', async () => {
+    const run = await createRun({ case: 'Requires a lease', url });
+    const resources = await listResources();
+
+    await expect(executeClaimedRun(run)).rejects.toThrow('执行租约');
+    await expect(
+      withLease({ runId: 'another-run', workerId: 'test-worker', fencingToken: 1 }, () =>
+        executeClaimedRun(run),
+      ),
+    ).rejects.toThrow('执行租约');
+    const current = await getRun(run.id);
+
+    expect(current.status).toBe('queued');
+    expect(current.workerId).toBeUndefined();
+    expect(current.events).toEqual([]);
+    expect(current.steps).toEqual([]);
+    expect(await listResources()).toEqual(resources);
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
+
   it('stops before model or browser work when another worker owns the execution', async () => {
     const run = await createRun({ case: 'Ownership changed', url });
 
@@ -649,7 +670,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     const claim = await claimRun('replacement-worker', 'replacement-host', run.id);
 
     expect(claim).toBeDefined();
-    await expect(executeRun(run)).rejects.toThrow();
+    await expect(executeClaimedRun(run)).rejects.toThrow('执行租约');
     const current = await getRun(run.id);
 
     expect(current.status).toBe('preparing');

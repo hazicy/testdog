@@ -19,28 +19,31 @@ export type PlaywrightAssertion = {
   value?: string;
   negate?: boolean;
 };
-export type ExecutionStep = {
-  platformAction?: PlatformAction;
-  surface?: Observation['surface'];
-  observationRevision?: number;
-  id: string;
-  runId: string;
-  sequence: number;
+/** Replayable operations, without execution identity, timing, status or evidence. */
+export type RecordingOperation = {
   kind: 'navigate' | 'action' | 'assertion' | 'wait' | 'branch';
   title: string;
-  status: 'running' | 'passed' | 'failed';
-  startedAt: string;
-  finishedAt?: string;
-  durationMs?: number;
   pageId: string;
-  pageUrl: string;
+  surface?: Observation['surface'];
   planNodeId?: string;
   action?: RecordedAction;
+  platformAction?: PlatformAction;
   assertion?: Assertion;
   platformAssertion?: PlatformAssertion;
   playwrightAssertion?: PlaywrightAssertion;
   condition?: string;
   decision?: boolean;
+};
+export type ExecutionStep = RecordingOperation & {
+  observationRevision?: number;
+  id: string;
+  runId: string;
+  sequence: number;
+  status: 'running' | 'passed' | 'failed';
+  startedAt: string;
+  finishedAt?: string;
+  durationMs?: number;
+  pageUrl: string;
   evidence?: string;
   error?: string;
   replayable: boolean;
@@ -104,7 +107,7 @@ export type TestRun = {
   mode: 'record' | 'replay';
   sourceRunId?: string;
   recordingVersionId?: string;
-  recordingSteps?: ExecutionStep[];
+  recordingSteps?: RecordingOperation[];
   status: RunStatus;
   startedAt: string;
   finishedAt?: string;

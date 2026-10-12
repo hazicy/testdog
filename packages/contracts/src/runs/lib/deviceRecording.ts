@@ -3,7 +3,7 @@ import {
   NativeActionSchema,
   PlatformAssertionSchema,
 } from '@testdog/contracts/automation/platform/contracts';
-import type { ExecutionStep } from '@testdog/contracts/runs/types';
+import type { RecordingOperation } from '@testdog/contracts/runs/types';
 
 const entrySchema = z
   .strictObject({
@@ -39,7 +39,7 @@ const schema = z.strictObject({
   steps: z.array(entrySchema).min(1).max(200),
 });
 
-export function deviceRecordingScript(platform: 'android' | 'ios', steps: ExecutionStep[]) {
+export function deviceRecordingScript(platform: 'android' | 'ios', steps: RecordingOperation[]) {
   return JSON.stringify(
     {
       schemaVersion: 1,
@@ -63,7 +63,7 @@ export function deviceRecordingScript(platform: 'android' | 'ios', steps: Execut
 export function parseDeviceRecordingScript(
   code: string,
   platform: 'android' | 'ios',
-): ExecutionStep[] {
+): RecordingOperation[] {
   const recording = schema.parse(JSON.parse(code));
 
   if (
@@ -72,10 +72,7 @@ export function parseDeviceRecordingScript(
   )
     throw new Error('录制平台不兼容');
 
-  return recording.steps.map((entry, index) => ({
-    id: `edited-device-${index + 1}`,
-    runId: '',
-    sequence: index + 1,
+  return recording.steps.map((entry) => ({
     kind:
       entry.action?.type === 'wait'
         ? 'wait'
@@ -85,16 +82,12 @@ export function parseDeviceRecordingScript(
             ? 'assertion'
             : 'branch',
     title: entry.title,
-    status: 'passed',
-    startedAt: new Date(0).toISOString(),
     pageId: 'app',
-    pageUrl: '',
     planNodeId: entry.planNodeId,
     platformAction: entry.action ? { schemaVersion: 1, platform, action: entry.action } : undefined,
     assertion: entry.assertion,
     platformAssertion: entry.check,
     condition: entry.condition,
     decision: entry.decision,
-    replayable: true,
   }));
 }

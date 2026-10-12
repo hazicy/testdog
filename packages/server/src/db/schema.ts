@@ -22,7 +22,11 @@ import {
 import { sql } from 'drizzle-orm';
 import type { RecordedAction } from '@testdog/contracts/automation/platform/web/types';
 import type { Plan, Assertion } from '@testdog/contracts/automation/compiler/schema';
-import type { BrowserLog, ExecutionStep, PlaywrightAssertion } from '@testdog/contracts/runs/types';
+import type {
+  BrowserLog,
+  RecordingOperation,
+  PlaywrightAssertion,
+} from '@testdog/contracts/runs/types';
 
 export const authUsers = pgTable('auth_users', {
   id: text().primaryKey(),
@@ -117,7 +121,7 @@ export const testRuns = pgTable(
     recordingVersionId: uuid().references((): AnyPgColumn => recordingVersions.id, {
       onDelete: 'set null',
     }),
-    recordingSteps: jsonb().$type<ExecutionStep[]>(),
+    recordingSteps: jsonb().$type<RecordingOperation[]>(),
     authenticationVerification: boolean().notNull().default(false),
     targetSnapshot: jsonb().$type<TestTarget>().notNull(),
     environmentSnapshot: jsonb().$type<Record<string, unknown>>(),
@@ -273,7 +277,7 @@ export const recordingVersions = pgTable(
       .notNull()
       .references(() => testRuns.id, { onDelete: 'cascade' }),
     code: text().notNull(),
-    steps: jsonb().$type<ExecutionStep[]>().notNull(),
+    steps: jsonb().$type<RecordingOperation[]>().notNull(),
     createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [index('recording_versions_run_idx').on(table.runId, table.createdAt, table.id)],

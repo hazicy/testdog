@@ -177,7 +177,7 @@ Web 专用实现集中在 `packages/automation/src/platform/web/`。`webActions.
 
 `packages/server/src/runs/runtime.ts` 选择并装配匹配的平台 session、planner、注入模型的 `SemanticEvaluator` 与证据采集。`PlanRunner` 只依赖统一接口，不选择具体平台或模型，也不读取旧工作台录制格式。
 
-历史 `ExecutionStep` 先通过 `packages/server/src/runs/replay.ts` 转换为 `ReplayStep`。Web 旧动作和 Playwright 断言由 `platform/web/replay.ts` 转换，保留旧断言元数据供录制器记录。平台 session 的 `prepareReplayStep` 决定页面选择与重放规则：Web 弹窗等待不切回原页面，瞬时 ARIA 引用不能重放；原生会话继续绑定已租用的设备和应用。
+Web 和原生脚本解析返回纯 `RecordingOperation[]`，录制版本与重放快照只保存操作字段。历史 `ExecutionStep` 在创建重放时提取为录制操作；执行时通过 `packages/server/src/runs/replay.ts` 转换为 `ReplayStep`，真实步骤的 ID、状态、时间和证据由录制器生成。Web 旧动作和 Playwright 断言由 `platform/web/replay.ts` 转换，保留旧断言元数据供录制器记录。平台 session 的 `prepareReplayStep` 决定页面选择与重放规则：Web 弹窗等待不切回原页面，瞬时 ARIA 引用不能重放；原生会话继续绑定已租用的设备和应用。
 
 session 的 `executionPolicy.reobserveAfterAction` 声明动作后是否必须重新观察。原生会话逐动作重新规划，Web 可执行同一观察中的批量动作；任一会话 revision 变化都使剩余批次失效。自然语言断言和分支通过注入的 `Evaluator` 使用当前观察判断，确定性平台断言继续交给 session 检查。
 

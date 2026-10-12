@@ -5,7 +5,7 @@ import { recordingVersions, testRuns } from '@testdog/server/db/schema';
 import { parseRecordingScript, ScriptError } from '@testdog/contracts/runs/lib/recordingScript';
 import { isActiveRun } from '@testdog/contracts/runs/types';
 import { parseDeviceRecordingScript } from '@testdog/contracts/runs/lib/deviceRecording';
-import type { ExecutionStep } from '@testdog/contracts/runs/types';
+import type { RecordingOperation } from '@testdog/contracts/runs/types';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { recordingCodeSchema, recordingInputMessage } from '@testdog/contracts/runs/schemas';
 
@@ -60,7 +60,7 @@ export async function saveRecordingVersion(runId: string, input: unknown, userId
 
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
   if (isActiveRun(run.status)) throw new WorkspaceError('请等待录制结束后编辑。', 409);
-  let steps: ExecutionStep[];
+  let steps: RecordingOperation[];
 
   try {
     steps =

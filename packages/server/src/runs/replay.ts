@@ -1,8 +1,8 @@
 import type { ReplayStep } from '@testdog/contracts/automation/platform/contracts';
 import { normalizePlaywrightAssertion } from '@testdog/automation/platform/web/replay';
-import type { ExecutionStep } from '@testdog/contracts/runs/types';
+import type { RecordingOperation } from '@testdog/contracts/runs/types';
 
-export function normalizeReplaySteps(steps: ExecutionStep[]): ReplayStep[] {
+export function normalizeReplaySteps(steps: RecordingOperation[]): ReplayStep[] {
   return steps.map((step) => {
     const action: ReplayStep['event']['action'] =
       step.platformAction ?? (step.action ? { platform: 'web', action: step.action } : undefined);

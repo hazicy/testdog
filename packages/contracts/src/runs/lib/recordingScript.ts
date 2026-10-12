@@ -1,6 +1,6 @@
 import { parse, type Node } from 'acorn';
 import { StepSchema, type Target } from '@testdog/contracts/automation/compiler/schema';
-import type { ExecutionStep } from '@testdog/contracts/runs/types';
+import type { RecordingOperation } from '@testdog/contracts/runs/types';
 
 // A validated Playwright call dialect. Parsed into operations, never evaluated as JavaScript.
 type Ast = Node & {
@@ -48,7 +48,7 @@ function locator(page: string, target: Target) {
   return `${page}.${methods[target.kind]}(${quote(value)}${options})${target.index === undefined ? '' : `.nth(${target.index})`}`;
 }
 
-export function recordingScript(steps: ExecutionStep[]) {
+export function recordingScript(steps: RecordingOperation[]) {
   const lines = [
     '// page1 = 初始页面；page2、page3 = 按打开顺序编号的新标签页',
     '// expectPage 使用当前页面观测验证预期；expectBranch 验证分支条件',
@@ -94,7 +94,7 @@ export function recordingScript(steps: ExecutionStep[]) {
   return lines.join('\n');
 }
 
-export function parseRecordingScript(code: string): ExecutionStep[] {
+export function parseRecordingScript(code: string): RecordingOperation[] {
   if (code.length > 100000) throw new ScriptError('脚本最多 100,000 个字符');
   let program: Ast;
 
@@ -106,7 +106,7 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
     throw new ScriptError(e.message, e.loc?.line);
   }
 
-  const steps: ExecutionStep[] = [];
+  const steps: RecordingOperation[] = [];
   let line = 1;
   const fail = (message: string): never => {
     throw new ScriptError(message, line);
@@ -231,17 +231,10 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
     const nodeMatch = code.slice(previousEnd, statement.start).match(/\/\/ @node ([^\r\n]+)\s*$/);
 
     previousEnd = statement.end;
-    const step: ExecutionStep = {
-      id: `edited-${steps.length + 1}`,
-      runId: '',
-      sequence: steps.length + 1,
+    const step: RecordingOperation = {
       kind: 'action',
       title: '',
-      status: 'passed',
-      startedAt: new Date(0).toISOString(),
       pageId: 'page-1',
-      pageUrl: '',
-      replayable: true,
       ...(nodeMatch ? { planNodeId: nodeMatch[1].trim() } : {}),
     };
 
@@ -306,7 +299,7 @@ export function parseRecordingScript(code: string): ExecutionStep[] {
         step.pageId = target ? target.page : pageId(subject);
         step.kind = 'assertion';
         step.playwrightAssertion = {
-          type: method as NonNullable<ExecutionStep['playwrightAssertion']>['type'],
+          type: method as NonNullable<RecordingOperation['playwrightAssertion']>['type'],
           target: target?.target,
           negate,
           ...(method !== 'toBeVisible' ? { value: str(args[0]) } : {}),

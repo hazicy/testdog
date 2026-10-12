@@ -18,7 +18,7 @@ vi.mock('@testdog/server/db', async () => {
 import { createRun } from '@testdog/server/runs/submission';
 import { getRun, getArtifact } from '@testdog/server/runs/repository';
 import { saveTest } from '@testdog/server/test-cases/repository';
-import { executeRun } from '@testdog/server/runs/run';
+import { executeTestRun as executeRun } from '@testdog/server/testing/executeTestRun';
 
 const enabled = process.env.RUN_WORKSPACE_LIVE_TESTS === 'true';
 let server: Server;

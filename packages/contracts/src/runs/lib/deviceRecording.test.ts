@@ -18,6 +18,11 @@ it('round-trips stable native actions and semantic expectations and refuses refs
   });
   const steps = parseDeviceRecordingScript(code, 'android');
 
+  for (const step of steps) {
+    for (const field of ['id', 'runId', 'sequence', 'status', 'startedAt', 'pageUrl', 'replayable'])
+      expect(step).not.toHaveProperty(field);
+  }
+
   expect(parseDeviceRecordingScript(deviceRecordingScript('android', steps), 'android')).toEqual(
     steps,
   );

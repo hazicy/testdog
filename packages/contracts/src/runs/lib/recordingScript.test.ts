@@ -20,6 +20,20 @@ await expect(page2).toHaveURL("https://example.com/welcome");`;
     const steps = parseRecordingScript(script);
 
     expect(steps).toHaveLength(13);
+
+    for (const step of steps) {
+      for (const field of [
+        'id',
+        'runId',
+        'sequence',
+        'status',
+        'startedAt',
+        'pageUrl',
+        'replayable',
+      ])
+        expect(step).not.toHaveProperty(field);
+    }
+
     expect(steps[1].planNodeId).toBe('signup');
     expect(steps[1].action).toMatchObject({
       type: 'fill',
