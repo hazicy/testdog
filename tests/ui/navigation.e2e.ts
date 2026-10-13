@@ -101,3 +101,68 @@ test('keeps workspace chrome fixed while long content scrolls inside the viewpor
     ).toEqual({ scrollTop: 0, height: viewport.height, width: viewport.width });
   }
 });
+
+test('empty lists fill the remaining workspace height', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const path of ['/cases', '/runs']) {
+    await page.goto(path);
+    await expect(
+      page.getByRole('heading', {
+        name: path === '/cases' ? '还没有测试用例' : '暂无执行记录',
+        exact: true,
+      }),
+    ).toBeVisible();
+    const empty = await page.locator('.workspace-index-empty').boundingBox();
+    const footer = await page.locator('.workspace-index-footer').boundingBox();
+
+    expect(empty!.height).toBeGreaterThan(600);
+    expect(footer!.y).toBeGreaterThan(780);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(900);
+  }
+});
+
+test('keeps sign out within the sidebar on short, narrow and collapsed layouts', async ({
+  page,
+}) => {
+  await page.route('**/api/auth/get-session', (route) =>
+    route.fulfill({
+      json: {
+        user: { id: 'user-1', name: '测试用户', email: 'user@example.com', emailVerified: true },
+        session: { id: 'session-1', userId: 'user-1', expiresAt: '2099-01-01T00:00:00Z' },
+      },
+    }),
+  );
+  for (const viewport of [
+    { width: 1280, height: 360 },
+    { width: 390, height: 360 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/cases');
+    const signOut = page.getByRole('button', { name: '退出', exact: true });
+
+    await expect(signOut).toBeInViewport();
+    await page.locator('#main-content').evaluate((element) => {
+      const content = document.createElement('div');
+
+      content.style.height = '2000px';
+      element.append(content);
+      element.scrollTop = 1000;
+    });
+    await expect(signOut).toBeInViewport();
+    const checkBounds = async () => {
+      const button = (await signOut.boundingBox())!;
+      const sidebar = (await page.locator('aside').boundingBox())!;
+
+      expect(button.x).toBeGreaterThanOrEqual(sidebar.x);
+      expect(button.x + button.width).toBeLessThanOrEqual(sidebar.x + sidebar.width);
+      expect(button.y + button.height).toBeLessThanOrEqual(viewport.height);
+    };
+
+    await checkBounds();
+    if (viewport.width >= 768) {
+      await page.getByRole('button', { name: '收起侧栏' }).click();
+      await expect(signOut).toBeInViewport();
+      await checkBounds();
+    }
+  }
+});

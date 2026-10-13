@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className={`bg-page text-ink text-sm grid h-dvh overflow-hidden grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
+      className={`bg-page text-ink text-sm grid h-dvh overflow-hidden grid-rows-[minmax(0,1fr)] grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
     >
       <a
         href="#main-content"
@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         跳转到主内容
       </a>
-      <aside className="flex min-h-0 flex-col border-r border-page-line bg-page">
+      <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-page-line bg-page">
         <Link
           href="/"
           className="flex h-14 shrink-0 items-center gap-3 border-b border-page-line px-4"
@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
         </div>
-        <div className={`shrink-0 border-t border-page-line p-3`}>
+        <div className={`shrink-0 border-t border-page-line p-2 ${collapsed ? '' : 'md:p-3'}`}>
           <UserMenu collapsed={collapsed} />
         </div>
       </aside>

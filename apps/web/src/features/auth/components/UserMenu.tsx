@@ -37,7 +37,9 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-3 border border-page-line bg-page p-2">
+      <div
+        className={`flex min-w-0 items-center justify-center gap-3 border border-page-line bg-page p-1 ${collapsed ? '' : 'md:justify-start md:p-2'}`}
+      >
         <span
           className="grid h-7 w-7 shrink-0 place-items-center bg-avatar-surface text-xs font-medium text-avatar-ink"
           title={session.user.name}
@@ -53,7 +55,11 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
           </div>
         )}
       </div>
-      <Button className="w-full justify-center text-xs" disabled={signingOut} onClick={signOut}>
+      <Button
+        className="w-full justify-center px-1 text-xs"
+        disabled={signingOut}
+        onClick={signOut}
+      >
         {signingOut ? '退出中…' : '退出'}
       </Button>
       {error && (

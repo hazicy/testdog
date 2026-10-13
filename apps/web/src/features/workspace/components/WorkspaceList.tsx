@@ -119,15 +119,8 @@ export function WorkspaceList({
               ? '没有符合条件的记录'
               : isTests
                 ? '还没有测试用例'
-                : '测试结果会出现在这里'}
+                : '暂无执行记录'}
           </h2>
-          <p className="mt-2 max-w-90 text-sm leading-6 text-text-subtle">
-            {query || filter !== 'all'
-              ? '试试其他关键词，或清除状态筛选。'
-              : isTests
-                ? '新建一个用例，开始编排测试步骤。'
-                : '运行用例后，在这里查看结果。'}
-          </p>
           {query || filter !== 'all' ? (
             <Button
               className="mt-6"
