@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" fill="none"><title>testdog — empty</title><style>
+.float{animation:float 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.tilt{animation:tilt 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.paw{opacity:.2;animation:step 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.second{animation-delay:.6s}.third{animation-delay:1.2s}.fourth{animation-delay:1.8s}
+.nose{animation:sniff 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes tilt{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes step{0%,65%,100%{opacity:.2;transform:scale(.94)}20%,40%{opacity:1;transform:scale(1)}}
+@keyframes sniff{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+@media(prefers-reduced-motion:reduce){.float,.tilt,.paw,.nose{animation:none}.paw{opacity:.7}}
+</style><ellipse cx="80" cy="103" rx="36" ry="2" fill="#eee7df"/><g class="float"><path d="M43 57l12-25h50l12 25v28q0 9-9 9H52q-9 0-9-9Z" fill="#faf1eb" stroke="#d8b8a8" stroke-width="1.4"/><path d="M43 57h23l5 9h18l5-9h23" stroke="#b45736" stroke-width="1.6" stroke-linejoin="round"/></g><g class="tilt"><g transform="translate(80 43) rotate(-12) scale(0.7)"><path d="M-17-6C-24-18-37-9-29 0C-37 9-24 18-17 6H17C24 18 37 9 29 0C37-9 24-18 17-6Z" fill="#fffaf7" stroke="#d8b8a8" stroke-width="1.5" stroke-linejoin="round"/></g></g></svg>

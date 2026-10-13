@@ -1,24 +1,33 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { StateContainer } from './StateContainer';
 import styles from './EmptyState.module.css';
+import textStyles from './StateContainer.module.css';
+import { EmptyIllustration } from '@/components/brand/EmptyIllustration';
 
-type EmptyStateProps = Omit<ComponentProps<'div'>, 'children' | 'title'> & {
-  title: string;
+type EmptyStateProps = Omit<ComponentProps<'div'>, 'children'> & {
+  message: string;
   icon?: ReactNode;
-  description?: ReactNode;
+  illustration?: 'empty' | 'tests' | 'runs' | 'search' | 'not-found';
   actions?: ReactNode;
 };
 
-export function EmptyState({ title, icon, description, actions, ...props }: EmptyStateProps) {
+export function EmptyState({
+  message,
+  icon,
+  illustration = 'empty',
+  actions,
+  ...props
+}: EmptyStateProps) {
   return (
     <StateContainer {...props}>
-      {icon && (
+      {icon ? (
         <div className={styles.icon} aria-hidden="true">
           {icon}
         </div>
+      ) : (
+        <EmptyIllustration variant={illustration} />
       )}
-      <h2 className={styles.title}>{title}</h2>
-      {description && <p className={styles.description}>{description}</p>}
+      <p className={textStyles.message}>{message}</p>
       {actions && <div className={styles.actions}>{actions}</div>}
     </StateContainer>
   );

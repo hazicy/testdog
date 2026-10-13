@@ -15,3 +15,10 @@
   line-height: 1.25rem;
   color: var(--page-muted);
 }
+.message {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+  color: var(--page-muted);
+  white-space: nowrap;
+}

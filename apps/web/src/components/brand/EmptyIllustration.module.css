@@ -1,6 +1,12 @@
 .image {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
   height: auto;
-  width: 15rem;
+  width: 7.5rem;
+  max-width: 100%;
+}
+.loading {
+  margin-bottom: 0.25rem;
+  height: auto;
+  width: 8rem;
   max-width: 100%;
 }

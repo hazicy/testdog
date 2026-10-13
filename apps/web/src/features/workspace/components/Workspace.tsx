@@ -23,6 +23,7 @@ import canvasIcon from '@iconify-icons/lucide/panels-top-left';
 import lightningIcon from '@iconify-icons/lucide/zap';
 import { useWorkspaceData } from '@/features/workspace/hooks/useWorkspaceData';
 import { WorkspaceList } from '@/features/workspace/components/WorkspaceList';
+import { ErrorState } from '@/components/shared/ErrorState';
 
 export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const promptContainer = useRef<HTMLElement>(null);
@@ -32,6 +33,9 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const submit = useRunSubmission();
   const router = useRouter();
   const params = useSearchParams();
+  const previewState = process.env.NODE_ENV === 'development' ? params.get('previewState') : null;
+  const previewEmpty = previewState === 'empty';
+  const previewLoading = previewState === 'loading';
   const [starting, setStarting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState<TestCase | null>(null);
@@ -108,6 +112,17 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
     }
   }
 
+  if (previewState === 'error' || previewState === 'not-found')
+    return (
+      <ErrorState
+        illustration={previewState}
+        message={previewState === 'not-found' ? '页面不存在或已被移除' : '暂时无法加载，请稍后重试'}
+        retry={
+          previewState === 'error' ? () => router.replace(isTests ? '/cases' : '/runs') : undefined
+        }
+      />
+    );
+
   return (
     <div
       ref={(element) => {
@@ -116,7 +131,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       className={clsx(workspaceStyles.workspaceIndex, styles.container)}
     >
       <h1 className={styles.accessibleLabel}>{isTests ? '测试用例' : '执行记录'}</h1>
-      {error && (
+      {error && !previewEmpty && !previewLoading && (
         <div role="alert" className={styles.error}>
           <span>{error}</span>
           <Button
@@ -158,16 +173,16 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         filter={data.filter}
         setFilter={data.setFilter}
         page={data.page}
-        hasPrevious={data.hasPrevious}
-        hasNext={data.hasNext}
+        hasPrevious={previewEmpty || previewLoading ? false : data.hasPrevious}
+        hasNext={previewEmpty || previewLoading ? false : data.hasNext}
         nextPage={data.nextPage}
         previousPage={data.previousPage}
         isTests={isTests}
-        tests={tests}
-        runs={runs}
-        loading={loading}
+        tests={previewEmpty || previewLoading ? [] : tests}
+        runs={previewEmpty || previewLoading ? [] : runs}
+        loading={previewLoading || (!previewEmpty && loading)}
         latestRuns={latestRuns}
-        running={running}
+        running={previewEmpty || previewLoading ? false : running}
         connected={connected}
         starting={starting}
         exporting={exporting}

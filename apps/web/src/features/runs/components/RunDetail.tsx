@@ -394,8 +394,7 @@ export function RunDetail({
   if (unavailable || (!run && error))
     return (
       <ErrorState
-        title={unavailable ? '执行记录不存在' : '无法加载执行记录'}
-        message={error}
+        message={unavailable ? '执行记录不存在' : error || '无法加载执行记录'}
         retry={() => void refresh()}
         href="/runs"
         linkLabel="返回执行记录"

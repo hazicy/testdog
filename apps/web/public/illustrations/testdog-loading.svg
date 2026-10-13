@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" fill="none"><title>testdog — loading</title><style>
+.float{animation:float 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.tilt{animation:tilt 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.paw{opacity:.2;animation:step 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.second{animation-delay:.6s}.third{animation-delay:1.2s}.fourth{animation-delay:1.8s}
+.nose{animation:sniff 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes tilt{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes step{0%,65%,100%{opacity:.2;transform:scale(.94)}20%,40%{opacity:1;transform:scale(1)}}
+@keyframes sniff{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+@media(prefers-reduced-motion:reduce){.float,.tilt,.paw,.nose{animation:none}.paw{opacity:.7}}
+</style><g transform="translate(38 68) rotate(-22)"><g class="paw " fill="#b45736"><path d="M-7 5C-4-3 4-3 7 5C10 12 4 13 0 11C-4 13-10 12-7 5Z"/><ellipse cx="-9" cy="-3" rx="3" ry="4" transform="rotate(-25 -9 -3)"/><ellipse cx="-3" cy="-8" rx="3" ry="4"/><ellipse cx="4" cy="-8" rx="3" ry="4"/><ellipse cx="10" cy="-2" rx="3" ry="4" transform="rotate(25 10 -2)"/></g></g><g transform="translate(63 44) rotate(18)"><g class="paw second" fill="#b45736"><path d="M-7 5C-4-3 4-3 7 5C10 12 4 13 0 11C-4 13-10 12-7 5Z"/><ellipse cx="-9" cy="-3" rx="3" ry="4" transform="rotate(-25 -9 -3)"/><ellipse cx="-3" cy="-8" rx="3" ry="4"/><ellipse cx="4" cy="-8" rx="3" ry="4"/><ellipse cx="10" cy="-2" rx="3" ry="4" transform="rotate(25 10 -2)"/></g></g><g transform="translate(91 65) rotate(-18)"><g class="paw third" fill="#b45736"><path d="M-7 5C-4-3 4-3 7 5C10 12 4 13 0 11C-4 13-10 12-7 5Z"/><ellipse cx="-9" cy="-3" rx="3" ry="4" transform="rotate(-25 -9 -3)"/><ellipse cx="-3" cy="-8" rx="3" ry="4"/><ellipse cx="4" cy="-8" rx="3" ry="4"/><ellipse cx="10" cy="-2" rx="3" ry="4" transform="rotate(25 10 -2)"/></g></g><g transform="translate(118 41) rotate(20)"><g class="paw fourth" fill="#b45736"><path d="M-7 5C-4-3 4-3 7 5C10 12 4 13 0 11C-4 13-10 12-7 5Z"/><ellipse cx="-9" cy="-3" rx="3" ry="4" transform="rotate(-25 -9 -3)"/><ellipse cx="-3" cy="-8" rx="3" ry="4"/><ellipse cx="4" cy="-8" rx="3" ry="4"/><ellipse cx="10" cy="-2" rx="3" ry="4" transform="rotate(25 10 -2)"/></g></g></svg>

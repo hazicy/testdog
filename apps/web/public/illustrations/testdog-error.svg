@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" fill="none"><title>testdog — error</title><style>
+.float{animation:float 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.tag{animation:sway 4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
+.signal{animation:signal 3.6s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+@keyframes signal{0%,100%{opacity:.35}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.float,.tag,.signal{animation:none}}
+</style><ellipse cx="80" cy="104" rx="43" ry="3" fill="#eee7df"/>
+<g class="float">
+<!-- An open collar: a lost connection, with a small identification tag. -->
+<path d="M63 38C43 41 32 53 35 70C38 90 59 96 82 92C106 89 123 76 122 60C121 52 116 48 108 44" stroke="#91472f" stroke-width="12" stroke-linecap="round"/>
+<path d="M61 35C41 38 31 50 34 66C37 86 58 92 81 88C104 85 122 72 121 56C120 48 115 44 107 40" stroke="#b45736" stroke-width="12" stroke-linecap="round"/>
+<path d="M43 51C39 56 40 63 42 67M93 79l6-3m6-4 4-4" stroke="#fffaf7" stroke-opacity=".5" stroke-width="1.5" stroke-linecap="round"/>
+<g transform="rotate(-15 64 36)"><rect x="54" y="25" width="19" height="21" rx="5" fill="#fffaf7" stroke="#91472f" stroke-width="1.8"/><path d="M64 29v13m0-7h14" stroke="#91472f" stroke-width="1.8" stroke-linecap="round"/></g>
+<g transform="rotate(18 105 39)"><rect x="97" y="29" width="17" height="20" rx="5" fill="#faf1eb" stroke="#91472f" stroke-width="1.8"/><path d="M102 35h7m-7 7h7" stroke="#d8b8a8" stroke-width="1.5" stroke-linecap="round"/></g>
+<g class="tag"><circle cx="72" cy="89" r="5" fill="#fffaf7" stroke="#91472f" stroke-width="1.5"/><path d="M66 94h12l5 7v9l-11 6-11-6v-9Z" fill="#fffaf7" stroke="#d8b8a8" stroke-width="1.4" stroke-linejoin="round"/><path d="M72 100v5" stroke="#b45736" stroke-width="2" stroke-linecap="round"/><circle cx="72" cy="109" r="1" fill="#b45736"/></g>
+</g>
+<g class="signal" stroke="#d8b8a8" stroke-width="1.5" stroke-linecap="round"><path d="M83 22v-6m-5 9-4-4m14 4 4-4"/></g></svg>

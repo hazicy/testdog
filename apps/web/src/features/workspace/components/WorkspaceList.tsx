@@ -18,8 +18,6 @@ import { Select } from '@/components/ui/Select';
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import searchIcon from '@iconify-icons/lucide/search';
-import filesIcon from '@iconify-icons/lucide/files';
-import historyIcon from '@iconify-icons/lucide/history';
 import { WorkspaceRows } from '@/features/workspace/components/WorkspaceRows';
 
 type Props = Omit<ComponentProps<typeof WorkspaceRows>, 'visibleTests' | 'visibleRuns'> & {
@@ -111,14 +109,8 @@ export function WorkspaceList({
         <EmptyState
           data-ui="workspace-index-empty"
           className={workspaceStyles.workspaceIndexEmpty}
-          icon={
-            <Icon
-              icon={query || filter !== 'all' ? searchIcon : isTests ? filesIcon : historyIcon}
-              width="28"
-              aria-hidden="true"
-            />
-          }
-          title={
+          illustration={query || filter !== 'all' ? 'search' : isTests ? 'tests' : 'runs'}
+          message={
             query || filter !== 'all'
               ? '没有符合条件的记录'
               : isTests

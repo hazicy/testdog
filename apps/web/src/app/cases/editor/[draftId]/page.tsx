@@ -22,7 +22,9 @@ export default function CaseCanvasPage() {
   const draft = readCaseDraft(draftId);
 
   if (!draft)
-    return <EmptyState title="当前草稿不可用" actions={<Link href="/cases">返回用例列表</Link>} />;
+    return (
+      <EmptyState message="当前草稿不可用" actions={<Link href="/cases">返回用例列表</Link>} />
+    );
 
   return (
     <TestEditor

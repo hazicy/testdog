@@ -4,15 +4,15 @@ import Image from 'next/image';
 export function EmptyIllustration({
   variant,
 }: {
-  variant: 'tests' | 'runs' | 'search' | 'not-found';
+  variant: 'empty' | 'tests' | 'runs' | 'search' | 'not-found' | 'error' | 'loading';
 }) {
   return (
     <Image
       src={`/illustrations/testdog-${variant}.svg`}
       alt=""
-      width={240}
-      height={160}
-      className={styles.image}
+      width={160}
+      height={120}
+      className={variant === 'loading' ? styles.loading : styles.image}
       unoptimized
     />
   );

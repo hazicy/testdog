@@ -156,8 +156,7 @@ export function IssueDetail({ id }: { id: string }) {
   if (loadError && !data)
     return (
       <ErrorState
-        title="无法加载问题"
-        message={loadError.message}
+        message={loadError.message || '无法加载问题'}
         retry={() => void mutate()}
         href="/issues"
         linkLabel="返回问题追踪"

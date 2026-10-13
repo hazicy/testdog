@@ -31,7 +31,6 @@ import { environmentLabel, relativeTime } from '@/features/issues/presentation';
 import { Icon } from '@iconify/react/offline';
 import searchIcon from '@iconify-icons/lucide/search';
 import plusIcon from '@iconify-icons/lucide/plus';
-import bugIcon from '@iconify-icons/lucide/bug';
 
 export function IssueList() {
   const router = useRouter();
@@ -136,9 +135,8 @@ export function IssueList() {
         <EmptyState
           data-ui="workspace-index-empty"
           className={workspaceStyles.workspaceIndexEmpty}
-          icon={<Icon icon={bugIcon} width="28" />}
-          title={search || status !== 'all' ? '没有匹配的问题' : '暂无问题'}
-          description={search || status !== 'all' ? undefined : '可从执行记录的失败节点创建问题。'}
+          illustration={search || status !== 'all' ? 'search' : 'empty'}
+          message={search || status !== 'all' ? '没有匹配的问题' : '暂无问题'}
           actions={
             <Link href="/runs" className={styles.link}>
               查看执行记录
