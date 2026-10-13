@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
 import styles from './WorkspaceList.module.css';
@@ -71,7 +71,7 @@ export function WorkspaceList({
       aria-label={isTests ? '测试用例列表' : '执行记录列表'}
     >
       <div className={workspaceStyles.workspaceIndexToolbar}>
-        <div className={classNames(workspaceStyles.workspaceIndexSearch, styles.searchField)}>
+        <div className={clsx(workspaceStyles.workspaceIndexSearch, styles.searchField)}>
           <Icon icon={searchIcon} className={styles.searchIcon} width="16" aria-hidden="true" />
           <Input
             aria-label={isTests ? '搜索测试' : '搜索结果'}
@@ -150,10 +150,9 @@ export function WorkspaceList({
             aria-label="可横向滚动的记录表格"
           >
             <Table
-              className={classNames(
-                workspaceStyles.workspaceIndexTable,
-                isTests ? '' : workspaceStyles.isResults,
-              )}
+              className={clsx(workspaceStyles.workspaceIndexTable, {
+                [workspaceStyles.isResults]: !isTests,
+              })}
             >
               <TableHeader className={styles.tableHeader}>
                 <TableRow>

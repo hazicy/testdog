@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import styles from './RunSnapshot.module.css';
 import studioStyles from '@/features/runs/components/run-studio.module.css';
@@ -13,8 +13,8 @@ export function RunSnapshot({ run }: { run?: TestRun }) {
 
   return (
     <details className={styles.details}>
-      <summary className={classNames(studioStyles.studioContent, styles.summary)}>用例快照</summary>
-      <div className={classNames(studioStyles.studioContent, styles.container)}>
+      <summary className={clsx(studioStyles.studioContent, styles.summary)}>用例快照</summary>
+      <div className={clsx(studioStyles.studioContent, styles.container)}>
         <h2 className={styles.heading}>{run?.name || '加载执行记录…'}</h2>
         <p className={styles.description}>执行时保存的版本，后续修改用例不会影响此记录。</p>
         <p className={styles.targetUrl}>{run?.url}</p>

@@ -3,13 +3,13 @@
 import styles from './Checkbox.module.css';
 
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 export function Checkbox({ className = '', ...props }: BaseCheckbox.Root.Props) {
   return (
     <BaseCheckbox.Root
       className={(state) =>
-        classNames(styles.root, typeof className === 'function' ? className(state) : className)
+        clsx(styles.root, typeof className === 'function' ? className(state) : className)
       }
       {...props}
     >

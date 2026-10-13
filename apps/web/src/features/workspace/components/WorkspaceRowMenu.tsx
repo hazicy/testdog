@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
 
@@ -60,10 +60,9 @@ export function WorkspaceRowMenu({ label, actions }: { label: string; actions: A
               <Menu.Item
                 key={action.accessibleLabel}
                 aria-label={action.accessibleLabel}
-                className={classNames(
-                  workspaceStyles.workspaceRowMenuItem,
-                  action.danger ? workspaceStyles.isDanger : '',
-                )}
+                className={clsx(workspaceStyles.workspaceRowMenuItem, {
+                  [workspaceStyles.isDanger]: action.danger,
+                })}
                 disabled={action.disabled}
                 onClick={() => {
                   pendingAction.current = action.onSelect;

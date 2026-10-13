@@ -1,7 +1,7 @@
 import styles from './Label.module.css';
 import type { ComponentProps } from 'react';
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 export function Label({ className = '', ...props }: ComponentProps<'label'>) {
-  return <label {...props} className={classNames(styles.field, className)} />;
+  return <label {...props} className={clsx(styles.field, className)} />;
 }

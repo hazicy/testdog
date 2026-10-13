@@ -1,5 +1,5 @@
 import styles from './Status.module.css';
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 const colors: Record<string, string> = {
   passed: styles.passed,
@@ -12,5 +12,5 @@ const colors: Record<string, string> = {
 };
 
 export function statusStyles(status = 'none', className = '') {
-  return classNames(styles.status, colors[status] ?? styles.none, className);
+  return clsx(styles.status, colors[status] ?? styles.none, className);
 }

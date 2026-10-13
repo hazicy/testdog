@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
 import styles from './Workspace.module.css';
@@ -113,7 +113,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       ref={(element) => {
         promptContainer.current = element?.closest<HTMLElement>('#main-content') ?? null;
       }}
-      className={classNames(workspaceStyles.workspaceIndex, styles.container)}
+      className={clsx(workspaceStyles.workspaceIndex, styles.container)}
     >
       <h1 className={styles.accessibleLabel}>{isTests ? '测试用例' : '执行记录'}</h1>
       {error && (
@@ -135,7 +135,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
             <>
               <Button
                 size="sm"
-                className={classNames(workspaceStyles.caseCreateButton, workspaceStyles.isQuick)}
+                className={clsx(workspaceStyles.caseCreateButton, workspaceStyles.isQuick)}
                 onClick={() => setQuickCreateOpen(true)}
               >
                 <Icon icon={lightningIcon} width="16" aria-hidden="true" />
@@ -144,7 +144,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
               <Button
                 size="sm"
                 variant="primary"
-                className={classNames(workspaceStyles.caseCreateButton, workspaceStyles.isCanvas)}
+                className={clsx(workspaceStyles.caseCreateButton, workspaceStyles.isCanvas)}
                 onClick={() => openEditor()}
               >
                 <Icon icon={canvasIcon} width="16" aria-hidden="true" />

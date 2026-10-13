@@ -1,6 +1,6 @@
 import styles from './Input.module.css';
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 export function inputStyles(className = '') {
-  return classNames(styles.input, className);
+  return clsx(styles.input, className);
 }

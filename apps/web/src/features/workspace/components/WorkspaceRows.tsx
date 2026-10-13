@@ -1,4 +1,4 @@
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
 import styles from './WorkspaceRows.module.css';
 import { TableRow, TableCell } from '@/components/ui/Table';
@@ -128,7 +128,7 @@ export function WorkspaceRows({
                     <Button
                       onClick={() => openEditor(test)}
                       variant="ghost"
-                      className={classNames(workspaceStyles.workspaceIndexName, styles.action)}
+                      className={clsx(workspaceStyles.workspaceIndexName, styles.action)}
                     >
                       {test.name}
                     </Button>
@@ -219,7 +219,7 @@ export function WorkspaceRows({
               <TableCell>
                 <Link
                   href={`/runs/${run.id}`}
-                  className={classNames(workspaceStyles.workspaceIndexName, styles.runLink)}
+                  className={clsx(workspaceStyles.workspaceIndexName, styles.runLink)}
                 >
                   {run.name}
                 </Link>

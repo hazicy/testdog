@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
 import shellStyles from '@/components/shell/app-shell.module.css';
@@ -69,7 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 title={item.name}
                 aria-label={item.name}
                 aria-current={item === activeItem ? 'page' : undefined}
-                className={classNames(
+                className={clsx(
                   styles.navigationLink,
                   item === activeItem ? styles.activeLink : styles.inactiveLink,
                 )}
@@ -128,10 +128,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           tabIndex={-1}
           className={
             canvas
-              ? classNames(shellStyles.appShellMain, shellStyles.appShellMainCanvas)
+              ? clsx(shellStyles.appShellMain, shellStyles.appShellMainCanvas)
               : workspaceIndex
-                ? classNames(shellStyles.appShellMain, workspaceStyles.workspaceIndexMain)
-                : classNames(shellStyles.appShellMain, shellStyles.appShellMainPadded)
+                ? clsx(shellStyles.appShellMain, workspaceStyles.workspaceIndexMain)
+                : clsx(shellStyles.appShellMain, shellStyles.appShellMainPadded)
           }
         >
           {children}

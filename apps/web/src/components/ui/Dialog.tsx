@@ -4,7 +4,7 @@ import styles from './Dialog.module.css';
 
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { useRef, type ReactNode, type ComponentProps } from 'react';
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 export function Dialog({
   children,
@@ -52,7 +52,7 @@ export function Dialog({
         <BaseDialog.Viewport className={styles.viewport}>
           <BaseDialog.Popup
             ref={popup}
-            className={classNames(styles.popup, className)}
+            className={clsx(styles.popup, className)}
             aria-labelledby={titleId}
             aria-busy={busy}
             initialFocus={() => {
@@ -90,9 +90,9 @@ export function Dialog({
 }
 
 export function DialogHeader({ className = '', ...props }: ComponentProps<'div'>) {
-  return <div {...props} className={classNames(styles.header, className)} />;
+  return <div {...props} className={clsx(styles.header, className)} />;
 }
 
 export function DialogFooter({ className = '', ...props }: ComponentProps<'div'>) {
-  return <div {...props} className={classNames(styles.footer, className)} />;
+  return <div {...props} className={clsx(styles.footer, className)} />;
 }

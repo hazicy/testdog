@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import styles from './RunDetail.module.css';
 import studioStyles from '@/features/runs/components/run-studio.module.css';
@@ -428,7 +428,7 @@ export function RunDetail({
         </p>
       )}
       {error && (
-        <div role="alert" className={classNames(studioStyles.studioAlert, styles.error)}>
+        <div role="alert" className={clsx(studioStyles.studioAlert, styles.error)}>
           <span>{error}</span>
           <Button
             onClick={() => void refresh()}

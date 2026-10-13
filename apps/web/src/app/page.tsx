@@ -1,4 +1,4 @@
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 import marketingStyles from '@/features/marketing/components/marketing.module.css';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,9 +20,7 @@ export default function Home() {
         跳转到主内容
       </a>
       <header className={marketingStyles.marketingHeader}>
-        <div
-          className={classNames(marketingStyles.marketingContainer, marketingStyles.marketingNav)}
-        >
+        <div className={clsx(marketingStyles.marketingContainer, marketingStyles.marketingNav)}>
           <Link href="/" aria-label="testdog 首页">
             <Brand />
           </Link>
@@ -33,7 +31,7 @@ export default function Home() {
           </nav>
           <Link
             href="/cases"
-            className={classNames(marketingStyles.marketingButton, marketingStyles.small)}
+            className={clsx(marketingStyles.marketingButton, marketingStyles.small)}
           >
             进入工作台 <span aria-hidden="true">↗</span>
           </Link>
@@ -41,7 +39,7 @@ export default function Home() {
       </header>
       <main id="main-content">
         <section
-          className={classNames(marketingStyles.marketingHero, marketingStyles.marketingContainer)}
+          className={clsx(marketingStyles.marketingHero, marketingStyles.marketingContainer)}
         >
           <div>
             <h1 data-entrance="100">
@@ -55,7 +53,7 @@ export default function Home() {
             <div className={marketingStyles.marketingActions} data-entrance="300">
               <Link
                 href="/cases"
-                className={classNames(marketingStyles.marketingButton, marketingStyles.primary)}
+                className={clsx(marketingStyles.marketingButton, marketingStyles.primary)}
               >
                 开始使用 <span aria-hidden="true">↗</span>
               </Link>
@@ -71,30 +69,21 @@ export default function Home() {
             aria-label="testdog 将描述转化为测试证据的动态示意"
           >
             <div className={marketingStyles.marketingArtGrid} />
-            <div className={classNames(marketingStyles.marketingOrbit, marketingStyles.orbitOne)} />
-            <div className={classNames(marketingStyles.marketingOrbit, marketingStyles.orbitTwo)} />
-            <div
-              className={classNames(marketingStyles.marketingOrbit, marketingStyles.orbitThree)}
-            />
+            <div className={clsx(marketingStyles.marketingOrbit, marketingStyles.orbitOne)} />
+            <div className={clsx(marketingStyles.marketingOrbit, marketingStyles.orbitTwo)} />
+            <div className={clsx(marketingStyles.marketingOrbit, marketingStyles.orbitThree)} />
             <div className={marketingStyles.marketingCore} data-forge-tilt>
               <div className={marketingStyles.marketingCoreFace}>
                 <Image src="/brand/testdog-mark.svg" alt="" width={112} height={112} unoptimized />
               </div>
             </div>
-            <div
-              className={classNames(marketingStyles.marketingArtLabel, marketingStyles.labelInput)}
-            >
+            <div className={clsx(marketingStyles.marketingArtLabel, marketingStyles.labelInput)}>
               <span className={marketingStyles.artIcon}>Aa</span>
               <div>
                 <strong>「验证用户成功登录」</strong>
               </div>
             </div>
-            <div
-              className={classNames(
-                marketingStyles.marketingArtLabel,
-                marketingStyles.labelExecute,
-              )}
-            >
+            <div className={clsx(marketingStyles.marketingArtLabel, marketingStyles.labelExecute)}>
               <span className={marketingStyles.artIcon}>↗</span>
               <div>
                 <strong>
@@ -103,10 +92,8 @@ export default function Home() {
                 </strong>
               </div>
             </div>
-            <div
-              className={classNames(marketingStyles.marketingArtLabel, marketingStyles.labelResult)}
-            >
-              <span className={classNames(marketingStyles.artIcon, marketingStyles.green)}>✓</span>
+            <div className={clsx(marketingStyles.marketingArtLabel, marketingStyles.labelResult)}>
+              <span className={clsx(marketingStyles.artIcon, marketingStyles.green)}>✓</span>
               <div>
                 <strong>验证通过</strong>
               </div>
@@ -114,10 +101,7 @@ export default function Home() {
           </div>
         </section>
         <div
-          className={classNames(
-            marketingStyles.marketingPlatforms,
-            marketingStyles.marketingContainer,
-          )}
+          className={clsx(marketingStyles.marketingPlatforms, marketingStyles.marketingContainer)}
         >
           <span>跨平台，轻松测。</span>
           <div>
@@ -128,16 +112,13 @@ export default function Home() {
         </div>
         <section
           id="features"
-          className={classNames(
-            marketingStyles.marketingSection,
-            marketingStyles.marketingContainer,
-          )}
+          className={clsx(marketingStyles.marketingSection, marketingStyles.marketingContainer)}
         >
           <div className={marketingStyles.marketingSectionHeading} data-reveal>
             <h2>测试，本该如此简单。</h2>
           </div>
           <div className={marketingStyles.marketingFeatures}>
-            <article className={classNames(marketingStyles.marketingFeature)} data-reveal>
+            <article className={marketingStyles.marketingFeature} data-reveal>
               <div className={marketingStyles.marketingFeatureVisual}>
                 <div className={marketingStyles.marketingPrompt}>
                   <span>测试用例</span>
@@ -192,10 +173,7 @@ export default function Home() {
         </section>
         <section
           id="workflow"
-          className={classNames(
-            marketingStyles.marketingSection,
-            marketingStyles.marketingContainer,
-          )}
+          className={clsx(marketingStyles.marketingSection, marketingStyles.marketingContainer)}
         >
           <div className={marketingStyles.marketingDemoHeading} data-reveal>
             <div>
@@ -216,7 +194,7 @@ export default function Home() {
         </section>
         <section
           id="faq"
-          className={classNames(
+          className={clsx(
             marketingStyles.marketingSection,
             marketingStyles.marketingContainer,
             marketingStyles.marketingFaq,
@@ -239,10 +217,7 @@ export default function Home() {
           </div>
         </section>
         <section
-          className={classNames(
-            marketingStyles.marketingClosing,
-            marketingStyles.marketingContainer,
-          )}
+          className={clsx(marketingStyles.marketingClosing, marketingStyles.marketingContainer)}
           data-reveal
         >
           <div className={marketingStyles.marketingClosingGlow} />
@@ -253,15 +228,13 @@ export default function Home() {
           </h2>
           <Link
             href="/cases"
-            className={classNames(marketingStyles.marketingButton, marketingStyles.primary)}
+            className={clsx(marketingStyles.marketingButton, marketingStyles.primary)}
           >
             开始使用 testdog <span aria-hidden="true">↗</span>
           </Link>
         </section>
       </main>
-      <footer
-        className={classNames(marketingStyles.marketingContainer, marketingStyles.marketingFooter)}
-      >
+      <footer className={clsx(marketingStyles.marketingContainer, marketingStyles.marketingFooter)}>
         <Brand />
         <span>© {new Date().getFullYear()} testdog</span>
         <a href="#main-content">回到顶部 ↑</a>

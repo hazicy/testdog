@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import styles from './StepList.module.css';
 import studioStyles from '@/features/runs/components/run-studio.module.css';
@@ -56,12 +56,12 @@ export const StepList = memo(function StepList({
                   );
                   onSelect(step);
                 }}
-                className={classNames(styles.action, selectedId === step.id ? styles.selected : '')}
+                className={clsx(styles.action, { [styles.selected]: selectedId === step.id })}
               >
                 <span
                   title={statuses[step.status]}
                   aria-label={statuses[step.status]}
-                  className={classNames(
+                  className={clsx(
                     styles.sequence,
                     step.status === 'failed'
                       ? styles.failed
@@ -93,7 +93,7 @@ export const StepList = memo(function StepList({
                 hidden={selectedId !== step.id || collapsedId === step.id}
               >
                 {selectedId === step.id && collapsedId !== step.id && (
-                  <div className={classNames(studioStyles.studioContent, styles.details)}>
+                  <div className={clsx(studioStyles.studioContent, styles.details)}>
                     {renderDetails(step)}
                   </div>
                 )}

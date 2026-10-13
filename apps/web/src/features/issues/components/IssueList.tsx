@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
 import styles from './IssueList.module.css';
@@ -56,18 +56,12 @@ export function IssueList() {
   const items = data?.flatMap((page) => page.issues) ?? [];
 
   return (
-    <section
-      className={classNames(workspaceStyles.workspaceIndex, styles.section)}
-      aria-label="问题追踪"
-    >
+    <section className={clsx(workspaceStyles.workspaceIndex, styles.section)} aria-label="问题追踪">
       <h1 className={styles.accessibleLabel}>问题追踪</h1>
       <div
-        className={classNames(
-          workspaceStyles.workspaceIndexToolbar,
-          workspaceStyles.issueIndexToolbar,
-        )}
+        className={clsx(workspaceStyles.workspaceIndexToolbar, workspaceStyles.issueIndexToolbar)}
       >
-        <div className={classNames(workspaceStyles.workspaceIndexSearch, styles.container)}>
+        <div className={clsx(workspaceStyles.workspaceIndexSearch, styles.container)}>
           <Icon icon={searchIcon} width="16" className={styles.icon} aria-hidden="true" />
           <Input
             aria-label="搜索问题"
@@ -78,7 +72,7 @@ export function IssueList() {
             onChange={(event) => setQ(event.target.value)}
           />
         </div>
-        <div className={classNames(workspaceStyles.workspaceIndexFilter, styles.filters)}>
+        <div className={clsx(workspaceStyles.workspaceIndexFilter, styles.filters)}>
           <Select
             aria-label="筛选问题状态"
             className={styles.select}
@@ -151,9 +145,7 @@ export function IssueList() {
         </div>
       ) : (
         <div className={styles.region} tabIndex={0} role="region" aria-label="可横向滚动的问题表格">
-          <Table
-            className={classNames(workspaceStyles.workspaceIndexTable, workspaceStyles.isIssues)}
-          >
+          <Table className={clsx(workspaceStyles.workspaceIndexTable, workspaceStyles.isIssues)}>
             <TableHeader className={styles.tableHeader}>
               <TableRow>
                 <TableHead>严重程度</TableHead>
@@ -169,10 +161,7 @@ export function IssueList() {
                 <TableRow key={issue.id}>
                   <TableCell>
                     <span
-                      className={classNames(
-                        workspaceStyles.workspaceIndexTag,
-                        styles.categoryBadge,
-                      )}
+                      className={clsx(workspaceStyles.workspaceIndexTag, styles.categoryBadge)}
                       title={issueSeverities[issue.severity]}
                     >
                       {issue.category === 'product' ? 'BUG' : issue.category.toUpperCase()}
@@ -181,7 +170,7 @@ export function IssueList() {
                   </TableCell>
                   <TableCell>
                     <Link
-                      className={classNames(workspaceStyles.workspaceIndexName, styles.issueLink)}
+                      className={clsx(workspaceStyles.workspaceIndexName, styles.issueLink)}
                       href={`/issues/${issue.id}`}
                     >
                       {issue.title}
@@ -198,7 +187,7 @@ export function IssueList() {
                   </TableCell>
                   <TableCell>{issue.runCount ?? 0}</TableCell>
                   <TableCell
-                    className={classNames(workspaceStyles.workspaceIndexTime, styles.tableCell)}
+                    className={clsx(workspaceStyles.workspaceIndexTime, styles.tableCell)}
                     title={new Date(issue.lastSeen ?? issue.createdAt).toLocaleString('zh-CN')}
                   >
                     {relativeTime(issue.lastSeen ?? issue.createdAt)}

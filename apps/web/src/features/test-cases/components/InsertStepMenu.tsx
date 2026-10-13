@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import boardStyles from '@/features/runs/components/plan-board.module.css';
 import styles from './InsertStepMenu.module.css';
@@ -45,7 +45,7 @@ export function InsertStepMenu({ data }: NodeProps<InsertFlowNode>) {
       >
         <Menu.Trigger
           data-ui="step-insert-trigger"
-          className={classNames(boardStyles.stepInsertTrigger, 'nodrag', 'nopan')}
+          className={clsx(boardStyles.stepInsertTrigger, 'nodrag', 'nopan')}
           aria-label={data.label}
           title={data.description}
           onDragOver={(event) => {

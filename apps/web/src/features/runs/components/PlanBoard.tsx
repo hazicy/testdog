@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import styles from './PlanBoard.module.css';
 import boardStyles from '@/features/runs/components/plan-board.module.css';
@@ -144,7 +144,7 @@ function PlanBoardContent({
   return (
     <div
       data-ui="plan-board"
-      className={classNames(boardStyles.planBoard, fullHeight ? boardStyles.planBoardFull : '')}
+      className={clsx(boardStyles.planBoard, { [boardStyles.planBoardFull]: fullHeight })}
     >
       {error && (
         <p role="alert" className={styles.error}>
@@ -152,18 +152,15 @@ function PlanBoardContent({
         </p>
       )}
       <div
-        className={classNames(
+        className={clsx(
           boardStyles.planBoardBody,
-          settingsOpen ? boardStyles.hasInspector : '',
-          floatingPanel ? boardStyles.hasFloatingPanel : '',
+          { [boardStyles.hasInspector]: settingsOpen },
+          { [boardStyles.hasFloatingPanel]: floatingPanel },
         )}
       >
         <div
           data-ui="plan-viewport"
-          className={classNames(
-            boardStyles.planViewport,
-            viewportOverlay ? boardStyles.hasComposer : '',
-          )}
+          className={clsx(boardStyles.planViewport, { [boardStyles.hasComposer]: viewportOverlay })}
           aria-label="计划画板"
           tabIndex={0}
           onMouseLeave={() => setHoveredId(undefined)}

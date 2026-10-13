@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import boardStyles from '@/features/runs/components/plan-board.module.css';
 import styles from './PlanNodes.module.css';
@@ -112,7 +112,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       <Handle id="node-in" type="target" position={Position.Left} isConnectable={false} />
       <Handle id="node-out" type="source" position={Position.Right} isConnectable={false} />
       {data.review && (
-        <div className={classNames(boardStyles.planReviewActions, 'nodrag', 'nopan')}>
+        <div className={clsx(boardStyles.planReviewActions, 'nodrag', 'nopan')}>
           <span>
             {data.review.kind === 'added'
               ? '新增'
@@ -140,7 +140,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
         </div>
       )}
       {data.editable && data.mutable && (
-        <div className={classNames(boardStyles.planNodeActions, 'nodrag', 'nopan')}>
+        <div className={clsx(boardStyles.planNodeActions, 'nodrag', 'nopan')}>
           <button
             type="button"
             draggable
@@ -172,7 +172,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           </button>
         </div>
       )}
-      <div className={classNames(boardStyles.planNodeRow, 'nodrag')}>
+      <div className={clsx(boardStyles.planNodeRow, 'nodrag')}>
         <StepBadge type={type} />
         <div className={boardStyles.planNodeContent}>
           {data.review?.kind === 'modified' && data.review.before && (
@@ -182,7 +182,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           {editing ? (
             <textarea
               autoFocus
-              className={classNames(boardStyles.planInlineInput, 'nodrag', 'nopan')}
+              className={clsx(boardStyles.planInlineInput, 'nodrag', 'nopan')}
               aria-label={`节点内容 ${node.id}`}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -236,7 +236,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
         )}
       </div>
       {data.result && (
-        <div className={classNames(boardStyles.planResult, 'nodrag', 'nopan')}>
+        <div className={clsx(boardStyles.planResult, 'nodrag', 'nopan')}>
           <div className={boardStyles.planResultSummary}>
             {data.current && <span className={boardStyles.planPlaybackMarker}>当前回放位置</span>}
             {data.result.durationMs !== undefined && (
@@ -297,7 +297,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       {!data.editable && expanded && (
         <div
           data-ui="plan-inline-evidence"
-          className={classNames(boardStyles.planInlineEvidence, 'nodrag', 'nopan')}
+          className={clsx(boardStyles.planInlineEvidence, 'nodrag', 'nopan')}
         >
           {steps.map((step) => (
             <Button type="button" key={step.id} onClick={() => data.onStep(step)}>

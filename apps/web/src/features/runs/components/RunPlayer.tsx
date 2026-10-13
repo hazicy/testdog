@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
 import styles from './RunPlayer.module.css';
@@ -178,7 +178,7 @@ export function RunPlayer({
         </div>
         <div
           data-ui="run-replay-controls"
-          className={classNames(studioStyles.studioPanelToolbar, studioStyles.runReplayControls)}
+          className={clsx(studioStyles.studioPanelToolbar, studioStyles.runReplayControls)}
         >
           <Button
             variant="primary"
@@ -226,7 +226,7 @@ export function RunPlayer({
                   aria-label={`跳转动作：${step.title}`}
                   title={`${time(elapsed)} · ${step.title}`}
                   onClick={() => seek(elapsed)}
-                  className={classNames(
+                  className={clsx(
                     styles.action,
                     step.status === 'failed' ? styles.error : styles.normalMarker,
                   )}

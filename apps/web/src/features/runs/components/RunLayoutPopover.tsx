@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import styles from './RunLayoutPopover.module.css';
 
@@ -78,7 +78,7 @@ export function RunLayoutPopover({
                   variant="ghost"
                   aria-pressed={value === preset.id}
                   onClick={() => select(preset.id)}
-                  className={classNames(
+                  className={clsx(
                     styles.preset,
                     value === preset.id ? styles.selectedPreset : styles.unselectedPreset,
                   )}

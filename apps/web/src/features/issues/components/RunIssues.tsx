@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
 import styles from './RunIssues.module.css';
@@ -83,7 +83,7 @@ function RunIssueCard({
   }
 
   return (
-    <article className={classNames(studioStyles.runIssueCard, styles.article)}>
+    <article className={clsx(studioStyles.runIssueCard, styles.article)}>
       <header className={studioStyles.runIssueHeader}>
         <div className={styles.container}>
           <span className={styles.label}>ISSUE {String(index + 1).padStart(2, '0')}</span>
@@ -156,7 +156,7 @@ function RunIssueCard({
           </p>
         )}
       </div>
-      <footer className={classNames(studioStyles.runIssueActions, styles.footer)}>
+      <footer className={clsx(studioStyles.runIssueActions, styles.footer)}>
         <Select
           aria-label={`问题状态：${issue.title}`}
           className={styles.select}
@@ -226,10 +226,7 @@ export function RunIssues({
   const selected = entries[selectedIndex];
 
   return (
-    <section
-      aria-label="执行关联问题"
-      className={classNames(studioStyles.runIssuesView, styles.article)}
-    >
+    <section aria-label="执行关联问题" className={clsx(studioStyles.runIssuesView, styles.article)}>
       <div className={styles.toolbar}>
         <p className={styles.issueCount}>本次执行 · {entries.length} 个问题</p>
         {entries.length > 1 && (

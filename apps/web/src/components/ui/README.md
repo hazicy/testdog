@@ -10,7 +10,7 @@
 - `Dialog`：配合 `DialogHeader`、`DialogFooter` 使用。调用方通过自己的模块类名设置宽度。挂载时打开，`onDismiss` 处理关闭，`busy` 时阻止关闭。关闭后恢复触发元素焦点，元素被删除时回到主内容。
 - `Tabs`：直接使用 Base UI 的 `Root`、`List`、`Tab`、`Panel`，由组件管理键盘导航和关联关系。
 
-基础控件样式位于 `controls` 层，页面模块位于默认层，调用方可以直接覆盖默认样式，不依赖类名顺序。共享 `classNames` 只负责拼接模块类名，不解析或合并 CSS 属性。
+基础控件样式位于 `controls` 层，页面模块位于默认层，调用方可以直接覆盖默认样式，不依赖类名顺序。使用 `clsx` 拼接模块类名和按条件启用状态类，不解析或合并 CSS 属性。
 
 ```tsx
 import styles from './Search.module.css';

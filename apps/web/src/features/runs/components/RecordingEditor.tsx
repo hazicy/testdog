@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import styles from './RecordingEditor.module.css';
 import studioStyles from '@/features/runs/components/run-studio.module.css';
@@ -138,7 +138,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
 
   return (
     <section
-      className={classNames(studioStyles.studioPanel, studioStyles.recordingEditor)}
+      className={clsx(studioStyles.studioPanel, studioStyles.recordingEditor)}
       aria-label="录制编辑器"
     >
       <div className={studioStyles.recordingEditorToolbar}>

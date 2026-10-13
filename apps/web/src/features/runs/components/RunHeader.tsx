@@ -1,4 +1,4 @@
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 import styles from './RunHeader.module.css';
 import { statusStyles } from '@/components/ui/statusStyles';
 import Link from 'next/link';
@@ -61,7 +61,7 @@ export function RunHeader({
             <span
               data-slot="status"
               data-status={run.status}
-              className={classNames(statusStyles(run.status), styles.status)}
+              className={clsx(statusStyles(run.status), styles.status)}
             >
               <span />
               {statuses[run.status]}

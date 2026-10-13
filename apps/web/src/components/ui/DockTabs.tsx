@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
 import styles from './DockTabs.module.css';
@@ -289,10 +289,7 @@ export function DockTabs<T extends string>({
       <div
         data-ui="caseforge-dock"
         aria-label={label}
-        className={classNames(
-          [studioStyles.caseforgeDock, 'dockview-theme-light'].join(' '),
-          className,
-        )}
+        className={clsx([studioStyles.caseforgeDock, 'dockview-theme-light'].join(' '), className)}
       >
         <DockviewReact
           theme={tabTheme}

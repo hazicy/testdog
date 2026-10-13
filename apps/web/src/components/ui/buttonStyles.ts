@@ -1,5 +1,5 @@
 import styles from './Button.module.css';
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 export type ButtonVariant = 'outline' | 'primary' | 'soft' | 'ghost' | 'danger';
 export type ButtonSize = 'md' | 'sm' | 'xs' | 'icon' | 'icon-sm' | 'icon-xs';
@@ -30,5 +30,5 @@ export function buttonStyles({
   size?: ButtonSize;
   className?: string;
 } = {}) {
-  return classNames(base, variants[variant], sizes[size], className);
+  return clsx(base, variants[variant], sizes[size], className);
 }

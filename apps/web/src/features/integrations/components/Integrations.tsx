@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import styles from './Integrations.module.css';
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
@@ -310,7 +310,7 @@ export function Integrations() {
   }
 
   return (
-    <div className={classNames(workspaceStyles.workspaceIndex, styles.page)}>
+    <div className={clsx(workspaceStyles.workspaceIndex, styles.page)}>
       <h1 className={styles.accessibleLabel}>集成</h1>
       {error && (
         <p className={styles.loadError} role="alert">
@@ -474,7 +474,7 @@ export function Integrations() {
                 ) : (
                   <div className={styles.deliveryTable}>
                     <Table
-                      className={classNames(
+                      className={clsx(
                         workspaceStyles.workspaceIndexTable,
                         workspaceStyles.isResults,
                         styles.table,

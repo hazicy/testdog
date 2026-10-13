@@ -5,7 +5,7 @@ import styles from './Select.module.css';
 import { Select as BaseSelect } from '@base-ui/react/select';
 import type { ReactNode } from 'react';
 import { inputStyles } from '@/components/ui/inputStyles';
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 import { Icon } from '@iconify/react/offline';
 import chevronDownIcon from '@iconify-icons/lucide/chevron-down';
 
@@ -40,7 +40,7 @@ export function Select({ items, value, onValueChange, className = '', ...props }
     >
       <BaseSelect.Trigger
         data-slot="select"
-        className={classNames(inputStyles(), styles.select, className)}
+        className={clsx(inputStyles(), styles.select, className)}
         aria-label={props['aria-label']}
       >
         <BaseSelect.Value />

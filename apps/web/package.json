@@ -26,6 +26,7 @@
     "@xyflow/react": "catalog:",
     "agent-device": "catalog:",
     "better-auth": "catalog:",
+    "clsx": "catalog:",
     "dockview-react": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",

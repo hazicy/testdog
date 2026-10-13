@@ -3,7 +3,7 @@
 import styles from './Table.module.css';
 
 import { useRender } from '@base-ui/react/use-render';
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 export function Table({ render, ref, className, ...props }: useRender.ComponentProps<'table'>) {
   return useRender({
@@ -13,7 +13,7 @@ export function Table({ render, ref, className, ...props }: useRender.ComponentP
     props: {
       ...props,
       'data-slot': 'table',
-      className: classNames(styles.table, className),
+      className: clsx(styles.table, className),
     },
   });
 }
@@ -31,7 +31,7 @@ export function TableHeader({
     props: {
       ...props,
       'data-slot': 'table-header',
-      className: classNames(styles.header, className),
+      className: clsx(styles.header, className),
     },
   });
 }
@@ -44,7 +44,7 @@ export function TableBody({ render, ref, className, ...props }: useRender.Compon
     props: {
       ...props,
       'data-slot': 'table-body',
-      className: classNames(styles.body, className),
+      className: clsx(styles.body, className),
     },
   });
 }
@@ -57,7 +57,7 @@ export function TableRow({ render, ref, className, ...props }: useRender.Compone
     props: {
       ...props,
       'data-slot': 'table-row',
-      className: classNames(styles.row, className),
+      className: clsx(styles.row, className),
     },
   });
 }
@@ -71,7 +71,7 @@ export function TableHead({ render, ref, className, ...props }: useRender.Compon
       scope: 'col',
       ...props,
       'data-slot': 'table-head',
-      className: classNames(styles.heading, className),
+      className: clsx(styles.heading, className),
     },
   });
 }
@@ -84,7 +84,7 @@ export function TableCell({ render, ref, className, ...props }: useRender.Compon
     props: {
       ...props,
       'data-slot': 'table-cell',
-      className: classNames(styles.cell, className),
+      className: clsx(styles.cell, className),
     },
   });
 }

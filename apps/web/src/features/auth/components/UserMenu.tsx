@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 
 import styles from './UserMenu.module.css';
 
@@ -41,7 +41,7 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div className={styles.menu}>
-      <div className={classNames(styles.profile, collapsed ? '' : styles.expandedProfile)}>
+      <div className={clsx(styles.profile, { [styles.expandedProfile]: !collapsed })}>
         <span className={styles.avatar} title={session.user.name}>
           {session.user.name.slice(0, 1).toUpperCase()}
         </span>

@@ -1,4 +1,4 @@
-import { classNames } from '@/components/ui/classNames';
+import clsx from 'clsx';
 import styles from './layout.module.css';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="zh-CN" className={classNames(geistSans.variable, geistMono.variable)}>
+    <html lang="zh-CN" className={clsx(geistSans.variable, geistMono.variable)}>
       <body>
         <div className={styles.container}>
           <AuthCacheBoundary>
