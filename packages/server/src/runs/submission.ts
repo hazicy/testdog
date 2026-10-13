@@ -2,11 +2,6 @@ import { and, asc, eq } from 'drizzle-orm';
 import { isDeepStrictEqual } from 'node:util';
 import { db } from '@testdog/server/db';
 import { testCases, testRuns, runSteps, recordingVersions } from '@testdog/server/db/schema';
-import {
-  assertLoginIdentityReference,
-  identityFor,
-  loginFlow,
-} from '@testdog/server/login-identities/repository';
 import { validateInputReferences } from '@testdog/contracts/automation/compiler/executionPlan';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import {
@@ -64,7 +59,6 @@ async function persistRun(
 ) {
   const persist = async (tx: Tx) => {
     let snapshot: {
-      authenticationVerification?: boolean;
       targetSnapshot: TestTarget;
       testId?: string;
       name: string;
@@ -77,24 +71,7 @@ async function persistRun(
       mode: 'record' | 'replay';
     };
 
-    if ('loginIdentityId' in input) {
-      const identity = await identityFor(input.loginIdentityId, userId, tx);
-      const flow = await loginFlow(identity, tx);
-
-      snapshot = {
-        authenticationVerification: true,
-        targetSnapshot: {
-          ...flow.target,
-          loginIdentityId: identity.id,
-          inputs: { ...flow.target.inputs, ...identity.inputs },
-          url: identity.checkUrl,
-        },
-        name: `${identity.name} · 登录验证`,
-        goal: '验证登录身份',
-        plan: flow.plan,
-        mode: 'record',
-      };
-    } else if ('draft' in input) {
+    if ('draft' in input) {
       snapshot = {
         name: `${input.draft.name} · 草稿试跑`,
         goal: input.draft.goal,
@@ -109,8 +86,6 @@ async function persistRun(
         .where(and(eq(testRuns.id, input.sourceRunId), ownedBy(testRuns.userId, userId)));
 
       if (!source) throw new WorkspaceError('原执行不存在。', 404);
-      if (source.authenticationVerification)
-        throw new WorkspaceError('登录身份验证请在设置中重新发起。');
 
       if (input.target && !isDeepStrictEqual(input.target, source.targetSnapshot))
         throw new WorkspaceError('重放目标与原录制不兼容。', 409);
@@ -179,7 +154,6 @@ async function persistRun(
       };
     }
 
-    await assertLoginIdentityReference(snapshot.targetSnapshot, userId, tx);
     if (snapshot.mode === 'record') {
       try {
         validateInputReferences(snapshot.goal, snapshot.plan, snapshot.targetSnapshot.inputs);

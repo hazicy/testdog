@@ -10,10 +10,6 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
 import { StepBadge } from '@/features/test-cases/components/StepType';
-import {
-  ReferenceTextarea,
-  useReferenceDisplay,
-} from '@/features/login-identities/components/InputReferences';
 
 export const nodeDragType = 'application/x-caseforge-node';
 export type NodeReview = {
@@ -70,14 +66,11 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       : steps.length
         ? 'passed'
         : 'none';
-  const displayedContent = useReferenceDisplay(content);
-  const beforeContent = useReferenceDisplay(
-    data.review?.before
-      ? data.review.before.kind === 'branch'
-        ? data.review.before.condition
-        : data.review.before.goal
-      : '',
-  );
+  const beforeContent = data.review?.before
+    ? data.review.before.kind === 'branch'
+      ? data.review.before.condition
+      : data.review.before.goal
+    : '';
 
   function finish() {
     if (draft.trim() && draft !== content) data.onContent(draft.trim());
@@ -180,13 +173,13 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           )}
           {data.pathLabel && <span className="plan-path-label">{data.pathLabel}</span>}
           {editing ? (
-            <ReferenceTextarea
+            <textarea
               autoFocus
               className="plan-inline-input nodrag nopan"
               aria-label={`节点内容 ${node.id}`}
               value={draft}
-              onValueChange={setDraft}
-              onCompleteBlur={finish}
+              onChange={(event) => setDraft(event.target.value)}
+              onBlur={finish}
               onKeyDown={(event) => {
                 event.stopPropagation();
                 if (event.key === 'Escape') setEditing(false);
@@ -216,7 +209,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
                 } else setExpanded(!expanded);
               }}
             >
-              {data.reference ? `↗ ${displayedContent}` : displayedContent}
+              {data.reference ? `↗ ${content}` : content}
             </button>
           )}
           {node.kind === 'branch' && !node.otherwise && (

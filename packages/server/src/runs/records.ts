@@ -6,7 +6,6 @@ const optional = <T>(value: T | null) => value ?? undefined;
 
 export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
   return {
-    authenticationVerification: row.authenticationVerification,
     realtimeRevision: row.realtimeRevision,
     workerId: optional(row.workerId),
     resourceId: optional(row.resourceId),

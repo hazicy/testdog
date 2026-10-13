@@ -4,9 +4,6 @@ import type { RunSummary, TestRun } from '@testdog/contracts/runs/types';
 
 /** Ancillary responses shared by workspace scenarios; behavior-specific routes stay in the test. */
 export async function mockWorkspaceSupport(page: Page) {
-  await page.route('**/api/login-identities', (route) =>
-    route.fulfill({ json: { identities: [], flows: [] } }),
-  );
   await page.route('**/api/workspace/stats', (route) =>
     route.fulfill({
       json: {

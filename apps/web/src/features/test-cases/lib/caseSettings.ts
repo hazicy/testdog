@@ -11,7 +11,6 @@ export function parseCaseInputs(value: string) {
 
 export type CaseSettingsValue = {
   url: string;
-  loginIdentityId: string;
   platform: 'web' | 'android' | 'ios';
   webProfile: 'Pixel 7' | 'iPhone 13' | 'legacy-desktop';
   appId: string;
@@ -32,7 +31,6 @@ export function initialCaseSettings(test?: TestCase): CaseSettingsValue {
 
   return {
     url: target?.platform === 'web' ? target.url : '',
-    loginIdentityId: target?.platform === 'web' ? (target.loginIdentityId ?? '') : '',
     platform: target?.platform ?? 'web',
     webProfile: target?.platform === 'web' ? target.deviceProfile : 'Pixel 7',
     appId: native?.appId ?? '',
@@ -56,7 +54,6 @@ export function caseTarget(value: CaseSettingsValue, inputs: unknown) {
         url: value.url.trim(),
         browser: value.webProfile === 'iPhone 13' ? ('webkit' as const) : ('chromium' as const),
         deviceProfile: value.webProfile,
-        ...(value.loginIdentityId ? { loginIdentityId: value.loginIdentityId } : {}),
         inputs,
       }
     : {

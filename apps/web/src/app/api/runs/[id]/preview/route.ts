@@ -5,7 +5,7 @@ import { apiError, validId } from '@testdog/server/shared/http';
 
 export const runtime = 'nodejs';
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
 

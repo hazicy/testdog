@@ -1,9 +1,6 @@
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/login-identities', (route) =>
-    route.fulfill({ json: { identities: [], flows: [] } }),
-  );
   await page.route('**/api/auth/get-session', (route) => route.fulfill({ json: null }));
   await page.route('**/api/integrations', (route) =>
     route.fulfill({ json: { browserProviders: [], integrations: [], deliveries: [] } }),

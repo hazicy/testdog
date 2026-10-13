@@ -23,7 +23,6 @@ vi.mock('@testdog/server/db', async () => {
 import { createRun } from '@testdog/server/runs/submission';
 import { getRun, getArtifact } from '@testdog/server/runs/repository';
 import { saveTest } from '@testdog/server/test-cases/repository';
-import { saveLoginIdentity } from '@testdog/server/login-identities/repository';
 import { saveRecordingVersion } from '@testdog/server/runs/recordings';
 import { requestCancellation } from '@testdog/server/runs/lifecycle';
 import { recordingScript } from '@testdog/contracts/runs/lib/recordingScript';
@@ -150,67 +149,6 @@ beforeEach(async () => {
   });
 });
 describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30000 }, () => {
-  it('executes identity verification using a saved UI password without a worker secret variable', async () => {
-    vi.stubEnv(
-      'CASEFORGE_INTEGRATION_SECRET',
-      'run-identity-encryption-key-at-least-32-characters',
-    );
-    vi.stubEnv('CASEFORGE_SECRET_LOGIN_PASSWORD', '');
-    mocks.generate.mockResolvedValue({ content: { text: 'DONE' }, toolCalls: [] });
-    const flow = await saveTest(
-      {
-        name: 'Login',
-        url,
-        goal: 'Use ${input.password}',
-        tags: [],
-        target: {
-          schemaVersion: 1,
-          platform: 'web',
-          url,
-          browser: 'chromium',
-          deviceProfile: 'legacy-desktop',
-          inputs: { password: { secretRef: 'LOGIN_PASSWORD' } },
-        },
-        plan: {
-          rootId: 'login',
-          nodes: {
-            login: {
-              id: 'login',
-              kind: 'task',
-              goal: 'Use ${input.password}',
-              dependsOn: [],
-              requirementIds: [],
-              assertions: [],
-            },
-          },
-        },
-      },
-      undefined,
-      null,
-    );
-    const identity = await saveLoginIdentity(
-      {
-        name: 'Admin',
-        website: url,
-        loginTestId: flow.id,
-        checkUrl: url,
-        successText: 'Workspace verification',
-        version: 0,
-        inputs: { password: { secretRef: 'LOGIN_PASSWORD' } },
-        secrets: { password: 'saved-ui-password' },
-      },
-      null,
-    );
-    const run = await createRun({ loginIdentityId: identity.id }, undefined, null);
-
-    await executeRun(run);
-    const result = await getRun(run.id, { userId: null });
-
-    expect(result.status, result.error).toBe('passed');
-    expect(result.steps).toHaveLength(0);
-    expect(JSON.stringify(result)).not.toContain('saved-ui-password');
-    expect(JSON.stringify(mocks.generate.mock.calls)).not.toContain('saved-ui-password');
-  });
   it('fails a replay without recorded actions before compiling or opening the browser', async () => {
     const run = await createRun({ case: 'Missing recording', url }, undefined, null);
 

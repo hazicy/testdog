@@ -19,7 +19,6 @@ vi.mock('@testdog/automation/platform/web/mobile', () => ({
   resolveWebProfile: () => ({ viewport: { width: 400, height: 800 } }),
 }));
 vi.mock('@testdog/server/browser-providers/runtime', () => ({ openRunBrowser: mocks.browser }));
-vi.mock('@testdog/server/login-identities/runtime', () => ({ prepareRunLogin: async () => ({}) }));
 vi.mock('@testdog/server/runs/recorder', () => ({
   RunRecorder: class {
     directory = '/tmp';

@@ -1,5 +1,4 @@
 import { getBuild } from '@testdog/server/builds/repository';
-import { prepareRunLogin } from '@testdog/server/login-identities/runtime';
 import { openRunBrowser } from '@testdog/server/browser-providers/runtime';
 import type { BrowserConnection } from '@testdog/automation/platform/web/providers/contracts';
 import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
@@ -59,7 +58,7 @@ export async function openPlatformRuntime(input: {
   const { run, expectedEnvironment, resource, signal } = input;
   const model = input.model ?? modelClient;
   const target = run.targetSnapshot;
-  const secrets = new SecretInputs(run.authenticationVerification ? {} : target.inputs);
+  const secrets = new SecretInputs(target.inputs);
 
   if (target.platform !== 'web') {
     if (!resource?.deviceId) throw new Error('设备租约没有绑定设备 ID');
@@ -169,27 +168,12 @@ export async function openPlatformRuntime(input: {
       expectedEnvironment.browserVersion !== browser.version()
     )
       throw new Error('浏览器版本与录制不兼容，请重新录制');
-    const login = await prepareRunLogin({
-      runId: run.id,
-      target,
-      browser,
-      provider: connection.provider,
-      profile,
-      model,
-      signal,
-      forceRefresh: run.authenticationVerification,
-      report: input.report,
-    });
-    // Authenticated request headers in traces can expose reusable session credentials.
-    const artifacts = connection.artifacts.filter(
-      (kind) => !target.loginIdentityId || kind !== 'trace',
-    );
+    const artifacts = connection.artifacts;
     const persistence = new PersistenceQueue();
 
     recorder = new RunRecorder(run, persistence);
     context = await browser.newContext({
       ...profile,
-      ...(login.storageState ? { storageState: login.storageState } : {}),
       ...(secrets.enabled || !connection.artifacts.includes('video')
         ? {}
         : { recordVideo: { dir: recorder.directory, size: profile.viewport ?? undefined } }),
@@ -228,7 +212,6 @@ export async function openPlatformRuntime(input: {
       environment: {
         platform: 'web',
         browserProvider: connection.provider,
-        ...(login.preparation ? { loginPreparation: login.preparation } : {}),
         browser: target.browser,
         browserVersion: browser.version(),
         profile,

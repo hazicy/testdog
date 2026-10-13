@@ -6,7 +6,6 @@ import { Icon } from '@iconify/react/offline';
 import arrowRightIcon from '@iconify-icons/lucide/arrow-right';
 import closeIcon from '@iconify-icons/lucide/x';
 import { Button } from '@/components/ui/Button';
-import { ReferenceTextarea } from '@/features/login-identities/components/InputReferences';
 import { buttonStyles } from '@/components/ui/buttonStyles';
 import '@/features/test-cases/components/test-editor.css';
 
@@ -101,8 +100,8 @@ export function CasePrompt({
                 <Icon icon={closeIcon} width="18" aria-hidden="true" />
               </Dialog.Close>
             </div>
-            <ReferenceTextarea
-              textareaRef={promptRef}
+            <textarea
+              ref={promptRef}
               id="case-prompt"
               name="caseText"
               aria-label="测试步骤与预期结果"
@@ -111,7 +110,7 @@ export function CasePrompt({
               maxLength={20000}
               value={value}
               disabled={busy}
-              onValueChange={onChange}
+              onChange={(event) => onChange(event.target.value)}
               onKeyDown={(event) => {
                 if (
                   event.key === 'Enter' &&

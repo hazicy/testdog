@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { LoginIdentities } from '@/features/login-identities/components/LoginIdentities';
 import useSWR from 'swr';
 import { authClient } from '@/client/auth';
 import { fetchJson } from '@/client/api';
@@ -211,16 +210,6 @@ function PasswordForm() {
 export function Settings() {
   const [tab, setTab] = useState('profile');
 
-  useEffect(() => {
-    const sync = () => {
-      if (window.location.hash === '#login-identities') setTab('login-identities');
-    };
-
-    sync();
-    window.addEventListener('hashchange', sync);
-
-    return () => window.removeEventListener('hashchange', sync);
-  }, []);
   const { data: session, isPending, error, refetch } = authClient.useSession();
   const accounts = useSWR<{ providerId: string }[]>(
     session ? '/api/auth/list-accounts' : null,
@@ -261,14 +250,7 @@ export function Settings() {
         <Tabs.Root
           key={session.user.id}
           value={tab}
-          onValueChange={(value) => {
-            setTab(String(value));
-            window.history.replaceState(
-              null,
-              '',
-              `${window.location.pathname}${window.location.search}${value === 'login-identities' ? '#login-identities' : ''}`,
-            );
-          }}
+          onValueChange={(value) => setTab(String(value))}
           orientation="vertical"
           className="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)] md:gap-10"
         >
@@ -290,17 +272,8 @@ export function Settings() {
               <Icon icon={shieldIcon} width="16" aria-hidden="true" />
               登录安全
             </Tabs.Tab>
-            <Tabs.Tab
-              value="login-identities"
-              className="rounded-md px-3 py-2.5 text-left text-sm text-page-muted hover:bg-surface-muted data-[active]:bg-surface-muted data-[active]:font-medium data-[active]:text-ink"
-            >
-              登录身份
-            </Tabs.Tab>
           </Tabs.List>
           <div className="min-w-0 max-w-xl">
-            <Tabs.Panel value="login-identities">
-              <LoginIdentities />
-            </Tabs.Panel>
             <Tabs.Panel value="profile" keepMounted>
               <section aria-labelledby="profile-title" className="space-y-6">
                 <h2 id="profile-title" className="text-sm font-semibold">
@@ -337,7 +310,6 @@ export function Settings() {
           </div>
         </Tabs.Root>
       )}
-      {!isPending && !error && !session && <LoginIdentities />}
     </div>
   );
 }

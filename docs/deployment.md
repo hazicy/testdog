@@ -8,19 +8,19 @@
 
 本地 workspace 默认读取根目录 `.env`，应用目录 `.env` 优先，已有进程环境变量优先于文件。根目录 `.automation` 是默认数据目录。部署产物不复制本地 `.env`，生产服务通过自己的环境变量提供配置，并为数据使用绝对路径。配置变更后重启所有使用该配置的 API、worker 或后台进程。执行节点需要常驻 Node.js 进程和持久存储。
 
-| 配置                                                                                                                      | 使用范围与要求                                                                                                                                     |
-| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                                                                            | API、worker 与后台服务连接同一个 PostgreSQL；数据库必须持久化                                                                                      |
-| `OPENAI_API_KEY`                                                                                                          | 提供给需要编译或执行语义判断的服务，当前模型适配器连接 DeepSeek                                                                                    |
-| `AUTOMATION_HEADLESS`                                                                                                     | 本地默认有界面，服务器设置为 `true`                                                                                                                |
-| `REDIS_URL`、`CASEFORGE_REDIS_PREFIX`                                                                                     | API、worker 与 outbox 发布进程使用相同值，按环境区分前缀                                                                                           |
-| `CASEFORGE_DATA_DIR`                                                                                                      | 本地附件持久目录，生产使用绝对路径；跨主机存储见下文                                                                                               |
-| `BETTER_AUTH_SECRET`、`BETTER_AUTH_URL`                                                                                   | Web 必填；secret 至少 32 字符，URL 为实际访问 origin，生产使用 HTTPS                                                                               |
-| `CASEFORGE_INTEGRATION_SECRET`                                                                                            | API、执行与通知进程保持一致，至少 32 字符；未设置时使用 `BETTER_AUTH_SECRET`，用于通知、浏览器提供方及登录身份的加密；更换密钥后需重新配置加密数据 |
-| `CASEFORGE_SMTP_HOST`、`CASEFORGE_SMTP_PORT`、`CASEFORGE_SMTP_USERNAME`、`CASEFORGE_SMTP_PASSWORD`、`CASEFORGE_SMTP_FROM` | API 和通知发送进程配置平台邮件服务；支持 465 TLS、587 STARTTLS；用户仅在界面配置收件人                                                             |
-| `CASEFORGE_ALLOW_PRIVATE_SMTP`                                                                                            | 可信内网 SMTP 可显式设置 `true`，TLS 校验仍开启                                                                                                    |
-| `CASEFORGE_PREVIEW_INTERVAL_MS`                                                                                           | 实时画面默认 3000 ms，最低 1000 ms；不改变永久证据采集                                                                                             |
-| `CASEFORGE_AI_*`                                                                                                          | 模型预算参数，示例值见环境变量清单，预算语义见 [工作台文档](workspace.md#租约维护与模型预算)                                                       |
+| 配置                                                                                                                      | 使用范围与要求                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                                                                                            | API、worker 与后台服务连接同一个 PostgreSQL；数据库必须持久化                                                                            |
+| `OPENAI_API_KEY`                                                                                                          | 提供给需要编译或执行语义判断的服务，当前模型适配器连接 DeepSeek                                                                          |
+| `AUTOMATION_HEADLESS`                                                                                                     | 本地默认有界面，服务器设置为 `true`                                                                                                      |
+| `REDIS_URL`、`CASEFORGE_REDIS_PREFIX`                                                                                     | API、worker 与 outbox 发布进程使用相同值，按环境区分前缀                                                                                 |
+| `CASEFORGE_DATA_DIR`                                                                                                      | 本地附件持久目录，生产使用绝对路径；跨主机存储见下文                                                                                     |
+| `BETTER_AUTH_SECRET`、`BETTER_AUTH_URL`                                                                                   | Web 必填；secret 至少 32 字符，URL 为实际访问 origin，生产使用 HTTPS                                                                     |
+| `CASEFORGE_INTEGRATION_SECRET`                                                                                            | API、执行与通知进程保持一致，至少 32 字符；未设置时使用 `BETTER_AUTH_SECRET`，用于通知及浏览器提供方的加密；更换密钥后需重新配置加密数据 |
+| `CASEFORGE_SMTP_HOST`、`CASEFORGE_SMTP_PORT`、`CASEFORGE_SMTP_USERNAME`、`CASEFORGE_SMTP_PASSWORD`、`CASEFORGE_SMTP_FROM` | API 和通知发送进程配置平台邮件服务；支持 465 TLS、587 STARTTLS；用户仅在界面配置收件人                                                   |
+| `CASEFORGE_ALLOW_PRIVATE_SMTP`                                                                                            | 可信内网 SMTP 可显式设置 `true`，TLS 校验仍开启                                                                                          |
+| `CASEFORGE_PREVIEW_INTERVAL_MS`                                                                                           | 实时画面默认 3000 ms，最低 1000 ms；不改变永久证据采集                                                                                   |
+| `CASEFORGE_AI_*`                                                                                                          | 模型预算参数，示例值见环境变量清单，预算语义见 [工作台文档](workspace.md#租约维护与模型预算)                                             |
 
 ### 认证
 
@@ -160,3 +160,5 @@ pnpm issues:backfill --user <用户ID>
 pnpm issues:backfill --unowned
 pnpm issues:backfill --all
 ```
+
+删除登录身份功能的迁移会清除身份、加密凭据和登录态缓存，移除历史目标中的身份引用，并取消未完成的身份验证执行。部署此版本时先停止 API 和 worker，运行 `pnpm db:migrate` 后再启动新版本；普通用例和执行历史保留。

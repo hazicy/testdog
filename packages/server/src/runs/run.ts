@@ -1,4 +1,3 @@
-import { LoginPreparationError } from '@testdog/server/login-identities/runtime';
 import { budgetedModel, modelBudgetFromEnv } from '@testdog/automation/llm/budget';
 import { recordModelCall } from '@testdog/server/runs/modelUsage';
 import { targetUrl } from '@testdog/contracts/automation/platform/target';
@@ -81,7 +80,7 @@ export async function executeRun(
   let errorCode: string | null = null;
 
   try {
-    secrets = new SecretInputs(run.authenticationVerification ? {} : run.targetSnapshot.inputs);
+    secrets = new SecretInputs(run.targetSnapshot.inputs);
     const model = budgetedModel(modelClient, modelBudgetFromEnv(), (metric) =>
       recordModelCall(run.id, metric),
     );
@@ -161,8 +160,7 @@ export async function executeRun(
       report,
     });
 
-    if (run.authenticationVerification) await report('登录身份验证成功');
-    else if (run.mode === 'replay') await runner.replay(normalizeReplaySteps(replaySteps!));
+    if (run.mode === 'replay') await runner.replay(normalizeReplaySteps(replaySteps!));
     else await runner.record(runtime.initial);
     await report('全部操作与断言执行完成');
   } catch (cause) {
@@ -171,12 +169,7 @@ export async function executeRun(
 
     status =
       reason instanceof RunAbortError && reason.code === 'CANCELLED' ? 'cancelled' : 'failed';
-    errorCode =
-      reason instanceof RunAbortError
-        ? reason.code
-        : cause instanceof RuntimeOpenError && cause.cause instanceof LoginPreparationError
-          ? 'LOGIN_PREPARATION_FAILED'
-          : 'EXECUTION_FAILED';
+    errorCode = reason instanceof RunAbortError ? reason.code : 'EXECUTION_FAILED';
     if (!runtime) evidenceComplete = false;
     error = errorMessage(reason);
     if (controller.signal.aborted && cause !== reason) error += `\n${errorMessage(cause)}`;

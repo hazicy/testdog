@@ -1,11 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-test.beforeEach(async ({ page }) => {
-  await page.route('**/api/login-identities', (route) =>
-    route.fulfill({ json: { identities: [], flows: [] } }),
-  );
-});
-
 test('canvas insertion visibility, editing history and Chinese composition work together', async ({
   page,
 }, testInfo) => {

@@ -40,9 +40,7 @@ export class RunRecorder {
     private run: TestRun,
     private persistence = new PersistenceQueue(),
   ) {
-    this.secrets = new SecretInputs(
-      run.authenticationVerification ? {} : run.targetSnapshot.inputs,
-    );
+    this.secrets = new SecretInputs(run.targetSnapshot.inputs);
     this.logs = new BrowserLogs(
       run.id,
       run.startedAt,

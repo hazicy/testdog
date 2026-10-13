@@ -34,7 +34,6 @@ pnpm worker
 | 用例、执行、录制、证据、实时协议与 API                                 | [工作台数据模型与 API](docs/workspace.md)                                            |
 | 用例输入、编译、试跑与执行链路                                         | [用例输入到执行](docs/case-pipeline.md)                                              |
 | 问题追踪与回归验证                                                     | [问题文档](docs/issues.md)                                                           |
-| 登录身份与缓存                                                         | [登录身份文档](docs/login-identities.md)                                             |
 | 飞书、Email 和通知投递语义                                             | [通知文档](docs/notifications.md)                                                    |
 | Browserless 与新浏览器服务接入                                         | [浏览器提供方](packages/server/src/browser-providers/README.md)                      |
 | 多平台架构决策与内部契约                                               | [自动化架构](docs/automation-architecture.md)                                        |

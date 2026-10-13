@@ -3,8 +3,6 @@
 import { useSyncExternalStore } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { identityDraftKey, type LoginIdentityDraft } from '@/features/login-identities/draft';
-import { reconcileInputs } from '@testdog/contracts/login-identities/inputs';
 import { TestEditor } from '@/features/test-cases/components/TestEditor';
 import { clearCaseDraft, readCaseDraft } from '@/features/test-cases/lib/caseDraft';
 
@@ -33,40 +31,6 @@ export default function CaseCanvasPage() {
       </div>
     );
 
-  function returnToIdentity(saved?: import('@testdog/contracts/test-cases/types').TestCase) {
-    if (!draft?.returnLoginIdentityDraft) return false;
-    const rawIdentity = sessionStorage.getItem(identityDraftKey(draft.returnLoginIdentityDraft));
-
-    if (!rawIdentity) return false;
-    try {
-      const identity = JSON.parse(rawIdentity) as LoginIdentityDraft;
-      const returnUrl = new URL(
-        identity.returnTo || '/settings#login-identities',
-        window.location.origin,
-      );
-
-      if (returnUrl.origin !== window.location.origin) return false;
-      sessionStorage.setItem(
-        identityDraftKey(draft.returnLoginIdentityDraft),
-        JSON.stringify({
-          ...identity,
-          ...(saved
-            ? {
-                loginTestId: saved.id,
-                inputs: reconcileInputs(saved.target?.inputs, identity.inputs),
-              }
-            : {}),
-        }),
-      );
-      returnUrl.searchParams.set('loginIdentityDraft', draft.returnLoginIdentityDraft);
-      router.push(`${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`);
-
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   return (
     <TestEditor
       key={draftId}
@@ -74,13 +38,8 @@ export default function CaseCanvasPage() {
       duplicate={draft.duplicate}
       initialDraft={draft}
       draftId={draftId}
-      onCancel={() => {
+      onSaved={async () => {
         clearCaseDraft(draftId);
-        if (!returnToIdentity()) router.push('/cases');
-      }}
-      onSaved={async (saved) => {
-        clearCaseDraft(draftId);
-        if (returnToIdentity(saved)) return;
         router.push('/cases');
       }}
     />

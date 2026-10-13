@@ -117,7 +117,6 @@ export const testRuns = pgTable(
       onDelete: 'set null',
     }),
     recordingSteps: jsonb().$type<RecordingOperation[]>(),
-    authenticationVerification: boolean().notNull().default(false),
     targetSnapshot: jsonb().$type<TestTarget>().notNull(),
     environmentSnapshot: jsonb().$type<Record<string, unknown>>(),
     replayEnvironmentSnapshot: jsonb().$type<Record<string, unknown>>(),
@@ -576,45 +575,4 @@ export const browserProviderIntegrations = pgTable(
       .on(table.provider)
       .where(sql`${table.userId} is null`),
   ],
-);
-
-export const loginIdentities = pgTable(
-  'login_identities',
-  {
-    id: uuid().primaryKey().defaultRandom(),
-    userId: text().references(() => authUsers.id),
-    name: text().notNull(),
-    website: text().notNull(),
-    loginTestId: uuid()
-      .notNull()
-      .references(() => testCases.id, { onDelete: 'restrict' }),
-    checkUrl: text().notNull(),
-    successText: text().notNull(),
-    inputs: jsonb()
-      .$type<import('@testdog/contracts/automation/platform/inputs').InputRefs>()
-      .notNull()
-      .default({}),
-    encryptedCredentials: text(),
-    ttlMinutes: integer().notNull().default(60),
-    version: integer().notNull().default(1),
-    lastVerifiedAt: timestamp({ withTimezone: true, mode: 'string' }),
-    lastError: text(),
-    verificationRunId: uuid().references(() => testRuns.id, { onDelete: 'set null' }),
-    updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
-  },
-  (table) => [index('login_identities_owner_idx').on(table.userId, table.updatedAt)],
-);
-export const loginStateCaches = pgTable(
-  'login_state_caches',
-  {
-    key: text().primaryKey(),
-    identityId: uuid()
-      .notNull()
-      .references(() => loginIdentities.id, { onDelete: 'cascade' }),
-    encryptedState: text(),
-    expiresAt: timestamp({ withTimezone: true, mode: 'string' }),
-    lockToken: uuid(),
-    lockUntil: timestamp({ withTimezone: true, mode: 'string' }),
-  },
-  (table) => [index('login_state_caches_identity_idx').on(table.identityId)],
 );

@@ -1,10 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
-import { LoginPreparationActions } from '@/features/login-identities/components/LoginPreparationActions';
 import { DockTabs, type DockTab } from '@/components/ui/DockTabs';
 import { isActiveRun } from '@testdog/contracts/runs/types';
 import dynamic from 'next/dynamic';
@@ -426,42 +423,7 @@ export function RunDetail({
         cancel={() => perform('cancel')}
         exportReport={() => perform('export')}
       />
-      {run?.targetSnapshot?.platform === 'web' && run.targetSnapshot.loginIdentityId && (
-        <div className="studio-alert" role="status">
-          <span className="font-medium">登录准备 · </span>
-          {run.errorCode === 'LOGIN_PREPARATION_FAILED'
-            ? '失败，业务步骤未开始。'
-            : (run.events
-                .filter((event) =>
-                  /检查登录身份|已复用登录身份|登录准备完成|登录身份未就绪|登录准备失败/.test(
-                    event.message,
-                  ),
-                )
-                .at(-1)?.message ?? '等待准备登录身份…')}{' '}
-          {run.errorCode === 'LOGIN_PREPARATION_FAILED' ? (
-            <>
-              <span>
-                {run.events.filter((event) => /登录准备失败/.test(event.message)).at(-1)?.message}
-              </span>{' '}
-              <LoginPreparationActions identityId={run.targetSnapshot.loginIdentityId} />
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  act({ type: 'logs' });
-                }}
-              >
-                查看失败信息
-              </Button>
-            </>
-          ) : (
-            <Link href="/settings#login-identities" className="underline">
-              管理登录身份
-            </Link>
-          )}
-        </div>
-      )}
-      {run?.evidenceComplete === false && run.errorCode !== 'LOGIN_PREPARATION_FAILED' && (
+      {run?.evidenceComplete === false && (
         <p role="alert" className="studio-alert">
           本次执行的证据归档不完整，请查看执行错误。
         </p>

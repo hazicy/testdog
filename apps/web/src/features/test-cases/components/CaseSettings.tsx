@@ -1,9 +1,5 @@
 'use client';
 
-import { LoginIdentityPicker } from '@/features/login-identities/components/LoginIdentityPicker';
-import { LoginInputsEditor } from '@/features/login-identities/components/LoginInputsEditor';
-import { parseCaseInputs } from '@/features/test-cases/lib/caseSettings';
-
 import { Label } from '@/components/ui/Label';
 import useSWR from 'swr';
 import { Input } from '@/components/ui/Input';
@@ -25,14 +21,12 @@ export function CaseSettings({
   value,
   onChange,
   busy,
-  webOnly = false,
 }: {
   name: string;
   onNameChange: (name: string) => void;
   value: CaseSettingsValue;
   onChange: (patch: Partial<CaseSettingsValue>) => void;
   busy: boolean;
-  webOnly?: boolean;
 }) {
   const {
     url,
@@ -78,8 +72,8 @@ export function CaseSettings({
           onValueChange={(value) => onChange({ platform: value as CaseSettingsValue['platform'] })}
           items={[
             { value: 'web', label: 'Web · 浏览器' },
-            { value: 'android', label: 'Android · 原生应用', disabled: webOnly },
-            { value: 'ios', label: 'iOS · 原生应用', disabled: webOnly },
+            { value: 'android', label: 'Android · 原生应用' },
+            { value: 'ios', label: 'iOS · 原生应用' },
           ]}
         />
       </Label>
@@ -97,14 +91,6 @@ export function CaseSettings({
               placeholder="https://your-app.com"
             />
           </Label>
-          {!webOnly && (
-            <LoginIdentityPicker
-              value={value.loginIdentityId}
-              website={url}
-              disabled={busy}
-              onChange={(id) => onChange({ loginIdentityId: id })}
-            />
-          )}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm text-ink">
               <Checkbox
@@ -263,29 +249,21 @@ export function CaseSettings({
           </p>
         </>
       )}
-      {webOnly ? (
-        <LoginInputsEditor
-          inputs={parseCaseInputs(value.inputRefs)}
+      <Label>
+        输入引用（JSON，可选）
+        <Textarea
+          aria-label="输入引用（JSON，可选）"
+          value={value.inputRefs}
           disabled={busy}
-          onChange={(inputs) => onChange({ inputRefs: JSON.stringify(inputs) })}
+          spellCheck={false}
+          className="min-h-24 font-mono"
+          onChange={(event) => onChange({ inputRefs: event.target.value })}
+          placeholder={'{"name":{"value":"Ada"},"password":{"secretRef":"PASSWORD"}}'}
         />
-      ) : (
-        <Label>
-          输入引用（JSON，可选）
-          <Textarea
-            aria-label="输入引用（JSON，可选）"
-            value={value.inputRefs}
-            disabled={busy}
-            spellCheck={false}
-            className="min-h-24 font-mono"
-            onChange={(event) => onChange({ inputRefs: event.target.value })}
-            placeholder={'{"name":{"value":"Ada"},"password":{"secretRef":"PASSWORD"}}'}
-          />
-          <span className="mt-2 block text-xs text-page-muted">
-            步骤中使用 {'${input.name}'} 引用输入；密码等敏感值使用 secretRef。
-          </span>
-        </Label>
-      )}
+        <span className="mt-2 block text-xs text-page-muted">
+          步骤中使用 {'${input.name}'} 引用输入；密码等敏感值使用 secretRef。
+        </span>
+      </Label>
       <Label>
         标签 <span className="font-normal text-text-subtle">（可选，逗号分隔）</span>
         <Input
