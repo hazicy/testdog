@@ -1,9 +1,11 @@
 'use client';
 
+import styles from './Select.module.css';
+
 import { Select as BaseSelect } from '@base-ui/react/select';
 import type { ReactNode } from 'react';
 import { inputStyles } from '@/components/ui/inputStyles';
-import { twMerge } from 'tailwind-merge';
+import { classNames } from '@/components/ui/classNames';
 import { Icon } from '@iconify/react/offline';
 import chevronDownIcon from '@iconify-icons/lucide/chevron-down';
 
@@ -38,34 +40,31 @@ export function Select({ items, value, onValueChange, className = '', ...props }
     >
       <BaseSelect.Trigger
         data-slot="select"
-        className={twMerge(
-          inputStyles(),
-          'inline-flex items-center justify-between gap-3 text-left cursor-pointer',
-          className,
-        )}
+        className={classNames(inputStyles(), styles.select, className)}
         aria-label={props['aria-label']}
       >
         <BaseSelect.Value />
-        <BaseSelect.Icon
-          aria-hidden="true"
-          className="ml-auto inline-flex shrink-0 items-center justify-center text-page-muted"
-        >
+        <BaseSelect.Icon aria-hidden="true" className={styles.icon}>
           <Icon icon={chevronDownIcon} width="16" height="16" />
         </BaseSelect.Icon>
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
-        <BaseSelect.Positioner className="z-60" sideOffset={4} alignItemWithTrigger={false}>
-          <BaseSelect.Popup className="min-w-(--anchor-width) max-h-[min(320px,var(--available-height))] max-w-(--available-width) overflow-y-auto rounded-md border border-control-line bg-surface p-1 text-[13px] text-ink shadow-[0_8px_24px_var(--shadow)]">
+        <BaseSelect.Positioner
+          className={styles.positioner}
+          sideOffset={4}
+          alignItemWithTrigger={false}
+        >
+          <BaseSelect.Popup className={styles.popup}>
             <BaseSelect.List>
               {options.map((item) => (
                 <BaseSelect.Item
                   key={item.value}
                   value={item.value}
                   disabled={item.disabled}
-                  className="flex cursor-pointer items-center justify-between gap-4 rounded px-2.5 py-2 data-[highlighted]:bg-brand-soft data-[highlighted]:text-brand-hover data-[disabled]:cursor-not-allowed data-[disabled]:opacity-45 data-[selected]:font-medium"
+                  className={styles.item}
                 >
                   <BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>
-                  <BaseSelect.ItemIndicator aria-hidden="true" className="text-brand">
+                  <BaseSelect.ItemIndicator aria-hidden="true" className={styles.itemIndicator}>
                     ✓
                   </BaseSelect.ItemIndicator>
                 </BaseSelect.Item>

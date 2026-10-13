@@ -1,0 +1,60 @@
+.container {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.link {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--brand);
+    }
+  }
+}
+.details {
+  position: relative;
+  font-size: 10px;
+  color: var(--page-muted);
+}
+.summary {
+  cursor: pointer;
+}
+.diagnosticLinks {
+  position: absolute;
+  right: 0px;
+  z-index: 10;
+  max-height: 15rem;
+  min-width: 12rem;
+  overflow: auto;
+  border: 1px solid var(--page-line);
+  background-color: var(--surface-raised);
+  padding: 0.75rem;
+}
+.diagnosticLink {
+  display: block;
+  padding-block: 0.25rem;
+  @media (hover: hover) {
+    &:hover {
+      color: var(--brand);
+    }
+  }
+}
+.transcript {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1.75rem;
+}
+.event {
+  display: flex;
+  gap: 1rem;
+}
+.label {
+  flex-shrink: 0;
+  color: var(--page-muted);
+}
+.eventMessage {
+  color: var(--ink);
+}

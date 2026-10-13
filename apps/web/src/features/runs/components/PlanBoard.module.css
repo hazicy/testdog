@@ -1,0 +1,27 @@
+.description {
+  padding: 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--page-muted);
+}
+.error {
+  flex-shrink: 0;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-color: var(--page-line);
+  padding: 0.625rem 1.5rem;
+  font-size: 13px;
+  color: var(--error-ink);
+}
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.subheading {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+}

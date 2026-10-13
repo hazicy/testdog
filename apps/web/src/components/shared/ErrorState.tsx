@@ -1,3 +1,4 @@
+import styles from './ErrorState.module.css';
 import Link from 'next/link';
 import { EmptyIllustration } from '@/components/brand/EmptyIllustration';
 import { Button } from '@/components/ui/Button';
@@ -19,16 +20,13 @@ export function ErrorState({
   linkLabel?: string;
 }) {
   return (
-    <section
-      className="mx-auto max-w-2xl border border-page-line bg-surface p-8"
-      aria-label={title}
-    >
+    <section className={styles.section} aria-label={title}>
       {illustration && <EmptyIllustration variant={illustration} />}
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <p role="alert" className="mt-4 text-sm leading-7 text-page-muted">
+      <h1 className={styles.title}>{title}</h1>
+      <p role="alert" className={styles.error}>
         {message}
       </p>
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className={styles.container}>
         {retry && (
           <Button variant="primary" onClick={retry}>
             重试

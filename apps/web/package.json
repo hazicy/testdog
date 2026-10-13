@@ -36,16 +36,13 @@
     "react-dom": "catalog:",
     "redis": "catalog:",
     "swr": "catalog:",
-    "tailwind-merge": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@electric-sql/pglite": "catalog:",
-    "@tailwindcss/postcss": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

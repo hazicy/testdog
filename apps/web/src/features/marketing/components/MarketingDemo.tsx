@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './MarketingDemo.module.css';
+
 import { statusStyles } from '@/components/ui/statusStyles';
 import { Tabs } from '@/components/ui/Tabs';
 
@@ -65,63 +67,51 @@ const examples = [
 
 export function MarketingDemo() {
   return (
-    <Tabs.Root
-      defaultValue={0}
-      className="overflow-hidden rounded-lg border border-page-line bg-surface"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-x-4 border-b border-page-line px-5">
-        <Tabs.List activateOnFocus className="flex gap-6" aria-label="用例示例">
+    <Tabs.Root defaultValue={0} className={styles.root}>
+      <div className={styles.container}>
+        <Tabs.List activateOnFocus className={styles.list} aria-label="用例示例">
           {examples.map((item, index) => (
-            <Tabs.Tab
-              key={item.name}
-              value={index}
-              className="cursor-pointer border-b-2 border-transparent py-4 text-sm text-text-secondary hover:text-ink aria-selected:border-brand aria-selected:text-ink"
-            >
+            <Tabs.Tab key={item.name} value={index} className={styles.tab}>
               {item.name}
             </Tabs.Tab>
           ))}
         </Tabs.List>
-        <span className="py-3 text-xs text-text-subtle">交互示例</span>
+        <span className={styles.label}>交互示例</span>
       </div>
       {examples.map((example, index) => (
-        <Tabs.Panel key={example.name} value={index} className="grid md:grid-cols-2">
-          <section
-            className="border-b border-page-line p-6 sm:p-8 md:border-b-0 md:border-r"
-            aria-label="测试描述"
-          >
-            <h3 className="mb-5 text-sm font-semibold">测试描述</h3>
-            <p className="mb-5 break-all rounded-md bg-code-surface px-3 py-2 font-mono text-xs text-text-secondary">
-              https://{example.url}
-            </p>
-            <ol className="space-y-4">
+        <Tabs.Panel key={example.name} value={index} className={styles.panel}>
+          <section className={styles.section} aria-label="测试描述">
+            <h3 className={styles.subheading}>测试描述</h3>
+            <p className={styles.description}>https://{example.url}</p>
+            <ol className={styles.ol}>
               {example.input.map((line, index) => (
-                <li key={line} className="flex gap-3 text-sm leading-6">
-                  <span className="w-5 shrink-0 tabular-nums text-text-subtle">{index + 1}.</span>
+                <li key={line} className={styles.item}>
+                  <span className={styles.stepNumber}>{index + 1}.</span>
                   <span>{line}</span>
                 </li>
               ))}
             </ol>
           </section>
-          <section className="p-6 sm:p-8" aria-label="示例执行结果">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold">执行记录</h3>
+          <section className={styles.result} aria-label="示例执行结果">
+            <div className={styles.resultHeading}>
+              <h3 className={styles.resultTitle}>执行记录</h3>
               <span data-slot="status" data-status="passed" className={statusStyles('passed')}>
                 <span />
                 已通过
               </span>
             </div>
-            <ol className="space-y-4">
+            <ol className={styles.ol}>
               {example.steps.map((step) => (
-                <li key={step} className="flex gap-3 text-sm leading-6">
-                  <span aria-hidden="true" className="text-success">
+                <li key={step} className={styles.item}>
+                  <span aria-hidden="true" className={styles.checkmark}>
                     ✓
                   </span>
                   <span>{step}</span>
                 </li>
               ))}
             </ol>
-            <div className="mt-6 rounded-md border border-success-line bg-success-soft px-4 py-3">
-              <p className="text-sm font-medium text-success-strong">页面证据：{example.title}</p>
+            <div className={styles.evidence}>
+              <p className={styles.evidenceCaption}>页面证据：{example.title}</p>
             </div>
           </section>
         </Tabs.Panel>

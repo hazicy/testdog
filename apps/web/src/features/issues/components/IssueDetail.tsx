@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './IssueDetail.module.css';
+
 import {
   Table,
   TableHeader,
@@ -75,12 +77,12 @@ function VerificationAction({
   }
 
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-2">
+    <div className={styles.page}>
       <Select
         aria-label={`验证版本：${occurrence.snapshot.name}`}
         value={version}
         onValueChange={setVersion}
-        className="w-auto"
+        className={styles.select}
         items={[
           {
             value: 'current',
@@ -103,7 +105,7 @@ function VerificationAction({
         {loadVersions ? '刷新录制版本' : '加载录制版本'}
       </Button>
       {versionsError && (
-        <p role="alert" className="text-sm text-error-ink">
+        <p role="alert" className={styles.error}>
           {versionsError.message}
         </p>
       )}
@@ -161,7 +163,7 @@ export function IssueDetail({ id }: { id: string }) {
     );
   if (!data)
     return (
-      <p className="p-8" role="status">
+      <p className={styles.loading} role="status">
         正在加载问题…
       </p>
     );
@@ -175,18 +177,18 @@ export function IssueDetail({ id }: { id: string }) {
   const active = verifications.some((item) => item.outcome === 'pending');
 
   return (
-    <article className="w-full p-6 md:px-10 md:py-6">
-      <Link href="/issues" className="text-sm text-brand">
+    <article className={styles.article}>
+      <Link href="/issues" className={styles.link}>
         ← 返回问题追踪
       </Link>
-      <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="bg-danger px-2 py-1 text-xs font-semibold text-white">
+      <div className={styles.header}>
+        <div className={styles.headingGroup}>
+          <span className={styles.category}>
             {issue.category === 'product' ? 'BUG' : issueCategories[issue.category]}
           </span>
-          <h1 className="text-xl font-semibold break-words">{issue.title}</h1>
+          <h1 className={styles.title}>{issue.title}</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className={styles.actions}>
           <Button
             disabled={busy}
             onClick={async () => {
@@ -234,15 +236,13 @@ export function IssueDetail({ id }: { id: string }) {
           >
             {copied ? '已复制修复提示词' : '复制修复提示词'}
           </Button>
-          <Button className="shrink-0" onClick={() => setEditing(true)}>
+          <Button className={styles.action} onClick={() => setEditing(true)}>
             编辑问题
           </Button>
         </div>
       </div>
-      <div className="my-4 flex flex-wrap items-center gap-4 text-xs text-page-muted">
-        <span className="border border-page-line bg-surface-raised px-2 py-1">
-          {environmentLabel(latest)}
-        </span>
+      <div className={styles.metadata}>
+        <span className={styles.environment}>{environmentLabel(latest)}</span>
         <span>{new Set(occurrences.map((item) => item.runId)).size} 次执行</span>
         <span>首次出现 {relativeTime(occurrences.at(-1)?.createdAt ?? issue.createdAt)}</span>
         <span>最近出现 {relativeTime(latest?.createdAt ?? issue.createdAt)}</span>
@@ -252,32 +252,28 @@ export function IssueDetail({ id }: { id: string }) {
         {issue.closeReason && <span>关闭原因：{closeReasons[issue.closeReason]}</span>}
       </div>
       {(error || loadError) && (
-        <p className="mb-4 text-error-ink" role="alert">
+        <p className={styles.loadError} role="alert">
           {error || loadError?.message}
         </p>
       )}
       {latest && (
-        <section className="mt-6" aria-label="最近出现">
-          <h2 className="mb-3 text-sm font-semibold">最近出现</h2>
-          <div className="border border-page-line bg-surface-raised">
-            <div className="grid divide-page-line md:grid-cols-2 md:divide-x">
+        <section className={styles.section} aria-label="最近出现">
+          <h2 className={styles.heading}>最近出现</h2>
+          <div className={styles.latestOccurrence}>
+            <div className={styles.comparison}>
               <div>
-                <h3 className="bg-surface-muted px-3 py-2 text-xs font-semibold text-page-muted">
-                  预期 EXPECTED
-                </h3>
-                <p className="p-3 text-sm whitespace-pre-wrap">{expected || '未记录预期结果'}</p>
+                <h3 className={styles.expectedHeading}>预期 EXPECTED</h3>
+                <p className={styles.description}>{expected || '未记录预期结果'}</p>
               </div>
               <div>
-                <h3 className="bg-surface-muted px-3 py-2 text-xs font-semibold text-error-ink">
-                  实际 ACTUAL
-                </h3>
-                <p className="p-3 text-sm whitespace-pre-wrap">{actual || '未记录实际结果'}</p>
+                <h3 className={styles.actualHeading}>实际 ACTUAL</h3>
+                <p className={styles.description}>{actual || '未记录实际结果'}</p>
               </div>
             </div>
-            <div className="border-t border-page-line p-4 text-sm">
+            <div className={styles.reproduction}>
               {/^https?:\/\//.test(latest.snapshot.url) && (
                 <a
-                  className="break-all hover:text-brand"
+                  className={styles.targetLink}
                   href={latest.snapshot.url}
                   target="_blank"
                   rel="noreferrer"
@@ -285,18 +281,16 @@ export function IssueDetail({ id }: { id: string }) {
                   ↗ {latest.snapshot.url}
                 </a>
               )}
-              <h3 className="mt-4 text-xs font-semibold text-page-muted">复现步骤 REPRODUCTION</h3>
-              <ol className="mt-2 space-y-2">
+              <h3 className={styles.reproductionHeading}>复现步骤 REPRODUCTION</h3>
+              <ol className={styles.ol}>
                 {(
                   latest.snapshot.reproduction ??
                   [latest.snapshot.goal, latest.snapshot.step?.title].filter(
                     (title): title is string => !!title,
                   )
                 ).map((title, index) => (
-                  <li key={index} className="flex gap-4">
-                    <span className="font-mono text-xs text-page-muted">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
+                  <li key={index} className={styles.item}>
+                    <span className={styles.stepNumber}>{String(index + 1).padStart(2, '0')}</span>
                     <span>{title}</span>
                   </li>
                 ))}
@@ -305,24 +299,22 @@ export function IssueDetail({ id }: { id: string }) {
           </div>
         </section>
       )}
-      <p className="mt-4 whitespace-pre-wrap break-words border border-page-line bg-surface-raised p-4 text-sm">
-        {issue.description || '尚未补充描述。'}
-      </p>
-      <section className="mt-8" aria-label="问题出现记录">
-        <div className="mb-3 flex justify-between">
-          <h2 className="text-sm font-semibold">出现记录 · {occurrences.length}</h2>
-          <span className="text-xs text-page-muted">
+      <p className={styles.issueDescription}>{issue.description || '尚未补充描述。'}</p>
+      <section className={styles.historySection} aria-label="问题出现记录">
+        <div className={styles.historyHeading}>
+          <h2 className={styles.historyTitle}>出现记录 · {occurrences.length}</h2>
+          <span className={styles.historySummary}>
             {new Set(occurrences.map((item) => item.runId)).size} 次执行 ·{' '}
             {new Set(occurrences.map(environmentLabel)).size} 个环境
           </span>
         </div>
         {occurrences.length > 0 && (
-          <div className="overflow-x-auto border border-page-line bg-surface-raised">
+          <div className={styles.occurrenceTable}>
             <Table>
-              <TableHeader className="bg-surface-muted text-page-muted">
+              <TableHeader className={styles.tableHeader}>
                 <TableRow>
                   {['状态', '执行', '环境', '耗时', '开始时间'].map((title) => (
-                    <TableHead className="px-3 py-3 font-medium" key={title}>
+                    <TableHead className={styles.tableHead} key={title}>
                       {title}
                     </TableHead>
                   ))}
@@ -330,9 +322,9 @@ export function IssueDetail({ id }: { id: string }) {
               </TableHeader>
               <TableBody>
                 {occurrences.map((item) => (
-                  <TableRow key={item.id} className="border-t border-page-line">
-                    <TableCell className="px-3 py-4">
-                      <span className="border border-page-line px-2 py-1 text-xs">
+                  <TableRow key={item.id} className={styles.tableRow}>
+                    <TableCell className={styles.tableCell}>
+                      <span className={styles.runStatus}>
                         {item.snapshot.runStatus === 'passed'
                           ? '通过'
                           : item.snapshot.runStatus === 'cancelled'
@@ -343,18 +335,18 @@ export function IssueDetail({ id }: { id: string }) {
                               : '未知'}
                       </span>
                     </TableCell>
-                    <TableCell className="px-3 py-4">
-                      <Link className="font-semibold hover:text-brand" href={`/runs/${item.runId}`}>
+                    <TableCell className={styles.tableCell}>
+                      <Link className={styles.runLink} href={`/runs/${item.runId}`}>
                         {item.snapshot.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="px-3 py-4">{environmentLabel(item)}</TableCell>
-                    <TableCell className="px-3 py-4">
+                    <TableCell className={styles.tableCell}>{environmentLabel(item)}</TableCell>
+                    <TableCell className={styles.tableCell}>
                       {item.snapshot.durationMs == null
                         ? '—'
                         : `${(item.snapshot.durationMs / 1000).toFixed(1)}s`}
                     </TableCell>
-                    <TableCell className="px-3 py-4 whitespace-nowrap">
+                    <TableCell className={styles.timestampCell}>
                       {relativeTime(item.snapshot.startedAt ?? item.createdAt)}
                     </TableCell>
                   </TableRow>
@@ -364,34 +356,30 @@ export function IssueDetail({ id }: { id: string }) {
           </div>
         )}
         {!occurrences.length && (
-          <p className="text-sm text-page-muted">尚未关联测试执行，可从执行详情关联到此问题。</p>
+          <p className={styles.emptyMessage}>尚未关联测试执行，可从执行详情关联到此问题。</p>
         )}
         {occurrences.map((item) => (
-          <div key={item.id} className="mt-4 border border-page-line bg-surface-raised p-4">
-            <div className="flex flex-wrap justify-between gap-3">
+          <div key={item.id} className={styles.occurrence}>
+            <div className={styles.occurrenceHeading}>
               <strong>
                 {item.snapshot.name} {item.snapshot.step && ` / ${item.snapshot.step.title}`}
               </strong>
-              <Link className="text-brand" href={`/runs/${item.runId}`}>
+              <Link className={styles.detailsLink} href={`/runs/${item.runId}`}>
                 查看发现时的执行
               </Link>
             </div>
-            <p className="mt-2 text-xs text-page-muted">
+            <p className={styles.occurrenceMetadata}>
               {item.snapshot.target?.platform ?? 'web'} ·{' '}
               {new Date(item.createdAt).toLocaleString('zh-CN')}
             </p>
             {item.snapshot.step?.assertion && (
-              <p className="mt-3 text-sm">预期：{item.snapshot.step.assertion.description}</p>
+              <p className={styles.assertion}>预期：{item.snapshot.step.assertion.description}</p>
             )}
             {item.snapshot.step?.evidence && (
-              <p className="mt-2 text-sm">验证证据：{item.snapshot.step.evidence}</p>
+              <p className={styles.evidence}>验证证据：{item.snapshot.step.evidence}</p>
             )}
-            {item.snapshot.error && (
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-error-ink">
-                {item.snapshot.error}
-              </p>
-            )}
-            <div className="mt-4 flex flex-wrap gap-3">
+            {item.snapshot.error && <p className={styles.occurrenceError}>{item.snapshot.error}</p>}
+            <div className={styles.screenshots}>
               {item.snapshot.artifacts
                 .filter((frame) => frame.kind === 'screenshot')
                 .slice(-4)
@@ -406,7 +394,7 @@ export function IssueDetail({ id }: { id: string }) {
                       width={200}
                       height={120}
                       unoptimized
-                      className="h-28 w-48 rounded border border-page-line object-contain"
+                      className={styles.image}
                       src={asset(item.runId, frame)}
                       alt={`问题证据：${frame.stage === 'before' ? '执行前' : '执行后'}`}
                     />
@@ -426,47 +414,47 @@ export function IssueDetail({ id }: { id: string }) {
           </div>
         ))}
       </section>
-      <section className="mt-8" aria-label="回归验证">
-        <h2 className="mb-4 text-lg font-semibold">回归验证</h2>
+      <section className={styles.historySection} aria-label="回归验证">
+        <h2 className={styles.verificationHeading}>回归验证</h2>
         {!verifications.length && (
-          <p className="text-sm text-page-muted">
+          <p className={styles.emptyMessage}>
             从出现记录发起验证。通过后，请确认结果并标记已解决。
           </p>
         )}
         {verifications.map((item) => (
-          <div key={item.id} className="mb-3 rounded-lg border border-page-line p-4">
-            <div className="flex justify-between">
+          <div key={item.id} className={styles.verification}>
+            <div className={styles.verificationSummary}>
               <strong>{verificationLabels[item.outcome]}</strong>
-              <Link className="text-brand" href={`/runs/${item.runId}`}>
+              <Link className={styles.detailsLink} href={`/runs/${item.runId}`}>
                 查看回归执行
               </Link>
             </div>
-            <p className="mt-2 text-sm text-page-muted">{item.explanation}</p>
+            <p className={styles.verificationExplanation}>{item.explanation}</p>
           </div>
         ))}
       </section>
-      <section className="mt-8" aria-label="处理记录">
-        <h2 className="mb-4 text-lg font-semibold">处理记录</h2>
-        <form onSubmit={addComment} className="mb-6">
-          <label className="block">
+      <section className={styles.historySection} aria-label="处理记录">
+        <h2 className={styles.verificationHeading}>处理记录</h2>
+        <form onSubmit={addComment} className={styles.form}>
+          <label className={styles.field}>
             补充处理说明
             <Textarea
-              className="mt-2 min-h-24"
+              className={styles.input}
               value={comment}
               onChange={(event) => setComment(event.target.value)}
               required
               maxLength={10000}
             />
           </label>
-          <Button className="mt-3" type="submit" disabled={busy || !comment.trim()}>
+          <Button className={styles.commentSubmit} type="submit" disabled={busy || !comment.trim()}>
             添加说明
           </Button>
         </form>
-        <ol className="space-y-4">
+        <ol className={styles.events}>
           {events.map((event) => (
-            <li key={event.id} className="border-l-2 border-page-line pl-4">
-              <p className="whitespace-pre-wrap break-words text-sm">{event.message}</p>
-              <p className="mt-1 text-xs text-page-muted">
+            <li key={event.id} className={styles.event}>
+              <p className={styles.eventMessage}>{event.message}</p>
+              <p className={styles.eventTime}>
                 {new Date(event.createdAt).toLocaleString('zh-CN')}
               </p>
             </li>

@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import studioStyles from '@/features/runs/components/run-studio.module.css';
+import styles from './DockTabs.module.css';
+
 import {
   createContext,
   useContext,
@@ -64,7 +69,7 @@ function Content({ api }: IDockviewPanelProps) {
   }, [api]);
 
   return (
-    <div className="dock-panel" hidden={!visible || collapsedGroups.has(api.group.id)}>
+    <div className={studioStyles.dockPanel} hidden={!visible || collapsedGroups.has(api.group.id)}>
       {visited.has(api.id) && render(api.id)}
     </div>
   );
@@ -83,8 +88,9 @@ function Header({ api }: IDockviewPanelHeaderProps) {
 
   return (
     <button
+      data-ui="dock-tab-button"
       type="button"
-      className="dock-tab-button"
+      className={studioStyles.dockTabButton}
       aria-pressed={active}
       aria-expanded={!collapsedGroups.has(api.group.id)}
       onPointerDownCapture={() => {
@@ -100,10 +106,7 @@ function Header({ api }: IDockviewPanelHeaderProps) {
     >
       {api.title}
       {!!badges[api.id] && (
-        <span
-          aria-hidden="true"
-          className="ml-2 rounded bg-error-soft px-1.5 py-0.5 font-mono text-xs text-error-ink"
-        >
+        <span aria-hidden="true" className={styles.label}>
           {badges[api.id]}
         </span>
       )}
@@ -126,7 +129,10 @@ function GroupActions({ api, containerApi }: IDockviewHeaderActionsProps) {
   }, [api, containerApi]);
 
   return (
-    <div className="dock-group-actions" onPointerDown={(event) => event.stopPropagation()}>
+    <div
+      className={studioStyles.dockGroupActions}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
       <button
         type="button"
         aria-label={maximized ? '还原分组' : '最大化分组'}
@@ -234,7 +240,7 @@ export function DockTabs<T extends string>({
         maximumWidth: collapsed ? 40 : Number.POSITIVE_INFINITY,
       });
       api.setSize({ width: collapsed ? 40 : collapsedWidths.current.get(api.id) });
-      group.element.classList.toggle('dock-collapsed-side', collapsed);
+      group.element.classList.toggle(studioStyles.dockCollapsedSide, collapsed);
     } else {
       if (collapsed) expandedHeights.current.set(api.id, api.height);
       api.setConstraints({
@@ -280,7 +286,14 @@ export function DockTabs<T extends string>({
         collapse,
       }}
     >
-      <div aria-label={label} className={`caseforge-dock dockview-theme-light ${className}`}>
+      <div
+        data-ui="caseforge-dock"
+        aria-label={label}
+        className={classNames(
+          [studioStyles.caseforgeDock, 'dockview-theme-light'].join(' '),
+          className,
+        )}
+      >
         <DockviewReact
           theme={tabTheme}
           components={components}

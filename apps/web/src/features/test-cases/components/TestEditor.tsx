@@ -1,6 +1,7 @@
 'use client';
 
-import '@/features/test-cases/components/test-editor.css';
+import styles from './TestEditor.module.css';
+import editorStyles from '@/features/test-cases/components/test-editor.module.css';
 
 import { Button } from '@/components/ui/Button';
 import { useEffect, useState, useRef, useMemo } from 'react';
@@ -336,14 +337,14 @@ export function TestEditor({
 
   const content = (
     <form
-      className="flex h-full min-h-0 flex-1 flex-col"
+      className={styles.form}
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
         void save();
       }}
     >
-      <div className="flex min-h-0 flex-1">
+      <div className={styles.container}>
         <PlanBoard
           fullHeight
           plan={reviewPreview}
@@ -364,18 +365,19 @@ export function TestEditor({
           }
           floatingPanel={
             <aside
-              className={`case-floating-panel ${settingsOpen ? '' : 'is-collapsed'}`}
+              className={editorStyles.caseFloatingPanel}
+              data-collapsed={!settingsOpen}
               aria-label="测试面板"
             >
-              <div className="case-panel-actions">
-                <span className="case-panel-platform">
+              <div className={editorStyles.casePanelActions}>
+                <span className={editorStyles.casePanelPlatform}>
                   {platform === 'web' ? 'Web' : platform === 'ios' ? 'iOS' : 'Android'}
                 </span>
-                <span className="case-panel-count">
+                <span className={editorStyles.casePanelCount}>
                   {Object.values(reviewPreview.nodes).filter((node) => node.kind === 'task').length}{' '}
                   个步骤
                 </span>
-                <div className="case-panel-primary-actions">
+                <div className={editorStyles.casePanelPrimaryActions}>
                   <Button
                     type="button"
                     variant="primary"
@@ -396,7 +398,7 @@ export function TestEditor({
                   ref={generateRef}
                   variant="ghost"
                   size="icon-xs"
-                  className="case-panel-generate"
+                  className={editorStyles.casePanelGenerate}
                   aria-label={hasSteps ? '描述调整' : '描述生成'}
                   title={hasSteps ? '描述调整' : '描述生成'}
                   aria-expanded={composerOpen}
@@ -437,21 +439,18 @@ export function TestEditor({
                 </Button>
               </div>
               {settingsOpen && (
-                <div className="case-panel-heading">
+                <div className={editorStyles.casePanelHeading}>
                   <h2 id="editor-title">{name || '未命名测试'}</h2>
                   <p>{platform === 'web' ? webProfile : deviceProfileId || '未设置设备'}</p>
                 </div>
               )}
               {formError && !composerOpen && (
-                <p
-                  role="alert"
-                  className="shrink-0 border-t border-page-line px-6 py-2.5 text-[13px] text-error-ink"
-                >
+                <p role="alert" className={styles.error}>
                   {formError}
                 </p>
               )}
               {settingsOpen && (
-                <div id="case-panel-settings" className="case-panel-body">
+                <div id="case-panel-settings" className={editorStyles.casePanelBody}>
                   <CaseSettings
                     name={name}
                     onNameChange={changeName}
@@ -469,7 +468,13 @@ export function TestEditor({
   );
 
   return (
-    <section ref={canvasRef} className="case-canvas-page" aria-label="测试画板" aria-busy={busy}>
+    <section
+      data-ui="case-canvas-page"
+      ref={canvasRef}
+      className={editorStyles.caseCanvasPage}
+      aria-label="测试画板"
+      aria-busy={busy}
+    >
       {content}
       {trialId && (
         <TrialRunDialog
@@ -481,7 +486,7 @@ export function TestEditor({
         />
       )}
       {candidate && (
-        <div className="case-canvas-preview" role="status">
+        <div className={editorStyles.caseCanvasPreview} role="status">
           <span>{pendingChanges.length} 项变更待审阅</span>
           <Button type="button" size="xs" onClick={() => decideAll(false)}>
             全部拒绝

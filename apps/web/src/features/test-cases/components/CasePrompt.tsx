@@ -1,5 +1,8 @@
 'use client';
 
+import editorStyles from '@/features/test-cases/components/test-editor.module.css';
+import styles from './CasePrompt.module.css';
+
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { Icon } from '@iconify/react/offline';
@@ -7,7 +10,6 @@ import arrowRightIcon from '@iconify-icons/lucide/arrow-right';
 import closeIcon from '@iconify-icons/lucide/x';
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
-import '@/features/test-cases/components/test-editor.css';
 
 type Props = {
   open: boolean;
@@ -72,10 +74,11 @@ export function CasePrompt({
       }}
     >
       <Dialog.Portal container={container}>
-        <Dialog.Backdrop className="case-prompt-backdrop" />
+        <Dialog.Backdrop className={editorStyles.casePromptBackdrop} />
         <Dialog.Popup
+          data-ui="case-prompt-overlay"
           id="case-prompt-section"
-          className="case-prompt-overlay"
+          className={editorStyles.casePromptOverlay}
           initialFocus={promptRef}
           finalFocus={finalFocus}
           aria-busy={busy}
@@ -86,13 +89,13 @@ export function CasePrompt({
               void onSubmit();
             }}
           >
-            <div className="case-prompt-heading">
-              <Dialog.Title className="sr-only">{title}</Dialog.Title>
+            <div className={editorStyles.casePromptHeading}>
+              <Dialog.Title className={styles.accessibleLabel}>{title}</Dialog.Title>
               <Dialog.Close
                 className={buttonStyles({
                   variant: 'ghost',
                   size: 'icon-sm',
-                  className: 'rounded-lg text-ink',
+                  className: styles.close,
                 })}
                 aria-label={busy ? '取消生成' : '关闭描述输入'}
                 title={busy ? '取消生成（Esc）' : '关闭（Esc）'}
@@ -101,11 +104,12 @@ export function CasePrompt({
               </Dialog.Close>
             </div>
             <textarea
+              data-ui="case-prompt-input"
               ref={promptRef}
               id="case-prompt"
               name="caseText"
               aria-label="测试步骤与预期结果"
-              className="case-prompt-input"
+              className={editorStyles.casePromptInput}
               placeholder={hint}
               maxLength={20000}
               value={value}
@@ -123,16 +127,16 @@ export function CasePrompt({
               }}
             />
             {error && (
-              <p role="alert" className="case-prompt-error">
+              <p role="alert" className={editorStyles.casePromptError}>
                 {error}
               </p>
             )}
-            <div className="case-prompt-footer">
+            <div className={editorStyles.casePromptFooter}>
               <Button
                 type="submit"
                 variant="outline"
                 size="sm"
-                className="gap-2 rounded-lg text-ink"
+                className={styles.action}
                 disabled={busy || !value.trim()}
                 title="⌘ / Ctrl + Enter"
               >

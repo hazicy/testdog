@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import boardStyles from '@/features/runs/components/plan-board.module.css';
+import styles from './PlanNodes.module.css';
+
 import { statusStyles } from '@/components/ui/statusStyles';
 import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
@@ -80,11 +85,13 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
   return (
     <div
       data-plan-node={node.id}
+      data-reference={data.reference || undefined}
+      data-editing={editing || undefined}
       data-step-type={type}
       data-review={data.review?.kind}
       data-current={data.current || undefined}
       data-result={data.result?.status}
-      className={`plan-node ${type} ${data.reference ? 'reference' : ''} ${editing ? 'active' : ''} ${data.result ? 'has-result' : ''}`}
+      className={boardStyles.planNode}
       onDragOver={(event) => {
         if (data.editable && data.mutable && event.dataTransfer.types.includes(nodeDragType)) {
           event.preventDefault();
@@ -105,7 +112,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       <Handle id="node-in" type="target" position={Position.Left} isConnectable={false} />
       <Handle id="node-out" type="source" position={Position.Right} isConnectable={false} />
       {data.review && (
-        <div className="plan-review-actions nodrag nopan">
+        <div className={classNames(boardStyles.planReviewActions, 'nodrag', 'nopan')}>
           <span>
             {data.review.kind === 'added'
               ? '新增'
@@ -133,13 +140,13 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
         </div>
       )}
       {data.editable && data.mutable && (
-        <div className="plan-node-actions nodrag nopan">
+        <div className={classNames(boardStyles.planNodeActions, 'nodrag', 'nopan')}>
           <button
             type="button"
             draggable
             aria-label={`拖拽节点 ${node.id}`}
             title="拖拽调整顺序"
-            className="plan-drag-handle"
+            className={boardStyles.planDragHandle}
             onDragStart={(event) => {
               event.dataTransfer.setData(nodeDragType, node.id);
               event.dataTransfer.effectAllowed = 'move';
@@ -165,17 +172,17 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           </button>
         </div>
       )}
-      <div className="plan-node-row nodrag">
+      <div className={classNames(boardStyles.planNodeRow, 'nodrag')}>
         <StepBadge type={type} />
-        <div className="plan-node-content">
+        <div className={boardStyles.planNodeContent}>
           {data.review?.kind === 'modified' && data.review.before && (
-            <span className="plan-review-before">{beforeContent}</span>
+            <span className={boardStyles.planReviewBefore}>{beforeContent}</span>
           )}
-          {data.pathLabel && <span className="plan-path-label">{data.pathLabel}</span>}
+          {data.pathLabel && <span className={boardStyles.planPathLabel}>{data.pathLabel}</span>}
           {editing ? (
             <textarea
               autoFocus
-              className="plan-inline-input nodrag nopan"
+              className={classNames(boardStyles.planInlineInput, 'nodrag', 'nopan')}
               aria-label={`节点内容 ${node.id}`}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -191,8 +198,9 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             />
           ) : (
             <button
+              data-ui="plan-content-button"
               type="button"
-              className="plan-content-button"
+              className={boardStyles.planContentButton}
               aria-label={
                 data.editable
                   ? `编辑节点 ${node.id}`
@@ -213,7 +221,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             </button>
           )}
           {node.kind === 'branch' && !node.otherwise && (
-            <span className="plan-path-label">NO / 条件不成立：跳过</span>
+            <span className={boardStyles.planPathLabel}>NO / 条件不成立：跳过</span>
           )}
         </div>
         {!!steps.length && (
@@ -228,9 +236,9 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
         )}
       </div>
       {data.result && (
-        <div className="plan-result nodrag nopan">
-          <div className="plan-result-summary">
-            {data.current && <span className="plan-playback-marker">当前回放位置</span>}
+        <div className={classNames(boardStyles.planResult, 'nodrag', 'nopan')}>
+          <div className={boardStyles.planResultSummary}>
+            {data.current && <span className={boardStyles.planPlaybackMarker}>当前回放位置</span>}
             {data.result.durationMs !== undefined && (
               <span>
                 {(data.result.durationMs / 1000).toFixed(1)}s · {steps.length} 步
@@ -239,7 +247,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             {type === 'assert' && <p>预期：{content}</p>}
             {data.result.primary?.evidence && <p>验证证据：{data.result.primary.evidence}</p>}
             {data.result.primary?.error && (
-              <p className="plan-result-error">{data.result.primary.error}</p>
+              <p className={boardStyles.planResultError}>{data.result.primary.error}</p>
             )}
             {node.kind === 'branch' && data.result.primary?.decision !== undefined && (
               <p>判断结果：{data.result.primary.decision ? 'YES / 条件成立' : 'NO / 条件不成立'}</p>
@@ -258,7 +266,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             {data.result.primary && data.onIssue && (
               <Button
                 type="button"
-                className="ml-2"
+                className={styles.action}
                 onClick={() => data.onIssue?.(data.result!.primary!)}
               >
                 创建或关联问题
@@ -268,7 +276,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           {data.result.frame && (
             <button
               type="button"
-              className="plan-result-thumbnail"
+              className={boardStyles.planResultThumbnail}
               aria-label={`查看截图：${content}`}
               onClick={() => data.onFrame?.(data.result!.frame!)}
             >
@@ -287,7 +295,10 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
         </div>
       )}
       {!data.editable && expanded && (
-        <div className="plan-inline-evidence nodrag nopan">
+        <div
+          data-ui="plan-inline-evidence"
+          className={classNames(boardStyles.planInlineEvidence, 'nodrag', 'nopan')}
+        >
           {steps.map((step) => (
             <Button type="button" key={step.id} onClick={() => data.onStep(step)}>
               #{step.sequence} {step.title}

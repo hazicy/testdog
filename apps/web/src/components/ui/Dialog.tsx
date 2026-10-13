@@ -1,8 +1,10 @@
 'use client';
 
+import styles from './Dialog.module.css';
+
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { useRef, type ReactNode, type ComponentProps } from 'react';
-import { twMerge } from 'tailwind-merge';
+import { classNames } from '@/components/ui/classNames';
 
 export function Dialog({
   children,
@@ -46,14 +48,11 @@ export function Dialog({
       disablePointerDismissal
     >
       <BaseDialog.Portal>
-        <BaseDialog.Backdrop className="absolute inset-0 z-50 bg-backdrop backdrop-blur-[2px]" />
-        <BaseDialog.Viewport className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+        <BaseDialog.Backdrop className={styles.backdrop} />
+        <BaseDialog.Viewport className={styles.viewport}>
           <BaseDialog.Popup
             ref={popup}
-            className={twMerge(
-              'relative w-full max-w-[620px] max-h-[calc(100dvh-48px)] overflow-y-auto rounded-xl border border-dialog-line bg-surface p-0 text-ink shadow-[0_20px_80px_var(--shadow)]',
-              className,
-            )}
+            className={classNames(styles.popup, className)}
             aria-labelledby={titleId}
             aria-busy={busy}
             initialFocus={() => {
@@ -91,25 +90,9 @@ export function Dialog({
 }
 
 export function DialogHeader({ className = '', ...props }: ComponentProps<'div'>) {
-  return (
-    <div
-      {...props}
-      className={twMerge(
-        'flex items-start justify-between gap-4 border-b border-page-line px-6 py-[22px]',
-        className,
-      )}
-    />
-  );
+  return <div {...props} className={classNames(styles.header, className)} />;
 }
 
 export function DialogFooter({ className = '', ...props }: ComponentProps<'div'>) {
-  return (
-    <div
-      {...props}
-      className={twMerge(
-        'flex justify-end gap-2.5 border-t border-page-line bg-surface-muted px-6 py-4',
-        className,
-      )}
-    />
-  );
+  return <div {...props} className={classNames(styles.footer, className)} />;
 }

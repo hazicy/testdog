@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
+import styles from './WorkspaceList.module.css';
+
 import { Table, TableHeader, TableBody, TableRow, TableHead } from '@/components/ui/Table';
 import Link from 'next/link';
 import { type ComponentProps, type ReactNode } from 'react';
@@ -62,31 +67,26 @@ export function WorkspaceList({
 
   return (
     <section
-      className="workspace-index-list"
+      className={workspaceStyles.workspaceIndexList}
       aria-label={isTests ? '测试用例列表' : '执行记录列表'}
     >
-      <div className="workspace-index-toolbar">
-        <div className="workspace-index-search relative">
-          <Icon
-            icon={searchIcon}
-            className="absolute top-2.5 left-3 text-text-subtle"
-            width="16"
-            aria-hidden="true"
-          />
+      <div className={workspaceStyles.workspaceIndexToolbar}>
+        <div className={classNames(workspaceStyles.workspaceIndexSearch, styles.searchField)}>
+          <Icon icon={searchIcon} className={styles.searchIcon} width="16" aria-hidden="true" />
           <Input
             aria-label={isTests ? '搜索测试' : '搜索结果'}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={isTests ? '搜索用例…' : '搜索执行记录…'}
-            className="pl-9"
+            className={styles.searchInput}
           />
         </div>
-        <div className="workspace-index-filter">
+        <div className={workspaceStyles.workspaceIndexFilter}>
           <Select
             aria-label="状态筛选"
             value={filter}
             onValueChange={(value) => setFilter(value)}
-            className="w-auto"
+            className={styles.statusFilter}
             items={[
               { value: 'all', label: '全部状态' },
               { value: 'passed', label: '已通过' },
@@ -100,21 +100,21 @@ export function WorkspaceList({
             ]}
           />
         </div>
-        <div className="workspace-index-toolbar-actions">{actions}</div>
+        <div className={workspaceStyles.workspaceIndexToolbarActions}>{actions}</div>
       </div>
       {loading ? (
-        <p role="status" className="p-16 text-center text-sm text-text-subtle">
+        <p role="status" className={styles.loading}>
           正在加载工作区…
         </p>
       ) : (isTests ? visibleTests.length === 0 : visibleRuns.length === 0) ? (
-        <div className="workspace-index-empty">
+        <div data-ui="workspace-index-empty" className={workspaceStyles.workspaceIndexEmpty}>
           <Icon
             icon={query || filter !== 'all' ? searchIcon : isTests ? filesIcon : historyIcon}
             width="28"
-            className="mb-5 text-page-muted"
+            className={styles.emptyIcon}
             aria-hidden="true"
           />
-          <h2 className="text-base font-medium">
+          <h2 className={styles.emptyTitle}>
             {query || filter !== 'all'
               ? '没有符合条件的记录'
               : isTests
@@ -123,7 +123,7 @@ export function WorkspaceList({
           </h2>
           {query || filter !== 'all' ? (
             <Button
-              className="mt-6"
+              className={styles.emptyAction}
               onClick={() => {
                 setQuery('');
                 setFilter('all');
@@ -132,30 +132,36 @@ export function WorkspaceList({
               清除筛选
             </Button>
           ) : !isTests ? (
-            <Link href="/cases" className={buttonStyles({ size: 'sm', className: 'mt-6' })}>
+            <Link
+              href="/cases"
+              className={buttonStyles({ size: 'sm', className: styles.emptyAction })}
+            >
               浏览测试 <Icon icon={chevronIcon} width="14" aria-hidden="true" />
             </Link>
           ) : null}
         </div>
       ) : (
         <div>
-          <p className="border-b border-page-line px-4 py-2 text-xs text-text-subtle sm:hidden">
-            左右滑动查看时间与操作 →
-          </p>
+          <p className={styles.scrollHint}>左右滑动查看时间与操作 →</p>
           <div
-            className="overflow-x-auto"
+            className={styles.tableViewport}
             tabIndex={0}
             role="region"
             aria-label="可横向滚动的记录表格"
           >
-            <Table className={`workspace-index-table ${isTests ? 'is-tests' : 'is-results'}`}>
-              <TableHeader className="bg-transparent">
+            <Table
+              className={classNames(
+                workspaceStyles.workspaceIndexTable,
+                isTests ? '' : workspaceStyles.isResults,
+              )}
+            >
+              <TableHeader className={styles.tableHeader}>
                 <TableRow>
                   <TableHead>{isTests ? '用例' : '测试'}</TableHead>
                   <TableHead>{isTests ? '最近状态' : '状态'}</TableHead>
                   <TableHead>{isTests ? '最近执行' : '开始时间'}</TableHead>
                   {!isTests && <TableHead>耗时</TableHead>}
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead className={styles.actionsHeading}>操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -178,16 +184,16 @@ export function WorkspaceList({
           </div>
         </div>
       )}
-      <div className="workspace-index-footer">
+      <div data-ui="workspace-index-footer" className={workspaceStyles.workspaceIndexFooter}>
         <span>{loading ? '—' : isTests ? visibleTests.length : visibleRuns.length} 条记录</span>
         {running && (
-          <span className="workspace-index-live">
+          <span className={workspaceStyles.workspaceIndexLive}>
             <span aria-hidden="true" />
             {connected ? '实时更新' : '自动刷新'}
           </span>
         )}
         {(hasPrevious || hasNext) && (
-          <div className="workspace-index-pagination">
+          <div className={workspaceStyles.workspaceIndexPagination}>
             <Button
               variant="ghost"
               size="icon-xs"

@@ -494,8 +494,8 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   const input = dialog.getByRole('textbox', { name: '测试步骤与预期结果' });
   const generate = dialog.getByRole('button', { name: '生成', exact: true });
 
-  await expect(dialog).toHaveClass('case-prompt-overlay');
-  await expect(input).toHaveClass('case-prompt-input');
+  await expect(dialog).toHaveAttribute('data-ui', 'case-prompt-overlay');
+  await expect(input).toHaveAttribute('data-ui', 'case-prompt-input');
   const popupBounds = await dialog.boundingBox();
   const contentBounds = await page.locator('#main-content').boundingBox();
 
@@ -819,8 +819,8 @@ test('replay contains portrait landscape square and ultrawide media within the p
     await expect(page.getByText(`${width} × ${height} · BROWSER`, { exact: true })).toBeVisible();
     await expect(image).toHaveCSS('object-fit', 'contain');
     const bounds = await image.boundingBox();
-    const surface = await page.locator('.run-replay-surface').boundingBox();
-    const controls = await page.locator('.run-replay-controls').boundingBox();
+    const surface = await page.locator('[data-ui~="run-replay-surface"]').boundingBox();
+    const controls = await page.locator('[data-ui~="run-replay-controls"]').boundingBox();
 
     expect(bounds!.width).toBeGreaterThan(0);
     expect(bounds!.height).toBeGreaterThan(0);
@@ -839,7 +839,7 @@ test('dialogs support keyboard entry, Escape dismissal and focus restoration', a
   await create.focus();
   await create.press('Enter');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.locator('.case-canvas-page')).toBeVisible();
+  await expect(page.locator('[data-ui~="case-canvas-page"]')).toBeVisible();
   await page.getByRole('link', { name: '测试用例', exact: true }).first().click();
   const more = page.getByRole('button', { name: `更多操作：${saved.name}`, exact: true });
 
@@ -925,7 +925,9 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await mockLists(page, { runs: [summary] });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).click();
-  const dialog = page.locator('.case-canvas-page, [role=dialog]:not(#case-prompt-section)');
+  const dialog = page.locator(
+    '[data-ui~="case-canvas-page"], [role=dialog]:not(#case-prompt-section)',
+  );
 
   await dialog.getByRole('button', { name: '描述生成', exact: true }).click();
   await dialog.getByLabel('测试步骤与预期结果').fill('验证首页');
@@ -1026,15 +1028,15 @@ test('nested plans keep node evidence and dependency navigation through zoom and
   for (let attempt = 0; attempt < 2; attempt++) {
     await page.getByRole('button', { name: '执行步骤', exact: true }).click();
     await expect(page.locator('.react-flow__node').first()).toBeHidden();
-    await expect(page.locator('.plan-viewport')).toBeHidden();
+    await expect(page.locator('[data-ui~="plan-viewport"]')).toBeHidden();
     await page.getByRole('button', { name: '计划画板', exact: true }).click();
     await expectDependency();
   }
 
   await expect(page.getByRole('button', { name: '依赖连线', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '查看节点 open', exact: true }).click();
-  const detail = page.locator('[data-plan-node="open"] .plan-inline-evidence');
-  const viewport = page.locator('.plan-viewport');
+  const detail = page.locator('[data-plan-node="open"] [data-ui~="plan-inline-evidence"]');
+  const viewport = page.locator('[data-ui~="plan-viewport"]');
 
   await viewport.focus();
   await viewport.press('ArrowRight');
@@ -1224,7 +1226,9 @@ test('plan subflows retain both branch paths, shared references and external dep
     page.locator('[data-plan-node="shared"] [data-slot="status"][data-status="failed"]'),
   ).toHaveCount(2);
   await page.getByRole('button', { name: '查看引用节点 shared', exact: true }).click();
-  const detail = page.locator('[data-plan-node="shared"].reference .plan-inline-evidence');
+  const detail = page.locator(
+    '[data-plan-node="shared"][data-reference="true"] [data-ui~="plan-inline-evidence"]',
+  );
 
   await expect(detail.getByRole('button', { name: /打开网站/ })).toBeVisible();
   await expect(page.getByRole('button', { name: '重置', exact: true })).toHaveCount(0);
@@ -1360,7 +1364,7 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
   await page.getByRole('button', { name: '执行日志', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeHidden();
   await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeHidden();
-  await expect(dock.locator('.caseforge-dock')).toHaveCount(0);
+  await expect(dock.locator('[data-ui~="caseforge-dock"]')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -1507,7 +1511,7 @@ test('group header actions maximize restore and collapse each group', async ({ p
   );
   await page.goto(`/runs/${run.id}`);
   for (const name of ['执行步骤', '执行回放', '执行日志']) {
-    const tab = page.locator('.dock-tab-button').filter({ hasText: name });
+    const tab = page.locator('[data-ui~="dock-tab-button"]').filter({ hasText: name });
     const group = page.locator('.dv-groupview').filter({ has: tab });
 
     await group.locator('.dv-tabs-and-actions-container').hover();
@@ -1561,7 +1565,9 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('.case-canvas-page, [role=dialog]:not(#case-prompt-section)');
+  const dialog = page.locator(
+    '[data-ui~="case-canvas-page"], [role=dialog]:not(#case-prompt-section)',
+  );
 
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(dialog.getByLabel('测试步骤与预期结果')).toHaveCount(0);
@@ -1573,7 +1579,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await dialog.getByLabel('网站地址', { exact: true }).fill('https://github.com/tester-army/e2e');
   await dialog.getByRole('button', { name: '收起面板' }).click();
   await expect(dialog.getByLabel('网站地址', { exact: true })).toBeHidden();
-  const canvas = await dialog.locator('.plan-viewport').boundingBox();
+  const canvas = await dialog.locator('[data-ui~="plan-viewport"]').boundingBox();
 
   expect(canvas!.height).toBeGreaterThan(600);
   expect(canvas!.width).toBeGreaterThan(700);
@@ -1604,7 +1610,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
       .filter({ hasText: new RegExp(`^${type}`) })
       .click();
     await dialog
-      .locator(`[data-step-type="${type.toLowerCase()}"] .plan-content-button`)
+      .locator(`[data-step-type="${type.toLowerCase()}"] [data-ui~="plan-content-button"]`)
       .last()
       .click();
     await dialog.getByRole('textbox', { name: /^节点内容/ }).fill(text);
@@ -1615,7 +1621,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   // Insertion at the first slot changes execution order, rather than always appending.
   await dialog.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
   await page.getByRole('menuitem').filter({ hasText: /^Act/ }).click();
-  await dialog.locator('[data-step-type=act] .plan-content-button').first().click();
+  await dialog.locator('[data-step-type=act] [data-ui~="plan-content-button"]').first().click();
   await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('检查前置环境');
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
   await expect(page).toHaveURL(/\/cases\/editor\//);
@@ -1671,7 +1677,9 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   );
   await page.screenshot({ path: 'artifacts/ui/case-canvas-settings.png' });
   await dialog.getByRole('button', { name: '收起面板' }).click();
-  await dialog.locator('.plan-board').screenshot({ path: 'artifacts/ui/case-tree-editor.png' });
+  await dialog
+    .locator('[data-ui~="plan-board"]')
+    .screenshot({ path: 'artifacts/ui/case-tree-editor.png' });
 
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden();
@@ -1735,7 +1743,9 @@ test('converts text to independent action and assertion cards and preserves fail
   );
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('.case-canvas-page, [role=dialog]:not(#case-prompt-section)');
+  const dialog = page.locator(
+    '[data-ui~="case-canvas-page"], [role=dialog]:not(#case-prompt-section)',
+  );
 
   await dialog.getByRole('button', { name: '描述生成', exact: true }).click();
   await dialog.getByLabel('测试步骤与预期结果').fill('打开 https://example.com 点击登录并检查表单');
@@ -1808,7 +1818,7 @@ test('adds adjacent groups as columns with independent insertion points', async 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const canvas = page.locator('.case-canvas-page');
+  const canvas = page.locator('[data-ui~="case-canvas-page"]');
 
   for (const index of [1, 1]) {
     await canvas
@@ -1823,7 +1833,7 @@ test('adds adjacent groups as columns with independent insertion points', async 
   const groups = canvas.locator('[data-step-type=group]:not([data-plan-node=root])');
 
   await expect(groups).toHaveCount(2);
-  await expect(canvas.locator('.step-insert-trigger')).toHaveCount(3);
+  await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(3);
   await canvas.screenshot({ path: testInfo.outputPath('group-insertions.png') });
   await expect
     .poll(async () => {
@@ -1855,7 +1865,7 @@ test('adds adjacent groups as columns with independent insertion points', async 
     .getByRole('button', { name: `复制节点 ${leftId}`, exact: true })
     .click();
   await expect(groups).toHaveCount(3);
-  await expect(canvas.locator('.step-insert-trigger')).toHaveCount(4);
+  await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(4);
   const copyId = (await groups.nth(1).getAttribute('data-plan-node'))!;
 
   await groups.nth(1).hover();
@@ -1864,7 +1874,7 @@ test('adds adjacent groups as columns with independent insertion points', async 
     .getByRole('button', { name: `删除节点 ${copyId}`, exact: true })
     .click();
   await expect(groups).toHaveCount(2);
-  await expect(canvas.locator('.step-insert-trigger')).toHaveCount(3);
+  await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(3);
 
   for (const id of [leftId, rightId]) {
     await canvas
@@ -1923,12 +1933,12 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
   await mockRun(page, makeRun({ plan }));
   await page.goto(`/runs/${run.id}`);
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
-  const board = page.locator('.plan-viewport');
+  const board = page.locator('[data-ui~="plan-viewport"]');
   const flowViewport = board.locator('.react-flow__viewport');
   const a = board.locator('[data-testid="rf__node-plan:a"]');
   const b = board.locator('[data-testid="rf__node-plan:b"]');
 
-  await a.locator('.step-badge').click();
+  await a.locator('[data-ui~="step-badge"]').click();
   await expect(a).toHaveClass(/selected/);
   const bounds = (await board.boundingBox())!;
   const transform = await flowViewport.getAttribute('style');
@@ -1945,7 +1955,7 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
   await page.mouse.up({ button: 'middle' });
   await expect.poll(() => flowViewport.getAttribute('style')).not.toBe(transform);
 
-  const badge = (await a.locator('.step-badge').boundingBox())!;
+  const badge = (await a.locator('[data-ui~="step-badge"]').boundingBox())!;
   const panned = await flowViewport.getAttribute('style');
 
   await page.mouse.move(badge.x + badge.width / 2, badge.y + badge.height / 2);

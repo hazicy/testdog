@@ -1,0 +1,56 @@
+.heading {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+.subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.form {
+  & > :not(:last-child) {
+    margin-block-start: 0;
+    margin-block-end: 1rem;
+  }
+  padding: 1.5rem;
+}
+.connectionHint {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--page-muted);
+}
+.error {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--error-ink);
+}
+.field {
+  margin-bottom: 0.5rem;
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.clearCredential {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.loading {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--step-success);
+}
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.unsavedHint {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}

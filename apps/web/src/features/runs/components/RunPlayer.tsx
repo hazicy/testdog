@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import studioStyles from '@/features/runs/components/run-studio.module.css';
+import styles from './RunPlayer.module.css';
+
 import Image from 'next/image';
 import { Slider } from '@base-ui/react/slider';
 import { useEffect, useState } from 'react';
@@ -85,9 +90,9 @@ export function RunPlayer({
   }
 
   return (
-    <section aria-label="浏览器画面" className="studio-panel">
-      <div className="studio-panel-toolbar">
-        <span className="font-mono text-xs text-page-muted">
+    <section aria-label="浏览器画面" className={studioStyles.studioPanel}>
+      <div className={studioStyles.studioPanelToolbar}>
+        <span className={styles.label}>
           {dimensions.width} × {dimensions.height} ·{' '}
           {active && follow
             ? '● LIVE'
@@ -96,15 +101,15 @@ export function RunPlayer({
               : run.targetSnapshot.platform.toUpperCase()}
         </span>
       </div>
-      <div className="run-replay-panel">
-        <div className="run-replay-surface">
+      <div className={studioStyles.runReplayPanel}>
+        <div data-ui="run-replay-surface" className={studioStyles.runReplaySurface}>
           {useVideo ? (
             <video
               ref={videoElement}
               key={video?.id}
               aria-label="执行录像"
               src={video ? asset(id, video) : undefined}
-              className="h-full w-full object-contain"
+              className={styles.video}
               playsInline
               preload="auto"
               onLoadedMetadata={(event) => {
@@ -148,7 +153,7 @@ export function RunPlayer({
                   height: event.currentTarget.naturalHeight,
                 })
               }
-              className="h-full w-full object-contain"
+              className={styles.video}
             />
           ) : currentFrame ? (
             <Image
@@ -163,15 +168,18 @@ export function RunPlayer({
                   height: event.currentTarget.naturalHeight,
                 })
               }
-              className="h-full w-full object-contain"
+              className={styles.video}
             />
           ) : (
-            <p className="p-8 text-sm text-preview-ink">
+            <p className={styles.description}>
               {active ? '执行环境正在准备，画面即将出现。' : '本次执行尚未生成画面。'}
             </p>
           )}
         </div>
-        <div className="studio-panel-toolbar run-replay-controls">
+        <div
+          data-ui="run-replay-controls"
+          className={classNames(studioStyles.studioPanelToolbar, studioStyles.runReplayControls)}
+        >
           <Button
             variant="primary"
             size="icon"
@@ -181,12 +189,12 @@ export function RunPlayer({
           >
             <Icon icon={playing ? pauseIcon : resultsIcon} width="20" aria-hidden="true" />
           </Button>
-          <span aria-label="回放时间" className="whitespace-nowrap font-mono text-xs tabular-nums">
+          <span aria-label="回放时间" className={styles.playbackTime}>
             {time(position)} / {time(total)}
           </span>
-          <div className="relative h-11 min-w-24 flex-1">
+          <div className={styles.container}>
             <Slider.Root
-              className="h-full"
+              className={styles.root}
               min={0}
               max={Math.max(1, total)}
               step={1}
@@ -195,28 +203,22 @@ export function RunPlayer({
               onValueChange={seek}
               onValueCommitted={seek}
             >
-              <Slider.Control
-                data-testid="replay-timeline"
-                className="relative flex h-full w-full touch-none items-center select-none"
-              >
-                <Slider.Track className="relative h-1 w-full rounded bg-page-line">
-                  <Slider.Indicator className="h-full rounded bg-brand" />
+              <Slider.Control data-testid="replay-timeline" className={styles.control}>
+                <Slider.Track className={styles.track}>
+                  <Slider.Indicator className={styles.indicator} />
                   {marks.map(({ step, percent }) => (
                     <span
                       key={step.id}
                       aria-hidden="true"
-                      className="pointer-events-none absolute top-1/2 h-2 w-0.5 -translate-x-1/2 -translate-y-1/2 bg-page-muted"
+                      className={styles.issueMarker}
                       style={{ left: `${percent}%` }}
                     />
                   ))}
-                  <Slider.Thumb
-                    aria-label="画面时间轴"
-                    className="h-3 w-3 rounded-full bg-brand outline-offset-4 focus-visible:outline-2 focus-visible:outline-brand"
-                  />
+                  <Slider.Thumb aria-label="画面时间轴" className={styles.thumb} />
                 </Slider.Track>
               </Slider.Control>
             </Slider.Root>
-            <div className="absolute inset-x-0 top-1/2 mt-2 h-5" aria-label="回放动作标记">
+            <div className={styles.actionMarkers} aria-label="回放动作标记">
               {marks.map(({ step, elapsed, percent }) => (
                 <Button
                   variant="ghost"
@@ -224,7 +226,10 @@ export function RunPlayer({
                   aria-label={`跳转动作：${step.title}`}
                   title={`${time(elapsed)} · ${step.title}`}
                   onClick={() => seek(elapsed)}
-                  className={`min-h-0 p-0 absolute top-0 grid h-5 w-5 -translate-x-1/2 place-items-center rounded bg-surface hover:bg-page focus-visible:outline-2 focus-visible:outline-brand ${step.status === 'failed' ? 'text-error-ink' : 'text-page-muted hover:text-brand'}`}
+                  className={classNames(
+                    styles.action,
+                    step.status === 'failed' ? styles.error : styles.normalMarker,
+                  )}
                   style={{ left: `${percent}%` }}
                 >
                   <Icon icon={actionIcon(step)} aria-hidden="true" width="12" height="12" />
@@ -236,7 +241,7 @@ export function RunPlayer({
             aria-label="回看速度"
             value={speed}
             onValueChange={(value) => playback.setSpeed(Number(value))}
-            className="border border-page-line bg-transparent p-1 font-mono text-xs"
+            className={styles.select}
             items={[
               { value: 0.5, label: '0.5×' },
               { value: 1, label: '1×' },
@@ -251,7 +256,7 @@ export function RunPlayer({
                 setVideoDuration(0);
                 playback.setVideoId(value);
               }}
-              className="w-auto"
+              className={styles.videoSelector}
               items={videos.map((item) => ({ value: item.id, label: item.pageId }))}
             />
           )}

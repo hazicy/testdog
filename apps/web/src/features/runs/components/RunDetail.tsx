@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import styles from './RunDetail.module.css';
+import studioStyles from '@/features/runs/components/run-studio.module.css';
+
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { DockTabs, type DockTab } from '@/components/ui/DockTabs';
@@ -33,8 +38,6 @@ import {
 import { time } from '@/features/runs/presentation';
 import { IssueEditor } from '@/features/issues/components/IssueEditor';
 
-import '@/features/runs/components/run-studio.css';
-
 const workspaceTabs = [
   { id: 'steps', label: '执行步骤', initiallyVisible: true, initialWidthRatio: 0.382 },
   { id: 'issues', label: '问题', reference: 'steps' },
@@ -65,7 +68,7 @@ const PlanBoard = dynamic(
   () => import('@/features/runs/components/PlanBoard').then((module) => module.PlanBoard),
   {
     loading: () => (
-      <p role="status" className="p-6 text-sm text-page-muted">
+      <p role="status" className={styles.loading}>
         正在加载计划画板…
       </p>
     ),
@@ -76,7 +79,7 @@ const RecordingEditor = dynamic(
     import('@/features/runs/components/RecordingEditor').then((module) => module.RecordingEditor),
   {
     loading: () => (
-      <p role="status" className="p-6 text-sm text-page-muted">
+      <p role="status" className={styles.loading}>
         正在加载录制编辑器…
       </p>
     ),
@@ -236,20 +239,16 @@ export function RunDetail({
         ? runIssues
             .filter((entry) => entry.occurrence.stepId === step.id)
             .map((entry) => (
-              <div key={entry.occurrence.id} className="border-b border-page-line px-5 py-2">
+              <div key={entry.occurrence.id} className={styles.container}>
                 <Button
                   variant="ghost"
-                  className="flex w-full items-start gap-2 text-left text-xs min-h-0 rounded-none p-0 whitespace-normal"
+                  className={styles.action}
                   aria-label={`查看问题：${entry.issue.title}`}
                   onClick={() => selectRunIssue(entry)}
                 >
-                  <span className="shrink-0 border border-error-line bg-error-soft px-2 py-1 text-error-ink">
-                    问题
-                  </span>
-                  <span className="min-w-0 flex-1 pt-1 font-medium break-words">
-                    {entry.issue.title}
-                  </span>
-                  <span className="shrink-0 pt-1 font-mono text-page-muted">
+                  <span className={styles.issueBadge}>问题</span>
+                  <span className={styles.issueTitle}>{entry.issue.title}</span>
+                  <span className={styles.issueTime}>
                     ▶ {time(issuePosition(run, entry.occurrence))}
                   </span>
                 </Button>
@@ -382,7 +381,7 @@ export function RunDetail({
       case 'console':
       case 'network':
         return (
-          <div className="studio-content">
+          <div className={studioStyles.studioContent}>
             <BrowserLogPanel
               runId={id}
               kind={panel}
@@ -410,7 +409,7 @@ export function RunDetail({
     );
 
   return (
-    <div className="run-studio">
+    <div data-ui="run-studio" className={studioStyles.runStudio}>
       <RunHeader
         id={id}
         embedded={embedded}
@@ -424,14 +423,19 @@ export function RunDetail({
         exportReport={() => perform('export')}
       />
       {run?.evidenceComplete === false && (
-        <p role="alert" className="studio-alert">
+        <p role="alert" className={studioStyles.studioAlert}>
           本次执行的证据归档不完整，请查看执行错误。
         </p>
       )}
       {error && (
-        <div role="alert" className="studio-alert flex justify-between gap-3">
+        <div role="alert" className={classNames(studioStyles.studioAlert, styles.error)}>
           <span>{error}</span>
-          <Button onClick={() => void refresh()} variant="ghost" size="sm" className="underline">
+          <Button
+            onClick={() => void refresh()}
+            variant="ghost"
+            size="sm"
+            className={styles.refresh}
+          >
             刷新
           </Button>
         </div>
@@ -452,7 +456,7 @@ export function RunDetail({
       <DockTabs
         key={`${id}:${layoutVersion}`}
         label="执行工作台"
-        className="run-studio-dock"
+        className={studioStyles.runStudioDock}
         tabs={workspaceTabs
           .map((tab): DockTab & { id: PanelId } => {
             const configured: DockTab & { id: PanelId } = {

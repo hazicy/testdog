@@ -1,8 +1,9 @@
+import styles from './not-found.module.css';
 import { ErrorState } from '@/components/shared/ErrorState';
 
 export default function NotFound() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
+    <div className={styles.container}>
       <ErrorState
         illustration="not-found"
         title="页面不存在"

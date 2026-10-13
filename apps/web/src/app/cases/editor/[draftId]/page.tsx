@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './page.module.css';
+
 import { useSyncExternalStore } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -17,7 +19,7 @@ export default function CaseCanvasPage() {
 
   if (raw === undefined)
     return (
-      <p className="p-6" role="status">
+      <p className={styles.loading} role="status">
         正在打开画板…
       </p>
     );
@@ -25,7 +27,7 @@ export default function CaseCanvasPage() {
 
   if (!draft)
     return (
-      <div className="p-6">
+      <div className={styles.loading}>
         <p>当前草稿不可用。</p>
         <Link href="/cases">返回用例列表</Link>
       </div>

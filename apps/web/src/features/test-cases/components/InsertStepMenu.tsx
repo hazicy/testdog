@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import boardStyles from '@/features/runs/components/plan-board.module.css';
+import styles from './InsertStepMenu.module.css';
+
 import { nodeDragType } from '@/features/runs/components/PlanNodes';
 import { useState } from 'react';
 import { Menu } from '@base-ui/react/menu';
@@ -29,7 +34,7 @@ export function InsertStepMenu({ data }: NodeProps<InsertFlowNode>) {
 
   return (
     <div
-      className="step-insert-area"
+      className={boardStyles.stepInsertArea}
       data-persistent={data.persistent}
       data-revealed={data.revealed}
     >
@@ -39,7 +44,8 @@ export function InsertStepMenu({ data }: NodeProps<InsertFlowNode>) {
         }}
       >
         <Menu.Trigger
-          className="step-insert-trigger nodrag nopan"
+          data-ui="step-insert-trigger"
+          className={classNames(boardStyles.stepInsertTrigger, 'nodrag', 'nopan')}
           aria-label={data.label}
           title={data.description}
           onDragOver={(event) => {
@@ -61,13 +67,13 @@ export function InsertStepMenu({ data }: NodeProps<InsertFlowNode>) {
             side="bottom"
             align="center"
             sideOffset={8}
-            className="step-menu-positioner"
+            className={boardStyles.stepMenuPositioner}
           >
-            <Menu.Popup className="step-type-menu" aria-label="选择节点类型">
-              <label className="flex items-center gap-2 px-3 py-2 text-sm">
+            <Menu.Popup className={boardStyles.stepTypeMenu} aria-label="选择节点类型">
+              <label className={styles.field}>
                 插入位置
                 <select
-                  className="min-w-0 flex-1 rounded border border-gray-200 p-1"
+                  className={styles.select}
                   aria-label="插入位置"
                   value={index}
                   onChange={(event) => setIndex(Number(event.target.value))}
@@ -85,7 +91,7 @@ export function InsertStepMenu({ data }: NodeProps<InsertFlowNode>) {
               {stepTypes.map((type) => (
                 <Menu.Item
                   key={type.value}
-                  className="step-type-option"
+                  className={boardStyles.stepTypeOption}
                   onClick={() => data.onInsert(type.value, index)}
                 >
                   <StepBadge type={type.value} />

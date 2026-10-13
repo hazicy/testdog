@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './ModelUsagePanel.module.css';
+
 import {
   Table,
   TableHeader,
@@ -22,24 +24,24 @@ export function ModelUsagePanel({ id, active }: { id: string; active: boolean })
   const usage = data.data?.usage;
 
   return (
-    <section aria-label="AI 调用用量" className="mb-5 border-b border-page-line pb-5 text-xs">
-      <p className="font-medium">AI 调用用量</p>
+    <section aria-label="AI 调用用量" className={styles.section}>
+      <p className={styles.description}>AI 调用用量</p>
       {data.error && <p role="alert">无法加载 AI 调用用量。</p>}
       {usage ? (
         <>
-          <p className="mt-2 text-page-muted">
+          <p className={styles.usageSummary}>
             {usage.calls} 次调用 · {(usage.durationMs / 1000).toFixed(1)}s · 输入{' '}
             {usage.inputTokens} / 输出 {usage.outputTokens} tokens · {usage.failures} 次失败 ·{' '}
             {usage.retries} 次重试
           </p>
           {!!usage.unknownUsage && (
-            <p className="mt-2 text-page-muted">
+            <p className={styles.usageSummary}>
               {usage.unknownUsage} 次调用未返回用量，token 合计仅包含已知用量。
             </p>
           )}
-          <details className="mt-3">
-            <summary className="cursor-pointer">查看每次调用</summary>
-            <Table className="mt-2 text-xs">
+          <details className={styles.details}>
+            <summary className={styles.summary}>查看每次调用</summary>
+            <Table className={styles.table}>
               <TableHeader>
                 <TableRow>
                   <TableHead>模型 / 时间</TableHead>
@@ -68,7 +70,7 @@ export function ModelUsagePanel({ id, active }: { id: string; active: boolean })
           </details>
         </>
       ) : (
-        !data.error && <p className="mt-2 text-page-muted">正在加载…</p>
+        !data.error && <p className={styles.usageSummary}>正在加载…</p>
       )}
     </section>
   );

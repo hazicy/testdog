@@ -1,0 +1,37 @@
+.matrixTitle {
+  font-size: 1.125rem;
+  line-height: calc(1.75 / 1.125);
+  font-weight: 600;
+}
+.container {
+  & > :not(:last-child) {
+    margin-block-start: 0;
+    margin-block-end: 1rem;
+  }
+  padding: 1.5rem;
+}
+.description {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--page-muted);
+}
+.input {
+  min-height: 18rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.details {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.code {
+  margin-top: 0.5rem;
+  overflow: auto;
+}
+.error {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--error-ink);
+}

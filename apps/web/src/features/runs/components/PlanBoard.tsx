@@ -1,10 +1,14 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import styles from './PlanBoard.module.css';
+import boardStyles from '@/features/runs/components/plan-board.module.css';
+
 import { Button } from '@/components/ui/Button';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import '@/features/runs/components/plan-board.css';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
 import { InsertStepMenu } from '@/features/test-cases/components/InsertStepMenu';
@@ -35,7 +39,7 @@ type BoardProps = {
 };
 
 export function PlanBoard(props: BoardProps) {
-  if (!props.plan) return <p className="p-6 text-sm text-page-muted">计划生成后会在此展示。</p>;
+  if (!props.plan) return <p className={styles.description}>计划生成后会在此展示。</p>;
 
   return (
     <ReactFlowProvider>
@@ -138,20 +142,28 @@ function PlanBoardContent({
   ]);
 
   return (
-    <div className={`plan-board ${fullHeight ? 'plan-board-full' : ''}`}>
+    <div
+      data-ui="plan-board"
+      className={classNames(boardStyles.planBoard, fullHeight ? boardStyles.planBoardFull : '')}
+    >
       {error && (
-        <p
-          role="alert"
-          className="shrink-0 border-t border-page-line px-6 py-2.5 text-[13px] text-error-ink"
-        >
+        <p role="alert" className={styles.error}>
           {error}
         </p>
       )}
       <div
-        className={`plan-board-body ${settingsOpen ? 'has-inspector' : ''} ${floatingPanel ? 'has-floating-panel' : ''}`}
+        className={classNames(
+          boardStyles.planBoardBody,
+          settingsOpen ? boardStyles.hasInspector : '',
+          floatingPanel ? boardStyles.hasFloatingPanel : '',
+        )}
       >
         <div
-          className={`plan-viewport ${viewportOverlay ? 'has-composer' : ''}`}
+          data-ui="plan-viewport"
+          className={classNames(
+            boardStyles.planViewport,
+            viewportOverlay ? boardStyles.hasComposer : '',
+          )}
           aria-label="计划画板"
           tabIndex={0}
           onMouseLeave={() => setHoveredId(undefined)}
@@ -235,8 +247,13 @@ function PlanBoardContent({
             <Background color="#edf0f3" gap={24} size={1} />
           </ReactFlow>
           {viewportOverlay}
-          <div className="plan-canvas-tools">
-            <div className="plan-viewport-controls" role="group" aria-label="画板视图">
+          <div className={boardStyles.planCanvasTools}>
+            <div
+              data-ui="plan-viewport-controls"
+              className={boardStyles.planViewportControls}
+              role="group"
+              aria-label="画板视图"
+            >
               {onChange && (
                 <>
                   <button
@@ -285,9 +302,9 @@ function PlanBoardContent({
         </div>
         {floatingPanel}
         {settingsOpen && (
-          <aside className="plan-inspector" aria-label="画板设置">
-            <div className="flex items-center justify-between gap-2 mb-5">
-              <h3 className="text-sm font-semibold">测试设置</h3>
+          <aside className={boardStyles.planInspector} aria-label="画板设置">
+            <div className={styles.container}>
+              <h3 className={styles.subheading}>测试设置</h3>
               <Button
                 type="button"
                 variant="ghost"

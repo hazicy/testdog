@@ -1,5 +1,9 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import styles from './RunLayoutPopover.module.css';
+
 import { useState } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import { Icon } from '@iconify/react/offline';
@@ -61,42 +65,41 @@ export function RunLayoutPopover({
         <Icon icon={layoutIcon} width="16" aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner side="bottom" align="end" sideOffset={10} className="z-50">
-          <Popover.Popup className="w-[340px] max-w-[calc(100vw-24px)] max-h-[var(--available-height)] overflow-y-auto rounded-2xl border border-page-line bg-surface p-5 text-ink shadow-xl outline-none">
-            <Popover.Title className="text-base font-semibold">布局</Popover.Title>
-            <Popover.Description className="mt-1 text-xs text-page-muted">
+        <Popover.Positioner side="bottom" align="end" sideOffset={10} className={styles.positioner}>
+          <Popover.Popup className={styles.popup}>
+            <Popover.Title className={styles.title}>布局</Popover.Title>
+            <Popover.Description className={styles.description}>
               选择工作台布局，也可拖动标签调整面板。
             </Popover.Description>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className={styles.container}>
               {presets.map((preset) => (
                 <Button
                   key={preset.id}
                   variant="ghost"
                   aria-pressed={value === preset.id}
                   onClick={() => select(preset.id)}
-                  className={`h-auto flex-col items-stretch gap-2 rounded-xl border p-2.5 text-left ${value === preset.id ? 'border-ink bg-control-hover' : 'border-transparent'}`}
+                  className={classNames(
+                    styles.preset,
+                    value === preset.id ? styles.selectedPreset : styles.unselectedPreset,
+                  )}
                 >
                   <span
                     aria-hidden="true"
-                    className="grid h-24 gap-1.5"
+                    className={styles.label}
                     style={{ gridTemplateColumns: preset.columns, gridTemplateRows: '1fr 0.35fr' }}
                   >
                     {preset.cells.map((area) => (
-                      <span
-                        key={area}
-                        style={{ gridArea: area }}
-                        className="rounded-md border border-page-line bg-surface-muted"
-                      />
+                      <span key={area} style={{ gridArea: area }} className={styles.previewCell} />
                     ))}
                   </span>
-                  <span className="text-sm font-medium">{preset.label}</span>
+                  <span className={styles.presetLabel}>{preset.label}</span>
                 </Button>
               ))}
             </div>
-            <div className="mt-4 border-t border-page-line pt-4">
+            <div className={styles.footer}>
               <Button
                 variant="soft"
-                className="w-full gap-2 rounded-xl"
+                className={styles.focusToggle}
                 aria-pressed={value === 'focus'}
                 onClick={() => select(value === 'focus' ? 'default' : 'focus')}
               >
@@ -106,7 +109,7 @@ export function RunLayoutPopover({
               <Button
                 variant="ghost"
                 size="sm"
-                className="mt-2 w-full text-page-muted"
+                className={styles.reset}
                 onClick={() => select('default')}
               >
                 恢复默认布局

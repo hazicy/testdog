@@ -1,5 +1,9 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
+
 import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Menu } from '@base-ui/react/menu';
 import { Icon } from '@iconify/react/offline';
@@ -38,7 +42,7 @@ export function WorkspaceRowMenu({ label, actions }: { label: string; actions: A
         className={buttonStyles({
           variant: 'ghost',
           size: 'icon-xs',
-          className: 'workspace-row-menu-trigger',
+          className: workspaceStyles.workspaceRowMenuTrigger,
         })}
         aria-label={label}
       >
@@ -49,14 +53,17 @@ export function WorkspaceRowMenu({ label, actions }: { label: string; actions: A
           side="bottom"
           align="end"
           sideOffset={6}
-          className="workspace-row-menu-positioner"
+          className={workspaceStyles.workspaceRowMenuPositioner}
         >
-          <Menu.Popup className="workspace-row-menu" aria-label={label}>
+          <Menu.Popup className={workspaceStyles.workspaceRowMenu} aria-label={label}>
             {actions.map((action) => (
               <Menu.Item
                 key={action.accessibleLabel}
                 aria-label={action.accessibleLabel}
-                className={`workspace-row-menu-item${action.danger ? ' is-danger' : ''}`}
+                className={classNames(
+                  workspaceStyles.workspaceRowMenuItem,
+                  action.danger ? workspaceStyles.isDanger : '',
+                )}
                 disabled={action.disabled}
                 onClick={() => {
                   pendingAction.current = action.onSelect;

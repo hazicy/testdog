@@ -436,7 +436,9 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await expect(panel.getByText('预期 EXPECTED')).toBeVisible();
   await expect(panel.getByText('实际为120', { exact: true })).toBeVisible();
   await expect(page.getByText('其他执行实际为999')).toHaveCount(0);
-  await expect(page.locator('.run-studio > [aria-label="执行关联问题"]')).toHaveCount(0);
+  await expect(page.locator('[data-ui~="run-studio"] > [aria-label="执行关联问题"]')).toHaveCount(
+    0,
+  );
   await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:26 / 00:32');
   await page.screenshot({ path: testInfo.outputPath('run-issues-default.png'), fullPage: true });
   await expect(panel.getByText('查看订单', { exact: true })).toBeVisible();
@@ -450,7 +452,7 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await expect(panel.getByRole('combobox', { name: '问题状态：订单金额错误' })).toContainText(
     '已关闭',
   );
-  await panel.locator('.run-issue-body').evaluate((element) => {
+  await panel.locator('[data-ui~="run-issue-body"]').evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
   await expect(panel.getByRole('button', { name: '已复制修复提示词', exact: true })).toBeVisible();

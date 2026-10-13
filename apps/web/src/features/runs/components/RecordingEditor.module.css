@@ -1,0 +1,7 @@
+.description {
+  border: 1px solid var(--page-line);
+  padding: 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--page-muted);
+}

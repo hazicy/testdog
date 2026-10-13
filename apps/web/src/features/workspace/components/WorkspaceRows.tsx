@@ -1,3 +1,6 @@
+import { classNames } from '@/components/ui/classNames';
+import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
+import styles from './WorkspaceRows.module.css';
 import { TableRow, TableCell } from '@/components/ui/Table';
 import { statusStyles } from '@/components/ui/statusStyles';
 import Link from 'next/link';
@@ -121,25 +124,28 @@ export function WorkspaceRows({
             return (
               <TableRow key={test.id}>
                 <TableCell>
-                  <div className="workspace-index-title">
+                  <div className={workspaceStyles.workspaceIndexTitle}>
                     <Button
                       onClick={() => openEditor(test)}
                       variant="ghost"
-                      className="workspace-index-name text-left font-medium text-ink hover:text-brand-link min-h-0 rounded-none p-0 whitespace-normal"
+                      className={classNames(workspaceStyles.workspaceIndexName, styles.action)}
                     >
                       {test.name}
                     </Button>
                     {test.tags.length > 0 && (
-                      <div className="workspace-index-tags">
+                      <div className={workspaceStyles.workspaceIndexTags}>
                         {test.tags.map((tag, index) => (
-                          <span key={`${tag}-${index}`} className="workspace-index-tag">
+                          <span
+                            key={`${tag}-${index}`}
+                            className={workspaceStyles.workspaceIndexTag}
+                          >
                             {tag}
                           </span>
                         ))}
                       </div>
                     )}
                   </div>
-                  <p className="workspace-index-description">
+                  <p className={workspaceStyles.workspaceIndexDescription}>
                     {test.target && test.target.platform !== 'web'
                       ? `${test.target.platform} · ${test.target.appId}`
                       : address(test.url)}
@@ -150,10 +156,7 @@ export function WorkspaceRows({
                 </TableCell>
                 <TableCell>
                   {run ? (
-                    <Link
-                      href={`/runs/${run.id}`}
-                      className="text-xs text-page-muted hover:underline"
-                    >
+                    <Link href={`/runs/${run.id}`} className={styles.link}>
                       <time
                         dateTime={run.startedAt}
                         title={new Date(run.startedAt).toLocaleString('zh-CN')}
@@ -162,11 +165,11 @@ export function WorkspaceRows({
                       </time>
                     </Link>
                   ) : (
-                    <span className="text-text-faint">—</span>
+                    <span className={styles.label}>—</span>
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="flex justify-end gap-1">
+                  <div className={styles.container}>
                     <Button
                       size="xs"
                       title={running ? '请等待当前测试完成后再运行' : '运行测试'}
@@ -216,13 +219,13 @@ export function WorkspaceRows({
               <TableCell>
                 <Link
                   href={`/runs/${run.id}`}
-                  className="workspace-index-name font-medium hover:text-brand-link"
+                  className={classNames(workspaceStyles.workspaceIndexName, styles.runLink)}
                 >
                   {run.name}
                 </Link>
-                <p className="workspace-index-description">
-                  <span className="workspace-index-id">#{run.id.slice(0, 8)}</span>
-                  <span className="workspace-index-meta-separator" aria-hidden="true">
+                <p className={workspaceStyles.workspaceIndexDescription}>
+                  <span className={workspaceStyles.workspaceIndexId}>#{run.id.slice(0, 8)}</span>
+                  <span className={workspaceStyles.workspaceIndexMetaSeparator} aria-hidden="true">
                     ·
                   </span>
                   {address(run.url)}
@@ -231,7 +234,7 @@ export function WorkspaceRows({
               <TableCell>
                 <Status status={run.status} />
               </TableCell>
-              <TableCell className="workspace-index-time">
+              <TableCell className={workspaceStyles.workspaceIndexTime}>
                 <time
                   dateTime={run.startedAt}
                   title={new Date(run.startedAt).toLocaleString('zh-CN')}
@@ -239,9 +242,9 @@ export function WorkspaceRows({
                   {date(run.startedAt)}
                 </time>
               </TableCell>
-              <TableCell className="font-mono text-xs text-page-muted">{duration(run)}</TableCell>
+              <TableCell className={styles.tableCell}>{duration(run)}</TableCell>
               <TableCell>
-                <div className="flex justify-end gap-2">
+                <div className={styles.runActions}>
                   <Link
                     href={`/runs/${run.id}`}
                     className={buttonStyles({

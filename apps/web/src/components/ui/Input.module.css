@@ -1,0 +1,29 @@
+@layer controls {
+  .input {
+    display: block;
+    width: 100%;
+    min-height: 2.375rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--control-line);
+    background-color: var(--surface);
+    padding: 9px 11px;
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 400;
+    color: var(--control-ink);
+    &::placeholder {
+      color: var(--control-placeholder);
+    }
+    &:focus {
+      border-color: var(--brand);
+      outline: 2px solid var(--brand);
+      outline-offset: 0px;
+    }
+    &:disabled {
+      background-color: var(--surface-disabled);
+    }
+    &[data-disabled] {
+      background-color: var(--surface-disabled);
+    }
+  }
+}

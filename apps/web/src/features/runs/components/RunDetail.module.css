@@ -1,0 +1,53 @@
+.loading {
+  padding: 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--page-muted);
+}
+.container {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--page-line);
+  padding: 0.5rem 1.25rem;
+}
+.action {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  min-height: 0px;
+  border-radius: 0;
+  padding: 0px;
+  white-space: normal;
+}
+.issueBadge {
+  flex-shrink: 0;
+  border: 1px solid var(--error-line);
+  background-color: var(--error-soft);
+  padding: 0.25rem 0.5rem;
+  color: var(--error-ink);
+}
+.issueTitle {
+  min-width: 0px;
+  flex: 1;
+  padding-top: 0.25rem;
+  font-weight: 500;
+  overflow-wrap: break-word;
+}
+.issueTime {
+  flex-shrink: 0;
+  padding-top: 0.25rem;
+  font-family: var(--font-geist-mono), monospace;
+  color: var(--page-muted);
+}
+.error {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.refresh {
+  text-decoration-line: underline;
+}

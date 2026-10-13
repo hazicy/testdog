@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './RunMatrixDialog.module.css';
+
 import { DialogHeader, DialogFooter } from '@/components/ui/Dialog';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
@@ -42,19 +44,19 @@ export function RunMatrixDialog({
     >
       <form onSubmit={(event) => void onSubmit(event, matrixCode)}>
         <DialogHeader>
-          <h2 id="matrix-title" className="text-lg font-semibold">
+          <h2 id="matrix-title" className={styles.matrixTitle}>
             平台矩阵 · {test.name}
           </h2>
         </DialogHeader>
-        <div className="space-y-4 p-6">
-          <p className="text-sm text-page-muted">
+        <div className={styles.container}>
+          <p className={styles.description}>
             填写 1–10 个运行配置。每项包含 target，可用 goal
             覆盖该平台的步骤与预期。所有运行一起创建，各自排队。
           </p>
           <Label>
             运行配置（JSON）
             <Textarea
-              className="min-h-72 font-mono text-xs"
+              className={styles.input}
               required
               aria-label="运行配置（JSON）"
               value={matrixCode}
@@ -62,9 +64,9 @@ export function RunMatrixDialog({
               onChange={(event) => setMatrixCode(event.target.value)}
             />
           </Label>
-          <details className="text-xs text-page-muted">
+          <details className={styles.details}>
             <summary>平台配置示例</summary>
-            <pre className="mt-2 overflow-auto">
+            <pre className={styles.code}>
               {JSON.stringify(
                 [
                   {
@@ -98,7 +100,7 @@ export function RunMatrixDialog({
             </pre>
           </details>
           {matrixError && (
-            <p role="alert" className="text-sm text-error-ink">
+            <p role="alert" className={styles.error}>
               {matrixError}
             </p>
           )}

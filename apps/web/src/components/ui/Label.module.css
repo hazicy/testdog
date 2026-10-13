@@ -1,0 +1,13 @@
+@layer controls {
+  .field {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    & > [data-slot='input'] {
+      margin-top: 0.5rem;
+    }
+    & > [data-slot='select'] {
+      margin-top: 0.5rem;
+    }
+  }
+}

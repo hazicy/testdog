@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
+import styles from './Workspace.module.css';
+
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -18,7 +23,6 @@ import canvasIcon from '@iconify-icons/lucide/panels-top-left';
 import lightningIcon from '@iconify-icons/lucide/zap';
 import { useWorkspaceData } from '@/features/workspace/hooks/useWorkspaceData';
 import { WorkspaceList } from '@/features/workspace/components/WorkspaceList';
-import '@/features/workspace/components/workspace-index.css';
 
 export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const promptContainer = useRef<HTMLElement>(null);
@@ -109,20 +113,17 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       ref={(element) => {
         promptContainer.current = element?.closest<HTMLElement>('#main-content') ?? null;
       }}
-      className="workspace-index mx-auto max-w-[1500px]"
+      className={classNames(workspaceStyles.workspaceIndex, styles.container)}
     >
-      <h1 className="sr-only">{isTests ? '测试用例' : '执行记录'}</h1>
+      <h1 className={styles.accessibleLabel}>{isTests ? '测试用例' : '执行记录'}</h1>
       {error && (
-        <div
-          role="alert"
-          className="mt-5 flex items-center justify-between gap-4 border border-error-line bg-error-soft p-3 text-sm text-error-ink"
-        >
+        <div role="alert" className={styles.error}>
           <span>{error}</span>
           <Button
             onClick={() => void refresh()}
             variant="ghost"
             size="sm"
-            className="shrink-0 underline"
+            className={styles.action}
           >
             重试
           </Button>
@@ -134,7 +135,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
             <>
               <Button
                 size="sm"
-                className="case-create-button is-quick"
+                className={classNames(workspaceStyles.caseCreateButton, workspaceStyles.isQuick)}
                 onClick={() => setQuickCreateOpen(true)}
               >
                 <Icon icon={lightningIcon} width="16" aria-hidden="true" />
@@ -143,7 +144,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
               <Button
                 size="sm"
                 variant="primary"
-                className="case-create-button is-canvas"
+                className={classNames(workspaceStyles.caseCreateButton, workspaceStyles.isCanvas)}
                 onClick={() => openEditor()}
               >
                 <Icon icon={canvasIcon} width="16" aria-hidden="true" />

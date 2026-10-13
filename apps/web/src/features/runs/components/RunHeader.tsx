@@ -1,3 +1,5 @@
+import { classNames } from '@/components/ui/classNames';
+import styles from './RunHeader.module.css';
 import { statusStyles } from '@/components/ui/statusStyles';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -38,8 +40,8 @@ export function RunHeader({
   exportReport,
 }: Props) {
   return (
-    <header className="run-studio-toolbar grid min-h-14 shrink-0 grid-cols-1 items-center gap-x-4 gap-y-2 bg-page px-3 py-2 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-      <div className="flex min-w-0 items-center gap-3">
+    <header className={styles.header}>
+      <div className={styles.identity}>
         {!embedded && (
           <Link
             href="/runs"
@@ -50,16 +52,16 @@ export function RunHeader({
             <Icon icon={backIcon} width="16" aria-hidden="true" />
           </Link>
         )}
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <p className="sr-only">执行记录 / {id.slice(0, 8)}</p>
-          <h1 className="min-w-0 truncate text-[13px] leading-5 font-medium" title={run?.name}>
+        <div className={styles.titleGroup}>
+          <p className={styles.accessibleLabel}>执行记录 / {id.slice(0, 8)}</p>
+          <h1 className={styles.title} title={run?.name}>
             {run?.name || '加载执行记录…'}
           </h1>
           {run && (
             <span
               data-slot="status"
               data-status={run.status}
-              className={`${statusStyles(run.status)} shrink-0`}
+              className={classNames(statusStyles(run.status), styles.status)}
             >
               <span />
               {statuses[run.status]}
@@ -67,16 +69,12 @@ export function RunHeader({
           )}
         </div>
       </div>
-      <div
-        className="inline-flex w-fit items-center justify-self-center gap-0.5 overflow-hidden rounded-lg bg-control-hover p-0.5 [&>button]:rounded-none [&>button:first-child]:rounded-l [&>button:last-child]:rounded-r [&>button]:border-0 [&>button]:focus-visible:-outline-offset-2"
-        role="group"
-        aria-label="执行操作"
-      >
+      <div className={styles.executionActions} role="group" aria-label="执行操作">
         {run && isActiveRun(run.status) ? (
           <Button
             variant="soft"
             size="sm"
-            className="gap-0.5 px-2"
+            className={styles.executionButton}
             disabled={busy || run.cancelRequested}
             aria-label={run.cancelRequested ? '正在停止…' : '停止执行'}
             title={run.cancelRequested ? '正在停止…' : '停止执行'}
@@ -97,7 +95,7 @@ export function RunHeader({
                 }
                 variant="soft"
                 size="sm"
-                className="gap-0.5 px-2"
+                className={styles.executionButton}
                 aria-label="重放操作"
                 onClick={() => void start('replay')}
               >
@@ -108,7 +106,7 @@ export function RunHeader({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="h-8"
+                  className={styles.recordButton}
                   aria-label="重新录制"
                   title="重新录制"
                   disabled={busy}
@@ -124,7 +122,7 @@ export function RunHeader({
           disabled={!run || exporting}
           variant="ghost"
           size="icon-xs"
-          className="h-8"
+          className={styles.recordButton}
           aria-label="导出执行报告"
           title="导出执行报告"
           onClick={() => void exportReport()}
@@ -132,7 +130,7 @@ export function RunHeader({
           <Icon icon={downloadIcon} width="16" aria-hidden="true" />
         </Button>
       </div>
-      <div className="flex shrink-0 items-center justify-self-end">
+      <div className={styles.layoutActions}>
         <RunLayoutPopover value={layout} onChange={changeLayout} />
       </div>
     </header>

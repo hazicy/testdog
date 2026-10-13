@@ -1,3 +1,5 @@
+import { classNames } from '@/components/ui/classNames';
+import styles from './layout.module.css';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import '@/app/globals.css';
@@ -22,9 +24,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="zh-CN" className={classNames(geistSans.variable, geistMono.variable)}>
       <body>
-        <div className="isolate">
+        <div className={styles.container}>
           <AuthCacheBoundary>
             <AppShell>{children}</AppShell>
           </AuthCacheBoundary>

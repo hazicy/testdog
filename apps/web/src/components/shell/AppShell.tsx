@@ -1,5 +1,12 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import studioStyles from '@/features/runs/components/run-studio.module.css';
+import shellStyles from '@/components/shell/app-shell.module.css';
+import styles from './AppShell.module.css';
+import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
+
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Brand } from '@/components/brand/Brand';
 import { Button } from '@/components/ui/Button';
@@ -24,7 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     return children;
   if (/^\/runs\/[^/]+$/.test(pathname)) {
     return (
-      <main id="main-content" tabIndex={-1} className="run-studio-main">
+      <main id="main-content" tabIndex={-1} className={studioStyles.runStudioMain}>
         {children}
       </main>
     );
@@ -40,30 +47,21 @@ export function AppShell({ children }: { children: ReactNode }) {
     pathname === '/settings';
 
   return (
-    <div
-      className={`bg-page text-ink text-sm grid h-dvh overflow-hidden grid-rows-[minmax(0,1fr)] grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
-    >
-      <a
-        href="#main-content"
-        className="sr-only z-50 bg-page p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
-      >
+    <div className={shellStyles.appShell} data-collapsed={collapsed}>
+      <a href="#main-content" className={styles.skipLink}>
         跳转到主内容
       </a>
-      <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-page-line bg-page">
-        <Link
-          href="/"
-          className="flex h-14 shrink-0 items-center gap-3 border-b border-page-line px-4"
-          aria-label="testdog 首页"
-        >
-          <span className="md:hidden">
+      <aside className={shellStyles.appShellSidebar}>
+        <Link href="/" className={shellStyles.appShellBrand} aria-label="testdog 首页">
+          <span className={styles.compactBrand}>
             <Brand compact />
           </span>
-          <span className="hidden md:inline-flex">
+          <span className={styles.desktopBrand}>
             <Brand compact={collapsed} />
           </span>
         </Link>
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-6">
-          <nav aria-label="工作区导航" className="space-y-1">
+        <div className={shellStyles.appShellNavigation}>
+          <nav aria-label="工作区导航" className={styles.navigationItems}>
             {workspaceNavigation.map((item) => (
               <Link
                 key={item.href}
@@ -71,52 +69,55 @@ export function AppShell({ children }: { children: ReactNode }) {
                 title={item.name}
                 aria-label={item.name}
                 aria-current={item === activeItem ? 'page' : undefined}
-                className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm hover:bg-sidebar-hover ${item === activeItem ? 'bg-badge-surface font-medium text-ink' : 'text-text-secondary'}`}
+                className={classNames(
+                  styles.navigationLink,
+                  item === activeItem ? styles.activeLink : styles.inactiveLink,
+                )}
               >
                 <Icon icon={item.icon} width="18" aria-hidden="true" />
-                {!collapsed && <span className="hidden md:block">{item.name}</span>}
+                {!collapsed && <span className={styles.navigationLabel}>{item.name}</span>}
               </Link>
             ))}
           </nav>
         </div>
-        <div className={`shrink-0 border-t border-page-line p-2 ${collapsed ? '' : 'md:p-3'}`}>
+        <div className={shellStyles.appShellAccount}>
           <UserMenu collapsed={collapsed} />
         </div>
       </aside>
-      <div className="flex min-h-0 min-w-0 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-page-line bg-surface px-5 md:px-7">
+      <div className={shellStyles.appShellContent}>
+        <header className={shellStyles.appShellHeader}>
           <Button
             variant="ghost"
             size="icon"
-            className="hidden md:flex"
+            className={styles.sidebarToggle}
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
             aria-expanded={!collapsed}
           >
             <Icon icon={menuIcon} width="18" aria-hidden="true" />
           </Button>
-          <nav aria-label="面包屑" className="flex min-w-0 items-center gap-3 text-sm">
-            <Link href="/cases" className="text-page-muted">
+          <nav aria-label="面包屑" className={styles.breadcrumbs}>
+            <Link href="/cases" className={styles.breadcrumbLink}>
               工作区
             </Link>
-            <Icon icon={chevronIcon} className="text-text-subtle" width="14" aria-hidden="true" />
+            <Icon icon={chevronIcon} className={styles.separator} width="14" aria-hidden="true" />
             {canvas ? (
               <>
-                <Link href="/cases" className="text-page-muted">
+                <Link href="/cases" className={styles.breadcrumbLink}>
                   测试用例
                 </Link>
                 <Icon
                   icon={chevronIcon}
-                  className="text-text-subtle"
+                  className={styles.separator}
                   width="14"
                   aria-hidden="true"
                 />
-                <span aria-current="page" className="truncate">
+                <span aria-current="page" className={styles.currentPage}>
                   画板
                 </span>
               </>
             ) : (
-              <span aria-current="page" className="truncate">
+              <span aria-current="page" className={styles.currentPage}>
                 {activeItem?.name ?? '页面不存在'}
               </span>
             )}
@@ -127,10 +128,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           tabIndex={-1}
           className={
             canvas
-              ? 'min-h-0 flex-1 overflow-hidden'
+              ? classNames(shellStyles.appShellMain, shellStyles.appShellMainCanvas)
               : workspaceIndex
-                ? 'workspace-index-main min-h-0 flex-1 overflow-auto'
-                : 'min-h-0 flex-1 overflow-auto px-4 py-7 sm:px-6 md:px-8 md:py-9'
+                ? classNames(shellStyles.appShellMain, workspaceStyles.workspaceIndexMain)
+                : classNames(shellStyles.appShellMain, shellStyles.appShellMainPadded)
           }
         >
           {children}

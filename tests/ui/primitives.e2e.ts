@@ -56,14 +56,16 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test('field overrides and focus styles survive the shared Tailwind controls', async ({ page }) => {
+test('field overrides and focus styles survive the shared CSS Module controls', async ({
+  page,
+}) => {
   await page.goto('/cases');
   await expect(page.getByRole('textbox', { name: '搜索测试', exact: true })).toHaveCSS(
     'padding-left',
     '36px',
   );
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const editor = page.locator('.case-canvas-page');
+  const editor = page.locator('[data-ui~="case-canvas-page"]');
 
   await openSettings(editor);
   const name = editor.getByRole('textbox', { name: '测试名称', exact: true });
@@ -85,7 +87,7 @@ test('field overrides and focus styles survive the shared Tailwind controls', as
 test('select keyboard navigation and Escape stay within the editor dialog', async ({ page }) => {
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('.case-canvas-page');
+  const dialog = page.locator('[data-ui~="case-canvas-page"]');
 
   await openSettings(dialog);
   const platform = dialog.getByRole('combobox', { name: '平台', exact: true });
@@ -126,7 +128,7 @@ test('native setup validates required selection and submits custom checkbox valu
   });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('.case-canvas-page');
+  const dialog = page.locator('[data-ui~="case-canvas-page"]');
 
   await openSettings(dialog);
 
@@ -137,7 +139,7 @@ test('native setup validates required selection and submits custom checkbox valu
   await dialog.getByRole('button', { name: '收起面板' }).click();
   await dialog.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
   await page.getByRole('menuitem').filter({ hasText: /^Act/ }).click();
-  await dialog.locator('[data-step-type=act] .plan-content-button').click();
+  await dialog.locator('[data-step-type=act] [data-ui~="plan-content-button"]').click();
   await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('Verify welcome');
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
@@ -197,7 +199,7 @@ test('native text conversion includes application and inputs before selecting a 
   });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const editor = page.locator('.case-canvas-page');
+  const editor = page.locator('[data-ui~="case-canvas-page"]');
 
   await openSettings(editor);
   await editor.getByLabel('平台', { exact: true }).click();
@@ -300,12 +302,12 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
   const panel = page.getByRole('complementary', { name: '测试面板' });
 
-  await expect(panel).toHaveClass(/is-collapsed/);
+  await expect(panel).toHaveAttribute('data-collapsed', 'true');
   await expect(panel.getByRole('button', { name: '展开面板' })).toBeVisible();
   await expect(panel.getByRole('button', { name: '返回用例列表' })).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Run', exact: true })).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
-  const canvas = page.locator('.plan-viewport');
+  const canvas = page.locator('[data-ui~="plan-viewport"]');
   const viewport = page.locator('.react-flow__viewport');
 
   await expect(canvas.locator('.react-flow__node').first()).toBeVisible();
@@ -321,7 +323,7 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await expect(viewport).toHaveAttribute('style', transform!);
   expect(await canvas.boundingBox()).toEqual(bounds);
   await panel.getByRole('button', { name: '收起面板' }).click();
-  await expect(panel).toHaveClass(/is-collapsed/);
+  await expect(panel).toHaveAttribute('data-collapsed', 'true');
   await expect(viewport).toHaveAttribute('style', transform!);
   expect(await canvas.boundingBox()).toEqual(bounds);
   await panel.getByRole('button', { name: '描述生成', exact: true }).click();
@@ -335,14 +337,14 @@ test('compact panel defaults closed and Run retries the draft without saving the
 
   await expect(overlay).toBeVisible();
   expect(await overlay.boundingBox()).toEqual(
-    await page.locator('.case-canvas-page').boundingBox(),
+    await page.locator('[data-ui~="case-canvas-page"]').boundingBox(),
   );
   expect(await page.getByLabel('测试步骤与预期结果').boundingBox()).toEqual(
     await overlay.boundingBox(),
   );
   await expect(page.getByLabel('测试步骤与预期结果')).toBeFocused();
   await page
-    .locator('.case-canvas-page')
+    .locator('[data-ui~="case-canvas-page"]')
     .screenshot({ path: 'artifacts/ui/case-prompt-overlay.png' });
   await page.getByLabel('测试步骤与预期结果').fill('打开 https://example.com，验证首页');
   await page.getByRole('button', { name: '生成', exact: true }).click();
@@ -420,7 +422,9 @@ test('reviews generated edits, additions and deletions individually before savin
   await expect(page.locator('[data-plan-node=a]')).toHaveAttribute('data-review', 'modified');
   await expect(page.locator('[data-plan-node=b]')).toHaveAttribute('data-review', 'removed');
   await expect(page.locator('[data-plan-node=c]')).toHaveAttribute('data-review', 'added');
-  await page.locator('.case-canvas-page').screenshot({ path: 'artifacts/ui/case-plan-review.png' });
+  await page
+    .locator('[data-ui~="case-canvas-page"]')
+    .screenshot({ path: 'artifacts/ui/case-plan-review.png' });
   await page.getByRole('button', { name: '接受变更 a', exact: true }).click();
   await page.getByRole('button', { name: '拒绝变更 c', exact: true }).click();
   await page.getByRole('button', { name: '拒绝变更 b', exact: true }).click();
@@ -429,7 +433,7 @@ test('reviews generated edits, additions and deletions individually before savin
   await page.getByRole('button', { name: '接受变更 d', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.locator('.case-canvas-page')).toHaveCount(0);
+  await expect(page.locator('[data-ui~="case-canvas-page"]')).toHaveCount(0);
   expect(stored?.plan.nodes.root.children).toEqual(['a', 'b', 'd']);
   expect(stored?.plan.nodes.a.goal).toBe('打开账号页');
   expect(stored?.plan.nodes.c).toBeUndefined();

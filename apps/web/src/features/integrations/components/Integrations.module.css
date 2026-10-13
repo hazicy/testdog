@@ -1,0 +1,224 @@
+.field {
+  margin-bottom: 0.5rem;
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.heading {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+.subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.error {
+  padding-inline: 1.5rem;
+  padding-top: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--error-ink);
+}
+.form {
+  & > :not(:last-child) {
+    margin-block-start: 0;
+    margin-block-end: 1rem;
+  }
+  padding: 1.5rem;
+}
+.webhookHint {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--page-muted);
+}
+.clearSecret {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.fieldset {
+  & > :not(:last-child) {
+    margin-block-start: 0;
+    margin-block-end: 0.5rem;
+  }
+}
+.legend {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+.saveError {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--error-ink);
+}
+.loading {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--step-success);
+}
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.unsavedHint {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1500px;
+}
+.accessibleLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+}
+.loadError {
+  margin-bottom: 1rem;
+  color: var(--error-ink);
+}
+.section {
+  margin-bottom: 2rem;
+}
+.browserServicesTitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+.browserServices {
+  margin-top: 1rem;
+  & > :not(:last-child) {
+    border-bottom-style: solid;
+    border-top-style: solid;
+    border-top-width: 0;
+    border-bottom-width: 1px;
+    border-color: var(--page-line);
+  }
+  border-block-style: solid;
+  border-block-width: 1px;
+  border-color: var(--page-line);
+}
+.browserService {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 0.75rem;
+}
+.serviceContent {
+  min-width: 0px;
+  flex: 1;
+}
+.serviceHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.configurationError {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--error-ink);
+}
+.configuredStatus {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--step-success);
+}
+.serviceDescription {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--page-muted);
+}
+.notificationHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.notificationService {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 0.75rem;
+  transition-property:
+    color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: ease;
+  transition-duration: 150ms;
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--surface-muted);
+    }
+  }
+}
+.icon {
+  flex-shrink: 0;
+}
+.notificationStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--step-success);
+}
+.dialog {
+  max-width: 48rem;
+}
+.deliveryHistory {
+  padding: 1.5rem;
+}
+.deliveryError {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--error-ink);
+}
+.deliveryTable {
+  overflow-x: auto;
+}
+.table {
+  min-width: 560px;
+}
+.tableHeader {
+  background-color: transparent;
+}
+.tableHead {
+  padding: 1rem;
+}
+.tableRow {
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-color: var(--page-line);
+}
+.deliveryTitle {
+  margin-top: 0.25rem;
+  color: var(--page-muted);
+}
+.deliveryFailure {
+  margin-top: 0.25rem;
+  max-width: 24rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--error-ink);
+}
+.tableCell {
+  padding: 1rem;
+  white-space: nowrap;
+}

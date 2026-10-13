@@ -1,5 +1,7 @@
 'use client';
 
+import studioStyles from '@/features/runs/components/run-studio.module.css';
+
 import { useEffect, useMemo, useRef } from 'react';
 import { Compartment, EditorState } from '@codemirror/state';
 import {
@@ -101,5 +103,5 @@ export function CodeEditor({
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
   }, [value]);
 
-  return <div ref={parent} className="recording-code-editor" />;
+  return <div ref={parent} className={studioStyles.recordingCodeEditor} />;
 }

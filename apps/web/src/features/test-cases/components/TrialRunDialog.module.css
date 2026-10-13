@@ -1,0 +1,26 @@
+.dialog {
+  display: flex;
+  height: min(900px, calc(100dvh - 48px));
+  max-width: 1440px;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dialogHeader {
+  flex-shrink: 0;
+  align-items: center;
+  padding-block: 0.75rem;
+}
+.heading {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+.container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.runContent {
+  min-height: 0px;
+  flex: 1;
+}

@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import styles from './StepList.module.css';
+import studioStyles from '@/features/runs/components/run-studio.module.css';
+
 import { Icon } from '@iconify/react/offline';
 
 import { Button } from '@/components/ui/Button';
@@ -30,14 +35,14 @@ export const StepList = memo(function StepList({
   const [collapsedId, setCollapsedId] = useState<string>();
 
   return (
-    <section aria-label="执行步骤" className="min-w-0">
-      <div className="flex h-12 items-center justify-between border-b border-page-line px-5">
-        <h2 className="text-xs font-medium">执行步骤</h2>
-        <span className="font-mono text-xs text-page-muted">
+    <section aria-label="执行步骤" className={styles.section}>
+      <div className={styles.container}>
+        <h2 className={styles.heading}>执行步骤</h2>
+        <span className={styles.label}>
           {steps.filter((step) => step.status === 'passed').length || 0} / {steps.length || 0}
         </span>
       </div>
-      <div className="min-w-0">
+      <div className={styles.section}>
         <ol>
           {steps.map((step) => (
             <li key={step.id}>
@@ -51,18 +56,25 @@ export const StepList = memo(function StepList({
                   );
                   onSelect(step);
                 }}
-                className={`min-h-0 rounded-none whitespace-normal flex w-full items-start gap-3 border-0 border-b border-page-line px-5 py-4 text-left transition-colors hover:bg-step-hover ${selectedId === step.id ? 'bg-step-selected' : ''}`}
+                className={classNames(styles.action, selectedId === step.id ? styles.selected : '')}
               >
                 <span
                   title={statuses[step.status]}
                   aria-label={statuses[step.status]}
-                  className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center border font-mono text-xs ${step.status === 'failed' ? 'border-error-line text-error' : step.status === 'passed' ? 'border-step-success-line text-step-success' : 'border-brand text-brand'}`}
+                  className={classNames(
+                    styles.sequence,
+                    step.status === 'failed'
+                      ? styles.failed
+                      : step.status === 'passed'
+                        ? styles.passed
+                        : styles.pending,
+                  )}
                 >
                   <Icon icon={actionIcon(step)} aria-hidden="true" width="14" height="14" />
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block break-words text-xs leading-5 text-ink">{step.title}</span>
-                  <span className="mt-1.5 block font-mono text-xs text-page-muted">
+                <span className={styles.content}>
+                  <span className={styles.title}>{step.title}</span>
+                  <span className={styles.metadata}>
                     {kinds[step.kind]} · {step.pageId} ·{' '}
                     {step.durationMs == null
                       ? step.status === 'running'
@@ -71,7 +83,7 @@ export const StepList = memo(function StepList({
                       : `${(step.durationMs / 1000).toFixed(1)}s`}
                   </span>
                 </span>
-                <span aria-hidden="true" className="self-center text-page-muted">
+                <span aria-hidden="true" className={styles.expandIndicator}>
                   {selectedId === step.id && collapsedId !== step.id ? '⌃' : '⌄'}
                 </span>
               </Button>
@@ -81,7 +93,7 @@ export const StepList = memo(function StepList({
                 hidden={selectedId !== step.id || collapsedId === step.id}
               >
                 {selectedId === step.id && collapsedId !== step.id && (
-                  <div className="studio-content border-b border-page-line">
+                  <div className={classNames(studioStyles.studioContent, styles.details)}>
                     {renderDetails(step)}
                   </div>
                 )}
@@ -90,7 +102,7 @@ export const StepList = memo(function StepList({
           ))}
         </ol>
         {!steps.length && (
-          <p className="p-6 text-xs leading-6 text-page-muted">
+          <p className={styles.description}>
             {running ? '正在生成测试计划，步骤将在执行时逐一出现。' : '没有已执行的浏览器步骤。'}
           </p>
         )}

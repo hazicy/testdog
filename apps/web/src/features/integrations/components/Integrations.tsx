@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import styles from './Integrations.module.css';
+import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
+
 import {
   Table,
   TableHeader,
@@ -28,7 +33,6 @@ import { api, fetchJson } from '@/client/api';
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
-import '@/features/workspace/components/workspace-index.css';
 import {
   notificationKinds,
   notificationEvents,
@@ -130,7 +134,7 @@ function ChannelForm({
     placeholder?: string,
   ) => (
     <div>
-      <label className="mb-2 block text-sm" htmlFor={`${channel}-${label}`}>
+      <label className={styles.field} htmlFor={`${channel}-${label}`}>
         {label}
       </label>
       <Input
@@ -149,10 +153,10 @@ function ChannelForm({
     <Dialog titleId={titleId} busy={busy} onDismiss={onDismiss} initialFocus="input">
       <DialogHeader>
         <div>
-          <h2 id={titleId} className="text-base font-semibold">
+          <h2 id={titleId} className={styles.heading}>
             {notificationKinds[channel]}
           </h2>
-          <p className="mt-1 text-xs text-page-muted">
+          <p className={styles.subtitle}>
             {configured ? (integration.enabled ? '已启用' : '已配置 · 未启用') : '未配置'}
           </p>
         </div>
@@ -167,14 +171,14 @@ function ChannelForm({
         </Button>
       </DialogHeader>
       {integration.configurationError && (
-        <p className="px-6 pt-4 text-sm text-error-ink" role="alert">
+        <p className={styles.error} role="alert">
           {integration.configurationError}
         </p>
       )}
-      <form onSubmit={save} onChange={() => setDirty(true)} className="space-y-4 p-6">
+      <form onSubmit={save} onChange={() => setDirty(true)} className={styles.form}>
         {channel === 'feishu' ? (
           <>
-            <p className="text-sm text-page-muted">
+            <p className={styles.webhookHint}>
               添加飞书群自定义机器人后，填写 Webhook 地址。通知内容包含 testdog 标识，支持签名校验。
             </p>
             {field(
@@ -194,7 +198,7 @@ function ChannelForm({
               integration.hasSigningSecret ? '已保存，留空保留原密钥' : '机器人启用签名校验时填写',
             )}
             {integration.hasSigningSecret && (
-              <label className="flex items-center gap-2 text-sm">
+              <label className={styles.clearSecret}>
                 <Checkbox
                   checked={clearSigningSecret}
                   onCheckedChange={(value) => {
@@ -209,17 +213,17 @@ function ChannelForm({
         ) : (
           <>
             {!emailAvailable && (
-              <p role="status" className="text-sm text-page-muted">
+              <p role="status" className={styles.webhookHint}>
                 邮件通知暂不可用，请联系管理员。
               </p>
             )}
             {field('收件邮箱', recipients, setRecipients, 'text', '多个邮箱用逗号分隔，最多10个')}
           </>
         )}
-        <fieldset className="space-y-2">
-          <legend className="mb-2 text-sm font-medium">通知事件</legend>
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>通知事件</legend>
           {Object.entries(notificationEvents).map(([value, label]) => (
-            <label key={value} className="flex items-center gap-2 text-sm">
+            <label key={value} className={styles.clearSecret}>
               <Checkbox
                 checked={events.includes(value as NotificationEvent)}
                 onCheckedChange={(checked) => {
@@ -235,7 +239,7 @@ function ChannelForm({
             </label>
           ))}
         </fieldset>
-        <label className="flex items-center gap-2 text-sm">
+        <label className={styles.clearSecret}>
           <Checkbox
             checked={enabled}
             onCheckedChange={(value) => {
@@ -246,16 +250,16 @@ function ChannelForm({
           启用事件通知
         </label>
         {error && (
-          <p role="alert" className="text-sm text-error-ink">
+          <p role="alert" className={styles.saveError}>
             {error}
           </p>
         )}
         {message && (
-          <p role="status" className="text-sm text-step-success">
+          <p role="status" className={styles.loading}>
             {message}
           </p>
         )}
-        <div className="flex flex-wrap gap-2">
+        <div className={styles.container}>
           <Button type="submit" variant="primary" disabled={busy}>
             {busy ? '处理中…' : '保存配置'}
           </Button>
@@ -267,9 +271,7 @@ function ChannelForm({
             发送测试通知
           </Button>
         </div>
-        {dirty && configured && (
-          <p className="text-xs text-page-muted">先保存修改，再发送测试通知。</p>
-        )}
+        {dirty && configured && <p className={styles.unsavedHint}>先保存修改，再发送测试通知。</p>}
       </form>
     </Dialog>
   );
@@ -308,10 +310,10 @@ export function Integrations() {
   }
 
   return (
-    <div className="workspace-index mx-auto w-full max-w-[1500px]">
-      <h1 className="sr-only">集成</h1>
+    <div className={classNames(workspaceStyles.workspaceIndex, styles.page)}>
+      <h1 className={styles.accessibleLabel}>集成</h1>
       {error && (
-        <p className="mb-4 text-error-ink" role="alert">
+        <p className={styles.loadError} role="alert">
           {error.message}
         </p>
       )}
@@ -319,30 +321,28 @@ export function Integrations() {
         <p role="status">正在加载集成配置…</p>
       ) : (
         <>
-          <section aria-labelledby="browser-services-title" className="mb-8">
-            <h2 id="browser-services-title" className="text-sm font-medium">
+          <section aria-labelledby="browser-services-title" className={styles.section}>
+            <h2 id="browser-services-title" className={styles.browserServicesTitle}>
               浏览器服务
             </h2>
-            <div className="mt-4 divide-y divide-page-line border-y border-page-line">
+            <div className={styles.browserServices}>
               {data.browserProviders.map((integration) => (
-                <div key={integration.provider} className="flex items-center gap-4 px-3 py-5">
+                <div key={integration.provider} className={styles.browserService}>
                   <Icon icon={globeIcon} width="22" aria-hidden="true" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm font-medium">{integration.name}</h3>
+                  <div className={styles.serviceContent}>
+                    <div className={styles.serviceHeading}>
+                      <h3 className={styles.browserServicesTitle}>{integration.name}</h3>
                       {integration.configurationError ? (
-                        <span className="text-xs text-error-ink">配置异常</span>
+                        <span className={styles.configurationError}>配置异常</span>
                       ) : (
                         integration.configured && (
-                          <span className="text-xs text-step-success">
+                          <span className={styles.configuredStatus}>
                             {integration.enabled ? '已启用' : '已配置'}
                           </span>
                         )
                       )}
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-page-muted">
-                      {integration.description}
-                    </p>
+                    <p className={styles.serviceDescription}>{integration.description}</p>
                   </div>
                   <Button
                     variant="ghost"
@@ -369,8 +369,8 @@ export function Integrations() {
             />
           )}
           <section aria-labelledby="communication-title">
-            <div className="flex items-center justify-between gap-4">
-              <h2 id="communication-title" className="text-sm font-medium">
+            <div className={styles.notificationHeading}>
+              <h2 id="communication-title" className={styles.browserServicesTitle}>
                 消息通知
               </h2>
               <Button
@@ -386,36 +386,33 @@ export function Integrations() {
                 发送记录
               </Button>
             </div>
-            <div className="mt-4 divide-y divide-page-line border-y border-page-line">
+            <div className={styles.browserServices}>
               {data.integrations.map((integration) => (
-                <div
-                  key={integration.channel}
-                  className="flex items-center gap-4 px-3 py-5 transition-colors hover:bg-surface-muted"
-                >
+                <div key={integration.channel} className={styles.notificationService}>
                   <Icon
                     icon={integration.channel === 'feishu' ? sendIcon : mailIcon}
                     width="22"
-                    className="shrink-0"
+                    className={styles.icon}
                     aria-hidden="true"
                   />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm font-medium">
+                  <div className={styles.serviceContent}>
+                    <div className={styles.serviceHeading}>
+                      <h3 className={styles.browserServicesTitle}>
                         {notificationKinds[integration.channel]}
                       </h3>
                       {integration.channel === 'email' && !data.emailAvailable ? (
-                        <span className="text-xs text-page-muted">暂不可用</span>
+                        <span className={styles.unsavedHint}>暂不可用</span>
                       ) : integration.configured && !integration.configurationError ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-step-success">
+                        <span className={styles.notificationStatus}>
                           <Icon icon={circleCheckIcon} width="12" aria-hidden="true" />
                           {integration.enabled ? '已启用' : '已配置'}
                         </span>
                       ) : null}
                       {integration.configurationError && (
-                        <span className="text-xs text-error-ink">配置异常</span>
+                        <span className={styles.configurationError}>配置异常</span>
                       )}
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-page-muted">
+                    <p className={styles.serviceDescription}>
                       {integration.channel === 'feishu'
                         ? '在飞书群接收测试结果和问题通知。'
                         : '通过邮件向团队发送测试结果和问题通知。'}
@@ -450,10 +447,10 @@ export function Integrations() {
               titleId={historyTitleId}
               busy={!!retrying}
               onDismiss={() => setHistoryOpen(false)}
-              className="max-w-3xl"
+              className={styles.dialog}
             >
               <DialogHeader>
-                <h2 id={historyTitleId} className="text-base font-semibold">
+                <h2 id={historyTitleId} className={styles.heading}>
                   发送记录
                 </h2>
                 <Button
@@ -466,46 +463,50 @@ export function Integrations() {
                   <Icon icon={closeIcon} width="18" aria-hidden="true" />
                 </Button>
               </DialogHeader>
-              <section className="p-6" aria-label="发送记录">
+              <section className={styles.deliveryHistory} aria-label="发送记录">
                 {actionError && (
-                  <p role="alert" className="mb-4 text-sm text-error-ink">
+                  <p role="alert" className={styles.deliveryError}>
                     {actionError}
                   </p>
                 )}
                 {!data.deliveries.length ? (
-                  <p className="text-sm text-page-muted">暂无发送记录。</p>
+                  <p className={styles.webhookHint}>暂无发送记录。</p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table className="workspace-index-table is-results min-w-[560px]">
-                      <TableHeader className="bg-transparent">
+                  <div className={styles.deliveryTable}>
+                    <Table
+                      className={classNames(
+                        workspaceStyles.workspaceIndexTable,
+                        workspaceStyles.isResults,
+                        styles.table,
+                      )}
+                    >
+                      <TableHeader className={styles.tableHeader}>
                         <TableRow>
-                          <TableHead className="p-4">渠道 / 通知</TableHead>
-                          <TableHead className="p-4">状态</TableHead>
-                          <TableHead className="p-4">发送时间</TableHead>
-                          <TableHead className="p-4">操作</TableHead>
+                          <TableHead className={styles.tableHead}>渠道 / 通知</TableHead>
+                          <TableHead className={styles.tableHead}>状态</TableHead>
+                          <TableHead className={styles.tableHead}>发送时间</TableHead>
+                          <TableHead className={styles.tableHead}>操作</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {data.deliveries.map((item) => (
-                          <TableRow key={item.id} className="border-t border-page-line">
-                            <TableCell className="p-4">
+                          <TableRow key={item.id} className={styles.tableRow}>
+                            <TableCell className={styles.tableHead}>
                               <p>{notificationKinds[item.channel]}</p>
-                              <p className="mt-1 text-page-muted">{item.title}</p>
+                              <p className={styles.deliveryTitle}>{item.title}</p>
                             </TableCell>
-                            <TableCell className="p-4">
+                            <TableCell className={styles.tableHead}>
                               <p>
                                 {deliveryStatuses[item.status]} · {item.attempts} 次尝试
                               </p>
                               {item.lastError && (
-                                <p className="mt-1 max-w-sm text-xs text-error-ink">
-                                  {item.lastError}
-                                </p>
+                                <p className={styles.deliveryFailure}>{item.lastError}</p>
                               )}
                             </TableCell>
-                            <TableCell className="p-4 whitespace-nowrap">
+                            <TableCell className={styles.tableCell}>
                               {new Date(item.sentAt ?? item.createdAt).toLocaleString('zh-CN')}
                             </TableCell>
-                            <TableCell className="p-4">
+                            <TableCell className={styles.tableHead}>
                               {item.status === 'failed' && (
                                 <Button
                                   disabled={

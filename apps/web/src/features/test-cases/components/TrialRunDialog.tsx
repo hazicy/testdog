@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './TrialRunDialog.module.css';
+
 import { useCallback, useId, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -45,19 +47,14 @@ export function TrialRunDialog({
   if (!open) return null;
 
   return (
-    <Dialog
-      titleId={titleId}
-      busy={false}
-      onDismiss={onClose}
-      className="flex h-[min(900px,calc(100dvh-48px))] max-w-[1440px] flex-col overflow-hidden"
-    >
-      <DialogHeader className="shrink-0 items-center py-3">
+    <Dialog titleId={titleId} busy={false} onDismiss={onClose} className={styles.dialog}>
+      <DialogHeader className={styles.dialogHeader}>
         <div>
-          <h2 id={titleId} className="text-base font-semibold">
+          <h2 id={titleId} className={styles.heading}>
             草稿试跑{run ? ` · ${statuses[run.status]}` : ''}
           </h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className={styles.container}>
           <Link
             href={`/runs/${currentId}`}
             target="_blank"
@@ -71,7 +68,7 @@ export function TrialRunDialog({
           </Button>
         </div>
       </DialogHeader>
-      <div className="min-h-0 flex-1">
+      <div className={styles.runContent}>
         <RunDetail
           key={currentId}
           id={currentId}

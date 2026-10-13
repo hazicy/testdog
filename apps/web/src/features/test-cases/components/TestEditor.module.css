@@ -1,0 +1,21 @@
+.form {
+  display: flex;
+  height: 100%;
+  min-height: 0px;
+  flex: 1;
+  flex-direction: column;
+}
+.container {
+  display: flex;
+  min-height: 0px;
+  flex: 1;
+}
+.error {
+  flex-shrink: 0;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-color: var(--page-line);
+  padding: 0.625rem 1.5rem;
+  font-size: 13px;
+  color: var(--error-ink);
+}

@@ -1,0 +1,109 @@
+.section {
+  min-width: 0px;
+}
+.container {
+  display: flex;
+  height: 3rem;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--page-line);
+  padding-inline: 1.25rem;
+}
+.heading {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+.label {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.action {
+  min-height: 0px;
+  border-radius: 0;
+  white-space: normal;
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border: 0px solid var(--page-line);
+  padding: 1rem 1.25rem;
+  text-align: left;
+  transition-property:
+    color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: ease;
+  transition-duration: 150ms;
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--step-hover);
+    }
+  }
+}
+.selected {
+  background-color: var(--step-selected);
+}
+.sequence {
+  margin-top: 0.125rem;
+  display: grid;
+  height: 1.5rem;
+  width: 1.5rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-style: solid;
+  border-width: 1px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.failed {
+  border-color: var(--error-line);
+  color: var(--error);
+}
+.passed {
+  border-color: var(--step-success-line);
+  color: var(--step-success);
+}
+.pending {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.content {
+  min-width: 0px;
+  flex: 1;
+}
+.title {
+  display: block;
+  overflow-wrap: break-word;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--ink);
+}
+.metadata {
+  margin-top: 0.375rem;
+  display: block;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.expandIndicator {
+  align-self: center;
+  color: var(--page-muted);
+}
+.details {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--page-line);
+}
+.description {
+  padding: 1.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5rem;
+  color: var(--page-muted);
+}

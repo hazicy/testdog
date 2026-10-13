@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import studioStyles from '@/features/runs/components/run-studio.module.css';
+import styles from './RunIssues.module.css';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -78,76 +83,55 @@ function RunIssueCard({
   }
 
   return (
-    <article className="run-issue-card bg-surface-raised">
-      <header className="run-issue-header">
-        <div className="mb-3 flex items-center justify-between gap-3 text-xs">
-          <span className="border border-error-line bg-error-soft px-2 py-1 font-mono text-error-ink">
-            ISSUE {String(index + 1).padStart(2, '0')}
-          </span>
+    <article className={classNames(studioStyles.runIssueCard, styles.article)}>
+      <header className={studioStyles.runIssueHeader}>
+        <div className={styles.container}>
+          <span className={styles.label}>ISSUE {String(index + 1).padStart(2, '0')}</span>
           <Button onClick={() => onSelect(entry)}>
             ▶ 回放问题 {time(issuePosition(run, occurrence))}
           </Button>
         </div>
-        <h2 className="text-base font-semibold leading-6 break-words">{issue.title}</h2>
+        <h2 className={styles.heading}>{issue.title}</h2>
       </header>
-      <div className="run-issue-body">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div data-ui="run-issue-body" className={studioStyles.runIssueBody}>
+        <div className={styles.metadata}>
           {/^https?:\/\//.test(snapshot.url) && (
-            <a
-              href={snapshot.url}
-              className="min-w-0 break-all text-page-muted hover:text-brand"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href={snapshot.url} className={styles.link} target="_blank" rel="noreferrer">
               ↗ {snapshot.url}
             </a>
           )}
-          <span className="text-page-muted">严重程度：{issueSeverities[issue.severity]}</span>
+          <span className={styles.mutedText}>严重程度：{issueSeverities[issue.severity]}</span>
         </div>
-        <div className="grid gap-3 text-sm">
-          <div className="min-w-0 border border-page-line">
-            <h3 className="bg-surface-muted px-3 py-2 text-xs font-medium text-page-muted">
-              预期 EXPECTED
-            </h3>
-            <p className="px-3 py-3 leading-5 whitespace-pre-wrap break-words">
-              {expected || '未记录预期结果'}
-            </p>
+        <div className={styles.comparison}>
+          <div className={styles.expected}>
+            <h3 className={styles.subheading}>预期 EXPECTED</h3>
+            <p className={styles.description}>{expected || '未记录预期结果'}</p>
           </div>
-          <div className="min-w-0 border border-error-line">
-            <h3 className="bg-error-soft px-3 py-2 text-xs font-medium text-error-ink">
-              实际 ACTUAL
-            </h3>
-            <p className="px-3 py-3 leading-5 whitespace-pre-wrap break-words">
-              {actual || '未记录实际结果'}
-            </p>
+          <div className={styles.actual}>
+            <h3 className={styles.actualHeading}>实际 ACTUAL</h3>
+            <p className={styles.description}>{actual || '未记录实际结果'}</p>
           </div>
         </div>
-        <details open className="mt-5 border-b border-page-line pb-4 text-xs">
-          <summary className="cursor-pointer font-medium text-page-muted">
-            复现步骤 · {reproduction.length}
-          </summary>
-          <ol className="mt-3 space-y-2">
+        <details open className={styles.details}>
+          <summary className={styles.summary}>复现步骤 · {reproduction.length}</summary>
+          <ol className={styles.ol}>
             {reproduction.map((title, position) => (
-              <li key={position} className="flex gap-3 leading-5">
-                <span className="font-mono text-page-muted">
-                  {String(position + 1).padStart(2, '0')}
-                </span>
+              <li key={position} className={styles.item}>
+                <span className={styles.stepNumber}>{String(position + 1).padStart(2, '0')}</span>
                 <span>{title}</span>
               </li>
             ))}
           </ol>
         </details>
-        <details className="mt-5 border-b border-page-line pb-4 text-xs">
-          <summary className="cursor-pointer font-medium text-page-muted">
-            截图证据 · {screenshots.length}
-          </summary>
+        <details className={styles.details}>
+          <summary className={styles.summary}>截图证据 · {screenshots.length}</summary>
           {screenshots.length ? (
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className={styles.screenshots}>
               {screenshots.map((frame) => (
                 <Button
                   key={frame.id}
                   variant="ghost"
-                  className="border border-page-line min-h-0 rounded-none p-0 whitespace-normal"
+                  className={styles.action}
                   aria-label={`回放证据 ${time(frame.elapsedMs)}`}
                   onClick={() => onFrame(frame)}
                 >
@@ -157,25 +141,25 @@ function RunIssueCard({
                     width={160}
                     height={100}
                     unoptimized
-                    className="h-24 w-40 object-contain"
+                    className={styles.image}
                   />
                 </Button>
               ))}
             </div>
           ) : (
-            <p className="mt-2 text-page-muted">未归档截图证据。</p>
+            <p className={styles.emptyEvidence}>未归档截图证据。</p>
           )}
         </details>
         {error && (
-          <p role="alert" className="mt-3 text-xs text-error-ink">
+          <p role="alert" className={styles.error}>
             {error}
           </p>
         )}
       </div>
-      <footer className="run-issue-actions flex flex-wrap items-center gap-2">
+      <footer className={classNames(studioStyles.runIssueActions, styles.footer)}>
         <Select
           aria-label={`问题状态：${issue.title}`}
-          className="w-auto"
+          className={styles.select}
           value={issue.status}
           disabled={busy}
           onValueChange={(status) => void changeStatus(status)}
@@ -183,7 +167,7 @@ function RunIssueCard({
         />
         <Button
           variant="primary"
-          className="flex-1"
+          className={styles.copyPrompt}
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(
@@ -204,7 +188,7 @@ function RunIssueCard({
         >
           {copied ? '已复制修复提示词' : '复制修复提示词'}
         </Button>
-        <Link href={`/issues/${issue.id}`} className="text-xs text-brand hover:underline">
+        <Link href={`/issues/${issue.id}`} className={styles.detailsLink}>
           查看问题详情 ↗
         </Link>
       </footer>
@@ -242,13 +226,16 @@ export function RunIssues({
   const selected = entries[selectedIndex];
 
   return (
-    <section aria-label="执行关联问题" className="run-issues-view bg-surface-raised">
-      <div className="shrink-0 border-b border-page-line px-5 py-3">
-        <p className="text-xs text-page-muted">本次执行 · {entries.length} 个问题</p>
+    <section
+      aria-label="执行关联问题"
+      className={classNames(studioStyles.runIssuesView, styles.article)}
+    >
+      <div className={styles.toolbar}>
+        <p className={styles.issueCount}>本次执行 · {entries.length} 个问题</p>
         {entries.length > 1 && (
           <Select
             aria-label="选择执行问题"
-            className="mt-3"
+            className={styles.issueSelector}
             value={selected.occurrence.id}
             onValueChange={(id) => {
               const entry = entries.find((item) => item.occurrence.id === id);
@@ -262,23 +249,23 @@ export function RunIssues({
           />
         )}
         {hasMore && (
-          <Button className="mt-3" disabled={loading} onClick={onLoadMore}>
+          <Button className={styles.issueSelector} disabled={loading} onClick={onLoadMore}>
             加载更多问题
           </Button>
         )}
       </div>
       {loading && !entries.length && (
-        <p role="status" className="p-5 text-sm text-page-muted">
+        <p role="status" className={styles.loading}>
           正在加载关联问题…
         </p>
       )}
       {error && (
-        <p role="alert" className="p-5 text-sm text-error-ink">
+        <p role="alert" className={styles.loadError}>
           无法加载关联问题：{error}
           <Button
             variant="ghost"
             size="sm"
-            className="ml-2 underline"
+            className={styles.retry}
             onClick={() => void onUpdated()}
           >
             重试
@@ -286,11 +273,9 @@ export function RunIssues({
         </p>
       )}
       {!loading && !error && !selected && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
-          <h2 className="text-sm font-medium">本次执行暂无关联问题</h2>
-          <p className="text-xs leading-5 text-page-muted">
-            自动发现的问题和手动关联的问题会显示在这里。
-          </p>
+        <div className={styles.emptyState}>
+          <h2 className={styles.emptyTitle}>本次执行暂无关联问题</h2>
+          <p className={styles.emptyHint}>自动发现的问题和手动关联的问题会显示在这里。</p>
         </div>
       )}
       {selected && (

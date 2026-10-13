@@ -1,7 +1,9 @@
 'use client';
 
+import styles from './Table.module.css';
+
 import { useRender } from '@base-ui/react/use-render';
-import { twMerge } from 'tailwind-merge';
+import { classNames } from '@/components/ui/classNames';
 
 export function Table({ render, ref, className, ...props }: useRender.ComponentProps<'table'>) {
   return useRender({
@@ -11,10 +13,7 @@ export function Table({ render, ref, className, ...props }: useRender.ComponentP
     props: {
       ...props,
       'data-slot': 'table',
-      className: twMerge(
-        'w-full border-collapse text-left text-[13px] whitespace-nowrap',
-        className,
-      ),
+      className: classNames(styles.table, className),
     },
   });
 }
@@ -32,7 +31,7 @@ export function TableHeader({
     props: {
       ...props,
       'data-slot': 'table-header',
-      className: twMerge('bg-surface-muted', className),
+      className: classNames(styles.header, className),
     },
   });
 }
@@ -45,7 +44,7 @@ export function TableBody({ render, ref, className, ...props }: useRender.Compon
     props: {
       ...props,
       'data-slot': 'table-body',
-      className: twMerge('[&>tr:last-child]:border-b-0 [&>tr:hover]:bg-surface-hover', className),
+      className: classNames(styles.body, className),
     },
   });
 }
@@ -58,7 +57,7 @@ export function TableRow({ render, ref, className, ...props }: useRender.Compone
     props: {
       ...props,
       'data-slot': 'table-row',
-      className: twMerge('border-b border-line-subtle', className),
+      className: classNames(styles.row, className),
     },
   });
 }
@@ -72,10 +71,7 @@ export function TableHead({ render, ref, className, ...props }: useRender.Compon
       scope: 'col',
       ...props,
       'data-slot': 'table-head',
-      className: twMerge(
-        'border-b border-page-line px-4.5 py-3 text-xs font-normal text-table-heading',
-        className,
-      ),
+      className: classNames(styles.heading, className),
     },
   });
 }
@@ -88,7 +84,7 @@ export function TableCell({ render, ref, className, ...props }: useRender.Compon
     props: {
       ...props,
       'data-slot': 'table-cell',
-      className: twMerge('px-4.5 py-4', className),
+      className: classNames(styles.cell, className),
     },
   });
 }

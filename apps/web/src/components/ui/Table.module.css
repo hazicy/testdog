@@ -1,0 +1,39 @@
+@layer controls {
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .header {
+    background-color: var(--surface-muted);
+  }
+  .body {
+    & > tr:last-child {
+      border-bottom-style: solid;
+      border-bottom-width: 0px;
+    }
+    & > tr:hover {
+      background-color: var(--surface-hover);
+    }
+  }
+  .row {
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-color: var(--line-subtle);
+  }
+  .heading {
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-color: var(--page-line);
+    padding: 0.75rem 1.125rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 400;
+    color: var(--table-heading);
+  }
+  .cell {
+    padding: 1rem 1.125rem;
+  }
+}

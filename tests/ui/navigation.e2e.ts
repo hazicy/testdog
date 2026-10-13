@@ -112,8 +112,8 @@ test('empty lists fill the remaining workspace height', async ({ page }) => {
         exact: true,
       }),
     ).toBeVisible();
-    const empty = await page.locator('.workspace-index-empty').boundingBox();
-    const footer = await page.locator('.workspace-index-footer').boundingBox();
+    const empty = await page.locator('[data-ui~="workspace-index-empty"]').boundingBox();
+    const footer = await page.locator('[data-ui~="workspace-index-footer"]').boundingBox();
 
     expect(empty!.height).toBeGreaterThan(600);
     expect(footer!.y).toBeGreaterThan(780);

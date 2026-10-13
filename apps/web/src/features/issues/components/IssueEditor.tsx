@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './IssueEditor.module.css';
+
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { useId, useState } from 'react';
@@ -117,7 +119,7 @@ export function IssueEditor({
     <Dialog titleId={titleId} busy={busy} onDismiss={onDismiss} initialFocus="input">
       <form onSubmit={save}>
         <DialogHeader>
-          <h2 id={titleId} className="text-base font-semibold">
+          <h2 id={titleId} className={styles.heading}>
             {issue ? '编辑问题' : '创建或关联问题'}
           </h2>
           <Button
@@ -131,15 +133,15 @@ export function IssueEditor({
             <Icon icon={closeIcon} width="18" aria-hidden="true" />
           </Button>
         </DialogHeader>
-        <div className="space-y-5 px-6 py-5">
+        <div className={styles.container}>
           {run && (
-            <p className="text-sm text-page-muted">
+            <p className={styles.description}>
               来源：{run.name}
               {step ? ` / ${step.title}` : ''}，提交后关联执行和已归档证据。
             </p>
           )}
           {run && !issue && (
-            <div className="flex gap-2" role="group" aria-label="问题操作">
+            <div className={styles.group} role="group" aria-label="问题操作">
               <Button
                 type="button"
                 aria-pressed={mode === 'create'}
@@ -154,10 +156,10 @@ export function IssueEditor({
           )}
           {mode === 'link' ? (
             <>
-              <label className="block">
+              <label className={styles.field}>
                 搜索问题
                 <Input
-                  className="mt-2"
+                  className={styles.input}
                   value={search}
                   onChange={(event) => {
                     setSearch(event.target.value);
@@ -181,10 +183,10 @@ export function IssueEditor({
             </>
           ) : (
             <>
-              <label className="block">
+              <label className={styles.field}>
                 问题标题
                 <Input
-                  className="mt-2"
+                  className={styles.input}
                   required
                   maxLength={200}
                   value={title}
@@ -192,18 +194,18 @@ export function IssueEditor({
                 />
               </label>
               <div>
-                <label htmlFor={`${titleId}-description`} className="block">
+                <label htmlFor={`${titleId}-description`} className={styles.field}>
                   问题描述
                 </label>
                 <Textarea
                   id={`${titleId}-description`}
-                  className="mt-2 min-h-32"
+                  className={styles.descriptionInput}
                   maxLength={20000}
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className={styles.classification}>
                 <Select
                   aria-label="问题分类"
                   value={category}
@@ -236,7 +238,7 @@ export function IssueEditor({
             </>
           )}
           {(error || (mode === 'link' && pageError)) && (
-            <p role="alert" className="text-error-ink">
+            <p role="alert" className={styles.error}>
               {error || pageError?.message}
             </p>
           )}

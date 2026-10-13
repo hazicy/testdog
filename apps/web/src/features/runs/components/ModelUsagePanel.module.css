@@ -1,0 +1,27 @@
+.section {
+  margin-bottom: 1.25rem;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--page-line);
+  padding-bottom: 1.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.description {
+  font-weight: 500;
+}
+.usageSummary {
+  margin-top: 0.5rem;
+  color: var(--page-muted);
+}
+.details {
+  margin-top: 0.75rem;
+}
+.summary {
+  cursor: pointer;
+}
+.table {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}

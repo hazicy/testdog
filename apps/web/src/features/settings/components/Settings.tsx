@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './Settings.module.css';
+
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -12,7 +14,6 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Icon } from '@iconify/react/offline';
 import userIcon from '@iconify-icons/lucide/user-round';
 import shieldIcon from '@iconify-icons/lucide/shield-check';
-import '@/features/workspace/components/workspace-index.css';
 
 function ProfileForm({ name, email }: { name: string; email: string }) {
   const [draft, setDraft] = useState(name);
@@ -55,8 +56,8 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
   }
 
   return (
-    <form onSubmit={save} className="space-y-5">
-      <label className="block space-y-2 text-sm">
+    <form onSubmit={save} className={styles.form}>
+      <label className={styles.field}>
         <span>姓名</span>
         <Input
           name="name"
@@ -71,18 +72,18 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
           disabled={pending}
         />
       </label>
-      <label className="block space-y-2 text-sm">
+      <label className={styles.field}>
         <span>邮箱</span>
         <Input value={email} type="email" autoComplete="email" readOnly />
       </label>
-      <p className="text-xs text-page-muted">邮箱用于登录，目前暂不支持修改。</p>
+      <p className={styles.description}>邮箱用于登录，目前暂不支持修改。</p>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className={styles.error}>
           {error}
         </p>
       )}
       {message && (
-        <p role="status" className="text-sm text-brand-active">
+        <p role="status" className={styles.loading}>
           {message}
         </p>
       )}
@@ -150,8 +151,8 @@ function PasswordForm() {
   }
 
   return (
-    <form onSubmit={save} className="space-y-5">
-      <label className="block space-y-2 text-sm">
+    <form onSubmit={save} className={styles.form}>
+      <label className={styles.field}>
         <span>当前密码</span>
         <Input
           name="currentPassword"
@@ -162,7 +163,7 @@ function PasswordForm() {
           disabled={pending}
         />
       </label>
-      <label className="block space-y-2 text-sm">
+      <label className={styles.field}>
         <span>新密码</span>
         <Input
           name="newPassword"
@@ -175,10 +176,10 @@ function PasswordForm() {
           disabled={pending}
         />
       </label>
-      <p id="new-password-hint" className="text-xs text-page-muted">
+      <p id="new-password-hint" className={styles.description}>
         使用 8–128 个字符。修改后将退出其他设备的登录。
       </p>
-      <label className="block space-y-2 text-sm">
+      <label className={styles.field}>
         <span>确认新密码</span>
         <Input
           name="confirmPassword"
@@ -191,12 +192,12 @@ function PasswordForm() {
         />
       </label>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className={styles.error}>
           {error}
         </p>
       )}
       {message && (
-        <p role="status" className="text-sm text-brand-active">
+        <p role="status" className={styles.loading}>
           {message}
         </p>
       )}
@@ -217,31 +218,28 @@ export function Settings() {
   );
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-base font-semibold">设置</h1>
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>设置</h1>
       </header>
       {isPending ? (
-        <p role="status" className="text-sm text-page-muted">
+        <p role="status" className={styles.sessionLoading}>
           加载账户…
         </p>
       ) : error ? (
-        <div className="space-y-3">
-          <p role="alert" className="text-sm text-red-600">
+        <div className={styles.sessionError}>
+          <p role="alert" className={styles.error}>
             账户信息加载失败，请重试。
           </p>
           <Button onClick={() => refetch()}>重新加载</Button>
         </div>
       ) : !session ? (
-        <section
-          aria-label="账户设置"
-          className="space-y-4 rounded-xl border border-page-line bg-page p-6"
-        >
-          <h2 className="text-sm font-semibold">登录后管理账户</h2>
-          <p className="text-sm text-page-muted">登录后可以修改姓名和密码。</p>
+        <section aria-label="账户设置" className={styles.section}>
+          <h2 className={styles.heading}>登录后管理账户</h2>
+          <p className={styles.sessionLoading}>登录后可以修改姓名和密码。</p>
           <Link
             href="/login?callbackURL=%2Fsettings"
-            className={buttonStyles({ className: 'inline-flex' })}
+            className={buttonStyles({ className: styles.link })}
           >
             登录
           </Link>
@@ -252,56 +250,47 @@ export function Settings() {
           value={tab}
           onValueChange={(value) => setTab(String(value))}
           orientation="vertical"
-          className="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)] md:gap-10"
+          className={styles.root}
         >
-          <Tabs.List
-            aria-label="设置分类"
-            className="flex gap-1 border-b border-page-line pb-3 md:flex-col md:self-start md:border-b-0 md:border-r md:pr-4"
-          >
-            <Tabs.Tab
-              value="profile"
-              className="flex items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm text-page-muted hover:bg-surface-muted data-[active]:bg-surface-muted data-[active]:font-medium data-[active]:text-ink"
-            >
+          <Tabs.List aria-label="设置分类" className={styles.list}>
+            <Tabs.Tab value="profile" className={styles.tab}>
               <Icon icon={userIcon} width="16" aria-hidden="true" />
               账户资料
             </Tabs.Tab>
-            <Tabs.Tab
-              value="security"
-              className="flex items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm text-page-muted hover:bg-surface-muted data-[active]:bg-surface-muted data-[active]:font-medium data-[active]:text-ink"
-            >
+            <Tabs.Tab value="security" className={styles.tab}>
               <Icon icon={shieldIcon} width="16" aria-hidden="true" />
               登录安全
             </Tabs.Tab>
           </Tabs.List>
-          <div className="min-w-0 max-w-xl">
+          <div className={styles.panels}>
             <Tabs.Panel value="profile" keepMounted>
-              <section aria-labelledby="profile-title" className="space-y-6">
-                <h2 id="profile-title" className="text-sm font-semibold">
+              <section aria-labelledby="profile-title" className={styles.settingsSection}>
+                <h2 id="profile-title" className={styles.heading}>
                   账户资料
                 </h2>
                 <ProfileForm name={session.user.name} email={session.user.email} />
               </section>
             </Tabs.Panel>
             <Tabs.Panel value="security" keepMounted>
-              <section aria-labelledby="security-title" className="space-y-6">
-                <h2 id="security-title" className="text-sm font-semibold">
+              <section aria-labelledby="security-title" className={styles.settingsSection}>
+                <h2 id="security-title" className={styles.heading}>
                   登录安全
                 </h2>
                 {accounts.error ? (
-                  <div className="space-y-3">
-                    <p role="alert" className="text-sm text-red-600">
+                  <div className={styles.sessionError}>
+                    <p role="alert" className={styles.error}>
                       登录方式加载失败，请重试。
                     </p>
                     <Button onClick={() => accounts.mutate()}>重新加载登录方式</Button>
                   </div>
                 ) : !accounts.data ? (
-                  <p role="status" className="text-sm text-page-muted">
+                  <p role="status" className={styles.sessionLoading}>
                     加载登录方式…
                   </p>
                 ) : accounts.data.some((account) => account.providerId === 'credential') ? (
                   <PasswordForm />
                 ) : (
-                  <p className="text-sm leading-6 text-page-muted">
+                  <p className={styles.providerHint}>
                     此账户使用第三方登录，请前往对应的 Google 或 GitHub 账户管理密码。
                   </p>
                 )}

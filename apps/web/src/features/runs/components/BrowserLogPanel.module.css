@@ -1,0 +1,75 @@
+.toolbar {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.input {
+  max-width: 20rem;
+}
+.select {
+  width: auto;
+}
+.field {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.label {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.entries {
+  max-height: 24rem;
+  overflow: auto;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.description {
+  padding-block: 1.25rem;
+  color: var(--page-muted);
+}
+.pagination {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.privacyHint {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.details {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--page-line);
+  padding-block: 0.75rem;
+}
+.summary {
+  cursor: pointer;
+  word-break: break-all;
+  line-height: 1.5rem;
+}
+.timestamp {
+  margin-right: 0.75rem;
+  color: var(--page-muted);
+}
+.error {
+  color: var(--error-ink);
+}
+.code {
+  margin-top: 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background-color: var(--page);
+  padding: 0.75rem;
+  line-height: 1.5rem;
+}

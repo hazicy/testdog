@@ -12,8 +12,8 @@ test('canvas insertion visibility, editing history and Chinese composition work 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const canvas = page.locator('.case-canvas-page');
-  const viewport = canvas.locator('.plan-viewport');
+  const canvas = page.locator('[data-ui~="case-canvas-page"]');
+  const viewport = canvas.locator('[data-ui~="plan-viewport"]');
   const firstInsert = canvas.getByRole('button', {
     name: '在 root 的第 1 个位置添加节点',
     exact: true,
@@ -44,7 +44,7 @@ test('canvas insertion visibility, editing history and Chinese composition work 
   await expect(tailInsert).toHaveCSS('opacity', '1');
   await tasks.first().hover();
   await expect(middleInsert).toHaveCSS('opacity', '1');
-  await tasks.first().locator('.step-badge').click();
+  await tasks.first().locator('[data-ui~="step-badge"]').click();
   await viewport.focus();
   await page.mouse.move(0, 0);
   await expect(middleInsert).toHaveCSS('opacity', '0');
@@ -68,10 +68,10 @@ test('canvas insertion visibility, editing history and Chinese composition work 
   await expect(tasks).toHaveCount(1);
   await canvas.getByRole('button', { name: '重做画板操作', exact: true }).click();
   await expect(tasks).toHaveCount(2);
-  const before = await tasks.first().locator('.plan-content-button').textContent();
+  const before = await tasks.first().locator('[data-ui~="plan-content-button"]').textContent();
   const transform = await viewport.locator('.react-flow__viewport').getAttribute('style');
 
-  await tasks.first().locator('.plan-content-button').click();
+  await tasks.first().locator('[data-ui~="plan-content-button"]').click();
   const input = canvas.getByRole('textbox', { name: /^节点内容/ });
 
   await input.fill('中文输入确认');
@@ -83,7 +83,7 @@ test('canvas insertion visibility, editing history and Chinese composition work 
   await expect(input).toBeVisible();
   await input.press('Escape');
   await expect(tasks.first()).toContainText(before!);
-  await tasks.first().locator('.plan-content-button').click();
+  await tasks.first().locator('[data-ui~="plan-content-button"]').click();
   await input.fill('检查登录结果');
   await input.press('Enter');
   await expect(tasks.first()).toContainText('检查登录结果');
@@ -93,11 +93,14 @@ test('canvas insertion visibility, editing history and Chinese composition work 
   await expect(tasks.first()).toContainText(before!);
   await page.keyboard.press('Control+Shift+z');
   await expect(tasks.first()).toContainText('检查登录结果');
-  await tasks.first().locator('.plan-content-button').click();
+  await tasks.first().locator('[data-ui~="plan-content-button"]').click();
   await input.fill('检查页面中的订单信息与用户信息是否正确'.repeat(8) + '\n第二行\n第三行');
   await input.press('Enter');
   const firstBounds = (await tasks.first().boundingBox())!;
-  const textBounds = (await tasks.first().locator('.plan-content-button').boundingBox())!;
+  const textBounds = (await tasks
+    .first()
+    .locator('[data-ui~="plan-content-button"]')
+    .boundingBox())!;
   const nextBounds = (await tasks.last().boundingBox())!;
 
   expect(textBounds.y + textBounds.height).toBeLessThanOrEqual(firstBounds.y + firstBounds.height);
@@ -123,7 +126,7 @@ test('canvas insertion visibility, editing history and Chinese composition work 
   await viewport.screenshot({ path: testInfo.outputPath('canvas-hover-insertions.png') });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(canvas.getByRole('button', { name: '全览画板', exact: true })).toBeVisible();
-  const controls = await canvas.locator('.plan-viewport-controls').boundingBox();
+  const controls = await canvas.locator('[data-ui~="plan-viewport-controls"]').boundingBox();
 
   expect(controls!.x).toBeGreaterThanOrEqual(0);
   expect(controls!.x + controls!.width).toBeLessThanOrEqual(390);

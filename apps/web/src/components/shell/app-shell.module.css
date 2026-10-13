@@ -1,0 +1,101 @@
+@layer components {
+  .appShell {
+    --sidebar-width: 60px;
+    --header-height: 56px;
+
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--page);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .appShellSidebar,
+  .appShellContent {
+    display: grid;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .appShellSidebar {
+    grid-template-rows: var(--header-height) minmax(0, 1fr) auto;
+    border-right: 1px solid var(--page-line);
+  }
+
+  .appShellContent {
+    grid-template-rows: var(--header-height) minmax(0, 1fr);
+  }
+
+  .appShellBrand,
+  .appShellHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--page-line);
+  }
+
+  .appShellBrand {
+    padding-inline: 16px;
+  }
+
+  .appShellHeader {
+    padding-inline: 20px;
+    background: var(--surface);
+  }
+
+  .appShellNavigation,
+  .appShellMain {
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .appShellNavigation {
+    padding: 24px 12px 0;
+  }
+
+  .appShellAccount {
+    padding: 8px;
+    border-top: 1px solid var(--page-line);
+  }
+
+  .appShellMainCanvas {
+    overflow: hidden;
+  }
+
+  .appShellMainPadded {
+    padding: 28px 16px;
+  }
+
+  @media (min-width: 640px) {
+    .appShellMainPadded {
+      padding-inline: 24px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .appShell {
+      &[data-collapsed='false'] {
+        --sidebar-width: 216px;
+      }
+    }
+
+    .appShell {
+      &[data-collapsed='false'] .appShellAccount {
+        padding: 12px;
+      }
+    }
+
+    .appShellHeader {
+      padding-inline: 28px;
+    }
+
+    .appShellMainPadded {
+      padding: 36px 32px;
+    }
+  }
+}

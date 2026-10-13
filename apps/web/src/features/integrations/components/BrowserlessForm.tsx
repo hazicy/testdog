@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './BrowserlessForm.module.css';
+
 import { useId, useState } from 'react';
 import { Dialog, DialogHeader } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
@@ -85,10 +87,10 @@ export function BrowserlessForm({
     <Dialog titleId={titleId} busy={busy} onDismiss={onDismiss} initialFocus="input">
       <DialogHeader>
         <div>
-          <h2 id={titleId} className="text-base font-semibold">
+          <h2 id={titleId} className={styles.heading}>
             Browserless
           </h2>
-          <p className="mt-1 text-xs text-page-muted">
+          <p className={styles.subtitle}>
             {state.configured ? (state.enabled ? '已启用' : '已配置 · 未启用') : '未配置'}
           </p>
         </div>
@@ -96,18 +98,18 @@ export function BrowserlessForm({
           关闭
         </Button>
       </DialogHeader>
-      <form className="space-y-4 p-6" onSubmit={save} onChange={() => setDirty(true)}>
-        <p className="text-sm text-page-muted">
+      <form className={styles.form} onSubmit={save} onChange={() => setDirty(true)}>
+        <p className={styles.connectionHint}>
           用于 Web Chromium 执行，WebKit 仍使用本地浏览器。请填写 Playwright 原生协议的
           /chromium/playwright 端点，服务端需兼容 Playwright 1.63.0。启用后连接失败将终止执行。
         </p>
         {state.configurationError && (
-          <p role="alert" className="text-sm text-error-ink">
+          <p role="alert" className={styles.error}>
             {state.configurationError}
           </p>
         )}
         <div>
-          <label htmlFor={`${titleId}-endpoint`} className="mb-2 block text-sm">
+          <label htmlFor={`${titleId}-endpoint`} className={styles.field}>
             WebSocket 地址
           </label>
           <Input
@@ -125,7 +127,7 @@ export function BrowserlessForm({
           />
         </div>
         <div>
-          <label htmlFor={`${titleId}-token`} className="mb-2 block text-sm">
+          <label htmlFor={`${titleId}-token`} className={styles.field}>
             Token（可选）
           </label>
           <Input
@@ -142,7 +144,7 @@ export function BrowserlessForm({
           />
         </div>
         {state.hasCredentials && (
-          <label className="flex items-center gap-2 text-sm">
+          <label className={styles.clearCredential}>
             <Checkbox
               checked={clearToken}
               onCheckedChange={(value) => {
@@ -153,7 +155,7 @@ export function BrowserlessForm({
             清除已保存的 Token
           </label>
         )}
-        <label className="flex items-center gap-2 text-sm">
+        <label className={styles.clearCredential}>
           <Checkbox
             checked={enabled}
             onCheckedChange={(value) => {
@@ -164,16 +166,16 @@ export function BrowserlessForm({
           启用 Browserless
         </label>
         {error && (
-          <p role="alert" className="text-sm text-error-ink">
+          <p role="alert" className={styles.error}>
             {error}
           </p>
         )}
         {message && (
-          <p role="status" className="text-sm text-step-success">
+          <p role="status" className={styles.loading}>
             {message}
           </p>
         )}
-        <div className="flex flex-wrap gap-2">
+        <div className={styles.container}>
           <Button type="submit" variant="primary" disabled={busy}>
             {busy ? '处理中…' : '保存配置'}
           </Button>
@@ -186,7 +188,7 @@ export function BrowserlessForm({
           </Button>
         </div>
         {dirty && state.configured && (
-          <p className="text-xs text-page-muted">先保存修改，再测试连接。</p>
+          <p className={styles.unsavedHint}>先保存修改，再测试连接。</p>
         )}
       </form>
     </Dialog>

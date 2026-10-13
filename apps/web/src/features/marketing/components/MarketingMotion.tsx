@@ -23,7 +23,7 @@ export function MarketingMotion({
     const revealElements = root.querySelectorAll<HTMLElement>('[data-reveal]');
     const hero = root.querySelector<HTMLElement>('[data-hero-art]');
     const tilt = root.querySelector<HTMLElement>('[data-forge-tilt]');
-    const hadSmoothScroll = document.documentElement.classList.contains('scroll-smooth');
+    const previousScrollBehavior = document.documentElement.style.scrollBehavior;
     let observer: IntersectionObserver | undefined;
     let frame = 0;
     let playedEntrance = false;
@@ -59,14 +59,14 @@ export function MarketingMotion({
       animations.clear();
       for (const element of revealElements) element.removeAttribute('data-motion');
       if (preference.matches) {
-        if (!hadSmoothScroll) document.documentElement.classList.remove('scroll-smooth');
+        document.documentElement.style.scrollBehavior = previousScrollBehavior;
         tilt?.style.removeProperty('--forge-rx');
         tilt?.style.removeProperty('--forge-ry');
 
         return;
       }
 
-      document.documentElement.classList.add('scroll-smooth');
+      document.documentElement.style.scrollBehavior = 'smooth';
       if (!playedEntrance) {
         root?.querySelectorAll<HTMLElement>('[data-entrance]').forEach((element) => {
           play(element, Number(element.dataset.entrance) || 0, true);
@@ -131,7 +131,7 @@ export function MarketingMotion({
       hero?.removeEventListener('pointermove', onPointerMove);
       hero?.removeEventListener('pointerleave', resetPointer);
       resetPointer();
-      if (!hadSmoothScroll) document.documentElement.classList.remove('scroll-smooth');
+      document.documentElement.style.scrollBehavior = previousScrollBehavior;
     };
   }, []);
 

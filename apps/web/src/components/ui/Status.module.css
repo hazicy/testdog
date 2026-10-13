@@ -1,0 +1,32 @@
+@layer controls {
+  .passed {
+    color: var(--success);
+  }
+  .failed {
+    color: var(--danger);
+  }
+  .running {
+    color: var(--warning);
+  }
+  .cancelled {
+    color: var(--cancelled);
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    white-space: nowrap;
+    & > span {
+      width: 0.375rem;
+      height: 0.375rem;
+      border-radius: 9999px;
+      background-color: currentcolor;
+    }
+  }
+  .none {
+    color: var(--status-none);
+  }
+}

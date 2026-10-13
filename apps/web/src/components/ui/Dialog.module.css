@@ -1,0 +1,52 @@
+@layer controls {
+  .backdrop {
+    position: absolute;
+    inset: 0px;
+    z-index: 50;
+    background-color: var(--backdrop);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+  .viewport {
+    position: fixed;
+    inset: 0px;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+  }
+  .popup {
+    position: relative;
+    width: 100%;
+    max-width: 620px;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    border-radius: 0.75rem;
+    border: 1px solid var(--dialog-line);
+    background-color: var(--surface);
+    padding: 0px;
+    color: var(--ink);
+    box-shadow: 0 20px 80px var(--shadow);
+  }
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-color: var(--page-line);
+    padding: 22px 1.5rem;
+  }
+  .footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.625rem;
+    border-top-style: solid;
+    border-top-width: 1px;
+    border-color: var(--page-line);
+    background-color: var(--surface-muted);
+    padding: 1rem 1.5rem;
+  }
+}

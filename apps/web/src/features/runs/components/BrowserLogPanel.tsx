@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './BrowserLogPanel.module.css';
+
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -59,17 +61,17 @@ export function BrowserLogPanel({
 
   return (
     <section aria-label={kind === 'console' ? 'Console 记录' : 'Network 记录'}>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className={styles.toolbar}>
         <Input
           aria-label="搜索浏览器记录"
-          className="max-w-xs"
+          className={styles.input}
           placeholder="搜索内容、URL、状态码…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <Select
           aria-label="记录范围"
-          className="w-auto"
+          className={styles.select}
           value={scope}
           onValueChange={(value) => {
             setScope(value);
@@ -81,7 +83,7 @@ export function BrowserLogPanel({
             { value: 'time', label: '截至回放时间', disabled: elapsedMs == null },
           ]}
         />
-        <label className="flex gap-2 text-xs">
+        <label className={styles.field}>
           <Checkbox
             checked={errors}
             onCheckedChange={(checked) => {
@@ -91,7 +93,7 @@ export function BrowserLogPanel({
           />
           仅错误
         </label>
-        <span className="text-xs text-page-muted">{visible.length} 条</span>
+        <span className={styles.label}>{visible.length} 条</span>
       </div>
       {data.error && (
         <p role="alert">
@@ -99,18 +101,18 @@ export function BrowserLogPanel({
         </p>
       )}
       {data.isLoading && <p role="status">正在加载浏览器记录…</p>}
-      <div className="max-h-96 overflow-auto font-mono text-xs">
+      <div className={styles.entries}>
         {visible.map((log) => (
           <LogRow key={log.id} log={log} />
         ))}
         {!visible.length && (
-          <p className="py-5 text-page-muted">
+          <p className={styles.description}>
             没有符合条件的记录。旧执行记录不包含浏览器日志，请重新录制或重放。
           </p>
         )}
       </div>
       {runId && (
-        <div className="mt-3 flex items-center gap-4 text-xs">
+        <div className={styles.pagination}>
           <Button
             disabled={!cursors.length || data.isLoading}
             onClick={() => setCursors(cursors.slice(0, -1))}
@@ -128,9 +130,7 @@ export function BrowserLogPanel({
           </Button>
         </div>
       )}
-      <p className="mt-3 text-xs text-page-muted">
-        每次执行最多采集 2000 条浏览器记录；敏感请求头已隐藏。
-      </p>
+      <p className={styles.privacyHint}>每次执行最多采集 2000 条浏览器记录；敏感请求头已隐藏。</p>
     </section>
   );
 }
@@ -139,30 +139,23 @@ export function LogRow({ log }: { log: BrowserLog }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <details
-      className="border-b border-page-line py-3"
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-    >
-      <summary className="cursor-pointer break-all leading-6">
-        <span className="mr-3 text-page-muted">
+    <details className={styles.details} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className={styles.summary}>
+        <span className={styles.timestamp}>
           {(log.elapsedMs / 1000).toFixed(2)}s · {log.pageId}
         </span>
         {log.kind === 'console' ? (
-          <span className={log.level === 'error' ? 'text-error-ink' : ''}>
+          <span className={log.level === 'error' ? styles.error : ''}>
             [{log.level}] {log.message}
           </span>
         ) : (
-          <span className={log.failure || (log.status || 0) >= 400 ? 'text-error-ink' : ''}>
+          <span className={log.failure || (log.status || 0) >= 400 ? styles.error : ''}>
             {log.method} {log.status ?? (log.failure ? 'FAILED' : '—')} {log.url} ·{' '}
             {log.durationMs ?? 0}ms
           </span>
         )}
       </summary>
-      {open && (
-        <pre className="mt-2 whitespace-pre-wrap break-all bg-page p-3 leading-6">
-          {JSON.stringify(log, null, 2)}
-        </pre>
-      )}
+      {open && <pre className={styles.code}>{JSON.stringify(log, null, 2)}</pre>}
     </details>
   );
 }

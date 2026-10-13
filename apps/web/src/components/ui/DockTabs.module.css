@@ -1,0 +1,10 @@
+.label {
+  margin-left: 0.5rem;
+  border-radius: 0.25rem;
+  background-color: var(--error-soft);
+  padding: 0.125rem 0.375rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--error-ink);
+}

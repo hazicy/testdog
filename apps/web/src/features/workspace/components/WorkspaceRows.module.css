@@ -1,0 +1,51 @@
+.action {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--brand-link);
+    }
+  }
+  min-height: 0px;
+  border-radius: 0;
+  padding: 0px;
+  white-space: normal;
+}
+.link {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+  @media (hover: hover) {
+    &:hover {
+      text-decoration-line: underline;
+    }
+  }
+}
+.label {
+  color: var(--text-faint);
+}
+.container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+.runLink {
+  font-weight: 500;
+  @media (hover: hover) {
+    &:hover {
+      color: var(--brand-link);
+    }
+  }
+}
+.tableCell {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.runActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

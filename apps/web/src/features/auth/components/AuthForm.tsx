@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './AuthForm.module.css';
+
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -82,23 +84,23 @@ export function AuthForm({
   }
 
   return (
-    <main id="main-content" className="grid min-h-dvh place-items-center bg-page px-5 py-12">
-      <div className="w-full max-w-sm space-y-7">
+    <main id="main-content" className={styles.mainContent}>
+      <div className={styles.page}>
         <Link href="/" aria-label="testdog 首页">
           <Brand />
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold">{register ? '创建账号' : '登录 testdog'}</h1>
-          <p className="mt-2 text-sm text-page-muted">
+          <h1 className={styles.title}>{register ? '创建账号' : '登录 testdog'}</h1>
+          <p className={styles.subtitle}>
             {register ? '使用邮箱注册，开始管理和运行测试。' : '登录后继续使用测试工作区。'}
           </p>
         </div>
         {providers.length > 0 && (
-          <div className="grid gap-3">
+          <div className={styles.providers}>
             {providers.map((provider) => (
               <Button
                 key={provider}
-                className="w-full justify-center"
+                className={styles.providerButton}
                 disabled={pending}
                 onClick={() => social(provider)}
               >
@@ -106,21 +108,21 @@ export function AuthForm({
                 {register ? '注册 / 登录' : '登录'}
               </Button>
             ))}
-            <p className="text-center text-xs text-page-muted">或使用邮箱</p>
+            <p className={styles.providerDivider}>或使用邮箱</p>
           </div>
         )}
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className={styles.credentials}>
           {register && (
-            <label className="block space-y-2 text-sm">
+            <label className={styles.field}>
               <span>姓名</span>
               <Input name="name" autoComplete="name" required maxLength={100} disabled={pending} />
             </label>
           )}
-          <label className="block space-y-2 text-sm">
+          <label className={styles.field}>
             <span>邮箱</span>
             <Input name="email" type="email" autoComplete="email" required disabled={pending} />
           </label>
-          <label className="block space-y-2 text-sm">
+          <label className={styles.field}>
             <span>密码</span>
             <Input
               name="password"
@@ -134,28 +136,28 @@ export function AuthForm({
             />
           </label>
           {register && (
-            <p id="password-hint" className="text-xs text-page-muted">
+            <p id="password-hint" className={styles.passwordHint}>
               至少 8 个字符
             </p>
           )}
           {error && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className={styles.error}>
               {error}
             </p>
           )}
           <Button
             type="submit"
             variant="primary"
-            className="w-full justify-center"
+            className={styles.providerButton}
             disabled={pending}
           >
             {pending ? '请稍候…' : register ? '注册' : '登录'}
           </Button>
         </form>
-        <p className="text-center text-sm text-page-muted">
+        <p className={styles.accountPrompt}>
           {register ? '已有账号？' : '还没有账号？'}{' '}
           <Link
-            className="text-brand-active underline"
+            className={styles.accountLink}
             href={
               (register ? '/login' : '/register') +
               '?callbackURL=' +

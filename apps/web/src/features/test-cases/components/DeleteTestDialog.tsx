@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './DeleteTestDialog.module.css';
+
 import { DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
@@ -33,16 +35,14 @@ export function DeleteTestDialog({
   }
 
   return (
-    <Dialog titleId="delete-title" busy={saving} onDismiss={onClose} className="max-w-md">
-      <div className="p-6">
-        <h2 id="delete-title" className="text-lg font-semibold">
+    <Dialog titleId="delete-title" busy={saving} onDismiss={onClose} className={styles.dialog}>
+      <div className={styles.container}>
+        <h2 id="delete-title" className={styles.deleteTitle}>
           删除测试？
         </h2>
-        <p className="mt-3 text-sm leading-6 text-page-muted">
-          将删除「{test.name}」。历史执行结果会保留。
-        </p>
+        <p className={styles.description}>将删除「{test.name}」。历史执行结果会保留。</p>
         {formError && (
-          <p role="alert" className="mt-3 text-sm text-error-ink">
+          <p role="alert" className={styles.error}>
             {formError}
           </p>
         )}

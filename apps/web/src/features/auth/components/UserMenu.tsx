@@ -1,5 +1,9 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import styles from './UserMenu.module.css';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -27,43 +31,34 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
     }
   }
 
-  if (isPending) return <p className="text-xs text-sidebar-muted">加载账号…</p>;
+  if (isPending) return <p className={styles.loading}>加载账号…</p>;
   if (!session)
     return (
-      <Link href="/login" className="text-sm text-brand-active">
+      <Link href="/login" className={styles.signIn}>
         登录
       </Link>
     );
 
   return (
-    <div className="space-y-2">
-      <div
-        className={`flex min-w-0 items-center justify-center gap-3 border border-page-line bg-page p-1 ${collapsed ? '' : 'md:justify-start md:p-2'}`}
-      >
-        <span
-          className="grid h-7 w-7 shrink-0 place-items-center bg-avatar-surface text-xs font-medium text-avatar-ink"
-          title={session.user.name}
-        >
+    <div className={styles.menu}>
+      <div className={classNames(styles.profile, collapsed ? '' : styles.expandedProfile)}>
+        <span className={styles.avatar} title={session.user.name}>
           {session.user.name.slice(0, 1).toUpperCase()}
         </span>
         {!collapsed && (
-          <div className="hidden min-w-0 md:block">
-            <p className="truncate text-xs font-medium">{session.user.name}</p>
-            <p className="mt-0.5 truncate text-xs text-sidebar-muted" title={session.user.email}>
+          <div className={styles.details}>
+            <p className={styles.name}>{session.user.name}</p>
+            <p className={styles.email} title={session.user.email}>
               {session.user.email}
             </p>
           </div>
         )}
       </div>
-      <Button
-        className="w-full justify-center px-1 text-xs"
-        disabled={signingOut}
-        onClick={signOut}
-      >
+      <Button className={styles.signOut} disabled={signingOut} onClick={signOut}>
         {signingOut ? '退出中…' : '退出'}
       </Button>
       {error && (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className={styles.error}>
           {error}
         </p>
       )}

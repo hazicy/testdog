@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './CaseSettings.module.css';
+
 import { Label } from '@/components/ui/Label';
 import useSWR from 'swr';
 import { Input } from '@/components/ui/Input';
@@ -49,7 +51,7 @@ export function CaseSettings({
   const deviceResources = resourceCatalog?.resources ?? [];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={styles.container}>
       <Label>
         测试名称
         <Input
@@ -91,8 +93,8 @@ export function CaseSettings({
               placeholder="https://your-app.com"
             />
           </Label>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-ink">
+          <div className={styles.mobileProfile}>
+            <label className={styles.field}>
               <Checkbox
                 aria-label="移动模拟"
                 checked={webProfile !== 'legacy-desktop'}
@@ -103,7 +105,7 @@ export function CaseSettings({
               />
               移动模拟
             </label>
-            <p className="text-xs text-page-muted">
+            <p className={styles.description}>
               {webProfile === 'legacy-desktop'
                 ? '桌面 Chromium · 1280 × 800'
                 : '模拟移动设备的视口、触摸操作和浏览器标识。'}
@@ -216,8 +218,8 @@ export function CaseSettings({
               ]}
             />
           </Label>
-          <fieldset className="space-y-2 text-xs text-page-muted">
-            <legend className="mb-2">诊断附件</legend>
+          <fieldset className={styles.fieldset}>
+            <legend className={styles.legend}>诊断附件</legend>
             {(
               [
                 ['nativeVideo', '视频'],
@@ -225,7 +227,7 @@ export function CaseSettings({
                 ['nativeLogs', '应用日志'],
               ] as const
             ).map(([field, label]) => (
-              <label key={field} className="flex items-center gap-2">
+              <label key={field} className={styles.diagnosticOption}>
                 <Checkbox
                   checked={value[field]}
                   disabled={busy}
@@ -244,7 +246,7 @@ export function CaseSettings({
               placeholder="myapp://login"
             />
           </Label>
-          <p className="text-xs text-page-muted">
+          <p className={styles.description}>
             设备繁忙时会排队。重新安装及 iOS 清除数据需要选择应用构建。
           </p>
         </>
@@ -256,16 +258,16 @@ export function CaseSettings({
           value={value.inputRefs}
           disabled={busy}
           spellCheck={false}
-          className="min-h-24 font-mono"
+          className={styles.input}
           onChange={(event) => onChange({ inputRefs: event.target.value })}
           placeholder={'{"name":{"value":"Ada"},"password":{"secretRef":"PASSWORD"}}'}
         />
-        <span className="mt-2 block text-xs text-page-muted">
+        <span className={styles.label}>
           步骤中使用 {'${input.name}'} 引用输入；密码等敏感值使用 secretRef。
         </span>
       </Label>
       <Label>
-        标签 <span className="font-normal text-text-subtle">（可选，逗号分隔）</span>
+        标签 <span className={styles.optionalHint}>（可选，逗号分隔）</span>
         <Input
           value={tags}
           disabled={busy}

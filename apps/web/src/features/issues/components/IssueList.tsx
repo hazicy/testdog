@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
+import styles from './IssueList.module.css';
+
 import {
   Table,
   TableHeader,
@@ -24,7 +29,6 @@ import { Icon } from '@iconify/react/offline';
 import searchIcon from '@iconify-icons/lucide/search';
 import plusIcon from '@iconify-icons/lucide/plus';
 import bugIcon from '@iconify-icons/lucide/bug';
-import '@/features/workspace/components/workspace-index.css';
 
 export function IssueList() {
   const router = useRouter();
@@ -52,36 +56,39 @@ export function IssueList() {
   const items = data?.flatMap((page) => page.issues) ?? [];
 
   return (
-    <section className="workspace-index mx-auto max-w-[1500px]" aria-label="问题追踪">
-      <h1 className="sr-only">问题追踪</h1>
-      <div className="workspace-index-toolbar issue-index-toolbar">
-        <div className="workspace-index-search relative">
-          <Icon
-            icon={searchIcon}
-            width="16"
-            className="absolute top-2.5 left-3 text-text-subtle"
-            aria-hidden="true"
-          />
+    <section
+      className={classNames(workspaceStyles.workspaceIndex, styles.section)}
+      aria-label="问题追踪"
+    >
+      <h1 className={styles.accessibleLabel}>问题追踪</h1>
+      <div
+        className={classNames(
+          workspaceStyles.workspaceIndexToolbar,
+          workspaceStyles.issueIndexToolbar,
+        )}
+      >
+        <div className={classNames(workspaceStyles.workspaceIndexSearch, styles.container)}>
+          <Icon icon={searchIcon} width="16" className={styles.icon} aria-hidden="true" />
           <Input
             aria-label="搜索问题"
-            className="pl-9"
+            className={styles.input}
             placeholder="搜索问题…"
             maxLength={200}
             value={q}
             onChange={(event) => setQ(event.target.value)}
           />
         </div>
-        <div className="workspace-index-filter flex flex-wrap items-center gap-2">
+        <div className={classNames(workspaceStyles.workspaceIndexFilter, styles.filters)}>
           <Select
             aria-label="筛选问题状态"
-            className="w-auto"
+            className={styles.select}
             value={status}
             onValueChange={setStatus}
             items={[{ value: 'all', label: '全部状态' }, ...options(issueStatuses)]}
           />
           <Select
             aria-label="筛选环境"
-            className="w-auto"
+            className={styles.select}
             value={platform}
             onValueChange={setPlatform}
             items={[
@@ -93,7 +100,7 @@ export function IssueList() {
           />
           <Select
             aria-label="问题排序"
-            className="w-auto"
+            className={styles.select}
             value={sort}
             onValueChange={setSort}
             items={[
@@ -103,7 +110,7 @@ export function IssueList() {
           />
           <Select
             aria-label="筛选日期"
-            className="w-auto"
+            className={styles.select}
             value={days}
             onValueChange={setDays}
             items={[
@@ -114,7 +121,7 @@ export function IssueList() {
             ]}
           />
         </div>
-        <div className="workspace-index-toolbar-actions">
+        <div className={workspaceStyles.workspaceIndexToolbarActions}>
           <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
             <Icon icon={plusIcon} width="16" aria-hidden="true" />
             新建问题
@@ -122,35 +129,32 @@ export function IssueList() {
         </div>
       </div>
       {error && (
-        <p role="alert" className="mb-4 text-error-ink">
+        <p role="alert" className={styles.error}>
           {error.message}
         </p>
       )}
       {isLoading ? (
-        <p role="status" className="p-16 text-center text-sm text-text-subtle">
+        <p role="status" className={styles.loading}>
           正在加载问题…
         </p>
       ) : !items.length ? (
-        <div className="workspace-index-empty">
-          <Icon icon={bugIcon} width="28" className="mb-5 text-page-muted" aria-hidden="true" />
+        <div data-ui="workspace-index-empty" className={workspaceStyles.workspaceIndexEmpty}>
+          <Icon icon={bugIcon} width="28" className={styles.emptyIcon} aria-hidden="true" />
           <p>
             {search || status !== 'all'
               ? '没有匹配的问题。'
               : '暂无问题。可从执行记录的失败节点创建问题。'}
           </p>
-          <Link href="/runs" className="mt-4 inline-block text-brand">
+          <Link href="/runs" className={styles.link}>
             查看执行记录
           </Link>
         </div>
       ) : (
-        <div
-          className="overflow-x-auto"
-          tabIndex={0}
-          role="region"
-          aria-label="可横向滚动的问题表格"
-        >
-          <Table className="workspace-index-table is-issues">
-            <TableHeader className="bg-transparent">
+        <div className={styles.region} tabIndex={0} role="region" aria-label="可横向滚动的问题表格">
+          <Table
+            className={classNames(workspaceStyles.workspaceIndexTable, workspaceStyles.isIssues)}
+          >
+            <TableHeader className={styles.tableHeader}>
               <TableRow>
                 <TableHead>严重程度</TableHead>
                 <TableHead>问题</TableHead>
@@ -165,50 +169,51 @@ export function IssueList() {
                 <TableRow key={issue.id}>
                   <TableCell>
                     <span
-                      className="workspace-index-tag text-error-ink"
+                      className={classNames(
+                        workspaceStyles.workspaceIndexTag,
+                        styles.categoryBadge,
+                      )}
                       title={issueSeverities[issue.severity]}
                     >
                       {issue.category === 'product' ? 'BUG' : issue.category.toUpperCase()}
                     </span>
-                    <span className="mt-1 block text-xs text-page-muted">
-                      {issueSeverities[issue.severity]}
-                    </span>
+                    <span className={styles.label}>{issueSeverities[issue.severity]}</span>
                   </TableCell>
                   <TableCell>
                     <Link
-                      className="workspace-index-name font-medium hover:text-brand"
+                      className={classNames(workspaceStyles.workspaceIndexName, styles.issueLink)}
                       href={`/issues/${issue.id}`}
                     >
                       {issue.title}
                     </Link>
-                    <p className="workspace-index-description">
+                    <p className={workspaceStyles.workspaceIndexDescription}>
                       {issue.latestOccurrence?.snapshot.name ?? '手动创建'} ·{' '}
                       {issue.latestOccurrence?.snapshot.target?.platform ?? 'Web'}
                     </p>
                   </TableCell>
                   <TableCell>
-                    <span className="workspace-index-tag">
+                    <span className={workspaceStyles.workspaceIndexTag}>
                       {environmentLabel(issue.latestOccurrence)}
                     </span>
                   </TableCell>
                   <TableCell>{issue.runCount ?? 0}</TableCell>
                   <TableCell
-                    className="workspace-index-time whitespace-nowrap"
+                    className={classNames(workspaceStyles.workspaceIndexTime, styles.tableCell)}
                     title={new Date(issue.lastSeen ?? issue.createdAt).toLocaleString('zh-CN')}
                   >
                     {relativeTime(issue.lastSeen ?? issue.createdAt)}
                   </TableCell>
-                  <TableCell className="text-page-muted">{issueStatuses[issue.status]}</TableCell>
+                  <TableCell className={styles.mutedText}>{issueStatuses[issue.status]}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       )}
-      <div className="workspace-index-footer">
+      <div data-ui="workspace-index-footer" className={workspaceStyles.workspaceIndexFooter}>
         <span>{isLoading ? '—' : items.length} 条记录</span>
         {data?.at(-1)?.nextCursor && (
-          <div className="workspace-index-pagination">
+          <div className={workspaceStyles.workspaceIndexPagination}>
             <Button
               variant="ghost"
               size="sm"

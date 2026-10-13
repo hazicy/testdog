@@ -1,0 +1,85 @@
+.positioner {
+  z-index: 50;
+}
+.popup {
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  max-height: var(--available-height);
+  overflow-y: auto;
+  border-radius: 1rem;
+  border: 1px solid var(--page-line);
+  background-color: var(--surface);
+  padding: 1.25rem;
+  color: var(--ink);
+  box-shadow:
+    0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+  outline-style: none;
+}
+.title {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+.description {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.container {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.preset {
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  border-style: solid;
+  border-width: 1px;
+  padding: 0.625rem;
+  text-align: left;
+}
+.selectedPreset {
+  border-color: var(--ink);
+  background-color: var(--control-hover);
+}
+.unselectedPreset {
+  border-color: transparent;
+}
+.label {
+  display: grid;
+  height: 6rem;
+  gap: 0.375rem;
+}
+.previewCell {
+  border-radius: 0.375rem;
+  border: 1px solid var(--page-line);
+  background-color: var(--surface-muted);
+}
+.presetLabel {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+.footer {
+  margin-top: 1rem;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-color: var(--page-line);
+  padding-top: 1rem;
+}
+.focusToggle {
+  width: 100%;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+}
+.reset {
+  margin-top: 0.5rem;
+  width: 100%;
+  color: var(--page-muted);
+}

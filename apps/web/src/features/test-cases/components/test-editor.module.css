@@ -1,4 +1,4 @@
-.case-floating-panel {
+.caseFloatingPanel {
   position: absolute;
   top: 24px;
   right: 24px;
@@ -19,26 +19,26 @@
   overflow: hidden;
 }
 
-.case-panel-actions {
+.casePanelActions {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px;
 }
 
-.case-panel-primary-actions {
+.casePanelPrimaryActions {
   display: flex;
   gap: 6px;
   margin-left: auto;
 }
 
-.case-panel-generate[aria-expanded='true'],
-.case-panel-generate[data-pending='true'] {
+.casePanelGenerate[aria-expanded='true'],
+.casePanelGenerate[data-pending='true'] {
   background: var(--brand-soft);
   border-color: var(--brand-line);
 }
 
-.case-panel-platform {
+.casePanelPlatform {
   padding: 4px 8px;
   border-radius: 5px;
   background: var(--surface-muted);
@@ -46,40 +46,46 @@
   font-weight: 600;
 }
 
-.case-panel-count {
+.casePanelCount {
   color: var(--page-muted);
   font-size: 12px;
   white-space: nowrap;
 }
 
-.case-panel-heading {
+.casePanelHeading {
   padding: 0 20px 16px;
 }
 
-.case-panel-heading h2 {
-  font-size: 15px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
+.casePanelHeading {
+  & h2 {
+    font-size: 15px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
 }
 
-.case-panel-heading p {
-  margin-top: 5px;
-  color: var(--page-muted);
-  font-size: 12px;
+.casePanelHeading {
+  & p {
+    margin-top: 5px;
+    color: var(--page-muted);
+    font-size: 12px;
+  }
 }
 
-.case-panel-body {
+.casePanelBody {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 20px;
 }
 
-.case-floating-panel.is-collapsed {
-  bottom: auto;
+.caseFloatingPanel {
+  &[data-collapsed='true'] {
+    bottom: auto;
+  }
 }
 
-.case-prompt-heading {
+.casePromptHeading {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -93,11 +99,13 @@
   z-index: 1;
 }
 
-.case-prompt-heading > button {
-  margin-left: auto;
+.casePromptHeading {
+  & > button {
+    margin-left: auto;
+  }
 }
 
-.case-prompt-input {
+.casePromptInput {
   display: block;
   width: 100%;
   min-height: 0;
@@ -114,11 +122,13 @@
   letter-spacing: -0.02em;
 }
 
-.case-prompt-input::placeholder {
-  color: var(--control-placeholder);
+.casePromptInput {
+  &::placeholder {
+    color: var(--control-placeholder);
+  }
 }
 
-.case-prompt-footer {
+.casePromptFooter {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -130,7 +140,7 @@
 }
 
 @media (max-width: 900px) {
-  .case-floating-panel {
+  .caseFloatingPanel {
     width: 336px;
     right: 12px;
     top: 12px;
@@ -139,12 +149,12 @@
 }
 
 @media (max-width: 600px) {
-  .case-floating-panel {
+  .caseFloatingPanel {
     width: min(336px, calc(100% - 24px));
   }
 }
 
-.case-canvas-page {
+.caseCanvasPage {
   position: relative;
   height: 100%;
   min-height: 0;
@@ -153,7 +163,7 @@
   background: var(--surface);
 }
 
-.case-prompt-backdrop {
+.casePromptBackdrop {
   position: absolute;
   inset: 0;
   z-index: 30;
@@ -162,7 +172,7 @@
   animation: case-prompt-fade 180ms ease-out;
 }
 
-.case-prompt-overlay {
+.casePromptOverlay {
   position: absolute;
   inset: 0;
   z-index: 31;
@@ -173,11 +183,13 @@
   animation: case-prompt-fade 180ms ease-out;
 }
 
-.case-prompt-overlay > form {
-  height: 100%;
+.casePromptOverlay {
+  & > form {
+    height: 100%;
+  }
 }
 
-.case-prompt-error {
+.casePromptError {
   position: absolute;
   bottom: 80px;
   left: 24px;
@@ -187,16 +199,16 @@
 }
 
 @media (max-width: 600px) {
-  .case-prompt-input {
+  .casePromptInput {
     padding: 24px 40px 80px;
   }
-  .case-prompt-error {
+  .casePromptError {
     left: 24px;
     right: 24px;
   }
 }
 
-.case-canvas-preview {
+.caseCanvasPreview {
   position: absolute;
   bottom: 24px;
   left: 50%;
@@ -213,9 +225,11 @@
   white-space: nowrap;
 }
 
-.case-canvas-preview > span {
-  color: var(--page-muted);
-  font-size: 12px;
+.caseCanvasPreview {
+  & > span {
+    color: var(--page-muted);
+    font-size: 12px;
+  }
 }
 
 @keyframes case-prompt-fade {
@@ -228,12 +242,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .case-prompt-backdrop,
-  .case-prompt-overlay {
+  .casePromptBackdrop,
+  .casePromptOverlay {
     animation: none;
   }
 }
 
-.case-canvas-page .plan-board {
-  border: 0;
+.caseCanvasPage {
+  & .planBoard {
+    border: 0;
+  }
 }

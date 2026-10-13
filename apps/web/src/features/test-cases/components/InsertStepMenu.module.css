@@ -1,0 +1,15 @@
+.field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.select {
+  min-width: 0px;
+  flex: 1;
+  border-radius: 0.25rem;
+  border: 1px solid oklch(92.8% 0.006 264.531);
+  padding: 0.25rem;
+}

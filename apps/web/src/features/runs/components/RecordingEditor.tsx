@@ -1,5 +1,10 @@
 'use client';
 
+import { classNames } from '@/components/ui/classNames';
+
+import styles from './RecordingEditor.module.css';
+import studioStyles from '@/features/runs/components/run-studio.module.css';
+
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -129,22 +134,21 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   }
 
   if (isActiveRun(run.status))
-    return (
-      <p className="border border-page-line p-6 text-sm text-page-muted">
-        录制进行中，结束后可编辑操作和预期。
-      </p>
-    );
+    return <p className={styles.description}>录制进行中，结束后可编辑操作和预期。</p>;
 
   return (
-    <section className="studio-panel recording-editor" aria-label="录制编辑器">
-      <div className="recording-editor-toolbar">
-        <div className="recording-editor-source">
-          <span className="recording-editor-language">
+    <section
+      className={classNames(studioStyles.studioPanel, studioStyles.recordingEditor)}
+      aria-label="录制编辑器"
+    >
+      <div className={studioStyles.recordingEditorToolbar}>
+        <div className={studioStyles.recordingEditorSource}>
+          <span className={studioStyles.recordingEditorLanguage}>
             {platform === 'web' ? 'JavaScript' : 'JSON'}
           </span>
           <Select
             aria-label="录制版本"
-            className="recording-editor-version"
+            className={studioStyles.recordingEditorVersion}
             value={selected}
             disabled={busy}
             onValueChange={(value) => {
@@ -164,7 +168,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             ]}
           />
         </div>
-        <div className="recording-editor-actions">
+        <div className={studioStyles.recordingEditorActions}>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -213,12 +217,12 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         label={platform === 'web' ? 'Playwright 录制脚本' : '原生设备录制 JSON'}
       />
       {(error || (!validating && validation?.error)) && (
-        <p role="alert" className="recording-editor-error">
+        <p role="alert" className={studioStyles.recordingEditorError}>
           {error || validation?.error}
         </p>
       )}
       {message && (
-        <p role="status" className="recording-editor-feedback">
+        <p role="status" className={studioStyles.recordingEditorFeedback}>
           {message}
         </p>
       )}

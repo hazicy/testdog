@@ -1,0 +1,53 @@
+.details {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--page-line);
+}
+.summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+.container {
+  padding-top: 0px;
+}
+.heading {
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+  line-height: calc(1.75 / 1.125);
+  font-weight: 600;
+}
+.description {
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.targetUrl {
+  word-break: break-all;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.goal {
+  white-space: pre-wrap;
+  font-size: 0.875rem;
+  line-height: 2rem;
+  color: var(--ink);
+}
+.environment {
+  margin-top: 1.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--page-muted);
+}
+.environmentHeading {
+  cursor: pointer;
+}
+.code {
+  margin-top: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

@@ -1,0 +1,755 @@
+.planViewport {
+  position: relative;
+  height: 600px;
+  overflow: hidden;
+  background-color: var(--surface-muted);
+  --xy-background-color: var(--surface-muted);
+  --xy-edge-stroke: var(--plan-edge);
+  --xy-handle-background-color: var(--plan-edge);
+  --xy-handle-border-color: var(--surface);
+}
+
+.planNode {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--plan-line);
+  background: var(--surface);
+  box-shadow: 0 4px 12px var(--plan-shadow);
+}
+
+.planNode {
+  &[data-step-type='group'] {
+    background: var(--plan-group);
+    border-style: dashed;
+  }
+}
+
+.planNode {
+  &[data-step-type='branch'] {
+    background: var(--plan-branch);
+  }
+}
+
+.planNode {
+  &[data-reference='true'] {
+    border-style: dashed;
+  }
+}
+
+.planNode {
+  &[data-editing='true'] {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+}
+
+@media (max-width: 640px) {
+  .planCanvasHint {
+    display: none;
+  }
+
+  .planViewport {
+    height: 440px;
+  }
+}
+
+.planNode {
+  &[data-step-type='task'] {
+    border-color: var(--canvas-task-line);
+    border-radius: 2px;
+  }
+}
+
+.planBoard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--canvas-line);
+  background: var(--surface-raised);
+}
+
+.planBoardFull {
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.planBoardBody {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.planBoardBody {
+  &.hasFloatingPanel {
+    background: var(--surface);
+  }
+}
+
+.hasComposer {
+  & .planCanvasHint {
+    display: none;
+  }
+}
+
+.planBoardBody {
+  &.hasInspector {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+
+.planBoard {
+  & .planViewport {
+    background: var(--surface);
+    --xy-background-color: var(--surface);
+    --xy-handle-background-color: transparent;
+    --xy-handle-border-color: transparent;
+  }
+}
+
+.planCanvasTools {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.planCanvasHint {
+  margin-right: auto;
+  border: 1px solid var(--page-line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: var(--surface);
+  color: var(--page-muted);
+  font-size: 12px;
+}
+
+.planViewportControls {
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--page-line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  box-shadow: 0 3px 12px var(--canvas-shadow);
+  pointer-events: auto;
+}
+
+.planViewportControls {
+  & button {
+    min-width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+  }
+}
+
+.planViewportControls {
+  & button:hover {
+    background: var(--surface-muted);
+  }
+}
+
+.planViewportControls {
+  & button:focus-visible {
+    outline: 2px solid var(--brand-line);
+  }
+}
+
+.planBoardFull {
+  & .planViewport {
+    height: 100%;
+    min-height: 0;
+  }
+}
+
+.planInspector {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px;
+  border-left: 1px solid var(--canvas-divider);
+  background: var(--surface-raised);
+  color: var(--canvas-ink);
+}
+
+.planBoard {
+  & .planNode {
+    pointer-events: auto;
+    border: 1px solid var(--canvas-node-line);
+    border-radius: 10px;
+    background: var(--surface-raised);
+    box-shadow: 0 2px 6px var(--canvas-shadow);
+  }
+}
+
+.planBoard {
+  & .planNode[data-step-type='assert'] {
+    border-color: var(--canvas-assert-line);
+  }
+}
+
+.planBoard {
+  & .planNode[data-step-type='login'] {
+    border-color: var(--canvas-login-line);
+  }
+}
+
+.planBoard {
+  & .planNode[data-step-type='files'] {
+    border-color: var(--canvas-files-line);
+  }
+}
+
+.planBoard {
+  & .planNode[data-step-type='screenshot'] {
+    border-color: var(--canvas-screenshot-line);
+  }
+}
+
+.planBoard {
+  & .planNode[data-step-type='group'] {
+    border-color: var(--canvas-group-line);
+    border-style: dashed;
+  }
+}
+
+.planBoard {
+  & .planNode[data-step-type='branch'] {
+    border-color: var(--canvas-branch-line);
+  }
+}
+
+.planBoard {
+  & .planNode[data-reference='true'] {
+    border-style: dashed;
+  }
+}
+
+.planBoard {
+  & :global(.react-flow__node):global(.selected) .planNode {
+    outline: 2px solid var(--plan-edge);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 4px var(--canvas-selected-ring);
+  }
+}
+
+.planBoard {
+  & .planNode[data-editing='true'] {
+    outline: 2px solid var(--canvas-active-line);
+    outline-offset: 3px;
+  }
+}
+
+.planNodeRow {
+  pointer-events: auto;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 20px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--canvas-node-ink);
+}
+
+.planReviewActions {
+  position: absolute;
+  right: 0;
+  top: -32px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px 3px 10px;
+  border: 1px solid var(--page-line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: 0 2px 6px var(--canvas-shadow);
+  font-size: 11px;
+}
+
+.planReviewActions {
+  & > span {
+    margin-right: 4px;
+    color: var(--page-muted);
+  }
+}
+
+.planReviewActions {
+  & > button {
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+}
+
+.planReviewActions {
+  & > button:first-of-type {
+    color: var(--review-accept-ink);
+    background: var(--review-accept-soft);
+  }
+}
+
+.planReviewActions {
+  & > button:last-of-type {
+    color: var(--review-reject-ink);
+    background: var(--review-reject-soft);
+  }
+}
+
+.planReviewActions {
+  & > button:focus-visible {
+    outline: 2px solid var(--brand-line);
+  }
+}
+
+.planBoard {
+  & .planNode[data-review='added'] {
+    background: var(--review-added-soft);
+    border-color: var(--review-added-line);
+  }
+}
+
+.planBoard {
+  & .planNode[data-review='modified'] {
+    background: var(--review-modified-soft);
+    border-color: var(--review-modified-line);
+  }
+}
+
+.planBoard {
+  & .planNode[data-review='removed'] {
+    background: var(--review-removed-soft);
+    border-color: var(--review-removed-line);
+  }
+}
+
+.planNode[data-review='removed'] .planContentButton,
+.planReviewBefore {
+  text-decoration: line-through;
+  color: var(--review-before-ink);
+}
+
+.planReviewBefore {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.planNode {
+  &[data-step-type='group'] .planNodeRow {
+    justify-content: center;
+    font-weight: 600;
+  }
+}
+
+.planNode {
+  &[data-step-type='group'] .stepBadge {
+    border: none;
+    background: none;
+    color: var(--canvas-group-ink);
+  }
+}
+
+.planNodeContent {
+  flex: 1;
+  min-width: 0;
+  font-size: 20px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.planNode {
+  &[data-step-type='group'] .planNodeContent {
+    flex: 0 1 auto;
+  }
+}
+
+.planPathLabel {
+  display: block;
+  font-size: 11px;
+  color: var(--canvas-path-ink);
+  margin-bottom: 3px;
+}
+
+.stepBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  border: 1px solid;
+  color: var(--step-task-ink);
+  border-color: var(--step-task-line);
+  background: var(--step-task-soft);
+}
+
+.stepBadge {
+  &[data-type='assert'] {
+    color: var(--step-assert-ink);
+    border-color: var(--step-assert-line);
+    background: var(--step-assert-soft);
+  }
+}
+
+.stepBadge {
+  &[data-type='login'] {
+    color: var(--step-login-ink);
+    border-color: var(--step-login-line);
+    background: var(--step-login-soft);
+  }
+}
+
+.stepBadge {
+  &[data-type='files'] {
+    color: var(--step-files-ink);
+    border-color: var(--step-files-line);
+    background: var(--step-files-soft);
+  }
+}
+
+.stepBadge {
+  &[data-type='screenshot'] {
+    color: var(--step-screenshot-ink);
+    border-color: var(--step-screenshot-line);
+    background: var(--step-screenshot-soft);
+  }
+}
+
+.stepBadge {
+  &[data-type='branch'] {
+    color: var(--step-branch-ink);
+    border-color: var(--step-branch-line);
+    background: var(--step-branch-soft);
+  }
+}
+
+.stepBadge {
+  &[data-type='group'] {
+    color: var(--step-group-ink);
+    border-color: var(--step-group-line);
+    background: var(--step-group-soft);
+  }
+}
+
+.stepInsertTrigger {
+  pointer-events: auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--canvas-group-line);
+  background: var(--surface-raised);
+  color: var(--control-ink);
+  box-shadow: 0 2px 5px var(--canvas-insert-shadow);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.stepInsertArea {
+  display: grid;
+  place-items: center;
+  width: 160px;
+  height: 56px;
+  margin: -10px -62px;
+}
+
+.stepInsertArea {
+  & .stepInsertTrigger {
+    opacity: 0;
+    transition: opacity 120ms;
+  }
+}
+
+.stepInsertArea[data-persistent='true'] .stepInsertTrigger,
+.stepInsertArea[data-revealed='true'] .stepInsertTrigger,
+.stepInsertArea:hover .stepInsertTrigger,
+.stepInsertArea:focus-within .stepInsertTrigger,
+.stepInsertTrigger[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.planViewportControls {
+  & button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+@media (hover: none) {
+  .stepInsertArea {
+    & .stepInsertTrigger {
+      opacity: 1;
+    }
+  }
+}
+
+.stepInsertTrigger:hover,
+.stepInsertTrigger[aria-expanded='true'] {
+  border-color: var(--canvas-insert-line);
+  background: var(--canvas-insert-soft);
+}
+
+.stepMenuPositioner {
+  z-index: 110;
+}
+
+.stepTypeMenu {
+  background: var(--surface-raised);
+  padding: 8px;
+  border: 1px solid var(--canvas-group-line);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px var(--canvas-menu-shadow);
+  min-width: 300px;
+  color: var(--canvas-menu-ink);
+}
+
+.stepTypeOption {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+}
+
+.stepTypeOption {
+  &[data-highlighted] {
+    background: var(--canvas-menu-hover);
+  }
+}
+
+.stepTypeOption {
+  & .stepBadge {
+    font-size: 13px;
+    min-width: 116px;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .planCanvasTools {
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+  }
+  .planCanvasHint {
+    max-width: 180px;
+    font-size: 11px;
+  }
+  .planBoardBody {
+    &.hasInspector {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(180px, 1fr) minmax(180px, 40%);
+    }
+  }
+  .planInspector {
+    border-left: none;
+    border-top: 1px solid var(--canvas-divider);
+    padding: 12px;
+  }
+}
+
+.planNodeActions {
+  position: absolute;
+  right: 0;
+  top: -34px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--canvas-line);
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+
+.planNodeActions {
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 8px;
+  }
+}
+
+.planNode:hover .planNodeActions,
+.planNode:focus-within .planNodeActions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.planNodeActions {
+  & button {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+}
+
+.planNodeActions {
+  & button:hover {
+    background: var(--canvas-action-hover);
+  }
+}
+
+.planDragHandle {
+  cursor: grab;
+}
+
+.planContentButton {
+  width: 100%;
+  text-align: inherit;
+  white-space: pre-wrap;
+  cursor: text;
+}
+
+.planInlineInput {
+  width: 100%;
+  min-height: 42px;
+  resize: none;
+  outline: none;
+  background: transparent;
+  line-height: inherit;
+}
+
+.planInlineEvidence {
+  pointer-events: auto;
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--canvas-line);
+  background: var(--surface-raised);
+  box-shadow: 0 4px 12px var(--canvas-evidence-shadow);
+}
+
+@media (hover: none) {
+  .planNodeActions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.planNode {
+  &[data-result] {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.planNode {
+  &[data-result] .planNodeRow {
+    height: auto;
+    min-height: 72px;
+  }
+}
+
+.planBoard {
+  & .planNode[data-current='true'] {
+    outline: 2px solid var(--brand);
+    outline-offset: 3px;
+  }
+}
+
+.planResult {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 20px;
+  padding: 0 20px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--page-muted);
+}
+
+.planResultSummary {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.planResultSummary {
+  & p {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin-bottom: 8px;
+  }
+}
+
+.planResultError {
+  color: var(--error-ink);
+}
+
+.planPlaybackMarker {
+  display: inline-block;
+  margin-right: 12px;
+  color: var(--brand);
+}
+
+.planResultThumbnail {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  flex-shrink: 0;
+  text-align: center;
+  border: 1px solid var(--page-line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--page);
+  cursor: pointer;
+}
+
+.planResultThumbnail {
+  & img {
+    width: 100%;
+    height: 140px;
+    object-fit: contain;
+  }
+}
+
+.planResultThumbnail {
+  & span {
+    padding: 4px;
+  }
+}
+
+.planResultThumbnail {
+  &:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+}

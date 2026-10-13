@@ -1,5 +1,7 @@
 'use client';
 
+import boardStyles from '@/features/runs/components/plan-board.module.css';
+
 import { Icon } from '@iconify/react/offline';
 import act from '@iconify-icons/lucide/zap';
 import assert from '@iconify-icons/lucide/eye';
@@ -24,7 +26,7 @@ const icons = { act, assert, login, files, screenshot, group, branch };
 
 export function StepBadge({ type }: { type: BoardStepType }) {
   return (
-    <span className={`step-badge ${type}`}>
+    <span data-ui="step-badge" data-type={type} className={boardStyles.stepBadge}>
       <Icon icon={icons[type]} width={18} aria-hidden="true" />
       {stepTypes.find((item) => item.value === type)?.label}
     </span>

@@ -1,3 +1,4 @@
+import styles from './EmptyIllustration.module.css';
 import Image from 'next/image';
 
 export function EmptyIllustration({
@@ -11,7 +12,7 @@ export function EmptyIllustration({
       alt=""
       width={240}
       height={160}
-      className="mb-5 h-auto w-60 max-w-full"
+      className={styles.image}
       unoptimized
     />
   );
