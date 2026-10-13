@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className={`bg-page text-ink text-sm grid min-h-dvh grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
+      className={`bg-page text-ink text-sm grid h-dvh overflow-hidden grid-cols-[60px_minmax(0,1fr)] ${collapsed ? 'md:grid-cols-[60px_minmax(0,1fr)]' : 'md:grid-cols-[216px_minmax(0,1fr)]'}`}
     >
       <a
         href="#main-content"
@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         跳转到主内容
       </a>
-      <aside className="sticky top-0 flex h-dvh flex-col border-r border-page-line bg-page">
+      <aside className="flex min-h-0 flex-col border-r border-page-line bg-page">
         <Link
           href="/"
           className="flex h-14 shrink-0 items-center gap-3 border-b border-page-line px-4"
@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Brand compact={collapsed} />
           </span>
         </Link>
-        <div className="px-3 pt-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-6">
           <nav aria-label="工作区导航" className="space-y-1">
             {workspaceNavigation.map((item) => (
               <Link
@@ -79,12 +79,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
         </div>
-        <div className={`mt-auto border-t border-page-line p-3`}>
+        <div className={`shrink-0 border-t border-page-line p-3`}>
           <UserMenu collapsed={collapsed} />
         </div>
       </aside>
-      <div className="min-w-0">
-        <header className="flex h-14 items-center gap-3 border-b border-page-line bg-surface px-5 md:px-7">
+      <div className="flex min-h-0 min-w-0 flex-col">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-page-line bg-surface px-5 md:px-7">
           <Button
             variant="ghost"
             size="icon"
@@ -127,10 +127,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           tabIndex={-1}
           className={
             canvas
-              ? 'h-[calc(100dvh-56px)] overflow-hidden'
+              ? 'min-h-0 flex-1 overflow-hidden'
               : workspaceIndex
-                ? 'workspace-index-main'
-                : 'px-4 py-7 sm:px-6 md:px-8 md:py-9'
+                ? 'workspace-index-main min-h-0 flex-1 overflow-auto'
+                : 'min-h-0 flex-1 overflow-auto px-4 py-7 sm:px-6 md:px-8 md:py-9'
           }
         >
           {children}

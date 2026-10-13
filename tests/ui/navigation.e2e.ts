@@ -62,3 +62,42 @@ test('settings supports direct visits, refresh and collapsed navigation', async 
   await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
   await expect(page.getByRole('button', { name: '展开侧栏' })).toBeVisible();
 });
+
+test('keeps workspace chrome fixed while long content scrolls inside the viewport', async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 390, height: 600 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/settings');
+    const main = page.locator('#main-content');
+
+    await expect(page.getByRole('heading', { name: '设置', level: 1, exact: true })).toBeVisible();
+    await main.evaluate((element) => {
+      const content = document.createElement('div');
+
+      content.style.height = '2000px';
+      element.append(content);
+    });
+    const header = page.getByRole('navigation', { name: '面包屑' });
+    const navigation = page.getByRole('navigation', { name: '工作区导航' });
+    const headerBefore = await header.boundingBox();
+    const navigationBefore = await navigation.boundingBox();
+
+    await main.evaluate((element) => {
+      element.scrollTop = 500;
+    });
+    expect(await main.evaluate((element) => element.scrollTop)).toBe(500);
+    expect(await header.boundingBox()).toEqual(headerBefore);
+    expect(await navigation.boundingBox()).toEqual(navigationBefore);
+    expect(
+      await page.evaluate(() => ({
+        scrollTop: document.scrollingElement?.scrollTop,
+        height: document.documentElement.scrollHeight,
+        width: document.documentElement.scrollWidth,
+      })),
+    ).toEqual({ scrollTop: 0, height: viewport.height, width: viewport.width });
+  }
+});

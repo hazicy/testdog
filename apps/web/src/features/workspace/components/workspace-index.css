@@ -19,7 +19,6 @@
 /* Quiet surfaces and a single toolbar keep the records in focus. */
 .workspace-index-main {
   position: relative;
-  min-height: calc(100dvh - 56px);
   padding: 18px 28px 40px;
   background: var(--surface);
 }
