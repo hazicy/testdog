@@ -1,9 +1,3 @@
-.loading {
-  padding: 1.5rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: var(--page-muted);
-}
 .container {
   border-bottom-style: solid;
   border-bottom-width: 1px;

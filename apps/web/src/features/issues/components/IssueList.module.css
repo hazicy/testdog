@@ -38,20 +38,7 @@
   margin-bottom: 1rem;
   color: var(--error-ink);
 }
-.loading {
-  padding: 4rem;
-  text-align: center;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: var(--text-subtle);
-}
-.emptyIcon {
-  margin-bottom: 1.25rem;
-  color: var(--page-muted);
-}
 .link {
-  margin-top: 1rem;
-  display: inline-block;
   color: var(--brand);
 }
 .region {

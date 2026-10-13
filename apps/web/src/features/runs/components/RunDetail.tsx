@@ -1,5 +1,7 @@
 'use client';
 
+import { LoadingState } from '@/components/shared/LoadingState';
+
 import clsx from 'clsx';
 
 import styles from './RunDetail.module.css';
@@ -67,22 +69,14 @@ const emptySteps: ExecutionStep[] = [];
 const PlanBoard = dynamic(
   () => import('@/features/runs/components/PlanBoard').then((module) => module.PlanBoard),
   {
-    loading: () => (
-      <p role="status" className={styles.loading}>
-        正在加载计划画板…
-      </p>
-    ),
+    loading: () => <LoadingState message="正在加载计划画板…" />,
   },
 );
 const RecordingEditor = dynamic(
   () =>
     import('@/features/runs/components/RecordingEditor').then((module) => module.RecordingEditor),
   {
-    loading: () => (
-      <p role="status" className={styles.loading}>
-        正在加载录制编辑器…
-      </p>
-    ),
+    loading: () => <LoadingState message="正在加载录制编辑器…" />,
   },
 );
 

@@ -1,5 +1,8 @@
 'use client';
 
+import { EmptyState } from '@/components/shared/EmptyState';
+import { LoadingState } from '@/components/shared/LoadingState';
+
 import clsx from 'clsx';
 
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
@@ -103,43 +106,42 @@ export function WorkspaceList({
         <div className={workspaceStyles.workspaceIndexToolbarActions}>{actions}</div>
       </div>
       {loading ? (
-        <p role="status" className={styles.loading}>
-          正在加载工作区…
-        </p>
+        <LoadingState className={workspaceStyles.workspaceIndexEmpty} message="正在加载工作区…" />
       ) : (isTests ? visibleTests.length === 0 : visibleRuns.length === 0) ? (
-        <div data-ui="workspace-index-empty" className={workspaceStyles.workspaceIndexEmpty}>
-          <Icon
-            icon={query || filter !== 'all' ? searchIcon : isTests ? filesIcon : historyIcon}
-            width="28"
-            className={styles.emptyIcon}
-            aria-hidden="true"
-          />
-          <h2 className={styles.emptyTitle}>
-            {query || filter !== 'all'
+        <EmptyState
+          data-ui="workspace-index-empty"
+          className={workspaceStyles.workspaceIndexEmpty}
+          icon={
+            <Icon
+              icon={query || filter !== 'all' ? searchIcon : isTests ? filesIcon : historyIcon}
+              width="28"
+              aria-hidden="true"
+            />
+          }
+          title={
+            query || filter !== 'all'
               ? '没有符合条件的记录'
               : isTests
                 ? '还没有测试用例'
-                : '暂无执行记录'}
-          </h2>
-          {query || filter !== 'all' ? (
-            <Button
-              className={styles.emptyAction}
-              onClick={() => {
-                setQuery('');
-                setFilter('all');
-              }}
-            >
-              清除筛选
-            </Button>
-          ) : !isTests ? (
-            <Link
-              href="/cases"
-              className={buttonStyles({ size: 'sm', className: styles.emptyAction })}
-            >
-              浏览测试 <Icon icon={chevronIcon} width="14" aria-hidden="true" />
-            </Link>
-          ) : null}
-        </div>
+                : '暂无执行记录'
+          }
+          actions={
+            query || filter !== 'all' ? (
+              <Button
+                onClick={() => {
+                  setQuery('');
+                  setFilter('all');
+                }}
+              >
+                清除筛选
+              </Button>
+            ) : !isTests ? (
+              <Link href="/cases" className={buttonStyles({ size: 'sm' })}>
+                浏览测试 <Icon icon={chevronIcon} width="14" aria-hidden="true" />
+              </Link>
+            ) : null
+          }
+        />
       ) : (
         <div>
           <p className={styles.scrollHint}>左右滑动查看时间与操作 →</p>

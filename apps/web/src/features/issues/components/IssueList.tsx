@@ -1,5 +1,8 @@
 'use client';
 
+import { EmptyState } from '@/components/shared/EmptyState';
+import { LoadingState } from '@/components/shared/LoadingState';
+
 import clsx from 'clsx';
 
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
@@ -128,21 +131,20 @@ export function IssueList() {
         </p>
       )}
       {isLoading ? (
-        <p role="status" className={styles.loading}>
-          正在加载问题…
-        </p>
+        <LoadingState className={workspaceStyles.workspaceIndexEmpty} message="正在加载问题…" />
       ) : !items.length ? (
-        <div data-ui="workspace-index-empty" className={workspaceStyles.workspaceIndexEmpty}>
-          <Icon icon={bugIcon} width="28" className={styles.emptyIcon} aria-hidden="true" />
-          <p>
-            {search || status !== 'all'
-              ? '没有匹配的问题。'
-              : '暂无问题。可从执行记录的失败节点创建问题。'}
-          </p>
-          <Link href="/runs" className={styles.link}>
-            查看执行记录
-          </Link>
-        </div>
+        <EmptyState
+          data-ui="workspace-index-empty"
+          className={workspaceStyles.workspaceIndexEmpty}
+          icon={<Icon icon={bugIcon} width="28" />}
+          title={search || status !== 'all' ? '没有匹配的问题' : '暂无问题'}
+          description={search || status !== 'all' ? undefined : '可从执行记录的失败节点创建问题。'}
+          actions={
+            <Link href="/runs" className={styles.link}>
+              查看执行记录
+            </Link>
+          }
+        />
       ) : (
         <div className={styles.region} tabIndex={0} role="region" aria-label="可横向滚动的问题表格">
           <Table className={clsx(workspaceStyles.workspaceIndexTable, workspaceStyles.isIssues)}>

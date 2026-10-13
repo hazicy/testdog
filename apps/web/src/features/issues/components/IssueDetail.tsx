@@ -1,5 +1,7 @@
 'use client';
 
+import { LoadingState } from '@/components/shared/LoadingState';
+
 import styles from './IssueDetail.module.css';
 
 import {
@@ -161,12 +163,7 @@ export function IssueDetail({ id }: { id: string }) {
         linkLabel="返回问题追踪"
       />
     );
-  if (!data)
-    return (
-      <p className={styles.loading} role="status">
-        正在加载问题…
-      </p>
-    );
+  if (!data) return <LoadingState message="正在加载问题…" />;
   const { issue, occurrences, events, verifications } = data;
   const latest = occurrences[0];
   const expected =

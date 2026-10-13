@@ -1,6 +1,7 @@
 'use client';
 
-import styles from './page.module.css';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { LoadingState } from '@/components/shared/LoadingState';
 
 import { useSyncExternalStore } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -17,21 +18,11 @@ export default function CaseCanvasPage() {
     () => undefined,
   );
 
-  if (raw === undefined)
-    return (
-      <p className={styles.loading} role="status">
-        正在打开画板…
-      </p>
-    );
+  if (raw === undefined) return <LoadingState message="正在打开画板…" />;
   const draft = readCaseDraft(draftId);
 
   if (!draft)
-    return (
-      <div className={styles.loading}>
-        <p>当前草稿不可用。</p>
-        <Link href="/cases">返回用例列表</Link>
-      </div>
-    );
+    return <EmptyState title="当前草稿不可用" actions={<Link href="/cases">返回用例列表</Link>} />;
 
   return (
     <TestEditor
