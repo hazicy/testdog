@@ -33,6 +33,7 @@ const entrySchema = z
     if (step.action?.type === 'swipe')
       ctx.addIssue({ code: 'custom', message: '坐标手势不支持稳定重放' });
   });
+
 const schema = z.strictObject({
   schemaVersion: z.literal(1),
   platform: z.enum(['android', 'ios']),
