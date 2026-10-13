@@ -2,7 +2,7 @@ import { hostname } from 'node:os';
 import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { automationResources as resources, testRuns, runSteps } from '@testdog/server/db/schema';
-import { getRunInternal } from '@testdog/server/runs/repository';
+import { runRecord } from '@testdog/server/runs/records';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { leaseScope, type RunLease } from '@testdog/server/scheduling/lease';
 import { activeRunStatuses } from '@testdog/contracts/runs/types';
@@ -79,7 +79,7 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
           metadata: { ...resource.metadata, ownerHostname: hostname() },
         })
         .where(eq(resources.id, resource.id));
-      await tx
+      const [claimedRun] = await tx
         .update(testRuns)
         .set({
           status: 'preparing',
@@ -88,18 +88,18 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
           fencingToken: token,
           leaseUntil,
         })
-        .where(eq(testRuns.id, run.id));
+        .where(eq(testRuns.id, run.id))
+        .returning();
 
-      return { runId: run.id, workerId, fencingToken: token, resource };
+      return { run: runRecord(claimedRun), fencingToken: token, resource };
     }
   });
 
   if (!claimed) return;
-  const run = await getRunInternal(claimed.runId);
 
   return {
-    run,
-    lease: { runId: run.id, workerId, fencingToken: claimed.fencingToken } satisfies RunLease,
+    run: claimed.run,
+    lease: { runId: claimed.run.id, workerId, fencingToken: claimed.fencingToken } satisfies RunLease,
     resource: claimed.resource,
   };
 }
