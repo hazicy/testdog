@@ -231,7 +231,6 @@ export function Settings() {
     <div className="mx-auto max-w-[1500px] space-y-6">
       <header className="space-y-2">
         <h1 className="text-base font-semibold">设置</h1>
-        <p className="text-sm text-page-muted">管理账户资料与登录安全。</p>
       </header>
       {isPending ? (
         <p role="status" className="text-sm text-page-muted">
