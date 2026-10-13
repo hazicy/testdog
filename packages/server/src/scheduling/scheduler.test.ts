@@ -56,6 +56,19 @@ it('persists queued work and grants only one worker a device; completed release 
   expect(claims.filter(Boolean)).toHaveLength(1);
   const claim = claims.find(Boolean)!;
 
+  expect(claim.run).toMatchObject({
+    id: first.id,
+    status: 'preparing',
+    workerId: claim.lease.workerId,
+    resourceId: 'host:iphone',
+    fencingToken: claim.lease.fencingToken,
+    events: [],
+    steps: [],
+    artifacts: [],
+  });
+  expect(claim.run.startedAt).toBe(first.startedAt);
+  expect(claim.run.targetSnapshot).toEqual(first.targetSnapshot);
+
   await withLease(claim.lease, async () => {
     await appendEvent(claim.run.id, 'started');
     await finishRun(claim.run.id, 'passed', claim.run.startedAt);
