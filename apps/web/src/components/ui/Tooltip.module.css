@@ -1,0 +1,16 @@
+.positioner {
+  z-index: 50;
+}
+.popup {
+  max-width: min(560px, 70vw);
+  padding: 10px 12px;
+  border: 1px solid var(--page-line);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 10%);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

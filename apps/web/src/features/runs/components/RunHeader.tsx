@@ -1,4 +1,7 @@
+'use client';
+
 import clsx from 'clsx';
+import { Tooltip } from '@/components/ui/Tooltip';
 import styles from './RunHeader.module.css';
 import { statusStyles } from '@/components/ui/statusStyles';
 import Link from 'next/link';
@@ -54,9 +57,11 @@ export function RunHeader({
         )}
         <div className={styles.titleGroup}>
           <p className={styles.accessibleLabel}>执行记录 / {id.slice(0, 8)}</p>
-          <h1 className={styles.title} title={run?.name}>
-            {run?.name || '加载执行记录…'}
-          </h1>
+          <Tooltip content={run?.name} disabled={!run?.name}>
+            <h1 className={styles.title} tabIndex={run?.name ? 0 : undefined}>
+              {run?.name || '加载执行记录…'}
+            </h1>
+          </Tooltip>
           {run && (
             <span
               data-slot="status"
