@@ -11,6 +11,7 @@
     "test": "vitest run",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build:worker && pnpm test:ui",
     "test:ui": "pnpm build:web && playwright test",
+    "test:mobile": "pnpm build:web && playwright test --config playwright.mobile.config.ts",
     "dev": "pnpm --filter @testdog/web dev",
     "build": "pnpm build:web && pnpm build:worker",
     "start": "pnpm --filter @testdog/web start",

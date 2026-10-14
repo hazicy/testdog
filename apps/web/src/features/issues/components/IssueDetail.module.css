@@ -36,6 +36,8 @@
 }
 .headingGroup {
   display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
 }
@@ -48,10 +50,11 @@
   color: #fff;
 }
 .title {
+  min-width: 0;
   font-size: 1.25rem;
   line-height: 1.75rem;
   font-weight: 600;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 .actions {
   display: flex;
@@ -116,6 +119,7 @@
   color: var(--page-muted);
 }
 .description {
+  overflow-wrap: anywhere;
   padding: 0.75rem;
   font-size: 0.875rem;
   line-height: 1.25rem;

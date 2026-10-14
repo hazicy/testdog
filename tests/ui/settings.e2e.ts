@@ -21,6 +21,22 @@ async function mockAccount(page: import('@playwright/test').Page, provider = 'cr
   });
 }
 
+test('profile and security settings remain usable on a narrow phone', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await mockAccount(page);
+  await page.goto('/settings');
+  await expect(page.getByLabel('姓名', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: '登录安全' }).click();
+  await expect(page.getByLabel('当前密码', { exact: true })).toBeVisible();
+  expect(
+    await page
+      .locator('#main-content')
+      .evaluate((element) => element.scrollWidth <= element.clientWidth),
+  ).toBe(true);
+  await page.getByRole('button', { name: '修改密码', exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole('button', { name: '修改密码', exact: true })).toBeInViewport();
+});
+
 test('saves the profile and updates the sidebar and refreshed page', async ({ page }) => {
   await mockAccount(page);
   await page.goto('/settings');

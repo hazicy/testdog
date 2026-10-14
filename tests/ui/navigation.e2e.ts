@@ -117,6 +117,59 @@ test('empty lists fill the remaining workspace height', async ({ page }) => {
   }
 });
 
+test('workspace pages keep controls within narrow screens', async ({ page }) => {
+  for (const width of [320, 390, 768]) {
+    await page.setViewportSize({ width, height: 740 });
+    for (const path of ['/cases', '/runs', '/issues', '/integrations', '/settings']) {
+      await page.goto(path);
+      await expect(page.locator('#main-content')).toBeVisible();
+      const sizes = await page.locator('#main-content').evaluate((main) => ({
+        pageWidth: document.documentElement.scrollWidth,
+        contentWidth: main.clientWidth,
+        scrollWidth: main.scrollWidth,
+      }));
+
+      expect(sizes.pageWidth).toBe(width);
+      expect(sizes.scrollWidth).toBeLessThanOrEqual(sizes.contentWidth + 1);
+      for (const button of await page.locator('#main-content button:visible').all()) {
+        const bounds = await button.boundingBox();
+
+        expect(bounds!.x).toBeGreaterThanOrEqual(0);
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width + 1);
+      }
+    }
+  }
+});
+
+test('public pages fit phone screens', async ({ page }) => {
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 740 });
+    for (const path of ['/', '/login', '/register']) {
+      await page.goto(path);
+      await expect(page.locator('main')).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    }
+  }
+});
+
+test('quick creation keeps prompt text and actions accessible on a phone', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 600 });
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '快速创建', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '快速创建' });
+  const input = dialog.getByRole('textbox', { name: '测试步骤与预期结果' });
+
+  await input.fill('打开登录页面，输入邮箱和密码，确认登录成功。');
+  await expect(input).toHaveCSS('padding-left', '16px');
+  await expect(dialog.getByRole('button', { name: '生成', exact: true })).toBeInViewport();
+  await expect(dialog.getByRole('button', { name: '关闭描述输入' })).toBeInViewport();
+  await page.screenshot({ path: testInfo.outputPath('quick-create-phone.png') });
+  await dialog.getByRole('button', { name: '关闭描述输入' }).click();
+  await expect(dialog).toHaveCount(0);
+});
+
 test('keeps sign out within the sidebar on short, narrow and collapsed layouts', async ({
   page,
 }) => {

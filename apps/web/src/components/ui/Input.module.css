@@ -2,6 +2,7 @@
   .input {
     display: block;
     width: 100%;
+    min-width: 0;
     min-height: 2.375rem;
     border-radius: 0.375rem;
     border: 1px solid var(--control-line);
@@ -11,6 +12,10 @@
     line-height: 1.5;
     font-weight: 400;
     color: var(--control-ink);
+    @media (pointer: coarse) {
+      min-height: 44px;
+      font-size: 16px;
+    }
     &::placeholder {
       color: var(--control-placeholder);
     }

@@ -32,6 +32,10 @@
   background: var(--page);
   color: var(--control-ink);
   font: inherit;
+  @media (pointer: coarse) {
+    min-height: 44px;
+    font-size: 16px;
+  }
 }
 .search:focus-visible,
 .summary:focus-visible {

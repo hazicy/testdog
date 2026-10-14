@@ -15,6 +15,9 @@
     align-items: center;
     justify-content: center;
     padding: 1.5rem 1rem;
+    @media (width <= 40rem) {
+      padding: 0.75rem;
+    }
   }
   .popup {
     position: relative;
@@ -28,6 +31,9 @@
     padding: 0px;
     color: var(--ink);
     box-shadow: 0 20px 80px var(--shadow);
+    @media (width <= 40rem) {
+      max-height: calc(100dvh - 24px);
+    }
   }
   .header {
     display: flex;
@@ -38,9 +44,13 @@
     border-bottom-width: 1px;
     border-color: var(--page-line);
     padding: 22px 1.5rem;
+    @media (width <= 40rem) {
+      padding: 1rem;
+    }
   }
   .footer {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 0.625rem;
     border-top-style: solid;
@@ -48,5 +58,8 @@
     border-color: var(--page-line);
     background-color: var(--surface-muted);
     padding: 1rem 1.5rem;
+    @media (width <= 40rem) {
+      padding: 1rem;
+    }
   }
 }

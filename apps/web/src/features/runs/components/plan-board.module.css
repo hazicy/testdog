@@ -17,28 +17,20 @@
   border: 1px solid var(--plan-line);
   background: var(--surface);
   box-shadow: 0 4px 12px var(--plan-shadow);
-}
 
-.planNode {
   &[data-step-type='group'] {
     background: var(--plan-group);
     border-style: dashed;
   }
-}
 
-.planNode {
   &[data-step-type='branch'] {
     background: var(--plan-branch);
   }
-}
 
-.planNode {
   &[data-reference='true'] {
     border-style: dashed;
   }
-}
 
-.planNode {
   &[data-editing='true'] {
     outline: 2px solid var(--brand);
     outline-offset: 2px;
@@ -82,9 +74,7 @@
   min-height: 0;
   flex: 1;
   grid-template-columns: minmax(0, 1fr);
-}
 
-.planBoardBody {
   &.hasFloatingPanel {
     background: var(--surface);
   }
@@ -143,9 +133,11 @@
   background: var(--surface-raised);
   box-shadow: 0 3px 12px var(--canvas-shadow);
   pointer-events: auto;
-}
+  @media (pointer: coarse) {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
 
-.planViewportControls {
   & button {
     min-width: 32px;
     height: 32px;
@@ -153,16 +145,17 @@
     color: var(--text-secondary);
     font-size: 12px;
     cursor: pointer;
+    @media (pointer: coarse) {
+      min-width: 44px;
+      height: 44px;
+      flex: 1;
+    }
   }
-}
 
-.planViewportControls {
   & button:hover {
     background: var(--surface-muted);
   }
-}
 
-.planViewportControls {
   & button:focus-visible {
     outline: 2px solid var(--brand-line);
   }
@@ -192,60 +185,42 @@
     background: var(--surface-raised);
     box-shadow: 0 2px 6px var(--canvas-shadow);
   }
-}
 
-.planBoard {
   & .planNode[data-step-type='assert'] {
     border-color: var(--canvas-assert-line);
   }
-}
 
-.planBoard {
   & .planNode[data-step-type='login'] {
     border-color: var(--canvas-login-line);
   }
-}
 
-.planBoard {
   & .planNode[data-step-type='files'] {
     border-color: var(--canvas-files-line);
   }
-}
 
-.planBoard {
   & .planNode[data-step-type='screenshot'] {
     border-color: var(--canvas-screenshot-line);
   }
-}
 
-.planBoard {
   & .planNode[data-step-type='group'] {
     border-color: var(--canvas-group-line);
     border-style: dashed;
   }
-}
 
-.planBoard {
   & .planNode[data-step-type='branch'] {
     border-color: var(--canvas-branch-line);
   }
-}
 
-.planBoard {
   & .planNode[data-reference='true'] {
     border-style: dashed;
   }
-}
 
-.planBoard {
   & :global(.react-flow__node):global(.selected) .planNode {
     outline: 2px solid var(--plan-edge);
     outline-offset: 3px;
     box-shadow: 0 0 0 4px var(--canvas-selected-ring);
   }
-}
 
-.planBoard {
   & .planNode[data-editing='true'] {
     outline: 2px solid var(--canvas-active-line);
     outline-offset: 3px;
@@ -278,16 +253,12 @@
   background: var(--surface-raised);
   box-shadow: 0 2px 6px var(--canvas-shadow);
   font-size: 11px;
-}
 
-.planReviewActions {
   & > span {
     margin-right: 4px;
     color: var(--page-muted);
   }
-}
 
-.planReviewActions {
   & > button {
     width: 24px;
     height: 24px;
@@ -295,23 +266,17 @@
     cursor: pointer;
     font-size: 15px;
   }
-}
 
-.planReviewActions {
   & > button:first-of-type {
     color: var(--review-accept-ink);
     background: var(--review-accept-soft);
   }
-}
 
-.planReviewActions {
   & > button:last-of-type {
     color: var(--review-reject-ink);
     background: var(--review-reject-soft);
   }
-}
 
-.planReviewActions {
   & > button:focus-visible {
     outline: 2px solid var(--brand-line);
   }
@@ -322,16 +287,12 @@
     background: var(--review-added-soft);
     border-color: var(--review-added-line);
   }
-}
 
-.planBoard {
   & .planNode[data-review='modified'] {
     background: var(--review-modified-soft);
     border-color: var(--review-modified-line);
   }
-}
 
-.planBoard {
   & .planNode[data-review='removed'] {
     background: var(--review-removed-soft);
     border-color: var(--review-removed-line);
@@ -356,9 +317,7 @@
     justify-content: center;
     font-weight: 600;
   }
-}
 
-.planNode {
   &[data-step-type='group'] .stepBadge {
     border: none;
     background: none;
@@ -402,49 +361,37 @@
   color: var(--step-task-ink);
   border-color: var(--step-task-line);
   background: var(--step-task-soft);
-}
 
-.stepBadge {
   &[data-type='assert'] {
     color: var(--step-assert-ink);
     border-color: var(--step-assert-line);
     background: var(--step-assert-soft);
   }
-}
 
-.stepBadge {
   &[data-type='login'] {
     color: var(--step-login-ink);
     border-color: var(--step-login-line);
     background: var(--step-login-soft);
   }
-}
 
-.stepBadge {
   &[data-type='files'] {
     color: var(--step-files-ink);
     border-color: var(--step-files-line);
     background: var(--step-files-soft);
   }
-}
 
-.stepBadge {
   &[data-type='screenshot'] {
     color: var(--step-screenshot-ink);
     border-color: var(--step-screenshot-line);
     background: var(--step-screenshot-soft);
   }
-}
 
-.stepBadge {
   &[data-type='branch'] {
     color: var(--step-branch-ink);
     border-color: var(--step-branch-line);
     background: var(--step-branch-soft);
   }
-}
 
-.stepBadge {
   &[data-type='group'] {
     color: var(--step-group-ink);
     border-color: var(--step-group-line);
@@ -474,9 +421,7 @@
   width: 160px;
   height: 56px;
   margin: -10px -62px;
-}
 
-.stepInsertArea {
   & .stepInsertTrigger {
     opacity: 0;
     transition: opacity 120ms;
@@ -535,15 +480,11 @@
   border-radius: 4px;
   font-size: 12px;
   outline: none;
-}
 
-.stepTypeOption {
   &[data-highlighted] {
     background: var(--canvas-menu-hover);
   }
-}
 
-.stepTypeOption {
   & .stepBadge {
     font-size: 13px;
     min-width: 116px;
@@ -588,9 +529,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 120ms;
-}
 
-.planNodeActions {
   &::after {
     content: '';
     position: absolute;
@@ -613,9 +552,7 @@
     padding: 2px 8px;
     border-radius: 3px;
   }
-}
 
-.planNodeActions {
   & button:hover {
     background: var(--canvas-action-hover);
   }
@@ -672,9 +609,7 @@
     display: flex;
     flex-direction: column;
   }
-}
 
-.planNode {
   &[data-result] .planNodeRow {
     height: auto;
     min-height: 72px;
@@ -703,9 +638,7 @@
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-}
 
-.planResultSummary {
   & p {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -734,23 +667,17 @@
   overflow: hidden;
   background: var(--page);
   cursor: pointer;
-}
 
-.planResultThumbnail {
   & img {
     width: 100%;
     height: 140px;
     object-fit: contain;
   }
-}
 
-.planResultThumbnail {
   & span {
     padding: 4px;
   }
-}
 
-.planResultThumbnail {
   &:focus-visible {
     outline: 2px solid var(--brand);
     outline-offset: 2px;

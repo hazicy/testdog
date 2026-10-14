@@ -150,6 +150,27 @@ test('creates, edits, comments, closes and reopens an issue', async ({ page }) =
   await expect(page.getByText('关闭原因：已修复')).toHaveCount(0);
 });
 
+test('issue editor fits a narrow phone and stacks classification fields', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 600 });
+  await page.route('**/api/issues*', (route) =>
+    route.fulfill({ json: { issues: [], nextCursor: null } }),
+  );
+  await page.goto('/issues');
+  await page.getByRole('button', { name: '新建问题' }).click();
+  const dialog = page.getByRole('dialog');
+
+  await expect(dialog).toBeVisible();
+  expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  const fields = dialog.getByRole('combobox');
+  const first = (await fields.nth(0).boundingBox())!;
+  const second = (await fields.nth(1).boundingBox())!;
+
+  expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+  await dialog.getByLabel('问题标题', { exact: true }).fill('手机端问题');
+  await dialog.getByRole('button', { name: '保存问题', exact: true }).scrollIntoViewIfNeeded();
+  await expect(dialog.getByRole('button', { name: '保存问题', exact: true })).toBeInViewport();
+});
+
 test('creates an issue from a failed board node and starts a regression without auto-closing', async ({
   page,
 }) => {

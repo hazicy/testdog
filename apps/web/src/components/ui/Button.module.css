@@ -116,4 +116,15 @@
     padding: 0px;
     font-size: 13px;
   }
+  @media (pointer: coarse) {
+    .base {
+      min-height: 44px;
+    }
+    .icon,
+    .iconSm,
+    .iconXs {
+      width: 44px;
+      height: 44px;
+    }
+  }
 }
