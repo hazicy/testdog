@@ -9,7 +9,7 @@ import { statusStyles } from '@/components/ui/statusStyles';
 import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
 import { asset, statuses } from '@/features/runs/presentation';
-import { boardResult } from '@/features/runs/lib/boardResults';
+import { type boardResult, planNodeTitle, stepResult } from '@/features/runs/lib/boardResults';
 import { memo, useId, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
@@ -61,17 +61,10 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       : node.kind === 'task'
         ? (node.actionType ?? 'act')
         : node.kind;
-  const content =
-    data.assertionIndex !== undefined && node.kind === 'task'
-      ? (node.assertions[data.assertionIndex]?.description ?? '')
-      : node.kind === 'branch'
-        ? node.condition
-        : node.goal;
-  const status = (data.result ?? boardResult(steps, [])).status;
+  const content = planNodeTitle(node, data.assertionIndex);
+  const status = (data.result ?? stepResult(steps)).status;
   const beforeContent = data.review?.before
-    ? data.review.before.kind === 'branch'
-      ? data.review.before.condition
-      : data.review.before.goal
+    ? planNodeTitle(data.review.before, data.assertionIndex)
     : '';
 
   function finish() {

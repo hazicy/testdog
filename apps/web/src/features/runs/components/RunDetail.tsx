@@ -255,18 +255,8 @@ export function RunDetail({
   );
 
   const renderStepDetails = useCallback(
-    (step: ExecutionStep) => (
-      <StepDetails
-        step={step}
-        runError={run?.error}
-        stepFrames={stepFrames}
-        onIssue={openIssue}
-        onShowFrame={(index) => {
-          showFrame(frames[index], 'steps');
-        }}
-      />
-    ),
-    [run?.error, stepFrames, frames, showFrame, openIssue],
+    (step: ExecutionStep) => <StepDetails step={step} runError={run?.error} />,
+    [run?.error],
   );
 
   async function perform(action: 'record' | 'replay' | 'cancel' | 'export') {

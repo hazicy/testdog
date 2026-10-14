@@ -1,24 +1,11 @@
 import styles from './StepDetails.module.css';
 import { statusStyles } from '@/components/ui/statusStyles';
-import { Button } from '@/components/ui/Button';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
-import type { indexRun } from '@/features/runs/lib/runIndex';
 import { statuses } from '@/features/runs/presentation';
 
-export function StepDetails({
-  step,
-  runError,
-  stepFrames,
-  onShowFrame,
-  onIssue,
-}: {
-  step: ExecutionStep;
-  runError?: string;
-  stepFrames: ReturnType<typeof indexRun>['stepFrames'];
-  onShowFrame: (index: number) => void;
-  onIssue?: (step: ExecutionStep) => void;
-}) {
+export function StepDetails({ step, runError }: { step: ExecutionStep; runError?: string }) {
   const action = step.action?.action;
+  const error = step.error || (step.status === 'failed' ? runError : undefined);
 
   return (
     <div>
@@ -52,31 +39,8 @@ export function StepDetails({
         </div>
       )}
       {step.evidence && <p className={styles.evidence}>验证证据：{step.evidence}</p>}
-      {(step.error || runError) && (
-        <pre className={styles.errorDetails}>{step.error || runError}</pre>
-      )}
-      <div className={styles.evidenceActions}>
-        {onIssue && <Button onClick={() => onIssue(step)}>创建或关联问题</Button>}
-        {(['before', 'after'] as const).map((stage) => {
-          const index = stepFrames.get(step.id)?.[stage] ?? -1;
-
-          return (
-            <Button
-              key={stage}
-              disabled={index < 0}
-
-              onClick={() => {
-                onShowFrame(index);
-              }}
-            >
-              {stage === 'before' ? '查看执行前' : '查看执行后'}
-            </Button>
-          );
-        })}
-        {!step.replayable && (
-          <span className={styles.label}>本步骤缺少稳定定位器，无法重放操作。</span>
-        )}
-      </div>
+      {error && <pre className={styles.errorDetails}>{error}</pre>}
+      {!step.replayable && <p className={styles.label}>本步骤缺少稳定定位器，无法重放操作。</p>}
     </div>
   );
 }

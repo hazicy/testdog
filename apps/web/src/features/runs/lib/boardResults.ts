@@ -1,7 +1,41 @@
 import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
 import type { ExecutionStep, RunArtifact, TestRun } from '@testdog/contracts/runs/types';
 
-/** Legacy plans identify attached assertions by text; use occurrence order for duplicates. */
+export function indexStepsByNode(steps: ExecutionStep[]) {
+  const index = new Map<string, ExecutionStep[]>();
+
+  for (const step of steps) {
+    if (!step.planNodeId) continue;
+    const entries = index.get(step.planNodeId) ?? [];
+
+    entries.push(step);
+    index.set(step.planNodeId, entries);
+  }
+
+  return index;
+}
+
+export function planNodeTitle(node: PlanNode, assertionIndex?: number) {
+  if (node.kind === 'branch') return node.condition;
+  if (node.kind === 'task' && assertionIndex !== undefined)
+    return node.assertions[assertionIndex]?.description ?? '';
+
+  return node.goal;
+}
+
+export function stepResult(steps: ExecutionStep[]): {
+  primary: ExecutionStep | undefined;
+  status: ExecutionStep['status'] | 'none';
+} {
+  const primary =
+    steps.find((step) => step.status === 'failed') ??
+    steps.find((step) => step.status === 'running') ??
+    steps.at(-1);
+
+  return { primary, status: primary?.status ?? 'none' };
+}
+
+/** Attached assertions share a node ID; distinguish repeated descriptions by occurrence. */
 export function boardNodeSteps(node: PlanNode, steps: ExecutionStep[], assertionIndex?: number) {
   const associated = steps.filter((step) => step.planNodeId === node.id);
 
@@ -20,10 +54,7 @@ export function boardNodeSteps(node: PlanNode, steps: ExecutionStep[], assertion
 }
 
 export function boardResult(steps: ExecutionStep[], artifacts: RunArtifact[]) {
-  const failed = steps.find((step) => step.status === 'failed');
-  const running = steps.find((step) => step.status === 'running');
-  const primary = failed ?? running ?? steps.at(-1);
-  const status = failed ? 'failed' : running ? 'running' : steps.length ? 'passed' : 'none';
+  const { primary, status } = stepResult(steps);
   const ids = new Set(steps.map((step) => step.id));
   const frames = artifacts.filter(
     (artifact) => artifact.kind === 'screenshot' && artifact.stepId && ids.has(artifact.stepId),

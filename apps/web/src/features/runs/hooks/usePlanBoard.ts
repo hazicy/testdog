@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { Edge, NodeChange } from '@xyflow/react';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
-import { boardNodeSteps, boardResult } from '@/features/runs/lib/boardResults';
+import { boardNodeSteps, boardResult, indexStepsByNode } from '@/features/runs/lib/boardResults';
 import { layoutPlan, PLAN_ROW_WIDTH } from '@/features/runs/lib/planLayout';
 import type { InsertFlowNode } from '@/features/test-cases/components/InsertStepMenu';
 import { insertStep, type Insertion } from '@/features/test-cases/lib/authoring';
@@ -63,19 +63,7 @@ export function usePlanBoard({
     });
   }, []);
   const layout = useMemo(() => layoutPlan(plan, results), [plan, results]);
-  const stepsByNode = useMemo(() => {
-    const index = new Map<string, ExecutionStep[]>();
-
-    for (const step of steps) {
-      if (!step.planNodeId) continue;
-      const entries = index.get(step.planNodeId) ?? [];
-
-      entries.push(step);
-      index.set(step.planNodeId, entries);
-    }
-
-    return index;
-  }, [steps]);
+  const stepsByNode = useMemo(() => indexStepsByNode(steps), [steps]);
 
   const positions = useMemo(() => {
     const index = new Map<string, Insertion>();

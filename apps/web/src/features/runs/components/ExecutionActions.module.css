@@ -1,79 +1,78 @@
 .action {
-  min-height: 0px;
-  border-radius: 0;
-  white-space: normal;
   display: flex;
   width: 100%;
-  align-items: flex-start;
-  gap: 0.75rem;
-  border-bottom-style: solid;
-  border-bottom-width: 1px;
-  border: 0px solid var(--page-line);
-  padding: 1rem 1.25rem;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 4px;
+  padding: 6px 8px;
   text-align: left;
-  transition-property:
-    color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
-  transition-timing-function: ease;
-  transition-duration: 150ms;
+  white-space: normal;
+  transition: background-color 150ms ease;
   @media (hover: hover) {
     &:hover {
-      background-color: var(--step-hover);
+      background: var(--step-hover);
     }
   }
 }
 .selected {
-  background-color: var(--step-selected);
+  background: var(--surface-hover);
+  color: var(--ink);
 }
 .sequence {
-  margin-top: 0.125rem;
   display: grid;
-  height: 1.5rem;
-  width: 1.5rem;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   place-items: center;
-  border-style: solid;
-  border-width: 1px;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
-  line-height: 1rem;
 }
-.failed {
-  border-color: var(--error-line);
-  color: var(--error);
+.sequence[data-status='failed'] {
+  color: var(--error-ink);
 }
-.passed {
-  border-color: var(--step-success-line);
+.sequence[data-status='passed'] {
   color: var(--step-success);
 }
-.pending {
-  border-color: var(--brand);
+.sequence[data-status='running'] {
   color: var(--brand);
 }
 .content {
-  min-width: 0px;
+  display: flex;
+  min-width: 0;
   flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  row-gap: 2px;
 }
 .title {
-  display: block;
-  overflow-wrap: break-word;
-  font-size: 0.75rem;
-  line-height: 1.25rem;
-  color: var(--ink);
+  min-width: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
 }
 .metadata {
-  margin-top: 0.375rem;
-  display: block;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
-  line-height: 1rem;
+  font-size: 10px;
+  line-height: 16px;
   color: var(--page-muted);
 }
 .expandIndicator {
-  align-self: center;
+  flex-shrink: 0;
   color: var(--page-muted);
 }
+.expandIndicator[data-expanded='true'] {
+  rotate: 90deg;
+}
 .details {
-  border-bottom-style: solid;
-  border-bottom-width: 1px;
-  border-color: var(--page-line);
+  padding: 10px 8px 12px 30px;
+}
+
+.selected .title {
+  color: var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .action {
+    transition: none;
+  }
 }

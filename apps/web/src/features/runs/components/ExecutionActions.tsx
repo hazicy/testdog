@@ -2,12 +2,12 @@
 
 import clsx from 'clsx';
 import { Icon } from '@iconify/react/offline';
+import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import { memo, useId, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { actionIcon } from '@/features/runs/lib/actionIcon';
 import { statuses } from '@/features/runs/presentation';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
-import studioStyles from './run-studio.module.css';
 import styles from './ExecutionActions.module.css';
 
 const kinds = { action: '操作', navigate: '导航', wait: '等待', assertion: '断言', branch: '分支' };
@@ -32,68 +32,61 @@ export const ExecutionActions = memo(function ExecutionActions({
 
   return (
     <ol>
-      {steps.map((step) => (
-        <li key={step.id}>
-          <Button
-            variant="ghost"
-            aria-expanded={
-              renderDetails ? selectedId === step.id && collapsedId !== step.id : undefined
-            }
-            aria-controls={renderDetails ? `${detailsId}-${step.id}` : undefined}
-            onClick={() => {
-              setCollapsedId(
-                selectedId === step.id && collapsedId !== step.id ? step.id : undefined,
-              );
-              onSelect(step);
-            }}
-            className={clsx(styles.action, { [styles.selected]: selectedId === step.id })}
-          >
-            <span
-              title={statuses[step.status]}
-              aria-label={statuses[step.status]}
-              className={clsx(
-                styles.sequence,
-                step.status === 'failed'
-                  ? styles.failed
-                  : step.status === 'passed'
-                    ? styles.passed
-                    : styles.pending,
-              )}
+      {steps.map((step) => {
+        const selected = selectedId === step.id;
+        const expanded = !!renderDetails && selected && collapsedId !== step.id;
+        const contentId = `${detailsId}-${step.id}`;
+
+        return (
+          <li key={step.id}>
+            <Button
+              variant="ghost"
+              aria-expanded={renderDetails ? expanded : undefined}
+              aria-controls={renderDetails ? contentId : undefined}
+              onClick={() => {
+                if (renderDetails) setCollapsedId(expanded ? step.id : undefined);
+                onSelect(step);
+              }}
+              className={clsx(styles.action, { [styles.selected]: selected })}
             >
-              <Icon icon={actionIcon(step)} aria-hidden="true" width="14" height="14" />
-            </span>
-            <span className={styles.content}>
-              <span className={styles.title}>{step.title}</span>
-              <span className={styles.metadata}>
-                {kinds[step.kind]} · {step.pageId} ·{' '}
-                {step.durationMs == null
-                  ? step.status === 'running'
-                    ? '执行中'
-                    : '已中断'
-                  : `${(step.durationMs / 1000).toFixed(1)}s`}
+              <span
+                title={statuses[step.status]}
+                aria-label={statuses[step.status]}
+                className={styles.sequence}
+                data-status={step.status}
+              >
+                <Icon icon={actionIcon(step)} aria-hidden="true" width="12" height="12" />
               </span>
-            </span>
+              <span className={styles.content}>
+                <span className={styles.title}>{step.title}</span>
+                <span className={styles.metadata}>
+                  {kinds[step.kind]} · {step.pageId} ·{' '}
+                  {step.durationMs == null
+                    ? step.status === 'running'
+                      ? '执行中'
+                      : '已中断'
+                    : `${(step.durationMs / 1000).toFixed(1)}s`}
+                </span>
+              </span>
+              {renderDetails && (
+                <Icon
+                  icon={chevronIcon}
+                  width="12"
+                  aria-hidden="true"
+                  className={styles.expandIndicator}
+                  data-expanded={expanded || undefined}
+                />
+              )}
+            </Button>
+            {renderIssue?.(step)}
             {renderDetails && (
-              <span aria-hidden="true" className={styles.expandIndicator}>
-                {selectedId === step.id && collapsedId !== step.id ? '⌃' : '⌄'}
-              </span>
+              <div id={contentId} hidden={!expanded} className={styles.details}>
+                {expanded && renderDetails(step)}
+              </div>
             )}
-          </Button>
-          {renderIssue?.(step)}
-          {renderDetails && (
-            <div
-              id={`${detailsId}-${step.id}`}
-              hidden={selectedId !== step.id || collapsedId === step.id}
-            >
-              {selectedId === step.id && collapsedId !== step.id && (
-                <div className={clsx(studioStyles.studioContent, styles.details)}>
-                  {renderDetails(step)}
-                </div>
-              )}
-            </div>
-          )}
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ol>
   );
 });

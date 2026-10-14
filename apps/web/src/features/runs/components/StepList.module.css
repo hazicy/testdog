@@ -1,41 +1,62 @@
 .section {
-  min-width: 0px;
+  min-width: 0;
 }
 .description {
-  padding: 1.5rem;
-  font-size: 0.75rem;
-  line-height: 1.5rem;
+  padding: 16px;
   color: var(--page-muted);
+  font-size: 12px;
 }
-
+.groups {
+  padding: 8px 12px;
+}
 .plannedStep {
-  border-bottom: 1px solid var(--page-line);
+  padding-block: 4px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.plannedStep:last-child {
+  border-bottom: 0;
 }
 .planSummary {
   display: flex;
+  min-height: 42px;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  cursor: pointer;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
   list-style: none;
-  &::-webkit-details-marker {
-    display: none;
-  }
-  &::before {
-    content: '›';
-    color: var(--page-muted);
-    transition: rotate 150ms ease;
-  }
-  &:hover {
-    background: var(--surface-hover);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--brand);
-    outline-offset: -2px;
-  }
+  cursor: pointer;
+  transition: background-color 150ms ease;
 }
-.plannedStep > details[open] > .planSummary::before {
-  rotate: 90deg;
+.planSummary::-webkit-details-marker {
+  display: none;
+}
+.planSummary::marker {
+  content: '';
+}
+.planSummary:hover {
+  background: var(--surface-hover);
+}
+.planSummary:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+.planSummary [data-slot='status'] {
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.stepNumber {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--surface-muted);
+  color: var(--page-muted);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 .content {
   min-width: 0;
@@ -43,23 +64,45 @@
 }
 .planTitle {
   font-size: 13px;
-  font-weight: 500;
-  line-height: 1.6;
+  font-weight: 600;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 .pathLabel {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   color: var(--page-muted);
-  font-size: 11px;
+  font-size: 10px;
+}
+.chevron {
+  flex-shrink: 0;
+  color: var(--page-muted);
+  transition: rotate 150ms ease;
+}
+.plannedStep > details[open] > .planSummary .chevron {
+  rotate: 90deg;
+}
+.plannedStep[data-current='true'] > details > .planSummary {
+  background: var(--brand-soft);
+  box-shadow: inset 2px 0 var(--brand);
+}
+.plannedStep[data-current='true'] .stepNumber {
+  background: var(--surface);
+  color: var(--brand);
 }
 .planActions {
-  margin: 0 12px 12px 28px;
-  border-left: 1px solid var(--page-line);
+  margin: 4px 0 0 36px;
+  padding-bottom: 6px;
 }
 .ungroupedHeading {
-  padding: 12px 20px;
+  padding: 8px 16px;
   color: var(--page-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
+}
+@media (prefers-reduced-motion: reduce) {
+  .planSummary,
+  .chevron {
+    transition: none;
+  }
 }
