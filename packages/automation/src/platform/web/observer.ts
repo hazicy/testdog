@@ -1,5 +1,4 @@
 import { Page } from 'playwright';
-import { waitForObservationReady } from '@testdog/automation/platform/web/pageReadiness';
 
 type AriaNode = {
   role: string;
@@ -21,8 +20,13 @@ type FocusedElement = {
 };
 
 export class Observer {
+  constructor() {}
+
   async observe(page: Page) {
-    await waitForObservationReady(page);
+    await page.waitForLoadState('domcontentloaded', {
+      timeout: 5000,
+    });
+
     const tree = (await page.locator('body').ariaSnapshotJSON({
       mode: 'ai',
     })) as AriaTree;

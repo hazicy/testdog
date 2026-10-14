@@ -35,6 +35,7 @@ export class PlaywrightSession implements AutomationSession {
   private registerPage = (page: Page) => {
     this.pages.set(`page-${this.pages.size + 1}`, page);
   };
+
   constructor(
     readonly id: string,
     page: Page,
@@ -47,6 +48,7 @@ export class PlaywrightSession implements AutomationSession {
     page.context().pages().forEach(this.registerPage);
     page.context().on('page', this.registerPage);
   }
+
   async selectSurface(id: string, signal: AbortSignal) {
     const deadline = Date.now() + 15000;
 
@@ -61,6 +63,7 @@ export class PlaywrightSession implements AutomationSession {
     if (!page || page.isClosed()) throw new Error(`重放页面 ${id} 不存在`);
     this.session.activate(page);
   }
+
   async prepareReplayStep(step: ReplayStep, signal: AbortSignal) {
     signal.throwIfAborted();
     const action = step.event.action;
@@ -82,12 +85,15 @@ export class PlaywrightSession implements AutomationSession {
     )
       throw new Error('该步骤没有稳定定位器，请重新录制');
   }
+
   get latestObservation() {
     return this.observation;
   }
+
   get revision() {
     return this.session.version;
   }
+
   async observe(signal: AbortSignal): Promise<Observation> {
     signal.throwIfAborted();
     const observation = await this.session.observe(this.observer);
@@ -109,6 +115,7 @@ export class PlaywrightSession implements AutomationSession {
       },
     });
   }
+
   async perform(step: PlatformAction, signal: AbortSignal) {
     signal.throwIfAborted();
     if (step.platform !== 'web') throw new Error('Expected Web action');
@@ -135,12 +142,14 @@ export class PlaywrightSession implements AutomationSession {
     else await this.session.perform((page) => executeWebAction(page, action, this.useTouch));
     signal.throwIfAborted();
   }
+
   async wait(action: PlatformAction, signal: AbortSignal) {
     if (action.action.type !== 'wait') throw new Error('Expected wait action');
     await this.perform(action, signal);
 
     return this.observe(signal);
   }
+
   async check(assertion: PlatformAssertion, signal: AbortSignal) {
     signal.throwIfAborted();
     if (assertion.platform !== 'web') throw new Error('Assertion platform mismatch');
@@ -171,6 +180,7 @@ export class PlaywrightSession implements AutomationSession {
       return { passed: false, evidence: error instanceof Error ? error.message : String(error) };
     }
   }
+
   async resolveForRecording(action: PlatformAction, observation: Observation) {
     if (
       action.platform !== 'web' ||
@@ -234,6 +244,7 @@ export class PlaywrightSession implements AutomationSession {
     await this.hooks.onStep?.(event, page);
     await this.captureEvidence?.(this, event);
   }
+
   async close() {
     if (!this.disposed) {
       this.disposed = true;
