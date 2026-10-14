@@ -2,9 +2,9 @@
 :root {
   color-scheme: light;
 
-  /* Page and brand */
-  --page: #faf9f6;
-  --ink: #23241f;
+  /* White workspace, neutral supporting surfaces and the existing brand accent. */
+  --page: #ffffff;
+  --ink: #242629;
   --brand: #b45736;
   --brand-foreground: #ffffff;
   --brand-hover: #99482e;
@@ -14,29 +14,29 @@
   --brand-line: #d8b8a8;
 
   /* Surfaces, controls and text */
-  --surface: #fffefa;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-muted: #f5f4ee;
-  --surface-hover: #fdfdfb;
-  --surface-disabled: #f6f6f6;
-  --control-hover: #f5f5f5;
-  --control-line: #dfded4;
-  --control-ink: #333;
-  --control-muted: #777;
-  --control-placeholder: #77796f;
-  --page-line: #e2e1da;
-  --line-subtle: #eee;
-  --dialog-line: #ddd;
-  --page-muted: #78796f;
-  --text-secondary: #64665d;
-  --text-subtle: #73766b;
-  --text-neutral: #737373;
-  --text-disabled: #a3a3a3;
-  --text-faint: #aaa;
-  --table-heading: #62665b;
-  --status-none: #6f7268;
-  --badge-surface: #eeeee9;
-  --badge-ink: #64665e;
+  --surface-muted: #f5f6f7;
+  --surface-hover: #f8f9fa;
+  --surface-disabled: #f5f6f7;
+  --control-hover: #f0f1f3;
+  --control-line: #d4d7dc;
+  --control-ink: #34373c;
+  --control-muted: #6b7078;
+  --control-placeholder: #747981;
+  --page-line: #e5e7eb;
+  --line-subtle: #eff0f2;
+  --dialog-line: #e5e7eb;
+  --page-muted: #747981;
+  --text-secondary: #5f646d;
+  --text-subtle: #747981;
+  --text-neutral: #747981;
+  --text-disabled: #a1a6ae;
+  --text-faint: #a1a6ae;
+  --table-heading: #5f646d;
+  --status-none: #747981;
+  --badge-surface: #eceef1;
+  --badge-ink: #5f646d;
 
   /* Status and feedback */
   --success: #49815a;
@@ -45,32 +45,32 @@
   --success-line: #d7e1d5;
   --danger: #c55348;
   --warning: #cf7800;
-  --cancelled: #8e8779;
+  --cancelled: #747981;
   --activity-running: #f16b43;
   --activity-idle: #8da58c;
 
   /* Navigation and avatar */
-  --sidebar: #f5f5f2;
-  --sidebar-hover: #eeece3;
-  --sidebar-muted: #858585;
-  --avatar-surface: #f3e2d1;
-  --avatar-ink: #8b5129;
+  --sidebar: #f8f9fa;
+  --sidebar-hover: #eceef1;
+  --sidebar-muted: #747981;
+  --avatar-surface: var(--brand-soft);
+  --avatar-ink: var(--brand-hover);
 
   /* Code editor and plan board */
-  --code-surface: #f3f3ef;
-  --editor-gutter: #999482;
-  --editor-active-line: #f7f3e9;
-  --plan-grid: #d8d5c9;
-  --plan-line: #dcd8c9;
-  --plan-group: #eeece2;
-  --plan-branch: #f7eee7;
-  --plan-reference-line: #bbb49a;
-  --plan-reference-ink: #7b7565;
-  --plan-edge: #9b977c;
-  --step-hover: #f2f1e9;
-  --step-selected: #f3eee4;
-  --step-success: #6c805b;
-  --step-success-line: #cdd5bf;
+  --code-surface: #f5f6f7;
+  --editor-gutter: #858b94;
+  --editor-active-line: #f0f1f3;
+  --plan-grid: #e5e7eb;
+  --plan-line: #d4d7dc;
+  --plan-group: #f5f6f7;
+  --plan-branch: #f8f9fa;
+  --plan-reference-line: #a1a6ae;
+  --plan-reference-ink: #747981;
+  --plan-edge: #a1a6ae;
+  --step-hover: #f8f9fa;
+  --step-selected: var(--brand-soft);
+  --step-success: var(--success);
+  --step-success-line: var(--success-line);
 
   /* Canvas nodes, review states and composer overlays */
   --canvas-line: #e5e7eb;
@@ -131,15 +131,15 @@
   --canvas-menu-shadow: #00000018;
   --canvas-menu-ink: #202328;
   --canvas-menu-hover: #f1f5fb;
-  --composer-backdrop: #fffefab3;
+  --composer-backdrop: #ffffffb3;
   --canvas-action-hover: #f3f4f6;
   --canvas-evidence-shadow: #0001;
 
   /* Run preview */
-  --preview: #f0f1ec;
-  --preview-dark: #20221c;
-  --preview-icon: #959c86;
-  --preview-ink: #69715b;
+  --preview: #f0f1f3;
+  --preview-dark: #242629;
+  --preview-icon: #858b94;
+  --preview-ink: #747981;
   --window-close: #e5ad98;
   --window-minimize: #dfcf9a;
   --window-expand: #b9c3a4;
@@ -147,7 +147,7 @@
   /* Overlays and compatibility aliases */
   --shadow: #0002;
   --backdrop: #0005;
-  --plan-shadow: #302c1708;
+  --plan-shadow: #25365308;
   --background: var(--page);
   --foreground: var(--ink);
   --accent: var(--brand);

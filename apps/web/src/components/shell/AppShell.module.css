@@ -57,9 +57,12 @@
   }
 }
 .activeLink {
-  background-color: var(--badge-surface);
+  background-color: var(--brand-soft);
   font-weight: 500;
-  color: var(--ink);
+  color: var(--brand-hover);
+  &:hover {
+    background-color: var(--brand-soft);
+  }
 }
 .inactiveLink {
   color: var(--text-secondary);

@@ -24,6 +24,7 @@
   .appShellSidebar {
     grid-template-rows: var(--header-height) minmax(0, 1fr) auto;
     border-right: 1px solid var(--page-line);
+    background: var(--sidebar);
   }
 
   .appShellContent {
