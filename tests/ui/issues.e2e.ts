@@ -126,7 +126,7 @@ test('creates, edits, comments, closes and reopens an issue', async ({ page }) =
     return route.fulfill({ json: route.request().method() === 'PATCH' ? { issue } : detail });
   });
   await page.goto('/issues');
-  await expect(page.getByText('暂无问题。可从执行记录的失败节点创建问题。')).toBeVisible();
+  await expect(page.getByText('暂无问题', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '新建问题' }).click();
   await page.getByLabel('问题标题', { exact: true }).fill('订单金额错误');
   await page.getByLabel('问题描述', { exact: true }).fill('预期100，实际120');

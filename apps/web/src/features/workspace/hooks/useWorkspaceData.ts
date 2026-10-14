@@ -39,13 +39,14 @@ export function useWorkspaceData(isTests: boolean) {
   });
 
   useEffect(() => {
+    if (query.trim() === search) return;
     const timer = setTimeout(() => {
       setSearch(query.trim());
       setCursors([]);
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, search]);
   const isVisible = useCallback(
     () => document.visibilityState === 'visible' && !connection.current,
     [],

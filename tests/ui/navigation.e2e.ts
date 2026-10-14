@@ -107,16 +107,12 @@ test('empty lists fill the remaining workspace height', async ({ page }) => {
   for (const path of ['/cases', '/runs']) {
     await page.goto(path);
     await expect(
-      page.getByRole('heading', {
-        name: path === '/cases' ? '还没有测试用例' : '暂无执行记录',
-        exact: true,
-      }),
+      page.getByText(path === '/cases' ? '还没有测试用例' : '暂无执行记录', { exact: true }),
     ).toBeVisible();
     const empty = await page.locator('[data-ui~="workspace-index-empty"]').boundingBox();
-    const footer = await page.locator('[data-ui~="workspace-index-footer"]').boundingBox();
 
     expect(empty!.height).toBeGreaterThan(600);
-    expect(footer!.y).toBeGreaterThan(780);
+    await expect(page.locator('[data-ui~="workspace-index-footer"]')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(900);
   }
 });

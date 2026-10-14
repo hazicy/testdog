@@ -2,6 +2,7 @@
 
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingState } from '@/components/shared/LoadingState';
+import { ListFooter } from '@/components/shared/ListFooter';
 
 import clsx from 'clsx';
 
@@ -25,7 +26,6 @@ type Props = Omit<ComponentProps<typeof WorkspaceRows>, 'visibleTests' | 'visibl
   runs: ComponentProps<typeof WorkspaceRows>['visibleRuns'];
   actions?: ReactNode;
   loading: boolean;
-  connected: boolean;
   query: string;
   setQuery: (query: string) => void;
   filter: string;
@@ -54,7 +54,6 @@ export function WorkspaceList({
   loading,
   latestRuns,
   running,
-  connected,
   starting,
   exporting,
   openEditor,
@@ -177,38 +176,15 @@ export function WorkspaceList({
           </div>
         </div>
       )}
-      <div data-ui="workspace-index-footer" className={workspaceStyles.workspaceIndexFooter}>
-        <span>{loading ? '—' : isTests ? visibleTests.length : visibleRuns.length} 条记录</span>
-        {running && (
-          <span className={workspaceStyles.workspaceIndexLive}>
-            <span aria-hidden="true" />
-            {connected ? '实时更新' : '自动刷新'}
-          </span>
-        )}
-        {(hasPrevious || hasNext) && (
-          <div className={workspaceStyles.workspaceIndexPagination}>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="上一页"
-              disabled={!hasPrevious || loading}
-              onClick={previousPage}
-            >
-              <Icon icon={chevronIcon} width="14" rotate={2} aria-hidden="true" />
-            </Button>
-            <span>第 {page} 页</span>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="下一页"
-              disabled={!hasNext || loading}
-              onClick={nextPage}
-            >
-              <Icon icon={chevronIcon} width="14" aria-hidden="true" />
-            </Button>
-          </div>
-        )}
-      </div>
+      <ListFooter
+        loading={loading}
+        count={isTests ? visibleTests.length : visibleRuns.length}
+        page={page}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        previousPage={previousPage}
+        nextPage={nextPage}
+      />
     </section>
   );
 }

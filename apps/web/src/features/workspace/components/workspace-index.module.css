@@ -344,36 +344,6 @@
 .workspaceIndexTable [data-slot='status'][data-status='finalizing'] {
   color: var(--warning);
 }
-.workspaceIndexFooter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 0;
-  color: var(--page-muted);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.workspaceIndexLive {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
-.workspaceIndexLive {
-  & > span {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--activity-running);
-  }
-}
-.workspaceIndexPagination {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
 .workspaceIndexEmpty {
   border-top: 1px solid var(--page-line);
   border-bottom: 1px solid var(--page-line);

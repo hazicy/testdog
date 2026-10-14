@@ -29,7 +29,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   const promptContainer = useRef<HTMLElement>(null);
   const isTests = view === 'tests';
   const data = useWorkspaceData(isTests);
-  const { tests, runs, loading, error, setError, latestRuns, running, connected, refresh } = data;
+  const { tests, runs, loading, error, setError, latestRuns, running, refresh } = data;
   const submit = useRunSubmission();
   const router = useRouter();
   const params = useSearchParams();
@@ -183,7 +183,6 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         loading={previewLoading || (!previewEmpty && loading)}
         latestRuns={latestRuns}
         running={previewEmpty || previewLoading ? false : running}
-        connected={connected}
         starting={starting}
         exporting={exporting}
         openEditor={openEditor}

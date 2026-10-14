@@ -2,6 +2,7 @@
 
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingState } from '@/components/shared/LoadingState';
+import { ListFooter } from '@/components/shared/ListFooter';
 
 import clsx from 'clsx';
 
@@ -18,10 +19,10 @@ import {
 } from '@/components/ui/Table';
 
 import { Input } from '@/components/ui/Input';
-import { useDeferredValue, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import useSWRInfinite from 'swr/infinite';
+import useSWR from 'swr';
 import { fetchJson } from '@/client/api';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -35,27 +36,31 @@ import plusIcon from '@iconify-icons/lucide/plus';
 export function IssueList() {
   const router = useRouter();
   const [q, setQ] = useState('');
-  const search = useDeferredValue(q);
+  const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [platform, setPlatform] = useState('all');
   const [days, setDays] = useState('all');
   const [sort, setSort] = useState('last_seen');
   const [creating, setCreating] = useState(false);
-  const { data, error, isLoading, isValidating, size, setSize } = useSWRInfinite<IssuePage>(
-    (index, previous) => {
-      if (index && !previous?.nextCursor) return null;
-      const params = new URLSearchParams({ q: search, status, platform, sort });
+  const [cursors, setCursors] = useState<string[]>([]);
 
-      if (days !== 'all') params.set('days', days);
+  useEffect(() => {
+    if (q.trim() === search) return;
+    const timer = setTimeout(() => {
+      setSearch(q.trim());
+      setCursors([]);
+    }, 250);
 
-      if (index) params.set('cursor', previous!.nextCursor!);
+    return () => clearTimeout(timer);
+  }, [q, search]);
+  const params = new URLSearchParams({ q: search, status, platform, sort });
 
-      return `/api/issues?${params}`;
-    },
-    fetchJson,
-    { refreshInterval: 30000 },
-  );
-  const items = data?.flatMap((page) => page.issues) ?? [];
+  if (days !== 'all') params.set('days', days);
+  if (cursors.length) params.set('cursor', cursors.at(-1)!);
+  const { data, error, isLoading } = useSWR<IssuePage>(`/api/issues?${params}`, fetchJson, {
+    refreshInterval: 30000,
+  });
+  const items = data?.issues ?? [];
 
   return (
     <section className={clsx(workspaceStyles.workspaceIndex, styles.section)} aria-label="问题追踪">
@@ -79,14 +84,20 @@ export function IssueList() {
             aria-label="筛选问题状态"
             className={styles.select}
             value={status}
-            onValueChange={setStatus}
+            onValueChange={(value) => {
+              setStatus(value);
+              setCursors([]);
+            }}
             items={[{ value: 'all', label: '全部状态' }, ...options(issueStatuses)]}
           />
           <Select
             aria-label="筛选环境"
             className={styles.select}
             value={platform}
-            onValueChange={setPlatform}
+            onValueChange={(value) => {
+              setPlatform(value);
+              setCursors([]);
+            }}
             items={[
               { value: 'all', label: '全部环境' },
               { value: 'web', label: 'Web' },
@@ -98,7 +109,10 @@ export function IssueList() {
             aria-label="问题排序"
             className={styles.select}
             value={sort}
-            onValueChange={setSort}
+            onValueChange={(value) => {
+              setSort(value);
+              setCursors([]);
+            }}
             items={[
               { value: 'last_seen', label: '最近出现 ↓' },
               { value: 'updated', label: '最近更新 ↓' },
@@ -108,7 +122,10 @@ export function IssueList() {
             aria-label="筛选日期"
             className={styles.select}
             value={days}
-            onValueChange={setDays}
+            onValueChange={(value) => {
+              setDays(value);
+              setCursors([]);
+            }}
             items={[
               { value: 'all', label: '全部日期' },
               { value: '1', label: '最近 24 小时' },
@@ -199,21 +216,17 @@ export function IssueList() {
           </Table>
         </div>
       )}
-      <div data-ui="workspace-index-footer" className={workspaceStyles.workspaceIndexFooter}>
-        <span>{isLoading ? '—' : items.length} 条记录</span>
-        {data?.at(-1)?.nextCursor && (
-          <div className={workspaceStyles.workspaceIndexPagination}>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={isValidating}
-              onClick={() => void setSize(size + 1)}
-            >
-              加载更多
-            </Button>
-          </div>
-        )}
-      </div>
+      <ListFooter
+        loading={isLoading}
+        count={items.length}
+        page={cursors.length + 1}
+        hasPrevious={cursors.length > 0}
+        hasNext={!!data?.nextCursor}
+        previousPage={() => setCursors(cursors.slice(0, -1))}
+        nextPage={() => {
+          if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);
+        }}
+      />
       {creating && (
         <IssueEditor
           onDismiss={() => setCreating(false)}
