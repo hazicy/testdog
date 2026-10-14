@@ -4,7 +4,6 @@ import {
   PlanSchema,
   type Plan,
 } from '@testdog/contracts/automation/compiler/schema';
-import { resolvePlanInputs } from '@testdog/contracts/automation/compiler/executionPlan';
 
 const plan: Plan = {
   rootId: 'root',
@@ -12,44 +11,27 @@ const plan: Plan = {
     root: {
       id: 'root',
       kind: 'group',
-      goal: '测试 ${input.name}',
+      goal: '测试 Ada',
       children: ['branch'],
       dependsOn: [],
     },
     branch: {
       id: 'branch',
       kind: 'branch',
-      condition: '显示 ${input.name}',
+      condition: '显示 Ada',
       then: 'task',
       dependsOn: [],
     },
     task: {
       id: 'task',
       kind: 'task',
-      goal: '填写 ${input.password}',
+      goal: '填写 测试密码',
       dependsOn: [],
       requirementIds: ['R1'],
-      assertions: [{ description: '欢迎 ${input.name}' }],
+      assertions: [{ description: '欢迎 Ada' }],
     },
   },
 };
-
-it('resolves all execution text without changing source IDs, dependencies or secret values', () => {
-  const result = resolvePlanInputs(plan, {
-    name: { value: 'Ada' },
-    password: { secretRef: 'PASSWORD' },
-  });
-
-  expect(result.nodes.root).toMatchObject({ goal: '测试 Ada', children: ['branch'] });
-  expect(result.nodes.branch).toMatchObject({ condition: '显示 Ada', then: 'task' });
-  expect(result.nodes.task).toMatchObject({
-    goal: '填写 ${secret:PASSWORD}',
-    requirementIds: ['R1'],
-    assertions: [{ description: '欢迎 Ada' }],
-  });
-  expect(plan.nodes.task).toMatchObject({ goal: '填写 ${input.password}' });
-  expect(() => resolvePlanInputs(plan)).toThrow('缺少输入引用');
-});
 
 it('allows empty drafts but rejects unreachable tasks as executable cases', () => {
   const empty: Plan = {

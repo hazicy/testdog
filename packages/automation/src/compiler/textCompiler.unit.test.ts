@@ -60,14 +60,13 @@ it('preserves sequence containers and normalizes the provider nullable presentat
     (await new TextCompiler(model).compile({ goal: '普通分组' })).nodes.root,
   ).not.toHaveProperty('presentation');
 });
-it('keeps platform, inputs and the current plan as structured compiler context', async () => {
+it('keeps platform and the current plan as structured compiler context', async () => {
   respond(compiled());
   const request = {
-    goal: '使用 ${input.password} 登录后验证账号',
+    goal: '使用 测试密码 登录后验证账号',
     context: {
       platform: 'ios' as const,
       appId: 'com.example.app',
-      inputs: { password: { secretRef: 'PASSWORD' } },
     },
     currentPlan: { rootId: 'login', nodes: { login: task } },
   };
@@ -78,7 +77,6 @@ it('keeps platform, inputs and the current plan as structured compiler context',
   if (Array.isArray(content) || content.type !== 'text') throw new Error('Expected text context');
   expect(JSON.parse(content.text)).toEqual(request);
   expect(generate.mock.calls[0][0].systemPrompt).toContain('修改节点保留其 ID');
-  expect(generate.mock.calls[0][0].systemPrompt).toContain('${input.name}');
 });
 describe('TextCompiler flat plan', () => {
   it('returns a flat map with logical nesting and preserves task details', async () => {

@@ -1,4 +1,3 @@
-import { SecretInputs } from '@testdog/contracts/automation/platform/inputs';
 import { expect as playwrightExpect } from '@playwright/test';
 import { recordAction } from '@testdog/automation/platform/web/recordingLocator';
 import type { Page } from 'playwright';
@@ -41,7 +40,6 @@ export class PlaywrightSession implements AutomationSession {
     page: Page,
     private hooks: ExecutionHooks = {},
     private useTouch = false,
-    private secrets = new SecretInputs(),
     private captureEvidence?: (session: AutomationSession, event: SessionEvent) => Promise<void>,
   ) {
     this.session = new BrowserSession(page);
@@ -102,8 +100,6 @@ export class PlaywrightSession implements AutomationSession {
 
     return (this.observation = {
       ...observation,
-      tree: this.secrets.redactData(observation.tree),
-      page: this.secrets.redactData(observation.page),
       schemaVersion: 1,
       sessionId: this.id,
       revision: this.revision,
@@ -111,7 +107,7 @@ export class PlaywrightSession implements AutomationSession {
       surface: {
         platform: 'web',
         id: [...this.pages].find(([, page]) => page === this.session.page)![0],
-        url: this.secrets.redact(this.session.page.url()),
+        url: this.session.page.url(),
       },
     });
   }
@@ -119,24 +115,7 @@ export class PlaywrightSession implements AutomationSession {
   async perform(step: PlatformAction, signal: AbortSignal) {
     signal.throwIfAborted();
     if (step.platform !== 'web') throw new Error('Expected Web action');
-    let action = step.action;
-
-    if (action.type === 'fill') {
-      const input = this.secrets.resolve(action.value);
-
-      if (input.sensitive) {
-        const locator = locateWebElement(this.session.page, action.target);
-
-        if (
-          !(await locator.evaluate(
-            (element) => element instanceof HTMLInputElement && element.type === 'password',
-          ))
-        )
-          throw new Error('Secret inputs require a password field');
-        await locator.evaluate((element) => element.setAttribute('data-caseforge-secret', 'true'));
-        action = { ...action, value: input.value };
-      }
-    }
+    const action = step.action;
 
     if (action.type === 'wait') await this.session.wait(action);
     else await this.session.perform((page) => executeWebAction(page, action, this.useTouch));
@@ -201,7 +180,7 @@ export class PlaywrightSession implements AutomationSession {
       return [
         {
           kind: 'snapshot',
-          bytes: Buffer.from(JSON.stringify(this.secrets.redactData(await this.observe(signal)))),
+          bytes: Buffer.from(JSON.stringify(await this.observe(signal))),
           contentType: 'application/json',
           producer: 'playwright',
           format: 'caseforge-observation-v1',
@@ -216,14 +195,6 @@ export class PlaywrightSession implements AutomationSession {
         bytes: await this.session.page.screenshot({
           type: 'png',
           timeout: 15000,
-          mask: this.secrets.enabled
-            ? [
-                this.session.page.locator('input[type="password"], [data-caseforge-secret]'),
-                ...this.secrets.maskValues.map((value) =>
-                  this.session.page.getByText(value, { exact: false }),
-                ),
-              ]
-            : [],
         }),
         contentType: 'image/png',
         producer: 'playwright',
@@ -232,12 +203,6 @@ export class PlaywrightSession implements AutomationSession {
     ];
   }
   async emit(event: SessionEvent) {
-    event = {
-      ...event,
-      title: this.secrets.redact(event.title),
-      ...(event.error ? { error: this.secrets.redact(event.error) } : {}),
-      ...(event.evidence ? { evidence: this.secrets.redact(event.evidence) } : {}),
-    };
     const page = this.session.page;
 
     this.hooks.onPage?.(page);

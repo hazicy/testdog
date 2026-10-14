@@ -79,9 +79,7 @@ test('field overrides and focus styles survive the shared CSS Module controls', 
     'display',
     'inline-flex',
   );
-  await expect(
-    editor.getByRole('textbox', { name: '输入引用（JSON，可选）', exact: true }),
-  ).toHaveCSS('min-height', '96px');
+  await expect(editor.getByLabel('输入引用（JSON，可选）', { exact: true })).toHaveCount(0);
 });
 
 test('select keyboard navigation and Escape stay within the editor dialog', async ({ page }) => {
@@ -170,7 +168,7 @@ test('native setup validates required selection and submits custom checkbox valu
   await expect(dialog).toHaveCount(0);
 });
 
-test('native text conversion includes application and inputs before selecting a device', async ({
+test('native text conversion includes application context before selecting a device', async ({
   page,
 }) => {
   let submitted: Record<string, unknown> | undefined;
@@ -187,10 +185,10 @@ test('native text conversion includes application and inputs before selecting a 
               id: 'check',
               kind: 'task',
               actionType: 'assert',
-              goal: '显示 ${input.name}',
+              goal: '显示 Ada',
               dependsOn: [],
               requirementIds: [],
-              assertions: [{ description: '显示 ${input.name}' }],
+              assertions: [{ description: '显示 Ada' }],
             },
           },
         },
@@ -205,22 +203,18 @@ test('native text conversion includes application and inputs before selecting a 
   await editor.getByLabel('平台', { exact: true }).click();
   await page.getByRole('option', { name: 'iOS · 原生应用', exact: true }).click();
   await editor.getByLabel('应用标识', { exact: true }).fill('com.example.app');
-  await editor
-    .getByLabel('输入引用（JSON，可选）', { exact: true })
-    .fill(JSON.stringify({ name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } }));
   await editor.getByRole('button', { name: '描述生成', exact: true }).click();
-  await page.getByLabel('测试步骤与预期结果').fill('验证显示 ${input.name}');
+  await page.getByLabel('测试步骤与预期结果').fill('验证显示 Ada');
   await page.getByRole('button', { name: '生成', exact: true }).click();
   await page.getByRole('button', { name: '全部接受', exact: true }).click();
   expect(submitted).toEqual({
-    goal: '验证显示 ${input.name}',
+    goal: '验证显示 Ada',
     context: {
       platform: 'ios',
       appId: 'com.example.app',
-      inputs: { name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } },
     },
   });
-  await expect(editor.locator('[data-step-type=assert]')).toContainText('显示 ${input.name}');
+  await expect(editor.locator('[data-step-type=assert]')).toContainText('显示 Ada');
 });
 
 test('example tabs navigate with arrow keys and expose the matching panel', async ({ page }) => {
@@ -377,7 +371,7 @@ test('reviews generated edits, additions and deletions individually before savin
     generation++;
     const request = route.request().postDataJSON();
 
-    expect(request.context).toEqual({ platform: 'web', inputs: {} });
+    expect(request.context).toEqual({ platform: 'web' });
     if (generation === 2) expect(request.currentPlan.nodes).toHaveProperty('a');
     const tasks =
       generation === 1

@@ -1,14 +1,12 @@
 import { budgetedModel, modelBudgetFromEnv } from '@testdog/automation/llm/budget';
 import { recordModelCall } from '@testdog/server/runs/modelUsage';
 import { targetUrl } from '@testdog/contracts/automation/platform/target';
-import { SecretInputs } from '@testdog/contracts/automation/platform/inputs';
 import { leaseScope, LostLeaseError, setRunPhase } from '@testdog/server/scheduling/lease';
 import { releaseLease, renewLease } from '@testdog/server/scheduling/scheduler';
 import { appendEvent, savePlan } from '@testdog/server/runs/repository';
 import { finishRun } from '@testdog/server/runs/lifecycle';
 import { normalizeReplaySteps } from '@testdog/server/runs/replay';
 import { TextCompiler } from '@testdog/automation/compiler/textCompiler';
-import { resolvePlanInputs } from '@testdog/contracts/automation/compiler/executionPlan';
 import { modelClient } from '@testdog/server/shared/model';
 import { PlanRunner } from '@testdog/automation/planRunner';
 import {
@@ -76,11 +74,9 @@ export async function executeRun(
   let status: TestRun['status'] = 'passed';
   let error: string | undefined;
   let evidenceComplete = true;
-  let secrets: SecretInputs | undefined;
   let errorCode: string | null = null;
 
   try {
-    secrets = new SecretInputs(run.targetSnapshot.inputs);
     const model = budgetedModel(modelClient, modelBudgetFromEnv(), (metric) =>
       recordModelCall(run.id, metric),
     );
@@ -93,9 +89,7 @@ export async function executeRun(
       throw new Error('重放缺少操作快照，请重新录制');
     const report = (message: string) => appendEvent(run.id, message);
     const plan =
-      (run.mode === 'replay'
-        ? run.plan
-        : run.plan && resolvePlanInputs(run.plan, run.targetSnapshot.inputs)) ||
+      run.plan ||
       (replaySteps
         ? {
             rootId: 'recording',
@@ -110,22 +104,18 @@ export async function executeRun(
               },
             },
           }
-        : resolvePlanInputs(
-            await new TextCompiler(model).compile(
-              {
-                goal: run.goal,
-                url: targetUrl(run.targetSnapshot) || undefined,
-                context: {
-                  platform: run.targetSnapshot.platform,
-                  ...(run.targetSnapshot.platform !== 'web'
-                    ? { appId: run.targetSnapshot.appId }
-                    : {}),
-                  inputs: run.targetSnapshot.inputs,
-                },
+        : await new TextCompiler(model).compile(
+            {
+              goal: run.goal,
+              url: targetUrl(run.targetSnapshot) || undefined,
+              context: {
+                platform: run.targetSnapshot.platform,
+                ...(run.targetSnapshot.platform !== 'web'
+                  ? { appId: run.targetSnapshot.appId }
+                  : {}),
               },
-              controller.signal,
-            ),
-            run.targetSnapshot.inputs,
+            },
+            controller.signal,
           ));
 
     await savePlan(run.id, plan);
@@ -189,7 +179,7 @@ export async function executeRun(
 
     jobs.delete(run.id);
     try {
-      await finishRun(run.id, status, run.startedAt, secrets?.redact(error ?? '') || error, {
+      await finishRun(run.id, status, run.startedAt, error, {
         evidenceComplete,
         errorCode,
       });

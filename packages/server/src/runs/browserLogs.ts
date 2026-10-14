@@ -1,4 +1,3 @@
-import { SecretInputs } from '@testdog/contracts/automation/platform/inputs';
 import { randomUUID } from 'node:crypto';
 import type { BrowserContext, Request } from 'playwright';
 import type { BrowserLog } from '@testdog/contracts/runs/types';
@@ -22,7 +21,6 @@ export class BrowserLogs {
     private runId: string,
     private startedAt: string,
     private pageInfo: (page: import('playwright').Page) => { pageId: string; stepId?: string },
-    private secrets = new SecretInputs(),
   ) {}
   private base(
     page?: import('playwright').Page,
@@ -38,7 +36,7 @@ export class BrowserLogs {
     };
   }
   private add(log: BrowserLog) {
-    this.pending.push(this.secrets.redactData(log));
+    this.pending.push(log);
   }
   private reserve() {
     return this.count++ < 2000;

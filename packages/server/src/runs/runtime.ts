@@ -6,7 +6,6 @@ import { SemanticEvaluator, type Evaluator } from '@testdog/automation/evaluator
 import { modelClient } from '@testdog/server/shared/model';
 import { previewInterval } from '@testdog/server/realtime/preview';
 import { EvidenceSink } from '@testdog/server/runs/evidenceSink';
-import { SecretInputs } from '@testdog/contracts/automation/platform/inputs';
 import type { BrowserContext, BrowserContextOptions } from 'playwright';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import { AgentDeviceSession } from '@testdog/automation/platform/native/agentDeviceSession';
@@ -58,7 +57,6 @@ export async function openPlatformRuntime(input: {
   const { run, expectedEnvironment, resource, signal } = input;
   const model = input.model ?? modelClient;
   const target = run.targetSnapshot;
-  const secrets = new SecretInputs(target.inputs);
 
   if (target.platform !== 'web') {
     if (!resource?.deviceId) throw new Error('设备租约没有绑定设备 ID');
@@ -127,7 +125,7 @@ export async function openPlatformRuntime(input: {
       }
 
       runtime.environment.viewport = observation.viewport;
-      if (!secrets.enabled) live = setInterval(() => recorder.sample(session), previewInterval());
+      live = setInterval(() => recorder.sample(session), previewInterval());
 
       return runtime;
     } catch (error) {
@@ -173,7 +171,7 @@ export async function openPlatformRuntime(input: {
 
     context = await browser.newContext({
       ...profile,
-      ...(secrets.enabled || !connection.artifacts.includes('video')
+      ...(!connection.artifacts.includes('video')
         ? {}
         : { recordVideo: { dir: recorder.directory, size: profile.viewport ?? undefined } }),
     });
@@ -184,24 +182,16 @@ export async function openPlatformRuntime(input: {
     recorder.onPage(page);
     const hooks = { signal, onPage: recorder.onPage, onStep: recorder.onStep };
     const evidence = new EvidenceSink(run, persistence);
-    const session = new PlaywrightSession(
-      run.id,
-      page,
-      hooks,
-      profile.hasTouch,
-      secrets,
-      (session, event) =>
-        evidence.capture(
-          session,
-          { kind: 'snapshot' },
-          event.phase === 'start' ? 'before' : 'after',
-          event.id,
-        ),
+    const session = new PlaywrightSession(run.id, page, hooks, profile.hasTouch, (session, event) =>
+      evidence.capture(
+        session,
+        { kind: 'snapshot' },
+        event.phase === 'start' ? 'before' : 'after',
+        event.id,
+      ),
     );
 
-    session.capabilities.artifacts = artifacts.filter(
-      (artifact) => !secrets.enabled || !['video', 'trace'].includes(artifact),
-    );
+    session.capabilities.artifacts = artifacts;
     let browserCleanup: Promise<void> | undefined;
 
     const runtime: PlatformRuntime = {

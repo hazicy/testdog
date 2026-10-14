@@ -1,13 +1,4 @@
 import type { TestCase } from '@testdog/contracts/test-cases/types';
-import { InputRefsSchema } from '@testdog/contracts/automation/platform/inputs';
-
-export function parseCaseInputs(value: string) {
-  try {
-    return InputRefsSchema.parse(JSON.parse(value.trim() || '{}'));
-  } catch {
-    throw new Error('请在测试设置中填写有效的输入引用 JSON，使用 value 或 secretRef 定义输入。');
-  }
-}
 
 export type CaseSettingsValue = {
   url: string;
@@ -21,7 +12,6 @@ export type CaseSettingsValue = {
   nativeVideo: boolean;
   nativeTrace: boolean;
   nativeLogs: boolean;
-  inputRefs: string;
   tags: string;
 };
 
@@ -41,12 +31,11 @@ export function initialCaseSettings(test?: TestCase): CaseSettingsValue {
     nativeVideo: native?.evidence?.video ?? false,
     nativeTrace: native?.evidence?.trace ?? false,
     nativeLogs: native?.evidence?.logs ?? false,
-    inputRefs: JSON.stringify(target?.inputs ?? {}, null, 2),
     tags: test?.tags.join(', ') ?? '',
   };
 }
 
-export function caseTarget(value: CaseSettingsValue, inputs: unknown) {
+export function caseTarget(value: CaseSettingsValue) {
   return value.platform === 'web'
     ? {
         schemaVersion: 1 as const,
@@ -54,7 +43,6 @@ export function caseTarget(value: CaseSettingsValue, inputs: unknown) {
         url: value.url.trim(),
         browser: value.webProfile === 'iPhone 13' ? ('webkit' as const) : ('chromium' as const),
         deviceProfile: value.webProfile,
-        inputs,
       }
     : {
         schemaVersion: 1 as const,
@@ -62,7 +50,6 @@ export function caseTarget(value: CaseSettingsValue, inputs: unknown) {
         appId: value.appId,
         deviceProfileId: value.deviceProfileId,
         resetPolicy: value.resetPolicy,
-        inputs,
         evidence: { video: value.nativeVideo, trace: value.nativeTrace, logs: value.nativeLogs },
         ...(value.buildArtifactId ? { buildArtifactId: value.buildArtifactId } : {}),
         ...(value.launchUrl.trim() ? { launchUrl: value.launchUrl.trim() } : {}),

@@ -32,9 +32,9 @@ worker 负责登记资源和领取任务，`runs/run.ts` 只执行携带当前�
 
 ## 接口
 
-target 是目标配置的事实来源，Web URL 由 target.url 推导，原生 URL 统一为空；历史缺失的 target 由迁移回填，旧 URL 列已移除。列表、详情、搜索与 worker 使用同一目标语义。网站地址的校验与空白处理由同一 schema 提供，默认 Web 目标从校验后的地址生成。保存用例及入队前检查描述、计划和预期中的输入引用；缺失时返回具体键名，不创建任务。切换执行目标时继承用例的公共输入，同名的平台输入覆盖公共值，合并结果冻结到运行快照。重放仍要求目标与原录制完全兼容。
+target 是目标配置的事实来源，Web URL 由 target.url 推导，原生 URL 统一为空；历史缺失的 target 由迁移回填，旧 URL 列已移除。列表、详情、搜索与 worker 使用同一目标语义。网站地址的校验与空白处理由同一 schema 提供，默认 Web 目标从校验后的地址生成。切换执行目标时将所选目标冻结到运行快照。重放仍要求目标与原录制完全兼容。
 
-平台使用版本化 target：Web 包含 URL/browser/deviceProfile，原生包含 appId/deviceProfileId/buildArtifactId/resetPolicy/launchUrl。可选 inputs 保存普通值或 secretRef，原生 evidence 按能力请求 video/trace/logs。运行详情提供冻结 target、实际 environment、capabilities 和 evidenceComplete。
+平台使用版本化 target：Web 包含 URL/browser/deviceProfile，原生包含 appId/deviceProfileId/buildArtifactId/resetPolicy/launchUrl。原生 evidence 按能力请求 video/trace/logs。运行详情提供冻结 target、实际 environment、capabilities 和 evidenceComplete。
 
 `POST /api/run-batches` 接收 testId 与 variants（每项 target 和可选 goal），事务内创建独立 run 并返回 batchId。`GET /api/resources` 返回共享资源容量目录（不含任务归属、执行 ID、租约及 worker 详情），`GET /api/builds` 返回构建身份与摘要，均不暴露私有路径。原生录制编辑保存版本化 JSON IR，支持 structured check、semantic assertion 和分支。
 
@@ -50,11 +50,11 @@ target 是目标配置的事实来源，Web URL 由 target.url 推导，原生 U
 
 ### 用例
 
-新建测试默认打开文本输入 modal，输入操作与预期结果后由 AI 创建画板；也可以直接进入独立的画板页面手动创建。画板不使用 modal，也不显示工具栏或节点属性侧栏；点击卡片文字原位编辑，悬停显示拖拽排序、复制和删除操作。草稿与设置保存在当前标签页的 sessionStorage，刷新页面可恢复，保存成功后清除。名称自动生成，可在画板 Settings 侧栏修改；平台、设备、标签和输入引用也在侧栏设置。画板使用宽卡片与纵向连线，在连线上的 ＋ 菜单插入 Act、Assert、Login、Files、Screenshot、分组或分支。保存时检查步骤和目标配置，转换失败保留草稿。创建与编辑支持文本和步骤树两种模式。`POST /api/tests/compile` 接收结构化编译请求：`goal`、可选 Web `url`、`currentPlan` 与 `context`（platform、appId、inputs），通过 AI 返回经可执行校验的 `plan`，不保存用例。转换失败保留文本，可重试。生成中点击关闭或按 Escape 会取消请求并保留描述与画板，可立即重试；离开页面自动终止请求，迟到结果不会覆盖后续编辑。用例创建/更新接受可选 `plan`（传 `null` 清除），支持分组、任务、断言、条件分支与前置依赖。画板编辑保留节点 ID，阻止无效引用和循环；分组内可调整执行顺序。
+新建测试默认打开文本输入 modal，输入操作与预期结果后由 AI 创建画板；也可以直接进入独立的画板页面手动创建。画板不使用 modal，也不显示工具栏或节点属性侧栏；点击卡片文字原位编辑，悬停显示拖拽排序、复制和删除操作。草稿与设置保存在当前标签页的 sessionStorage，刷新页面可恢复，保存成功后清除。名称自动生成，可在画板 Settings 侧栏修改；平台、设备和标签也在侧栏设置。画板使用宽卡片与纵向连线，在连线上的 ＋ 菜单插入 Act、Assert、Login、Files、Screenshot、分组或分支。保存时检查步骤和目标配置，转换失败保留草稿。创建与编辑支持文本和步骤树两种模式。`POST /api/tests/compile` 接收结构化编译请求：`goal`、可选 Web `url`、`currentPlan` 与 `context`（platform、appId），通过 AI 返回经可执行校验的 `plan`，不保存用例。转换失败保留文本，可重试。生成中点击关闭或按 Escape 会取消请求并保留描述与画板，可立即重试；离开页面自动终止请求，迟到结果不会覆盖后续编辑。用例创建/更新接受可选 `plan`（传 `null` 清除），支持分组、任务、断言、条件分支与前置依赖。画板编辑保留节点 ID，阻止无效引用和循环；分组内可调整执行顺序。
 
-执行创建时冻结用例的树到运行 `plan`，后续编辑用例不影响已有运行；执行使用该树，无需重新编译文本。指定文本 goal override 时重新编译。旧文本用例仍在执行时生成计划，与画板共用编译请求契约，保留输入引用并在执行前统一解析。运行详情继续使用同一画板展示计划与节点对应的执行步骤。
+执行创建时冻结用例的树到运行 `plan`，后续编辑用例不影响已有运行；执行使用该树，无需重新编译文本。指定文本 goal override 时重新编译。旧文本用例仍在执行时生成计划，与画板共用编译请求契约。运行详情继续使用同一画板展示计划与节点对应的执行步骤。
 
-草稿结构使用 `PlanSchema`，允许空分组；编译结果、保存用例和草稿试跑共用 `ExecutablePlanSchema`，要求根节点可到达至少一个任务，纯验证任务必须包含预期结果。条件路径外不得直接引用分支中独有的步骤，包括依赖和重复的子节点引用；分支后的任务应依赖分支节点，路径内依赖和两条路径共用的节点仍有效。所有节点必须通过子节点或依赖连接到根节点，断开的步骤不能保存或执行。worker 通过 `resolvePlanInputs` 一次性解析树中的分组描述、任务、分支条件与预期，保留节点 ID、依赖和需求引用；缺少输入时在打开执行环境前失败，密钥仍以不透明引用传给模型。
+草稿结构使用 `PlanSchema`，允许空分组；编译结果、保存用例和草稿试跑共用 `ExecutablePlanSchema`，要求根节点可到达至少一个任务，纯验证任务必须包含预期结果。条件路径外不得直接引用分支中独有的步骤，包括依赖和重复的子节点引用；分支后的任务应依赖分支节点，路径内依赖和两条路径共用的节点仍有效。所有节点必须通过子节点或依赖连接到根节点，断开的步骤不能保存或执行。步骤与预期直接使用填写的文本。
 
 重放入队时在事务中复制来源计划、环境信息和按序号排列的步骤，指定录制版本时复制该版本的步骤。worker 按重放模式使用本次快照并检查环境兼容性，不再随来源变化；来源删除后仍可执行已提交的重放。历史未保存快照的重放由迁移回填；执行器仅使用冻结快照，不降级为重新录制。相关数据库变更按 [迁移流程](deployment.md#数据库迁移与升级) 应用。
 

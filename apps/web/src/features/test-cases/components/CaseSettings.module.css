@@ -39,17 +39,6 @@
   align-items: center;
   gap: 0.5rem;
 }
-.input {
-  min-height: 6rem;
-  font-family: var(--font-geist-mono), monospace;
-}
-.label {
-  margin-top: 0.5rem;
-  display: block;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  color: var(--page-muted);
-}
 .optionalHint {
   font-weight: 400;
   color: var(--text-subtle);

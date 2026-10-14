@@ -78,11 +78,8 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
       await page.getByRole('option', { name: '重新安装所选构建' }).click();
       await dialog.getByLabel('启动链接（可选）', { exact: true }).fill('fixture://login');
       await dialog
-        .getByLabel('输入引用（JSON，可选）', { exact: true })
-        .fill('{"name":{"value":"Ada"}}');
-      await dialog
         .getByLabel('测试步骤与预期结果', { exact: true })
-        .fill('Enter ${input.name} and verify welcome');
+        .fill('Enter Ada and verify welcome');
       await dialog.getByRole('button', { name: '保存测试', exact: true }).click();
       await browserExpect(page.getByText('Native fixture', { exact: true })).toBeVisible();
       expect(tests[0].target).toMatchObject({
@@ -90,7 +87,6 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
         buildArtifactId: buildId,
         resetPolicy: 'reinstall',
         launchUrl: 'fixture://login',
-        inputs: { name: { value: 'Ada' } },
       });
       await page.getByRole('button', { name: '矩阵', exact: true }).click();
       const variants = [

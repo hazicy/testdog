@@ -1,7 +1,7 @@
 /* Quiet surfaces and a single toolbar keep the records in focus. */
 .workspaceIndexMain {
   position: relative;
-  padding: 18px 28px 40px;
+  padding: 18px 28px 28px;
   background: var(--surface);
 }
 .workspaceIndex,

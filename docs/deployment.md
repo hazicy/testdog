@@ -123,9 +123,9 @@ pnpm register:build ios /path/to/App.app
 
 默认并发数为登记资源数，`CASEFORGE_WORKER_CONCURRENCY` 可降低并发。每条执行独占资源；排队默认上限一小时（`CASEFORGE_QUEUE_TIMEOUT_MS`），准备两分钟、执行五分钟、归档三十秒，Web 归档后清理浏览器另有十秒上限。未确认清理的资源保持隔离。
 
-目标中的密钥输入只保存引用。例如 `password: {secretRef: "LOGIN_PASSWORD"}` 对应执行进程的 `CASEFORGE_SECRET_LOGIN_PASSWORD`。普通输入、平台目标和证据保护语义见 [架构说明](automation-architecture.md#目标与执行快照)。
-
 ## 数据库迁移与升级
+
+本次移除输入引用的升级需要先停止 API 和 worker，再执行 `pnpm db:migrate`，清理用例和历史快照中的 `inputs` 配置后部署新版本。旧步骤中的 `${input.*}` 和 `${secret:*}` 不再解析，需要改写步骤后重新录制。
 
 迁移由部署流程执行一次，各应用启动时不会自动迁移。修改表结构后生成迁移的开发步骤见 [开发指南](development.md#数据库结构修改)。
 

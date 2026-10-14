@@ -1,13 +1,11 @@
 import { z } from 'zod';
 import { PlanSchema } from '@testdog/contracts/automation/compiler/schema';
 import { HttpUrlSchema } from '@testdog/contracts/automation/platform/target';
-import { InputRefsSchema } from '@testdog/contracts/automation/platform/inputs';
 
 // Authoring does not require a fully configured device or URL yet.
 const CompilationContextSchema = z.strictObject({
   platform: z.enum(['web', 'android', 'ios']),
   appId: z.string().trim().min(1).max(200).optional(),
-  inputs: InputRefsSchema.optional(),
 });
 
 export const CompileRequestSchema = z

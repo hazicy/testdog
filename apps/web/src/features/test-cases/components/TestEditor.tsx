@@ -33,7 +33,6 @@ import { TrialRunDialog } from '@/features/test-cases/components/TrialRunDialog'
 import {
   initialCaseSettings,
   caseTarget,
-  parseCaseInputs,
   type CaseSettingsValue,
 } from '@/features/test-cases/lib/caseSettings';
 import playIcon from '@iconify-icons/lucide/play';
@@ -72,7 +71,7 @@ export function TestEditor({
       url: initialDraft?.url ?? settings.url,
     };
   });
-  const { url, platform, webProfile, appId, deviceProfileId, inputRefs, tags } = configuration;
+  const { url, platform, webProfile, appId, deviceProfileId, tags } = configuration;
 
   function changeSettings(patch: Partial<CaseSettingsValue>) {
     setConfiguration((current) => ({ ...current, ...patch }));
@@ -145,7 +144,6 @@ export function TestEditor({
           ...(platform !== 'web' && configuration.appId.trim()
             ? { appId: configuration.appId.trim() }
             : {}),
-          inputs: parseCaseInputs(configuration.inputRefs),
         },
       });
 
@@ -258,22 +256,10 @@ export function TestEditor({
       return;
     }
 
-    let inputs: ReturnType<typeof parseCaseInputs>;
-
-    try {
-      inputs = parseCaseInputs(inputRefs);
-    } catch {
-      setFormError('请在测试设置中填写有效的输入引用 JSON。');
-      setSettingsOpen(true);
-      setComposerOpen(false);
-
-      return;
-    }
-
     const payload = {
       name,
       ...(platform === 'web' ? { url: url.trim() } : {}),
-      target: caseTarget(configuration, inputs),
+      target: caseTarget(configuration),
       goal: planText(plan),
       plan,
       tags: tags
@@ -292,7 +278,7 @@ export function TestEditor({
             ? '应用标识'
             : platform !== 'web' && !deviceProfileId
               ? '设备配置'
-              : '测试目标、输入引用和标签';
+              : '测试目标和标签';
 
       setFormError(
         parsed.error.issues.find((issue) => issue.code === 'custom')?.message ??

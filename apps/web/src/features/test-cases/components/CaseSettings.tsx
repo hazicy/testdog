@@ -5,7 +5,6 @@ import styles from './CaseSettings.module.css';
 import { Label } from '@/components/ui/Label';
 import useSWR from 'swr';
 import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { fetchJson } from '@/client/api';
@@ -251,21 +250,6 @@ export function CaseSettings({
           </p>
         </>
       )}
-      <Label>
-        输入引用（JSON，可选）
-        <Textarea
-          aria-label="输入引用（JSON，可选）"
-          value={value.inputRefs}
-          disabled={busy}
-          spellCheck={false}
-          className={styles.input}
-          onChange={(event) => onChange({ inputRefs: event.target.value })}
-          placeholder={'{"name":{"value":"Ada"},"password":{"secretRef":"PASSWORD"}}'}
-        />
-        <span className={styles.label}>
-          步骤中使用 {'${input.name}'} 引用输入；密码等敏感值使用 secretRef。
-        </span>
-      </Label>
       <Label>
         标签 <span className={styles.optionalHint}>（可选，逗号分隔）</span>
         <Input

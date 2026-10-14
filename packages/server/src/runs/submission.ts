@@ -2,13 +2,8 @@ import { and, asc, eq } from 'drizzle-orm';
 import { isDeepStrictEqual } from 'node:util';
 import { db } from '@testdog/server/db';
 import { testCases, testRuns, runSteps, recordingVersions } from '@testdog/server/db/schema';
-import { validateInputReferences } from '@testdog/contracts/automation/compiler/executionPlan';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
-import {
-  defaultWebTarget,
-  executionTarget,
-  type TestTarget,
-} from '@testdog/contracts/automation/platform/target';
+import { defaultWebTarget, type TestTarget } from '@testdog/contracts/automation/platform/target';
 import { isActiveRun, type RecordingOperation } from '@testdog/contracts/runs/types';
 import { runRequestSchema, type RunRequest } from '@testdog/contracts/runs/schemas';
 import { WorkspaceError } from '@testdog/server/shared/errors';
@@ -133,7 +128,7 @@ async function persistRun(
         .where(and(eq(testCases.id, input.testId), ownedBy(testCases.userId, userId)));
 
       if (!test) throw new WorkspaceError('用例不存在。', 404);
-      const target = executionTarget(test.target, input.target);
+      const target = input.target ?? test.target;
 
       snapshot = {
         targetSnapshot: target,
@@ -152,14 +147,6 @@ async function persistRun(
         goal: input.case,
         mode: 'record',
       };
-    }
-
-    if (snapshot.mode === 'record') {
-      try {
-        validateInputReferences(snapshot.goal, snapshot.plan, snapshot.targetSnapshot.inputs);
-      } catch (error) {
-        throw new WorkspaceError(error instanceof Error ? error.message : String(error));
-      }
     }
 
     const [run] = await tx

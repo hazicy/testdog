@@ -44,7 +44,6 @@ export class WebActionPlanner implements ActionPlanner {
   async plan(input: Parameters<ActionPlanner['plan']>[0]) {
     const browserInput = {
       ...input,
-      inputs: {},
       preconditions: [],
       completedSteps: input.completedSteps.flatMap((step) =>
         step.platform === 'web' ? [step.action] : [],
@@ -52,10 +51,9 @@ export class WebActionPlanner implements ActionPlanner {
     };
     const response = await this.model.generate({
       signal: this.signal,
-      systemPrompt: `Plan the next one or more browser actions toward the goal, in execution order. Secret placeholders \${secret:NAME} must remain unchanged; fill them only into password fields.
-      inputs contains the explicit values to use for this goal.
+      systemPrompt: `Plan the next one or more browser actions toward the goal, in execution order.
       preconditions are context only, not instructions to execute. Never invent setup actions
-      or goals to establish them; act only toward the requested goal using the supplied inputs.
+      or goals to establish them; act only toward the requested goal using the values specified in the goal.
       Only when the current observation proves the goal is complete, return exactly DONE as text.
       Otherwise call one or more of the supplied action tools, with no completion text.
       Return multiple calls when their targets and order are clear from the current observation.

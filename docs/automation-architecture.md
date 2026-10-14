@@ -72,7 +72,7 @@ type TestTarget =
 
 UI 提供平台选择及不同表单：Web 填地址、浏览器和移动配置；原生填应用、设备配置、构建与初始化策略。共享 goal/tags，允许平台覆盖输入及预期。跨平台矩阵创建三个独立 run，并以 batchId 关联。
 
-Run 创建时冻结 target、goal、输入引用、计划/录制版本；领取时补充实际设备 ID、OS、屏幕、应用 build hash、driver 版本、浏览器版本和已解析 mobile profile。重放使用源快照，不能读已修改用例或升级后的默认设备参数。敏感输入保存 secret 引用，画面、日志和编辑器避免直接暴露密钥。
+Run 创建时冻结 target、goal、计划/录制版本；领取时补充实际设备 ID、OS、屏幕、应用 build hash、driver 版本、浏览器版本和已解析 mobile profile。重放使用源快照，不能读已修改用例或升级后的默认设备参数。
 
 ## 会话接口与动作契约
 

@@ -3,7 +3,6 @@ import {
   TestTargetSchema,
   targetUrl,
 } from '@testdog/contracts/automation/platform/target';
-import { validateInputReferences } from '@testdog/contracts/automation/compiler/executionPlan';
 import { ExecutablePlanSchema } from '@testdog/contracts/automation/compiler/schema';
 import { z } from 'zod';
 
@@ -25,14 +24,6 @@ export const testSchema = z
   })
   .superRefine((input, ctx) => {
     if (!input.target && !input.url) ctx.addIssue({ code: 'custom', message: '请提供测试目标' });
-    try {
-      validateInputReferences(input.goal, input.plan, input.target?.inputs);
-    } catch (error) {
-      ctx.addIssue({
-        code: 'custom',
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
   })
   .transform((input) => ({
     ...input,

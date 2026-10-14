@@ -15,7 +15,7 @@ import type { StepType } from '@testdog/contracts/automation/compiler/schema';
 export const stepTypes = [
   { value: 'act', label: 'Act', description: '操作页面或应用' },
   { value: 'assert', label: 'Assert', description: '验证预期结果' },
-  { value: 'login', label: 'Login', description: '使用输入引用登录' },
+  { value: 'login', label: 'Login', description: '执行登录步骤' },
   { value: 'files', label: 'Files', description: '打开或下载页面文件' },
   { value: 'screenshot', label: 'Screenshot', description: '保存当前画面截图' },
   { value: 'group', label: 'Group', description: '分组并排展示，组内顺序执行' },

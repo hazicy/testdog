@@ -27,7 +27,7 @@ it('passes canonical actions without changing recorded metadata or sensitive inp
       action: {
         type: 'fill',
         target: { kind: 'testId', value: 'password', name: '' },
-        value: '${secret:PASSWORD}',
+        value: 'test-password',
         sensitive: true,
       },
     },

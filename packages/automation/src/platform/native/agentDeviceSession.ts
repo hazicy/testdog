@@ -1,5 +1,4 @@
 import { NativeDiagnostics } from '@testdog/automation/platform/native/nativeDiagnostics';
-import { SecretInputs } from '@testdog/contracts/automation/platform/inputs';
 import { readFile, rm, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -33,7 +32,6 @@ export class AgentDeviceSession implements AutomationSession {
   private nodes: SnapshotNode[] = [];
   private viewport?: { width: number; height: number };
   private closing?: Promise<void>;
-  private secrets: SecretInputs;
   private diagnostics: NativeDiagnostics;
   private constructor(
     readonly id: string,
@@ -43,22 +41,19 @@ export class AgentDeviceSession implements AutomationSession {
     readonly environment: Record<string, unknown>,
     private onEvent: (event: SessionEvent, session: AgentDeviceSession) => Promise<void>,
   ) {
-    this.secrets = new SecretInputs(target.inputs);
     const settings = target.evidence || {};
-    const enabled = this.secrets.enabled
-      ? {}
-      : {
-          video: settings.video && available.includes('record'),
-          trace: settings.trace && available.includes('trace'),
-          logs: settings.logs && available.includes('logs'),
-        };
+    const enabled = {
+      video: settings.video && available.includes('record'),
+      trace: settings.trace && available.includes('trace'),
+      logs: settings.logs && available.includes('logs'),
+    };
 
     for (const [key, command] of [
       ['video', 'record'],
       ['trace', 'trace'],
       ['logs', 'logs'],
     ] as const)
-      if (settings[key] && !this.secrets.enabled && !available.includes(command))
+      if (settings[key] && !available.includes(command))
         throw new Error(`Device lacks requested evidence capability: ${key}`);
     this.diagnostics = new NativeDiagnostics(client, id, enabled);
     this.platform = target.platform;
@@ -240,13 +235,7 @@ export class AgentDeviceSession implements AutomationSession {
       capturedAt: new Date().toISOString(),
       surface: { platform: this.platform, id: this.target.appId, appId: this.target.appId },
       nodes: result.nodes.map((node) =>
-        node.password
-          ? { ...node, value: '[redacted]', label: '[secure input]' }
-          : {
-              ...node,
-              ...(node.label ? { label: this.secrets.redact(node.label) } : {}),
-              ...(node.value ? { value: this.secrets.redact(node.value) } : {}),
-            },
+        node.password ? { ...node, value: '[redacted]', label: '[secure input]' } : node,
       ),
       viewport: result.viewport,
     });
@@ -273,7 +262,7 @@ export class AgentDeviceSession implements AutomationSession {
     const candidates: NativeLocator[] = [];
 
     if (node.identifier) candidates.push({ kind: 'identifier', value: node.identifier });
-    if (node.label && !node.password && this.secrets.redact(node.label) === node.label)
+    if (node.label && !node.password)
       candidates.push({
         kind: 'label',
         value: node.label,
@@ -353,13 +342,9 @@ export class AgentDeviceSession implements AutomationSession {
         if (action.type === 'tap')
           await this.client.interactions.press({ ref, signal, settle: true, timeoutMs: 15000 });
         else {
-          const input = this.secrets.resolve(action.value);
-
-          if (input.sensitive && !node.password)
-            throw new Error('Secret inputs require a secure field');
           await this.client.interactions.fill({
             ref,
-            text: input.value,
+            text: action.value,
             signal,
             settle: true,
             timeoutMs: 15000,
@@ -471,29 +456,9 @@ export class AgentDeviceSession implements AutomationSession {
     }
   }
   emit(event: SessionEvent) {
-    event = {
-      ...event,
-      title: this.secrets.redact(event.title),
-      ...(event.error ? { error: this.secrets.redact(event.error) } : {}),
-      ...(event.evidence ? { evidence: this.secrets.redact(event.evidence) } : {}),
-    };
-
     return this.onEvent(event, this);
   }
   async screenshot(path: string, signal: AbortSignal) {
-    this.assertOpen();
-    if (this.secrets.enabled) {
-      if (!this.observation) await this.observe(signal);
-      if (
-        this.nodes.some(
-          (node) =>
-            !node.password &&
-            [node.label, node.value].some((value) => value && this.secrets.redact(value) !== value),
-        )
-      )
-        throw new Error('App exposed a secret in a visible control; screenshot withheld');
-    }
-
     this.assertOpen();
 
     return this.client.capture.screenshot({ path, signal });

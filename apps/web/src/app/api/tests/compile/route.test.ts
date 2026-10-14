@@ -31,8 +31,8 @@ it('reports request cancellation distinctly from model failure', async () => {
 it('passes native authoring context without requiring a selected execution device', async () => {
   mocks.compile.mockResolvedValueOnce({});
   const input = {
-    goal: '填写 ${input.name}',
-    context: { platform: 'android', appId: 'com.example.app', inputs: { name: { value: 'Ada' } } },
+    goal: '填写 Ada',
+    context: { platform: 'android', appId: 'com.example.app' },
   };
   const response = await POST(
     new Request('http://localhost/api/tests/compile', {
@@ -122,4 +122,17 @@ it('authenticates, validates input and compiles text without saving a case', asy
 
   expect(failed.status).toBe(502);
   expect((await failed.json()).message).toContain('步骤生成失败');
+});
+
+it('rejects removed input configuration before calling the compiler', async () => {
+  mocks.compile.mockClear();
+  const response = await POST(
+    new Request('http://localhost/api/tests/compile', {
+      method: 'POST',
+      body: JSON.stringify({ goal: '填写姓名', context: { platform: 'web', inputs: {} } }),
+    }),
+  );
+
+  expect(response.status).toBe(400);
+  expect(mocks.compile).not.toHaveBeenCalled();
 });

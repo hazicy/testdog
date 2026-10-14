@@ -122,8 +122,7 @@ children、then、otherwise 已经表达父节点到子节点的执行关系，�
 不要让分支后的任务直接依赖两条互斥分支，应依赖 branch 节点。不要在分支之外重复列出分支子节点。
 前置环境仅作为上下文保留在 goal 中，不要编造建立环境的操作。
 提供 url 时 Web 执行器会先导航，省略这一步初始导航。context.platform 指定平台：原生测试使用应用界面，不得编造浏览器导航或 DOM 操作；appId 是应用上下文，执行器负责启动。不要编造选择器、URL、重试或额外操作。
-输入引用 \${input.name} 必须按原文保留，context.inputs 提供引用的定义，secretRef 仅表示密钥引用，不得推测密钥值。
-提供 currentPlan 时，goal 是修改要求；保留未要求修改的步骤、分支、输入引用、节点 ID 和依赖关系，修改节点保留其 ID，新增节点使用唯一 ID，返回完整计划。`,
+提供 currentPlan 时，goal 是修改要求；保留未要求修改的步骤、分支、节点 ID 和依赖关系，修改节点保留其 ID，新增节点使用唯一 ID，返回完整计划。`,
         messages: [
           { role: 'user', content: { type: 'text', text: JSON.stringify(input) } },
           ...(feedback

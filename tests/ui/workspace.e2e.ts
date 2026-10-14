@@ -609,10 +609,10 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
         id: 'step',
         kind: 'task',
         actionType: 'assert',
-        goal: '验证未保存的修改：${input.name}',
+        goal: '验证未保存的修改：Ada',
         dependsOn: [],
         requirementIds: [],
-        assertions: [{ description: '修改 ${input.name} 生效' }],
+        assertions: [{ description: '修改 Ada 生效' }],
       },
     },
   };
@@ -657,7 +657,6 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
           platform: 'web',
           url: draft.url,
           deviceProfile: 'legacy-desktop',
-          inputs: { name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } },
         },
       },
     });
@@ -684,12 +683,6 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
   const canvas = page.getByRole('region', { name: '测试画板' });
   const start = canvas.getByRole('button', { name: 'Run', exact: true });
 
-  await start.click();
-  await expect(canvas.getByRole('alert')).toHaveText('缺少输入引用：name');
-  expect(submissions).toBe(0);
-  await canvas
-    .getByLabel('输入引用（JSON，可选）', { exact: true })
-    .fill(JSON.stringify({ name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } }));
   await start.click();
   await expect(canvas.getByRole('alert')).toHaveText('试跑暂时失败');
   expect(testWrites).toBe(0);
@@ -1596,7 +1589,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   const content = [
     ['Act', 'Open the tester-army/e2e repository page'],
     ['Assert', 'Verify the repository name, description and file listing are visible'],
-    ['Login', '使用 ${input.email} 和 ${input.password} 登录'],
+    ['Login', '使用 tester@example.com 和 测试密码 登录'],
     ['Files', '打开 README 文件'],
     ['Screenshot', '截取当前页面'],
   ];
@@ -1668,12 +1661,6 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await openSettings(dialog);
   await expect(dialog.getByLabel('网站地址', { exact: true })).toHaveValue(
     'https://github.com/tester-army/e2e',
-  );
-  await dialog.getByLabel('输入引用（JSON，可选）', { exact: true }).fill(
-    JSON.stringify({
-      email: { value: 'tester@example.com' },
-      password: { secretRef: 'TEST_PASSWORD' },
-    }),
   );
   await page.screenshot({ path: 'artifacts/ui/case-canvas-settings.png' });
   await dialog.getByRole('button', { name: '收起面板' }).click();

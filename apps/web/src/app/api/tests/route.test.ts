@@ -17,20 +17,21 @@ import { PATCH, DELETE } from '@/app/api/tests/[id]/route';
 
 afterAll(() => isolated.client?.close());
 
-it('reports the missing input key without saving the case', async () => {
+it('rejects removed input configuration without saving the case', async () => {
   const response = await POST(
     new Request('http://localhost/api/tests', {
       method: 'POST',
       body: JSON.stringify({
         name: 'References',
-        goal: '填写 ${input.name}',
+        goal: '填写姓名',
+        target: { platform: 'web', url: 'https://example.com', inputs: {} },
         url: 'https://example.com',
       }),
     }),
   );
 
   expect(response.status).toBe(400);
-  expect((await response.json()).message).toBe('缺少输入引用：name');
+  expect((await response.json()).message).toBeTruthy();
 });
 
 it.each(['ios', 'android'] as const)(

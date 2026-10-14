@@ -226,40 +226,6 @@ it('closes the named SDK session when open partially succeeds then fails', async
   ).rejects.toThrow('launch failed');
   expect(sdk.sessions.close).toHaveBeenCalledOnce();
 });
-it('refuses secret input in a nonsecure field before issuing SDK fill', async () => {
-  vi.stubEnv('CASEFORGE_SECRET_PASSWORD', 'private-password');
-  const sdk = client();
-
-  try {
-    const session = await AgentDeviceSession.open(
-      'secure',
-      { ...target, inputs: { password: { secretRef: 'PASSWORD' } } },
-      'udid',
-      signal,
-      async () => {},
-      sdk as unknown as AgentDeviceClient,
-    );
-
-    await session.observe(signal);
-    await expect(
-      session.perform(
-        {
-          platform: 'ios',
-          action: {
-            type: 'fill',
-            target: { kind: 'identifier', value: 'submit' },
-            value: '${secret:PASSWORD}',
-          },
-        },
-        signal,
-      ),
-    ).rejects.toThrow('secure field');
-    expect(sdk.interactions.fill).not.toHaveBeenCalled();
-    await session.close();
-  } finally {
-    vi.unstubAllEnvs();
-  }
-});
 it('rejects an incompatible OS before installing or opening the app', async () => {
   const sdk = client();
 
@@ -276,31 +242,6 @@ it('rejects an incompatible OS before installing or opening the app', async () =
   ).rejects.toThrow('不兼容');
   expect(sdk.apps.open).not.toHaveBeenCalled();
 });
-it('redacts reflected secrets and withholds a screenshot if the app shows them in a visible field', async () => {
-  vi.stubEnv('CASEFORGE_SECRET_PASSWORD', 'private-password');
-  const sdk = client([
-    { index: 0, ref: 'e1', role: 'text', identifier: 'leak', label: 'private-password' },
-  ]);
-
-  try {
-    const session = await AgentDeviceSession.open(
-      'secret-screen',
-      { ...target, inputs: { password: { secretRef: 'PASSWORD' } } },
-      'udid',
-      signal,
-      async () => {},
-      sdk as unknown as AgentDeviceClient,
-    );
-
-    expect(JSON.stringify(await session.observe(signal))).not.toContain('private-password');
-    await expect(session.screenshot('/unused.png', signal)).rejects.toThrow('screenshot withheld');
-    expect(sdk.capture.screenshot).not.toHaveBeenCalled();
-    await session.close();
-  } finally {
-    vi.unstubAllEnvs();
-  }
-});
-
 it('requires build lookup injection before touching a device', async () => {
   const sdk = client();
 

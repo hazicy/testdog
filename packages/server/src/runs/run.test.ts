@@ -162,7 +162,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     expect(result.steps).toHaveLength(0);
     expect(mocks.generate).not.toHaveBeenCalled();
   });
-  it('compiles text with target context and resolves generated input references before execution', async () => {
+  it('compiles text with target context before execution', async () => {
     const implementation = mocks.generate.getMockImplementation()!;
 
     mocks.generate.mockImplementation(async (input) => {
@@ -171,22 +171,21 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       if (input.responseFormat?.name === 'plan') {
         const task = result.structuredContent.nodes[0];
 
-        task.goal = 'Fill ${input.name} and submit';
-        task.assertions = [{ description: 'Welcome ${input.name} is visible' }];
+        task.goal = 'Fill Ada and submit';
+        task.assertions = [{ description: 'Welcome Ada is visible' }];
       }
 
       return result;
     });
     const run = await createRun(
       {
-        case: 'Fill ${input.name} and submit',
+        case: 'Fill Ada and submit',
         target: {
           schemaVersion: 1,
           platform: 'web',
           url,
           browser: 'chromium',
           deviceProfile: 'Pixel 7',
-          inputs: { name: { value: 'Ada' } },
         },
       },
       undefined,
@@ -206,12 +205,12 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     )!;
 
     expect(JSON.parse(compile[0].messages[0].content.text)).toMatchObject({
-      goal: 'Fill ${input.name} and submit',
+      goal: 'Fill Ada and submit',
       url,
-      context: { platform: 'web', inputs: { name: { value: 'Ada' } } },
+      context: { platform: 'web' },
     });
   });
-  it('executes an authored tree with inputs without compiling its text again', async () => {
+  it('executes an authored tree without compiling its text again', async () => {
     const saved = await saveTest(
       {
         name: 'Board case',
@@ -224,7 +223,6 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
           url,
           browser: 'chromium',
           deviceProfile: 'Pixel 7',
-          inputs: { name: { value: 'Ada' } },
         },
         plan: {
           rootId: 'authored',
@@ -232,10 +230,10 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
             authored: {
               id: 'authored',
               kind: 'task',
-              goal: 'Fill ${input.name} and submit',
+              goal: 'Fill Ada and submit',
               dependsOn: [],
               requirementIds: [],
-              assertions: [{ description: 'Welcome ${input.name} is visible' }],
+              assertions: [{ description: 'Welcome Ada is visible' }],
             },
           },
         },
@@ -586,15 +584,14 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     }
   });
 
-  it('retains the primary failure and redacts secrets in an additional archive error', async () => {
-    vi.stubEnv('CASEFORGE_SECRET_ARCHIVE', 'archive-secret-value');
+  it('retains the primary failure and an additional archive error', async () => {
     const original = RunRecorder.prototype.stop;
     const archive = vi.spyOn(RunRecorder.prototype, 'stop').mockImplementation(async function (
       this: RunRecorder,
       ...args
     ) {
       await original.apply(this, args);
-      throw new Error('archive failed: archive-secret-value');
+      throw new Error('archive failed: disk unavailable');
     });
     const implementation = mocks.generate.getMockImplementation()!;
 
@@ -613,7 +610,6 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
             url,
             browser: 'chromium',
             deviceProfile: 'Pixel 7',
-            inputs: { password: { secretRef: 'ARCHIVE' } },
           },
         },
         undefined,
@@ -629,8 +625,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
         evidenceComplete: false,
       });
       expect(result.error).toContain('primary assertion failed');
-      expect(result.error).toContain('archive failed: [redacted]');
-      expect(result.error).not.toContain('archive-secret-value');
+      expect(result.error).toContain('archive failed: disk unavailable');
     } finally {
       archive.mockRestore();
     }

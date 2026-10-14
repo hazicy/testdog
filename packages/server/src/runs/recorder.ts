@@ -1,4 +1,3 @@
-import { SecretInputs } from '@testdog/contracts/automation/platform/inputs';
 import { randomUUID } from 'node:crypto';
 import { chmod, mkdir, writeFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -22,7 +21,6 @@ import {
 
 export class RunRecorder {
   private page?: Page;
-  private secrets: SecretInputs;
   private logs: BrowserLogs;
   private activeSteps = new Map<Page, string>();
   private pages = new Map<Page, string>();
@@ -40,16 +38,10 @@ export class RunRecorder {
     private run: TestRun,
     private persistence = new PersistenceQueue(),
   ) {
-    this.secrets = new SecretInputs(run.targetSnapshot.inputs);
-    this.logs = new BrowserLogs(
-      run.id,
-      run.startedAt,
-      (page) => ({
-        pageId: this.pageId(page),
-        stepId: this.activeSteps.get(page),
-      }),
-      this.secrets,
-    );
+    this.logs = new BrowserLogs(run.id, run.startedAt, (page) => ({
+      pageId: this.pageId(page),
+      stepId: this.activeSteps.get(page),
+    }));
     this.directory = join(artifactRoot(), run.id);
   }
   pageId = (page: Page) => {
@@ -77,7 +69,7 @@ export class RunRecorder {
     this.logs.start(context);
     context.pages().forEach(this.onPage);
     context.on('page', this.onPage);
-    if (!this.secrets.enabled && this.recordTrace)
+    if (this.recordTrace)
       await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
     this.timer = setInterval(() => {
       const page = this.activePage();
@@ -167,12 +159,6 @@ export class RunRecorder {
           type: 'jpeg',
           quality: stage === 'live' ? 55 : 72,
           timeout: 3000,
-          mask: this.secrets.enabled
-            ? [
-                page.locator('input[type=password], [data-caseforge-secret]'),
-                ...this.secrets.maskValues.map((value) => page.getByText(value, { exact: false })),
-              ]
-            : undefined,
         });
       } catch (error) {
         if (page.isClosed() || /Target.*closed|navigation|Execution context/.test(String(error)))
@@ -243,7 +229,7 @@ export class RunRecorder {
     await attempt(() => logsStopped);
     const trace = join(this.directory, 'trace.zip');
 
-    if (!interrupted && !this.secrets.enabled && this.recordTrace) {
+    if (!interrupted && this.recordTrace) {
       await attempt(async () => {
         await context.tracing.stop({ path: trace });
         await this.addFile(

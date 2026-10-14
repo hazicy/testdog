@@ -577,45 +577,6 @@ it('uses the validated target URL for new cases and native temporary runs', asyn
   expect(native.targetSnapshot?.platform).toBe('ios');
 });
 
-it('rejects missing inputs before saving cases or queuing target overrides', async () => {
-  const goal = 'Fill ${input.name}';
-
-  await expect(saveTest({ ...input, goal }, undefined, null)).rejects.toThrow('缺少输入引用：name');
-  const saved = await saveTest(
-    {
-      ...input,
-      goal,
-      target: {
-        schemaVersion: 1,
-        platform: 'web',
-        url: input.url,
-        browser: 'chromium',
-        deviceProfile: 'Pixel 7',
-        inputs: { name: { value: 'Ada' } },
-      },
-    },
-    undefined,
-    null,
-  );
-
-  await expect(
-    createQueuedRun(
-      {
-        testId: saved.id,
-        goalOverride: 'Fill ${input.missing}',
-        target: {
-          platform: 'android',
-          appId: 'com.example.app',
-          deviceProfileId: 'phone',
-        },
-      },
-      undefined,
-      null,
-    ),
-  ).rejects.toThrow('缺少输入引用：missing');
-  expect(await listRuns()).toHaveLength(0);
-});
-
 it('commits an automatic issue when a failed run is finalized', async () => {
   const { issues, issueOccurrences } = await import('@testdog/server/db/schema');
   const { db } = await import('@testdog/server/db');
@@ -642,20 +603,19 @@ it('commits an automatic issue when a failed run is finalized', async () => {
   expect(issue).toMatchObject({ title: '金额为100', category: 'product', status: 'open' });
 });
 
-it('inherits common inputs and freezes per-platform overrides without modifying the case', async () => {
+it('freezes per-platform target overrides without modifying the case', async () => {
   const target = {
     schemaVersion: 1 as const,
     platform: 'web' as const,
     url: input.url,
     browser: 'chromium' as const,
     deviceProfile: 'Pixel 7' as const,
-    inputs: { name: { value: 'Ada' }, password: { secretRef: 'PASSWORD' } },
   };
   const saved = await saveTest(
     {
       ...input,
       target,
-      goal: 'Fill ${input.name} and ${input.password}',
+      goal: 'Fill Ada and submit',
     },
     undefined,
     null,
@@ -667,7 +627,6 @@ it('inherits common inputs and freezes per-platform overrides without modifying 
         platform: 'ios',
         appId: 'com.example.app',
         deviceProfileId: 'phone',
-        inputs: { name: { value: 'Grace' } },
       },
     },
     undefined,
@@ -687,26 +646,21 @@ it('inherits common inputs and freezes per-platform overrides without modifying 
   );
 
   expect(first.url).toBe('');
-  expect(first.targetSnapshot?.inputs).toEqual({
-    name: { value: 'Grace' },
-    password: { secretRef: 'PASSWORD' },
-  });
-  expect(second.targetSnapshot?.inputs).toEqual(target.inputs);
+  expect(first.targetSnapshot.platform).toBe('ios');
+  expect(second.targetSnapshot.platform).toBe('android');
   await saveTest(
     {
       ...input,
       target: {
         ...target,
-        inputs: { name: { value: 'Changed' }, password: { secretRef: 'UPDATED' } },
+        url: `${input.url}/changed`,
       },
     },
     saved.id,
     null,
   );
-  expect((await getRun(first.id, { userId: null })).targetSnapshot?.inputs).toEqual(
-    first.targetSnapshot?.inputs,
-  );
-  expect((await getRun(second.id, { userId: null })).targetSnapshot?.inputs).toEqual(target.inputs);
+  expect((await getRun(first.id, { userId: null })).targetSnapshot).toEqual(first.targetSnapshot);
+  expect((await getRun(second.id, { userId: null })).targetSnapshot).toEqual(second.targetSnapshot);
 });
 
 it('commits cancellation, evidence completeness and error code together at finalization', async () => {

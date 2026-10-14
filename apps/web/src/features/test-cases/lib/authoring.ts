@@ -137,7 +137,7 @@ export function insertStep(
   const labels = {
     act: '填写操作步骤',
     assert: '填写预期结果',
-    login: '填写登录步骤与输入引用',
+    login: '填写登录步骤',
     files: '填写文件操作',
     screenshot: '截取当前页面',
   };
