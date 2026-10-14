@@ -42,6 +42,7 @@
   }
 }
 .navigationLink {
+  position: relative;
   display: flex;
   height: 2.5rem;
   align-items: center;
@@ -50,6 +51,20 @@
   padding-inline: 0.75rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+  &::before {
+    position: absolute;
+    inset-block: 12px;
+    left: 0;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--brand);
+    content: '';
+    opacity: 0;
+    transition: opacity 160ms ease;
+  }
   @media (hover: hover) {
     &:hover {
       background-color: var(--sidebar-hover);
@@ -60,6 +75,9 @@
   background-color: var(--brand-soft);
   font-weight: 500;
   color: var(--brand-hover);
+  &::before {
+    opacity: 1;
+  }
   &:hover {
     background-color: var(--brand-soft);
   }
@@ -89,12 +107,17 @@
 }
 .breadcrumbLink {
   color: var(--page-muted);
+  transition: color 160ms ease;
+  &:hover {
+    color: var(--ink);
+  }
 }
 .separator {
-  color: var(--text-subtle);
+  color: var(--text-faint);
 }
 .currentPage {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
 }

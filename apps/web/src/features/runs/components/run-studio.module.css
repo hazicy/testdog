@@ -45,11 +45,11 @@
   & :global(.dockview-theme-light) {
     --dv-background-color: var(--page-line);
     --dv-group-view-background-color: var(--surface);
-    --dv-tabs-and-actions-container-background-color: var(--page);
+    --dv-tabs-and-actions-container-background-color: var(--surface-hover);
     --dv-activegroup-visiblepanel-tab-background-color: var(--surface);
     --dv-inactivegroup-visiblepanel-tab-background-color: var(--surface);
-    --dv-activegroup-hiddenpanel-tab-background-color: var(--page);
-    --dv-inactivegroup-hiddenpanel-tab-background-color: var(--page);
+    --dv-activegroup-hiddenpanel-tab-background-color: var(--surface-hover);
+    --dv-inactivegroup-hiddenpanel-tab-background-color: var(--surface-hover);
     --dv-activegroup-visiblepanel-tab-color: var(--ink);
     --dv-inactivegroup-visiblepanel-tab-color: var(--ink);
     --dv-activegroup-hiddenpanel-tab-color: var(--page-muted);

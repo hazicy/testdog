@@ -6,6 +6,11 @@
   top: 0.625rem;
   left: 0.75rem;
   color: var(--text-subtle);
+  pointer-events: none;
+  transition: color 160ms ease;
+}
+.searchField:focus-within .searchIcon {
+  color: var(--brand);
 }
 .searchInput {
   padding-left: 2.25rem;

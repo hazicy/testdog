@@ -16,6 +16,7 @@
   font-size: 0.75rem;
   line-height: 1rem;
   color: var(--page-muted);
+  font-variant-numeric: tabular-nums;
   @media (hover: hover) {
     &:hover {
       text-decoration-line: underline;
