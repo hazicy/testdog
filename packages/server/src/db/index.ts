@@ -1,17 +1,12 @@
+import { Pool } from '@neondatabase/serverless';
 import { config } from 'dotenv';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import pg from 'pg';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 
-const state = globalThis as typeof globalThis & { caseforgePool?: pg.Pool };
+const state = globalThis as typeof globalThis & { caseforgePool?: Pool };
 
 config({ path: '.env' });
 
-export const pool = (state.caseforgePool ??= new pg.Pool({
+export const pool = (state.caseforgePool ??= new Pool({
   connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000,
-  max: 2,
-  idleTimeoutMillis: 10_000, // 空闲连接尽快归还，减少被掐概率
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 10_000,
 }));
 export const db = drizzle({ client: pool });
