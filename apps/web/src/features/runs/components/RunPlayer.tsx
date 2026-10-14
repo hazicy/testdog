@@ -50,8 +50,8 @@ export function RunPlayer({
   const active = !!run && isActiveRun(run.status);
   const useVideo = !!video && failedVideo !== video.id && !active && !playback.inspectingEvidence;
   const total = useVideo ? videoDuration || durationMs : durationMs;
-  const position =
-    useVideo || playing ? elapsedMs : follow ? currentFrame?.elapsedMs || 0 : elapsedMs;
+  const livePosition = active ? total : currentFrame?.elapsedMs || 0;
+  const position = useVideo || playing || !follow ? elapsedMs : livePosition;
 
   useEffect(() => {
     if (!playing || useVideo) return;
@@ -81,7 +81,8 @@ export function RunPlayer({
   }, [useVideo, elapsedMs, total, setPlaying]);
 
   function seek(ms: number) {
-    playback.seek(ms);
+    if (active && ms >= total) playback.followLive();
+    else playback.seek(ms);
   }
 
   function toggle() {
@@ -241,7 +242,7 @@ export function RunPlayer({
             aria-label="回看速度"
             value={speed}
             onValueChange={(value) => playback.setSpeed(Number(value))}
-            className={styles.select}
+            className={styles.speedSelect}
             items={[
               { value: 0.5, label: '0.5×' },
               { value: 1, label: '1×' },
@@ -259,11 +260,6 @@ export function RunPlayer({
               className={styles.videoSelector}
               items={videos.map((item) => ({ value: item.id, label: item.pageId }))}
             />
-          )}
-          {active && (
-            <Button aria-pressed={follow} onClick={playback.followLive}>
-              跟随实时画面
-            </Button>
           )}
         </div>
       </div>

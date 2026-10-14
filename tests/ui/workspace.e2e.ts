@@ -71,6 +71,68 @@ test('frame playback and step selection keep the matching evidence visible', asy
   await expect(page.getByRole('heading', { name: '打开网站', exact: true })).toBeVisible();
 });
 
+test('resumes live replay at the right edge and keeps historical seeks paused', async ({
+  page,
+}) => {
+  const frames = [0, 5000].map((elapsedMs) =>
+    makeScreenshot(run, { id: `live-frame-${elapsedMs}`, elapsedMs }),
+  );
+  const activeRun = makeRun({
+    status: 'running',
+    finishedAt: undefined,
+    durationMs: 5000,
+    artifacts: frames,
+    realtimeRevision: 1,
+  });
+
+  await mockRun(page, activeRun);
+  await mockScreenshots(page, run.id);
+  await page.addInitScript(() => {
+    class FakeEventSource extends EventTarget {
+      constructor() {
+        super();
+        Object.assign(window, { replayStream: this });
+        setTimeout(() => this.dispatchEvent(new MessageEvent('ready', { data: '{}' })), 0);
+      }
+      close() {}
+    }
+    Object.assign(window, { EventSource: FakeEventSource });
+  });
+  await page.goto(`/runs/${run.id}`);
+  const slider = page.getByRole('slider', { name: '画面时间轴' });
+  const live = page.getByText(/● LIVE/);
+
+  await expect(page.getByRole('button', { name: '跟随实时画面' })).toHaveCount(0);
+  await expect(live).toBeVisible();
+  await expect(slider).toHaveAttribute('aria-valuenow', '5000');
+  await slider.fill('1000');
+  await expect(live).toHaveCount(0);
+  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:01 / 00:05');
+  await slider.fill('5000');
+  await expect(live).toBeVisible();
+
+  const updatedRun = {
+    ...activeRun,
+    durationMs: 7000,
+    realtimeRevision: 2,
+    artifacts: [...frames, makeScreenshot(run, { id: 'live-frame-7000', elapsedMs: 7000 })],
+  };
+
+  await page.evaluate((snapshot) => {
+    (window as unknown as { replayStream: EventTarget }).replayStream.dispatchEvent(
+      new MessageEvent('snapshot', { data: JSON.stringify({ run: snapshot }) }),
+    );
+  }, updatedRun);
+  await expect(slider).toHaveAttribute('aria-valuenow', '7000');
+  await expect(page.getByRole('img', { name: /^执行画面/ })).toHaveAttribute(
+    'src',
+    /live-frame-7000$/,
+  );
+  await slider.fill('1000');
+  await expect(live).toHaveCount(0);
+  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:01 / 00:07');
+});
+
 test('uses one replay player and pauses video when leaving execution', async ({
   page,
   browser,
