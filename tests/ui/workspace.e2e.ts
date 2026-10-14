@@ -58,13 +58,13 @@ test('frame playback and step selection keep the matching evidence visible', asy
       .locator('section[aria-label="执行步骤"]')
       .getByRole('heading', { name: '打开网站', exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: '查看执行前', exact: true }).click();
+  await page.getByRole('slider', { name: '画面时间轴' }).fill('0');
   await expect(image).toHaveAttribute('src', /frame-0-before$/);
   await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:00 / 00:03');
   await page.getByRole('slider', { name: '画面时间轴' }).fill('2500');
   await expect(image).toHaveAttribute('src', /frame-1-before$/);
   await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:02 / 00:03');
-  await page.getByRole('button', { name: '查看执行前', exact: true }).click();
+  await page.getByRole('slider', { name: '画面时间轴' }).fill('0');
 
   await page.getByRole('button', { name: '播放回看', exact: true }).click();
   await expect(image).toHaveAttribute('src', /frame-1-after$/);
@@ -1523,6 +1523,7 @@ test('planned steps contain execution actions and preserve details across views'
       later: task('later', '验证后续结果'),
     },
   };
+
   await mockRun(
     page,
     makeRun({
@@ -1535,17 +1536,17 @@ test('planned steps contain execution actions and preserve details across views'
   );
   await page.goto(`/runs/${run.id}`);
   const steps = page.locator('section[aria-label="执行步骤"]');
+
   await expect(steps.getByText('用例快照', { exact: true })).toHaveCount(0);
-  const planned = steps
-    .locator('details')
-    .filter({ has: page.locator('summary', { hasText: '访问目标页面' }) });
-  const pending = steps
-    .locator('details')
-    .filter({ has: page.locator('summary', { hasText: '验证后续结果' }) });
-  await expect(planned).toHaveAttribute('open');
-  await expect(pending.locator('summary')).toContainText('未执行');
+  const plannedTrigger = steps.getByRole('button', { name: /访问目标页面/ });
+  const planned = plannedTrigger.locator('..');
+  const pendingTrigger = steps.getByRole('button', { name: /验证后续结果/ });
+
+  await expect(plannedTrigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(pendingTrigger).toContainText('暂无动作');
   await expect(steps.getByRole('button', { name: /初始化浏览器/ })).toBeVisible();
   const action = planned.getByRole('button', { name: /打开网站/ });
+
   await expect(action).toHaveAttribute('aria-expanded', 'true');
   await action.click();
   await expect(action).toHaveAttribute('aria-expanded', 'false');
@@ -1553,10 +1554,82 @@ test('planned steps contain execution actions and preserve details across views'
   await expect(planned.getByText('action: navigate', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
   const node = page.locator('[data-plan-node="open"]');
+
   await node.getByRole('button', { name: '展开动作', exact: true }).click();
   await expect(node.getByRole('button', { name: /打开网站/ })).toBeVisible();
   await page.getByRole('button', { name: '执行步骤', exact: true }).click();
-  await expect(planned).toHaveAttribute('open');
+  await expect(plannedTrigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(action).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('nested execution groups preserve action state and references reveal collapsed ancestors', async ({
+  page,
+}) => {
+  const plan = {
+    rootId: 'root',
+    nodes: {
+      root: {
+        id: 'root',
+        kind: 'group' as const,
+        goal: '隐藏根分组',
+        children: ['outer', 'branch'],
+        dependsOn: [],
+      },
+      outer: {
+        id: 'outer',
+        kind: 'group' as const,
+        goal: '一级分组',
+        children: ['inner'],
+        dependsOn: [],
+      },
+      inner: {
+        id: 'inner',
+        kind: 'group' as const,
+        goal: '二级分组',
+        children: ['open'],
+        dependsOn: [],
+      },
+      open: {
+        id: 'open',
+        kind: 'task' as const,
+        goal: '访问目标页面',
+        dependsOn: [],
+        requirementIds: [],
+        assertions: [],
+      },
+      branch: {
+        id: 'branch',
+        kind: 'branch' as const,
+        condition: '再次检查页面',
+        then: 'open',
+        dependsOn: [],
+      },
+    },
+  };
+
+  await mockRun(page, makeRun({ plan, steps: [{ ...run.steps[0], planNodeId: 'open' }] }));
+  await page.goto(`/runs/${run.id}`);
+  const steps = page.locator('section[aria-label="执行步骤"]');
+  const triggers = steps.locator('[data-slot="collapsible-trigger"]');
+  const outer = triggers.filter({ hasText: '一级分组' });
+  const inner = triggers.filter({ hasText: '二级分组' });
+  const task = triggers.filter({ hasText: '访问目标页面' });
+  const action = steps.getByRole('button', { name: /打开网站/ });
+
+  await expect(steps.getByText('隐藏根分组', { exact: true })).toHaveCount(0);
+  await expect(action).toHaveAttribute('aria-expanded', 'true');
+  await inner.focus();
+  await page.keyboard.press('Space');
+  await expect(inner).toHaveAttribute('aria-expanded', 'false');
+  await outer.click();
+  await expect(outer).toHaveAttribute('aria-expanded', 'false');
+  await triggers.filter({ hasText: '再次检查页面' }).click();
+  await steps.getByRole('button', { name: /YES.*访问目标页面/ }).click();
+
+  await expect(outer).toHaveAttribute('aria-expanded', 'true');
+  await expect(inner).toHaveAttribute('aria-expanded', 'true');
+  await expect(task).toBeFocused();
+  await expect(action).toBeVisible();
   await expect(action).toHaveAttribute('aria-expanded', 'true');
 });
 

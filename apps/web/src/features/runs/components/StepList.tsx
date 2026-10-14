@@ -2,63 +2,127 @@
 
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
-import { memo, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import folderIcon from '@iconify-icons/lucide/folder';
+import referenceIcon from '@iconify-icons/lucide/corner-up-left';
+import { memo, useEffect, useId, useMemo, useRef } from 'react';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
-import { layoutPlan } from '@/features/runs/lib/planLayout';
-import {
-  boardNodeSteps,
-  indexStepsByNode,
-  planNodeTitle,
-  stepResult,
-} from '@/features/runs/lib/boardResults';
+import { executionGroups, type ExecutionGroup } from '@/features/runs/lib/executionGroups';
+import { stepResult } from '@/features/runs/lib/boardResults';
 import { statusStyles } from '@/components/ui/statusStyles';
+import { Collapsible } from '@/components/ui/Collapsible';
 import { statuses } from '@/features/runs/presentation';
 import { ExecutionActions, type ExecutionActionsProps } from './ExecutionActions';
 import styles from './StepList.module.css';
 
+function expand(root: Element) {
+  const trigger = root.querySelector<HTMLButtonElement>(
+    ':scope > [data-slot="collapsible-trigger"]',
+  );
+
+  if (trigger?.getAttribute('aria-expanded') === 'false') trigger.click();
+}
+
+function revealNode(id: string) {
+  const target = document.getElementById(id);
+
+  if (!target) return;
+
+  for (let parent = target.parentElement; parent; parent = parent.parentElement)
+    if (parent.matches('[data-slot="collapsible"]')) expand(parent);
+  requestAnimationFrame(() => {
+    target.scrollIntoView({ block: 'nearest' });
+    target.focus({ preventScroll: true });
+  });
+}
+
 function PlannedStep({
+  entry,
   number,
-  title,
-  pathLabel,
-  steps,
-  selectedId,
-  children,
-}: Pick<ExecutionActionsProps, 'steps' | 'selectedId'> & {
+  scopeId,
+  actions,
+}: {
+  entry: ExecutionGroup;
   number: number;
-  title: string;
-  pathLabel?: string;
-  children: ReactNode;
+  scopeId: string;
+  actions: ExecutionActionsProps;
 }) {
-  const ref = useRef<HTMLDetailsElement>(null);
-  const { status } = stepResult(steps);
-  const selected = steps.some((step) => step.id === selectedId) ? selectedId : undefined;
+  const ref = useRef<HTMLDivElement>(null);
+  const { status } = stepResult(entry.steps);
+  const selected = entry.steps.some((step) => step.id === actions.selectedId)
+    ? actions.selectedId
+    : undefined;
+  const isGroup = entry.kind === 'group';
+  const showStatus = !isGroup || status === 'running' || status === 'failed';
 
   useEffect(() => {
     if (ref.current && (selected || status === 'running' || status === 'failed'))
-      ref.current.open = true;
+      expand(ref.current);
   }, [selected, status]);
+
+  if (entry.reference)
+    return (
+      <li className={styles.plannedStep}>
+        <button
+          id={`${scopeId}-${entry.id}`}
+          type="button"
+          className={styles.reference}
+          onClick={() => revealNode(`${scopeId}-${entry.reference}`)}
+        >
+          <Icon icon={referenceIcon} width="12" aria-hidden="true" />
+          <span>
+            {entry.pathLabel && `${entry.pathLabel} · `}
+            {entry.title}
+          </span>
+        </button>
+      </li>
+    );
 
   return (
     <li
       className={styles.plannedStep}
-      data-current={!!selected || status === 'running' ? true : undefined}
+      data-kind={entry.kind}
+      data-current={!isGroup && (!!selected || status === 'running') ? true : undefined}
     >
-      <details ref={ref}>
-        <summary className={styles.planSummary}>
-          <span className={styles.stepNumber} aria-hidden="true">
-            {number}
-          </span>
-          <span className={styles.content}>
-            {pathLabel && <span className={styles.pathLabel}>{pathLabel}</span>}
-            <span className={styles.planTitle}>{title}</span>
-          </span>
-          <span data-slot="status" data-status={status} className={statusStyles(status)}>
-            {status === 'none' ? '暂无动作' : statuses[status]}
-          </span>
-          <Icon icon={chevronIcon} width="12" className={styles.chevron} aria-hidden="true" />
-        </summary>
-        <div className={styles.planActions}>{children}</div>
-      </details>
+      <Collapsible
+        ref={ref}
+        defaultOpen={isGroup}
+        trigger={
+          <button type="button" id={`${scopeId}-${entry.id}`} className={styles.planSummary}>
+            <span className={styles.stepNumber} aria-hidden="true">
+              {isGroup ? <Icon icon={folderIcon} width="14" /> : number}
+            </span>
+            <span className={styles.content}>
+              {entry.pathLabel && <span className={styles.pathLabel}>{entry.pathLabel}</span>}
+              <span className={styles.planTitle}>{entry.title}</span>
+            </span>
+            {showStatus && (
+              <span data-slot="status" data-status={status} className={statusStyles(status)}>
+                {status === 'none' ? '暂无动作' : statuses[status]}
+              </span>
+            )}
+            <Icon icon={chevronIcon} width="12" className={styles.chevron} aria-hidden="true" />
+          </button>
+        }
+      >
+        {entry.actions.length > 0 && (
+          <div className={styles.planActions}>
+            <ExecutionActions {...actions} steps={entry.actions} />
+          </div>
+        )}
+        {entry.children.length > 0 && (
+          <ol className={styles.nestedGroups}>
+            {entry.children.map((child, index) => (
+              <PlannedStep
+                key={child.id}
+                entry={child}
+                number={index + 1}
+                scopeId={scopeId}
+                actions={actions}
+              />
+            ))}
+          </ol>
+        )}
+      </Collapsible>
     </li>
   );
 }
@@ -68,40 +132,24 @@ export const StepList = memo(function StepList({
   running,
   ...actions
 }: ExecutionActionsProps & { plan?: Plan; running: boolean }) {
-  const { steps, selectedId } = actions;
-  const entries = useMemo(
-    () =>
-      plan
-        ? layoutPlan(plan)
-            .nodes.filter((item) => !item.reference && plan.nodes[item.planNodeId].kind !== 'group')
-            .map((item) => ({
-              id: item.id,
-              node: plan.nodes[item.planNodeId],
-              assertionIndex: item.assertionIndex,
-              title: planNodeTitle(plan.nodes[item.planNodeId], item.assertionIndex),
-              pathLabel: item.pathLabel,
-            }))
-        : [],
-    [plan],
+  const scopeId = useId();
+  const { groups, ungrouped } = useMemo(
+    () => executionGroups(plan, actions.steps),
+    [plan, actions.steps],
   );
-  const stepsByNode = useMemo(() => indexStepsByNode(steps), [steps]);
-  const groups = entries.map((entry) => ({
-    id: entry.id,
-    title: entry.title,
-    pathLabel: entry.pathLabel,
-    steps: boardNodeSteps(entry.node, stepsByNode.get(entry.node.id) ?? [], entry.assertionIndex),
-  }));
-  const groupedIds = new Set(groups.flatMap((group) => group.steps.map((step) => step.id)));
-  const ungrouped = steps.filter((step) => !groupedIds.has(step.id));
 
   return (
     <section aria-label="执行步骤" className={styles.section}>
       {groups.length > 0 && (
         <ol className={styles.groups}>
-          {groups.map((group, index) => (
-            <PlannedStep key={group.id} {...group} number={index + 1} selectedId={selectedId}>
-              {group.steps.length > 0 && <ExecutionActions {...actions} steps={group.steps} />}
-            </PlannedStep>
+          {groups.map((entry, index) => (
+            <PlannedStep
+              key={entry.id}
+              entry={entry}
+              number={index + 1}
+              scopeId={scopeId}
+              actions={actions}
+            />
           ))}
         </ol>
       )}
@@ -111,7 +159,7 @@ export const StepList = memo(function StepList({
           <ExecutionActions {...actions} steps={ungrouped} />
         </>
       )}
-      {!groups.length && !steps.length && (
+      {!groups.length && !actions.steps.length && (
         <p className={styles.description}>{running ? '正在生成计划…' : '暂无执行步骤'}</p>
       )}
     </section>
