@@ -52,16 +52,16 @@ const workspaceTabs = [
     initiallyVisible: true,
   },
   { id: 'recording', label: '编辑录制', reference: 'execution' },
+  { id: 'logs', label: '轨迹', reference: 'execution' },
   {
-    id: 'logs',
-    label: '轨迹',
+    id: 'console',
+    label: '控制台',
     reference: 'execution',
     direction: 'below',
     initialHeight: 260,
     initiallyCollapsed: true,
   },
-  { id: 'console', label: '控制台', reference: 'logs' },
-  { id: 'network', label: '网络', reference: 'logs' },
+  { id: 'network', label: '网络', reference: 'console' },
 ] as const satisfies readonly DockTab[];
 
 const emptySteps: ExecutionStep[] = [];
@@ -483,7 +483,7 @@ export function RunDetail({
 
             if (layout === 'default') return configured;
             if (tab.id === 'steps') configured.initialWidthRatio = 0.28;
-            if (tab.id === 'logs') configured.initiallyCollapsed = false;
+            if (tab.id === 'console') configured.initiallyCollapsed = false;
             if (layout === 'review' && tab.id === 'issues') {
               configured.reference = 'execution';
               configured.direction = 'right';
@@ -492,14 +492,14 @@ export function RunDetail({
             }
 
             if (layout === 'notes' || layout === 'debug') {
-              if (tab.id === 'logs') {
+              if (tab.id === 'console') {
                 configured.direction = 'right';
                 configured.initialWidthRatio = 0.28;
                 configured.initiallyVisible = layout === 'debug';
               }
 
               if (tab.id === 'issues') {
-                configured.reference = 'logs';
+                configured.reference = 'console';
                 configured.direction = 'below';
                 configured.initiallyVisible = true;
                 configured.initialHeight = 260;
@@ -516,10 +516,10 @@ export function RunDetail({
               'steps',
               'execution',
               'logs',
+              'console',
               'issues',
               'plan',
               'recording',
-              'console',
               'network',
             ];
 
