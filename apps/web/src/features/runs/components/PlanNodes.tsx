@@ -9,11 +9,12 @@ import { statusStyles } from '@/components/ui/statusStyles';
 import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
 import { asset, statuses } from '@/features/runs/presentation';
-import type { boardResult } from '@/features/runs/lib/boardResults';
-import { memo, useState } from 'react';
+import { boardResult } from '@/features/runs/lib/boardResults';
+import { memo, useId, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
+import { ExecutionActions } from './ExecutionActions';
 import { StepBadge } from '@/features/test-cases/components/StepType';
 
 export const nodeDragType = 'application/x-caseforge-node';
@@ -41,6 +42,7 @@ export type PlanFlowNode = Node<
     review?: NodeReview;
     result?: ReturnType<typeof boardResult>;
     current?: boolean;
+    currentStepId?: string;
     onFrame?: (frame: RunArtifact) => void;
     onIssue?: (step: ExecutionStep) => void;
   },
@@ -52,6 +54,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const actionsId = useId();
   const type =
     data.assertionIndex !== undefined
       ? 'assert'
@@ -64,13 +67,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       : node.kind === 'branch'
         ? node.condition
         : node.goal;
-  const status = steps.some((step) => step.status === 'failed')
-    ? 'failed'
-    : steps.some((step) => step.status === 'running')
-      ? 'running'
-      : steps.length
-        ? 'passed'
-        : 'none';
+  const status = (data.result ?? boardResult(steps, [])).status;
   const beforeContent = data.review?.before
     ? data.review.before.kind === 'branch'
       ? data.review.before.condition
@@ -210,6 +207,8 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
                       ? `查看断言 ${node.id} ${data.assertionIndex + 1}`
                       : `查看节点 ${node.id}`
               }
+              aria-expanded={data.editable ? undefined : expanded}
+              aria-controls={data.editable ? undefined : actionsId}
               onClick={() => {
                 if (data.editable) {
                   setDraft(content);
@@ -257,10 +256,11 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             {data.result.primary && (
               <Button
                 type="button"
-
-                onClick={() => data.onStep(data.result!.primary!)}
+                aria-expanded={expanded}
+                aria-controls={actionsId}
+                onClick={() => setExpanded(!expanded)}
               >
-                查看过程
+                {expanded ? '收起动作' : '展开动作'}
               </Button>
             )}
             {data.result.primary && data.onIssue && (
@@ -296,15 +296,12 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       )}
       {!data.editable && expanded && (
         <div
+          id={actionsId}
           data-ui="plan-inline-evidence"
           className={clsx(boardStyles.planInlineEvidence, 'nodrag', 'nopan')}
         >
-          {steps.map((step) => (
-            <Button type="button" key={step.id} onClick={() => data.onStep(step)}>
-              #{step.sequence} {step.title}
-            </Button>
-          ))}
-          {!steps.length && <p>尚无关联步骤。分组的步骤位于子节点。</p>}
+          <ExecutionActions steps={steps} selectedId={data.currentStepId} onSelect={data.onStep} />
+          {!steps.length && <p>暂无执行动作</p>}
         </div>
       )}
     </div>

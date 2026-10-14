@@ -1498,36 +1498,66 @@ test('execution studio opens a full height three pane layout', async ({ page }) 
   }
 });
 
-test('snapshot and step details fold into the left execution panel', async ({ page }) => {
-  await mockRun(page, run);
+test('planned steps contain execution actions and preserve details across views', async ({
+  page,
+}) => {
+  const task = (id: string, goal: string) => ({
+    id,
+    kind: 'task' as const,
+    goal,
+    dependsOn: [],
+    requirementIds: [],
+    assertions: [],
+  });
+  const plan = {
+    rootId: 'root',
+    nodes: {
+      root: {
+        id: 'root',
+        kind: 'group' as const,
+        goal: '验证页面',
+        children: ['open', 'later'],
+        dependsOn: [],
+      },
+      open: task('open', '访问目标页面'),
+      later: task('later', '验证后续结果'),
+    },
+  };
+  await mockRun(
+    page,
+    makeRun({
+      plan,
+      steps: [
+        makeStep(run, { id: 'setup', title: '初始化浏览器' }),
+        { ...run.steps[0], planNodeId: 'open' },
+      ],
+    }),
+  );
   await page.goto(`/runs/${run.id}`);
-  await expect(page.getByRole('tab', { name: '用例快照', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('tab', { name: '步骤详情', exact: true })).toHaveCount(0);
-  const snapshot = page
-    .locator('details')
-    .filter({ has: page.locator('summary', { hasText: /^用例快照$/ }) });
-
-  await expect(snapshot).not.toHaveAttribute('open');
-  await snapshot.locator('summary').first().click();
-  await expect(snapshot).toHaveAttribute('open');
-  await expect(snapshot).toContainText(saved.goal);
-  await snapshot.getByText('平台目标与实际执行环境', { exact: true }).click();
-  await expect(snapshot.locator('pre')).toBeVisible();
   const steps = page.locator('section[aria-label="执行步骤"]');
-  const step = steps.getByRole('button', { name: /打开网站/ });
-
-  await expect(step).toHaveAttribute('aria-expanded', 'true');
-  await expect(steps.getByText('action: navigate', { exact: true })).toBeVisible();
-  await step.click();
-  await expect(step).toHaveAttribute('aria-expanded', 'false');
-  await expect(steps.getByText('action: navigate', { exact: true })).toHaveCount(0);
-  await step.click();
-  await expect(step).toHaveAttribute('aria-expanded', 'true');
-  await expect(steps.getByText('action: navigate', { exact: true })).toBeVisible();
+  await expect(steps.getByText('用例快照', { exact: true })).toHaveCount(0);
+  const planned = steps
+    .locator('details')
+    .filter({ has: page.locator('summary', { hasText: '访问目标页面' }) });
+  const pending = steps
+    .locator('details')
+    .filter({ has: page.locator('summary', { hasText: '验证后续结果' }) });
+  await expect(planned).toHaveAttribute('open');
+  await expect(pending.locator('summary')).toContainText('未执行');
+  await expect(steps.getByRole('button', { name: /初始化浏览器/ })).toBeVisible();
+  const action = planned.getByRole('button', { name: /打开网站/ });
+  await expect(action).toHaveAttribute('aria-expanded', 'true');
+  await action.click();
+  await expect(action).toHaveAttribute('aria-expanded', 'false');
+  await action.click();
+  await expect(planned.getByText('action: navigate', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  const node = page.locator('[data-plan-node="open"]');
+  await node.getByRole('button', { name: '展开动作', exact: true }).click();
+  await expect(node.getByRole('button', { name: /打开网站/ })).toBeVisible();
   await page.getByRole('button', { name: '执行步骤', exact: true }).click();
-  await expect(snapshot).toHaveAttribute('open');
-  await expect(step).toHaveAttribute('aria-expanded', 'true');
+  await expect(planned).toHaveAttribute('open');
+  await expect(action).toHaveAttribute('aria-expanded', 'true');
 });
 
 test('bottom browser logs start collapsed and expand on tab selection', async ({ page }) => {
@@ -2149,7 +2179,8 @@ test('result board shows assertion evidence and links screenshots to the existin
   await page.getByRole('slider', { name: '画面时间轴' }).fill('1000');
   await expect(capture).toHaveAttribute('data-current', 'true');
   await expect(assertion).toHaveAttribute('data-result', 'failed');
-  await assertion.getByRole('button', { name: '查看过程', exact: true }).click();
+  await assertion.getByRole('button', { name: '展开动作', exact: true }).click();
+  await assertion.locator('[data-ui="plan-inline-evidence"]').getByRole('button').first().click();
   await expect(page.getByRole('img', { name: /^执行画面/ })).toHaveAttribute(
     'src',
     /board-frame-1$/,

@@ -31,7 +31,6 @@ import { RunPlayer } from '@/features/runs/components/RunPlayer';
 import { BrowserLogPanel } from '@/features/runs/components/BrowserLogPanel';
 import { RunLogs } from '@/features/runs/components/RunLogs';
 import { StepDetails } from '@/features/runs/components/StepDetails';
-import { RunSnapshot } from '@/features/runs/components/RunSnapshot';
 import {
   RunIssues,
   issuePosition,
@@ -307,17 +306,15 @@ export function RunDetail({
     switch (panel) {
       case 'steps':
         return (
-          <div>
-            <RunSnapshot run={run} />
-            <StepList
-              steps={run?.steps || emptySteps}
-              selectedId={selectedStep?.id}
-              running={run?.status === 'running'}
-              onSelect={(step) => selectStep(step)}
-              renderDetails={renderStepDetails}
-              renderIssue={renderStepIssue}
-            />
-          </div>
+          <StepList
+            plan={run?.plan}
+            steps={run?.steps || emptySteps}
+            selectedId={selectedStep?.id}
+            running={run?.status === 'running'}
+            onSelect={(step) => selectStep(step)}
+            renderDetails={renderStepDetails}
+            renderIssue={renderStepIssue}
+          />
         );
       case 'issues':
         return run ? (

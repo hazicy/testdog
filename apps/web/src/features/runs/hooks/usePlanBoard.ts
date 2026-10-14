@@ -131,6 +131,7 @@ export function usePlanBoard({
         node,
         result: results && node.kind !== 'group' && !item.reference ? result : undefined,
         current: nodeSteps.some((step) => step.id === currentStepId),
+        currentStepId,
         onFrame,
         onIssue,
         review: review?.[node.id],

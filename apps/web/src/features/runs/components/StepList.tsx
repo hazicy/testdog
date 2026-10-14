@@ -1,112 +1,107 @@
 'use client';
 
-import clsx from 'clsx';
-
-import styles from './StepList.module.css';
-import studioStyles from '@/features/runs/components/run-studio.module.css';
-
-import { Icon } from '@iconify/react/offline';
-
-import { Button } from '@/components/ui/Button';
-import { actionIcon } from '@/features/runs/lib/actionIcon';
+import { memo, useEffect, useId, useMemo, useRef, type ReactNode } from 'react';
+import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import { layoutPlan } from '@/features/runs/lib/planLayout';
+import { boardNodeSteps, boardResult } from '@/features/runs/lib/boardResults';
+import { statusStyles } from '@/components/ui/statusStyles';
 import { statuses } from '@/features/runs/presentation';
-import { memo, useId, useState, type ReactNode } from 'react';
-import type { ExecutionStep } from '@testdog/contracts/runs/types';
+import { ExecutionActions, type ExecutionActionsProps } from './ExecutionActions';
+import styles from './StepList.module.css';
 
-const kinds = { action: '操作', navigate: '导航', wait: '等待', assertion: '断言', branch: '分支' };
-
-/** Keep frame playback from rendering the entire step history. */
-export const StepList = memo(function StepList({
+function PlannedStep({
+  title,
+  pathLabel,
   steps,
   selectedId,
-  running,
-  onSelect,
-  renderDetails,
-  renderIssue,
-}: {
-  steps: ExecutionStep[];
-  selectedId?: string;
-  running: boolean;
-  onSelect: (step: ExecutionStep) => void;
-  renderDetails: (step: ExecutionStep) => ReactNode;
-  renderIssue?: (step: ExecutionStep) => ReactNode;
+  children,
+}: Pick<ExecutionActionsProps, 'steps' | 'selectedId'> & {
+  title: string;
+  pathLabel?: string;
+  children: ReactNode;
 }) {
-  const detailsId = useId();
-  const [collapsedId, setCollapsedId] = useState<string>();
+  const ref = useRef<HTMLDetailsElement>(null);
+  const contentId = useId();
+  const { status } = boardResult(steps, []);
+  const selected = steps.some((step) => step.id === selectedId) ? selectedId : undefined;
+
+  useEffect(() => {
+    if (ref.current && (selected || status === 'running' || status === 'failed'))
+      ref.current.open = true;
+  }, [selected, status]);
+
+  return (
+    <li className={styles.plannedStep}>
+      <details ref={ref}>
+        <summary className={styles.planSummary} aria-controls={contentId}>
+          <span className={styles.content}>
+            {pathLabel && <span className={styles.pathLabel}>{pathLabel}</span>}
+            <span className={styles.planTitle}>{title}</span>
+          </span>
+          <span data-slot="status" data-status={status} className={statusStyles(status)}>
+            <span />
+            {status === 'none' ? '未执行' : statuses[status]}
+          </span>
+        </summary>
+        <div id={contentId} className={styles.planActions}>
+          {children}
+        </div>
+      </details>
+    </li>
+  );
+}
+
+export const StepList = memo(function StepList({
+  plan,
+  running,
+  ...actions
+}: ExecutionActionsProps & { plan?: Plan; running: boolean }) {
+  const { steps, selectedId } = actions;
+  const groups = useMemo(
+    () =>
+      plan
+        ? layoutPlan(plan)
+            .nodes.filter((item) => !item.reference && plan.nodes[item.planNodeId].kind !== 'group')
+            .map((item) => {
+              const node = plan.nodes[item.planNodeId];
+              return {
+                id: item.id,
+                title:
+                  node.kind === 'branch'
+                    ? node.condition
+                    : item.assertionIndex !== undefined && node.kind === 'task'
+                      ? node.assertions[item.assertionIndex].description
+                      : node.goal,
+                pathLabel: item.pathLabel,
+                steps: boardNodeSteps(node, steps, item.assertionIndex),
+              };
+            })
+        : [],
+    [plan, steps],
+  );
+  const groupedIds = new Set(groups.flatMap((group) => group.steps.map((step) => step.id)));
+  const ungrouped = steps.filter((step) => !groupedIds.has(step.id));
 
   return (
     <section aria-label="执行步骤" className={styles.section}>
-      <div className={styles.container}>
-        <h2 className={styles.heading}>执行步骤</h2>
-        <span className={styles.label}>
-          {steps.filter((step) => step.status === 'passed').length || 0} / {steps.length || 0}
-        </span>
-      </div>
-      <div className={styles.section}>
+      {groups.length > 0 && (
         <ol>
-          {steps.map((step) => (
-            <li key={step.id}>
-              <Button
-                variant="ghost"
-                aria-expanded={selectedId === step.id && collapsedId !== step.id}
-                aria-controls={`${detailsId}-${step.id}`}
-                onClick={() => {
-                  setCollapsedId(
-                    selectedId === step.id && collapsedId !== step.id ? step.id : undefined,
-                  );
-                  onSelect(step);
-                }}
-                className={clsx(styles.action, { [styles.selected]: selectedId === step.id })}
-              >
-                <span
-                  title={statuses[step.status]}
-                  aria-label={statuses[step.status]}
-                  className={clsx(
-                    styles.sequence,
-                    step.status === 'failed'
-                      ? styles.failed
-                      : step.status === 'passed'
-                        ? styles.passed
-                        : styles.pending,
-                  )}
-                >
-                  <Icon icon={actionIcon(step)} aria-hidden="true" width="14" height="14" />
-                </span>
-                <span className={styles.content}>
-                  <span className={styles.title}>{step.title}</span>
-                  <span className={styles.metadata}>
-                    {kinds[step.kind]} · {step.pageId} ·{' '}
-                    {step.durationMs == null
-                      ? step.status === 'running'
-                        ? '执行中'
-                        : '已中断'
-                      : `${(step.durationMs / 1000).toFixed(1)}s`}
-                  </span>
-                </span>
-                <span aria-hidden="true" className={styles.expandIndicator}>
-                  {selectedId === step.id && collapsedId !== step.id ? '⌃' : '⌄'}
-                </span>
-              </Button>
-              {renderIssue?.(step)}
-              <div
-                id={`${detailsId}-${step.id}`}
-                hidden={selectedId !== step.id || collapsedId === step.id}
-              >
-                {selectedId === step.id && collapsedId !== step.id && (
-                  <div className={clsx(studioStyles.studioContent, styles.details)}>
-                    {renderDetails(step)}
-                  </div>
-                )}
-              </div>
-            </li>
+          {groups.map((group) => (
+            <PlannedStep key={group.id} {...group} selectedId={selectedId}>
+              {group.steps.length > 0 && <ExecutionActions {...actions} steps={group.steps} />}
+            </PlannedStep>
           ))}
         </ol>
-        {!steps.length && (
-          <p className={styles.description}>
-            {running ? '正在生成测试计划，步骤将在执行时逐一出现。' : '没有已执行的浏览器步骤。'}
-          </p>
-        )}
-      </div>
+      )}
+      {ungrouped.length > 0 && (
+        <>
+          {groups.length > 0 && <h2 className={styles.ungroupedHeading}>其他动作</h2>}
+          <ExecutionActions {...actions} steps={ungrouped} />
+        </>
+      )}
+      {!groups.length && !steps.length && (
+        <p className={styles.description}>{running ? '正在生成计划…' : '暂无执行步骤'}</p>
+      )}
     </section>
   );
 });

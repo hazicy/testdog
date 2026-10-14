@@ -642,6 +642,9 @@
 }
 
 .planInlineEvidence {
+  max-height: 320px;
+  overflow: auto;
+  overscroll-behavior: contain;
   pointer-events: auto;
   position: absolute;
   z-index: 20;
