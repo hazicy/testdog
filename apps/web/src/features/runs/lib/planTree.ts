@@ -15,16 +15,15 @@ export function planForest(plan: Plan): PlanTree[] {
     seen.add(id);
     const node = plan.nodes[id];
 
-    return {
-      id,
-      children: node.kind === 'group' ? node.children.map(visit) : [],
-      ...(node.kind === 'branch'
-        ? {
-            then: visit(node.then),
-            ...(node.otherwise ? { otherwise: visit(node.otherwise) } : {}),
-          }
-        : {}),
-    };
+    const tree: PlanTree = { id, children: [] };
+
+    if (node.kind === 'group') tree.children = node.children.map(visit);
+    if (node.kind === 'branch') {
+      tree.then = visit(node.then);
+      if (node.otherwise) tree.otherwise = visit(node.otherwise);
+    }
+
+    return tree;
   };
 
   const result = [visit(plan.rootId)];

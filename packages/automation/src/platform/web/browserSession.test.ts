@@ -1,8 +1,7 @@
-import { chromium, errors, type Browser, type Page } from 'playwright';
+import { chromium, type Browser, type Page } from 'playwright';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserSession } from '@testdog/automation/platform/web/browserSession';
 import { Observer } from '@testdog/automation/platform/web/observer';
-import { waitForObservationReady } from '@testdog/automation/platform/web/pageReadiness';
 
 describe('BrowserSession', () => {
   let browser: Browser;
@@ -135,11 +134,7 @@ describe('BrowserSession', () => {
     expect(pageOff).toHaveBeenCalledWith('framenavigated', expect.any(Function));
   });
 
-  it('tolerates readiness timeouts without swallowing action or capture errors', async () => {
-    const load = vi.spyOn(page, 'waitForLoadState');
-
-    load.mockRejectedValueOnce(new errors.TimeoutError('Still loading'));
-    await expect(waitForObservationReady(page, 20)).resolves.toBeUndefined();
+  it('propagates action and capture errors', async () => {
     await expect(
       session.perform(async () => {
         throw new Error('Click failed');

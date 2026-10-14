@@ -1,9 +1,6 @@
 import { parse, type Node } from 'acorn';
 import { StepSchema, type Target } from '@testdog/contracts/automation/compiler/schema';
-import {
-  PlatformAssertionSchema,
-  type PlatformAssertion,
-} from '@testdog/contracts/automation/platform/contracts';
+import { PlatformAssertionSchema } from '@testdog/contracts/automation/platform/contracts';
 import type { RecordingOperation } from '@testdog/contracts/runs/types';
 
 // A validated Playwright call dialect. Parsed into operations, never evaluated as JavaScript.
@@ -35,13 +32,9 @@ const assertionMethods = {
   value: 'toHaveValue',
   url: 'toHaveURL',
 } as const;
-const assertionTypes: Record<string, Extract<PlatformAssertion, { platform: 'web' }>['type']> = {
-  toBeVisible: 'visible',
-  toHaveText: 'text',
-  toContainText: 'containsText',
-  toHaveValue: 'value',
-  toHaveURL: 'url',
-};
+const assertionTypes = Object.fromEntries(
+  Object.entries(assertionMethods).map(([type, method]) => [method, type]),
+);
 const quote = JSON.stringify;
 const pageName = (id: string) => `page${id.replace('page-', '')}`;
 
@@ -290,9 +283,7 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
     } else {
       const { object, method } = member(call.callee);
 
-      if (
-        ['toBeVisible', 'toHaveText', 'toContainText', 'toHaveValue', 'toHaveURL'].includes(method)
-      ) {
+      if (Object.hasOwn(assertionTypes, method)) {
         let expected = object;
         let negate = false;
 

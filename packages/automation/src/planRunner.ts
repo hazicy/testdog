@@ -98,42 +98,44 @@ export class PlanRunner {
         const next = result.passed ? node.then : node.otherwise;
 
         if (next) await this.visit(next, completed, visiting);
-      } else {
-        await this.options.report?.(`执行任务：${node.goal}`);
-        if (node.actionType === 'screenshot') {
-          await this.observe();
-          const platform = this.options.session.platform;
-
-          await this.action(
-            platform === 'web'
-              ? {
-                  platform,
-                  action: {
-                    type: 'screenshot',
-                    target: { kind: 'css', value: '', name: '' },
-                    value: '',
-                  },
-                }
-              : { platform, action: { type: 'screenshot' } },
-          );
-        } else if (node.actionType !== 'assert') await this.task(node);
-        for (const assertion of node.assertions) {
-          await this.traced(
-            { kind: 'assertion', title: assertion.description, assertion },
-            async () => {
-              const result = await this.evaluate({ assertion }, 'assertion_result');
-
-              if (!result.passed) throw new Error(result.evidence);
-
-              return result;
-            },
-          );
-        }
-      }
+      } else await this.executeTask(node);
 
       completed.add(id);
     } finally {
       visiting.delete(id);
+    }
+  }
+  private async executeTask(node: Extract<PlanNode, { kind: 'task' }>) {
+    await this.options.report?.(`执行任务：${node.goal}`);
+    if (node.actionType === 'screenshot') {
+      await this.observe();
+      const platform = this.options.session.platform;
+
+      await this.action(
+        platform === 'web'
+          ? {
+              platform,
+              action: {
+                type: 'screenshot',
+                target: { kind: 'css', value: '', name: '' },
+                value: '',
+              },
+            }
+          : { platform, action: { type: 'screenshot' } },
+      );
+    } else if (node.actionType !== 'assert') await this.task(node);
+
+    for (const assertion of node.assertions) {
+      await this.traced(
+        { kind: 'assertion', title: assertion.description, assertion },
+        async () => {
+          const result = await this.evaluate({ assertion }, 'assertion_result');
+
+          if (!result.passed) throw new Error(result.evidence);
+
+          return result;
+        },
+      );
     }
   }
   private async task(node: Extract<PlanNode, { kind: 'task' }>) {

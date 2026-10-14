@@ -7,23 +7,27 @@ export async function executeWebAction(
   step: Exclude<Step, { type: 'wait' }>,
   useTouch = false,
 ): Promise<void> {
-  // 执行操作
   if (step.type === 'screenshot') {
     await page.screenshot();
     // The session recorder archives the corresponding before/after image.
-  } else if (step.type === 'navigate') {
-    await page.goto(step.value, { waitUntil: 'domcontentloaded' });
-  } else if (step.type === 'click') {
-    const target = locateWebElement(page, step.target);
 
+    return;
+  }
+
+  if (step.type === 'navigate') {
+    await page.goto(step.value, { waitUntil: 'domcontentloaded' });
+
+    return;
+  }
+
+  const target = locateWebElement(page, step.target);
+
+  if (step.type === 'click') {
     if (useTouch) await target.tap();
     else await target.click();
   } else if (step.type === 'fill') {
-    const target = locateWebElement(page, step.target);
-
     await target.fill(step.value);
   } else if (step.type === 'press') {
-    const target = locateWebElement(page, step.target);
     // Playwright 的 press 值支持大写
     const key = step.value.charAt(0).toUpperCase() + step.value.slice(1);
 

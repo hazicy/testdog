@@ -79,13 +79,17 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
   };
 
   function slot(groupId: string, index: number, x: number, y: number, anchorId?: string) {
-    insertions.push({
+    const insertion = {
       id: `insert:${groupId}:${index}`,
       groupId,
       index,
       anchorId,
       position: { x: x + WIDTH / 2 - 18, y: y - 18 },
-    });
+    };
+
+    insertions.push(insertion);
+
+    return insertion;
   }
 
   function visit(id: string, x: number, y: number, pathLabel?: string): Subtree {
@@ -129,18 +133,20 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
     let right = x + WIDTH;
 
     actual.set(id, { first, exits });
-    if (!hidden)
-      nodes.push({
-        id: rowId,
-        planNodeId: id,
-        reference: false,
-        pathLabel,
-        position: { x, y },
-        width: WIDTH,
-        height: rowHeight,
-      });
+    const header: LayoutNode = {
+      id: rowId,
+      planNodeId: id,
+      reference: false,
+      pathLabel,
+      position: { x, y },
+      width: WIDTH,
+      height: rowHeight,
+    };
+
+    if (!hidden) nodes.push(header);
     if (node.kind === 'group') {
-      if (!hidden) slot(id, 0, x, bottom + GAP / 2, rowId);
+      const headerInsertion = hidden ? undefined : slot(id, 0, x, bottom + GAP / 2, rowId);
+
       for (let index = 0; index < node.children.length;) {
         const rowTop = hidden && index === 0 ? y : bottom + GAP;
         let rowRight = x;
@@ -189,13 +195,9 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
       }
 
       // Center the header and its insertion over the entire group subtree.
-      if (!hidden) {
-        const header = nodes.find((item) => item.id === rowId)!;
-
+      if (headerInsertion) {
         header.position.x = x + (right - x - WIDTH) / 2;
-        const insertion = insertions.find((item) => item.id === `insert:${id}:0`)!;
-
-        insertion.position.x = header.position.x + WIDTH / 2 - 18;
+        headerInsertion.position.x = header.position.x + WIDTH / 2 - 18;
       }
 
       if (!node.children.length) bottom += GAP;

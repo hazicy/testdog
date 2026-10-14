@@ -7,7 +7,7 @@ import { modelClient } from '@testdog/server/shared/model';
 import { previewInterval } from '@testdog/server/realtime/preview';
 import { EvidenceSink } from '@testdog/server/runs/evidenceSink';
 import { SecretInputs } from '@testdog/contracts/automation/platform/inputs';
-import type { Browser, BrowserContext, BrowserContextOptions } from 'playwright';
+import type { BrowserContext, BrowserContextOptions } from 'playwright';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import { AgentDeviceSession } from '@testdog/automation/platform/native/agentDeviceSession';
 import { NativeActionPlanner } from '@testdog/automation/platform/native/nativePlanner';
@@ -147,10 +147,8 @@ export async function openPlatformRuntime(input: {
   const profile = expectedEnvironment?.profile
     ? (expectedEnvironment.profile as BrowserContextOptions)
     : resolveWebProfile(target);
-  let browser: Browser | undefined;
   let connection: BrowserConnection | undefined;
   let context: BrowserContext | undefined;
-  let recorder: RunRecorder | undefined;
   const stop = () => {
     // Close the context to interrupt actions but keep the transport alive until
     // the recorder has downloaded remote video artifacts.
@@ -161,7 +159,8 @@ export async function openPlatformRuntime(input: {
   signal.addEventListener('abort', stop, { once: true });
   try {
     connection = await openRunBrowser(run.id, target, signal);
-    browser = connection.browser;
+    const browser = connection.browser;
+
     signal.throwIfAborted();
     if (
       expectedEnvironment?.browserVersion &&
@@ -170,8 +169,8 @@ export async function openPlatformRuntime(input: {
       throw new Error('浏览器版本与录制不兼容，请重新录制');
     const artifacts = connection.artifacts;
     const persistence = new PersistenceQueue();
+    const recorder = new RunRecorder(run, persistence);
 
-    recorder = new RunRecorder(run, persistence);
     context = await browser.newContext({
       ...profile,
       ...(secrets.enabled || !connection.artifacts.includes('video')
@@ -236,7 +235,7 @@ export async function openPlatformRuntime(input: {
       async finalize(interrupted) {
         signal.removeEventListener('abort', stop);
         await session.close();
-        await recorder!.stop(context!, interrupted);
+        await recorder.stop(context!, interrupted);
 
         evidence.assertComplete();
       },
@@ -246,7 +245,7 @@ export async function openPlatformRuntime(input: {
   } catch (error) {
     signal.removeEventListener('abort', stop);
     const cleanup = {
-      healthy: !browser,
+      healthy: !connection,
       cleanup: async () => {
         await connection?.close();
         cleanup.healthy = true;

@@ -220,7 +220,7 @@ test('missing execution stops polling and can recover through explicit retry', a
       : route.fulfill({ json: { run } });
   });
   await page.goto(`/runs/${run.id}`);
-  await expect(page.getByRole('heading', { name: '执行记录不存在', exact: true })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: /^执行记录不存在$/ })).toBeVisible();
   await expect(page.getByRole('link', { name: '返回执行记录', exact: true })).toBeVisible();
   await page.clock.fastForward(100);
   const stoppedAt = reads;
@@ -261,7 +261,7 @@ test('invalid execution addresses render the custom 404 page', async ({ page }) 
   const response = await page.goto('/runs/invalid-id');
 
   expect(response?.status()).toBe(404);
-  await expect(page.getByRole('heading', { name: '页面不存在', exact: true })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: /^页面不存在或已被移除$/ })).toBeVisible();
   await expect(page.getByRole('link', { name: '返回测试工作台', exact: true })).toHaveAttribute(
     'href',
     '/cases',

@@ -52,6 +52,13 @@ const owners = (plan: Plan) => {
   return result;
 };
 
+function reorderedChildren(before: string[], after: string[]): string[] {
+  const common = before.filter((id) => after.includes(id));
+  const reordered = after.filter((id) => common.includes(id));
+
+  return common.filter((id, index) => reordered[index] !== id);
+}
+
 // Generated IDs may change. Match stable IDs first, then unique equal content,
 // then an isolated replacement between the same sequence anchors.
 function align(before: Plan, source: Plan): Plan {
@@ -130,11 +137,7 @@ export function reviewPlan(before: Plan, source: Plan): PlanReview {
     const newParent = after.nodes[newOwners.get(id) ?? ''];
 
     if (oldParent?.kind === 'group' && newParent?.kind === 'group') {
-      const common = oldParent.children.filter((child) => newParent.children.includes(child));
-
-      moved ||=
-        common.indexOf(id) !==
-        newParent.children.filter((child) => common.includes(child)).indexOf(id);
+      moved ||= reorderedChildren(oldParent.children, newParent.children).includes(id);
     }
 
     if (
@@ -190,19 +193,9 @@ export function reviewPlan(before: Plan, source: Plan): PlanReview {
     const next = after.nodes[old.id];
 
     if (old.kind !== 'group' || next?.kind !== 'group') continue;
-    const common = old.children.filter((id) => next.children.includes(id));
+    const moved = reorderedChildren(old.children, next.children);
 
-    if (
-      !same(
-        common,
-        next.children.filter((id) => common.includes(id)),
-      )
-    ) {
-      const reordered = next.children.filter((id) => common.includes(id));
-      const moved = common.filter((id, index) => reordered[index] !== id);
-
-      for (const id of moved) join(moved[0], id);
-    }
+    for (const id of moved) join(moved[0], id);
   }
 
   const changes = [...new Set(groups.values())].map((ids): PlanChange => {
@@ -262,13 +255,9 @@ export function resolveReview(
     const next = review.after.nodes[node.id];
     const oldOrder = old?.kind === 'group' ? old.children : [];
     let newOrder = next?.kind === 'group' ? next.children : [];
-    const common = oldOrder.filter((id) => newOrder.includes(id));
-    const reordered = newOrder.filter((id) => common.includes(id));
+    const moved = reorderedChildren(oldOrder, newOrder);
 
-    if (
-      !same(common, reordered) &&
-      common.filter((id, index) => reordered[index] !== id).every((id) => !choice.get(id))
-    )
+    if (moved.length && moved.every((id) => !choice.get(id)))
       newOrder = [...oldOrder, ...newOrder.filter((id) => !oldOrder.includes(id))];
     const order = newOrder.filter((id) => nodes[id] && selectedOwner.get(id) === node.id);
 
