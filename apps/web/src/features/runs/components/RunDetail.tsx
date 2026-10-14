@@ -375,16 +375,15 @@ export function RunDetail({
       case 'console':
       case 'network':
         return (
-          <div className={studioStyles.studioContent}>
-            <BrowserLogPanel
-              runId={id}
-              kind={panel}
-              enabled={logTab === panel}
-              active={!!run && isActiveRun(run.status) && logTab === panel}
-              revision={run?.browserLogRevision ?? run?.realtimeRevision}
-              elapsedMs={elapsedMs}
-            />
-          </div>
+          <BrowserLogPanel
+            runId={id}
+            kind={panel}
+            enabled={logTab === panel}
+            active={!!run && isActiveRun(run.status) && logTab === panel}
+            revision={run?.browserLogRevision ?? run?.realtimeRevision}
+            elapsedMs={follow ? durationMs : elapsedMs}
+            stepId={selectedStep?.id}
+          />
         );
       case 'logs':
         return <RunLogs id={id} run={run} video={video} trace={trace} diagnostics={diagnostics} />;
