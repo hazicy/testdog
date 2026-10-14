@@ -1,3 +1,10 @@
+.downloadActions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  gap: 4px;
+}
 .label {
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.75rem;

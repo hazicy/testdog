@@ -10,8 +10,12 @@ import { Slider } from '@base-ui/react/slider';
 import { useEffect, useState } from 'react';
 import type { useRunStudio } from '@/features/runs/hooks/useRunStudio';
 import { Button } from '@/components/ui/Button';
+import { buttonStyles } from '@/components/ui/buttonStyles';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { Select } from '@/components/ui/Select';
 import { Icon } from '@iconify/react/offline';
+import videoIcon from '@iconify-icons/lucide/video';
+import archiveIcon from '@iconify-icons/lucide/file-archive';
 import pauseIcon from '@iconify-icons/lucide/pause';
 import resultsIcon from '@iconify-icons/lucide/play';
 import { isActiveRun, type TestRun, type RunArtifact } from '@testdog/contracts/runs/types';
@@ -25,6 +29,7 @@ type Props = {
   frames: RunArtifact[];
   videos: RunArtifact[];
   video?: RunArtifact;
+  trace?: RunArtifact;
   previewUrl?: string;
   clearPreview: () => void;
   durationMs: number;
@@ -38,6 +43,7 @@ export function RunPlayer({
   frames,
   videos,
   video,
+  trace,
   previewUrl,
   clearPreview,
   durationMs,
@@ -101,6 +107,32 @@ export function RunPlayer({
               ? 'BROWSER'
               : run.targetSnapshot.platform.toUpperCase()}
         </span>
+        {(video || trace) && (
+          <div className={styles.downloadActions}>
+            {video && (
+              <Tooltip content="下载录像">
+                <a
+                  href={`${asset(id, video)}?download`}
+                  className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
+                  aria-label="下载录像"
+                >
+                  <Icon icon={videoIcon} width="16" aria-hidden="true" />
+                </a>
+              </Tooltip>
+            )}
+            {trace && (
+              <Tooltip content="下载 Trace">
+                <a
+                  href={`${asset(id, trace)}?download`}
+                  className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
+                  aria-label="下载 Trace"
+                >
+                  <Icon icon={archiveIcon} width="16" aria-hidden="true" />
+                </a>
+              </Tooltip>
+            )}
+          </div>
+        )}
       </div>
       <div className={studioStyles.runReplayPanel}>
         <div data-ui="run-replay-surface" className={studioStyles.runReplaySurface}>

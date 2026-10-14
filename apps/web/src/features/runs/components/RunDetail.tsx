@@ -362,6 +362,7 @@ export function RunDetail({
             frames={frames}
             videos={videos}
             video={video}
+            trace={trace}
             previewUrl={previewUrl}
             clearPreview={clearPreview}
             playback={playback}
@@ -386,8 +387,6 @@ export function RunDetail({
           <RunLogs
             id={id}
             run={run}
-            video={video}
-            trace={trace}
             onStep={(stepId) => {
               const step = steps.get(stepId);
 
