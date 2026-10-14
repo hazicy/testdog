@@ -4,7 +4,7 @@
 
   /* White workspace, neutral supporting surfaces and the existing brand accent. */
   --page: #ffffff;
-  --ink: #242629;
+  --ink: #212121;
   --brand: #b45736;
   --brand-foreground: #ffffff;
   --brand-hover: #99482e;
@@ -16,27 +16,27 @@
   /* Surfaces, controls and text */
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-muted: #f5f6f7;
-  --surface-hover: #f8f9fa;
-  --surface-disabled: #f5f6f7;
-  --control-hover: #f0f1f3;
-  --control-line: #d4d7dc;
-  --control-ink: #34373c;
-  --control-muted: #6b7078;
-  --control-placeholder: #747981;
-  --page-line: #e5e7eb;
-  --line-subtle: #eff0f2;
-  --dialog-line: #e5e7eb;
-  --page-muted: #747981;
-  --text-secondary: #5f646d;
-  --text-subtle: #747981;
-  --text-neutral: #747981;
-  --text-disabled: #a1a6ae;
-  --text-faint: #a1a6ae;
-  --table-heading: #5f646d;
-  --status-none: #747981;
-  --badge-surface: #eceef1;
-  --badge-ink: #5f646d;
+  --surface-muted: #f2f2f2;
+  --surface-hover: #f9f9f9;
+  --surface-disabled: #f2f2f2;
+  --control-hover: #ededed;
+  --control-line: #d6d6d6;
+  --control-ink: #3b3b3b;
+  --control-muted: #6b6b6b;
+  --control-placeholder: #6b6b6b;
+  --page-line: #e6e6e6;
+  --line-subtle: #f0f0f0;
+  --dialog-line: #e6e6e6;
+  --page-muted: #6b6b6b;
+  --text-secondary: #616161;
+  --text-subtle: #6b6b6b;
+  --text-neutral: #6b6b6b;
+  --text-disabled: #a6a6a6;
+  --text-faint: #a6a6a6;
+  --table-heading: #616161;
+  --status-none: #6b6b6b;
+  --badge-surface: #e9e9e9;
+  --badge-ink: #616161;
 
   /* Status and feedback */
   --success: #49815a;
@@ -45,52 +45,52 @@
   --success-line: #d7e1d5;
   --danger: #c55348;
   --warning: #cf7800;
-  --cancelled: #747981;
+  --cancelled: #6b6b6b;
   --activity-running: #f16b43;
   --activity-idle: #8da58c;
 
   /* Navigation and avatar */
-  --sidebar: #f8f9fa;
-  --sidebar-hover: #eceef1;
-  --sidebar-muted: #747981;
+  --sidebar: #f9f9f9;
+  --sidebar-hover: #efefef;
+  --sidebar-muted: #6b6b6b;
   --avatar-surface: var(--brand-soft);
   --avatar-ink: var(--brand-hover);
 
   /* Code editor and plan board */
-  --code-surface: #f5f6f7;
-  --editor-gutter: #858b94;
-  --editor-active-line: #f0f1f3;
-  --plan-grid: #e5e7eb;
-  --plan-line: #d4d7dc;
-  --plan-group: #f5f6f7;
-  --plan-branch: #f8f9fa;
-  --plan-reference-line: #a1a6ae;
-  --plan-reference-ink: #747981;
-  --plan-edge: #a1a6ae;
-  --step-hover: #f8f9fa;
-  --step-selected: var(--brand-soft);
+  --code-surface: #f9f9f9;
+  --editor-gutter: #8c8c8c;
+  --editor-active-line: #f0f0f0;
+  --plan-grid: #e6e6e6;
+  --plan-line: #d6d6d6;
+  --plan-group: #f2f2f2;
+  --plan-branch: #f9f9f9;
+  --plan-reference-line: #a6a6a6;
+  --plan-reference-ink: #6b6b6b;
+  --plan-edge: #a6a6a6;
+  --step-hover: #f9f9f9;
+  --step-selected: var(--badge-surface);
   --step-success: var(--success);
   --step-success-line: var(--success-line);
 
   /* Canvas nodes, review states and composer overlays */
-  --canvas-line: #e5e7eb;
-  --canvas-divider: #eceef1;
-  --canvas-ink: #242629;
-  --canvas-panel-shadow: #2536530d;
-  --canvas-panel-shadow-soft: #25365306;
-  --canvas-shadow: #25365308;
-  --canvas-preview-shadow: #25365312;
+  --canvas-line: var(--page-line);
+  --canvas-divider: var(--line-subtle);
+  --canvas-ink: var(--ink);
+  --canvas-panel-shadow: #0000000d;
+  --canvas-panel-shadow-soft: #00000006;
+  --canvas-shadow: #00000008;
+  --canvas-preview-shadow: #00000012;
   --canvas-task-line: #a8c9ff;
   --canvas-node-line: #b6d2ff;
   --canvas-assert-line: #a1e7c8;
   --canvas-login-line: #d6b5ff;
   --canvas-files-line: #ffd09b;
   --canvas-screenshot-line: #d3dbe6;
-  --canvas-group-line: #e3e5e8;
+  --canvas-group-line: var(--page-line);
   --canvas-branch-line: #d8c5ef;
   --canvas-selected-ring: #b6d2ff33;
   --canvas-active-line: #b7c7d9;
-  --canvas-node-ink: #191b1e;
+  --canvas-node-ink: var(--ink);
   --review-accept-ink: #16845c;
   --review-accept-soft: #edf9f1;
   --review-reject-ink: #c45858;
@@ -103,7 +103,7 @@
   --review-removed-line: #e6b2ad;
   --review-before-ink: #a47672;
   --canvas-group-ink: #f58a00;
-  --canvas-path-ink: #717780;
+  --canvas-path-ink: var(--text-subtle);
   --step-task-ink: #1755ff;
   --step-task-line: #9bc3ff;
   --step-task-soft: #eff6ff;
@@ -129,17 +129,17 @@
   --canvas-insert-line: #99b7e8;
   --canvas-insert-soft: #f5f8ff;
   --canvas-menu-shadow: #00000018;
-  --canvas-menu-ink: #202328;
-  --canvas-menu-hover: #f1f5fb;
+  --canvas-menu-ink: var(--ink);
+  --canvas-menu-hover: var(--surface-muted);
   --composer-backdrop: #ffffffb3;
-  --canvas-action-hover: #f3f4f6;
+  --canvas-action-hover: var(--control-hover);
   --canvas-evidence-shadow: #0001;
 
   /* Run preview */
-  --preview: #f0f1f3;
-  --preview-dark: #242629;
-  --preview-icon: #858b94;
-  --preview-ink: #747981;
+  --preview: #f2f2f2;
+  --preview-dark: #212121;
+  --preview-icon: #8c8c8c;
+  --preview-ink: #6b6b6b;
   --window-close: #e5ad98;
   --window-minimize: #dfcf9a;
   --window-expand: #b9c3a4;
@@ -147,7 +147,7 @@
   /* Overlays and compatibility aliases */
   --shadow: #0002;
   --backdrop: #0005;
-  --plan-shadow: #25365308;
+  --plan-shadow: #00000008;
   --background: var(--page);
   --foreground: var(--ink);
   --accent: var(--brand);

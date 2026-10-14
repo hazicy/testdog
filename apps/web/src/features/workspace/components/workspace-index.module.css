@@ -242,7 +242,7 @@
   }
   & tbody tr:hover td:first-child,
   & tbody tr:focus-within td:first-child {
-    box-shadow: inset 2px 0 var(--brand-line);
+    box-shadow: inset 2px 0 var(--control-line);
   }
 }
 .workspaceIndexTitle {

@@ -45,7 +45,7 @@
 
   .appShellHeader {
     padding-inline: 20px;
-    background: var(--surface);
+    background: var(--sidebar);
   }
 
   .appShellNavigation,
