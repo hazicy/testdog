@@ -48,6 +48,7 @@ export class NativeActionPlanner implements ActionPlanner {
     return {
       done: result.done,
       steps: result.steps.map((action): PlatformAction => ({ platform: this.platform, action })),
+      ...(response.callId ? { modelCallId: response.callId } : {}),
     };
   }
 }

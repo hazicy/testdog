@@ -13,11 +13,12 @@ type Props = {
   video?: RunArtifact;
   trace?: RunArtifact;
   diagnostics: RunArtifact[];
+  onStep: (id: string) => void;
 };
 
-export function RunLogs({ id, run, video, trace, diagnostics }: Props) {
+export function RunLogs({ id, run, video, trace, diagnostics, onStep }: Props) {
   return (
-    <div className={studioStyles.studioPanel} aria-label="执行日志内容">
+    <div className={studioStyles.studioPanel} aria-label="AI 日志内容">
       {(video || trace || diagnostics.length > 0) && (
         <div className={studioStyles.studioPanelToolbar}>
           <div className={styles.container}>
@@ -51,20 +52,11 @@ export function RunLogs({ id, run, video, trace, diagnostics }: Props) {
           </div>
         </div>
       )}
-      <div className={studioStyles.studioContent}>
-        <div className={styles.transcript}>
-          <ModelUsagePanel
-            id={id}
-            active={!!run && ['queued', 'preparing', 'running', 'finalizing'].includes(run.status)}
-          />
-          {run?.events.map((event, index) => (
-            <div key={index} className={styles.event}>
-              <span className={styles.label}>{new Date(event.at).toLocaleTimeString('zh-CN')}</span>
-              <span className={styles.eventMessage}>{event.message}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <ModelUsagePanel
+        id={id}
+        active={!!run && ['queued', 'preparing', 'running', 'finalizing'].includes(run.status)}
+        onStep={onStep}
+      />
     </div>
   );
 }

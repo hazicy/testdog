@@ -30,6 +30,7 @@ import { claimRun, registerResources, withLease } from '@testdog/server/scheduli
 import { cancelRun, executeRun as executeClaimedRun } from '@testdog/server/runs/run';
 import { executeTestRun as executeRun } from '@testdog/server/testing/executeTestRun';
 import { listBrowserLogs } from '@testdog/server/runs/logs';
+import { listModelCalls, readModelCall } from '@testdog/server/runs/modelUsage';
 import { RunRecorder } from '@testdog/server/runs/recorder';
 import { listResources } from '@testdog/server/scheduling/scheduler';
 import { GET as serveArtifact } from '../../../../apps/web/src/app/api/runs/[id]/artifacts/[artifactId]/route';
@@ -307,6 +308,31 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       value: 'Ada',
     });
     expect(recorded.steps.every((step) => step.status === 'passed')).toBe(true);
+    const calls = await listModelCalls(run.id);
+
+    expect(calls).toHaveLength(6);
+    expect(calls.every((call) => call.hasTrace)).toBe(true);
+    expect(calls.every((call) => !('trace' in call))).toBe(true);
+    const fillStep = recorded.steps[1];
+    const fillCall = await readModelCall(run.id, fillStep.modelCallId!);
+
+    expect(fillCall.trace?.tools).toEqual([
+      expect.objectContaining({
+        id: fillStep.toolCallId,
+        name: 'fill',
+        arguments: expect.stringContaining('Ada'),
+      }),
+    ]);
+    expect(fillCall.steps).toEqual([
+      expect.objectContaining({
+        id: fillStep.id,
+        status: 'passed',
+        toolCallId: fillStep.toolCallId,
+      }),
+    ]);
+    expect(
+      (await readModelCall(run.id, recorded.steps.at(-1)!.modelCallId!)).trace?.reply,
+    ).toContain('Welcome Ada');
     expect(
       recorded.artifacts.filter((item) => item.kind === 'screenshot').length,
     ).toBeGreaterThanOrEqual(11);
@@ -384,6 +410,16 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     const failed = saved.steps.find((step) => step.status === 'failed')!;
 
     expect(failed.kind).toBe('assertion');
+    const assertionCall = await readModelCall(run.id, failed.modelCallId!);
+
+    expect(assertionCall.trace?.reply).toContain('Expected welcome message is missing');
+    expect(assertionCall.steps).toEqual([
+      expect.objectContaining({
+        id: failed.id,
+        status: 'failed',
+        error: expect.stringContaining('Expected welcome message is missing'),
+      }),
+    ]);
     expect(
       saved.artifacts.some((item) => item.stepId === failed.id && item.stage === 'after'),
     ).toBe(true);

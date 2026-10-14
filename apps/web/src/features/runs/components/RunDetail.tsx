@@ -54,14 +54,14 @@ const workspaceTabs = [
   { id: 'recording', label: '编辑录制', reference: 'execution' },
   {
     id: 'logs',
-    label: '执行日志',
+    label: '轨迹',
     reference: 'execution',
     direction: 'below',
     initialHeight: 260,
     initiallyCollapsed: true,
   },
-  { id: 'console', label: 'Console', reference: 'logs' },
-  { id: 'network', label: 'Network', reference: 'logs' },
+  { id: 'console', label: '控制台', reference: 'logs' },
+  { id: 'network', label: '网络', reference: 'logs' },
 ] as const satisfies readonly DockTab[];
 
 const emptySteps: ExecutionStep[] = [];
@@ -386,7 +386,20 @@ export function RunDetail({
           />
         );
       case 'logs':
-        return <RunLogs id={id} run={run} video={video} trace={trace} diagnostics={diagnostics} />;
+        return (
+          <RunLogs
+            id={id}
+            run={run}
+            video={video}
+            trace={trace}
+            diagnostics={diagnostics}
+            onStep={(stepId) => {
+              const step = steps.get(stepId);
+
+              if (step) selectStep(step);
+            }}
+          />
+        );
     }
   }
 

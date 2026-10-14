@@ -77,7 +77,7 @@ test('network supports sorting, resource filtering and structured request inspec
 }, testInfo) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: 'Network', exact: true }).click();
+  await page.getByRole('button', { name: '网络', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Network 记录', exact: true });
   const table = panel.getByRole('table', { name: '网络请求' });
 
@@ -119,7 +119,7 @@ test('console distinguishes levels, expands sources and searches across records'
   page,
 }, testInfo) => {
   await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: 'Console', exact: true }).click();
+  await page.getByRole('button', { name: '控制台', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Console 记录', exact: true });
 
   await expect(panel.locator('details')).toHaveCount(3);

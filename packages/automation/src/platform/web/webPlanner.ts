@@ -88,7 +88,11 @@ export class WebActionPlanner implements ActionPlanner {
     const isDone = /(?:^|\n)\s*DONE\s*$/.test(response.content.text.trim());
 
     if (calls.length === 0 && isDone) {
-      return { done: true, steps: [] as PlatformAction[] };
+      return {
+        done: true,
+        steps: [] as PlatformAction[],
+        ...(response.callId ? { modelCallId: response.callId } : {}),
+      };
     }
 
     if (calls.length === 0 || isDone) {
@@ -126,6 +130,12 @@ export class WebActionPlanner implements ActionPlanner {
     return {
       done: false,
       steps: steps.map((action): PlatformAction => ({ platform: 'web', action })),
+      ...(response.callId
+        ? {
+            modelCallId: response.callId,
+            toolCallIds: calls.map((call) => call.id),
+          }
+        : {}),
     };
   }
 }

@@ -17,3 +17,10 @@ export const time = (ms: number) =>
     .padStart(2, '0')}`;
 export const asset = (runId: string, artifact: RunArtifact) =>
   `/api/runs/${runId}/artifacts/${artifact.id}`;
+
+export const modelCallPurposes: Record<string, string> = {
+  plan: '生成计划',
+  native_action: '动作规划',
+  assertion_result: '断言',
+  branch_result: '分支判断',
+};

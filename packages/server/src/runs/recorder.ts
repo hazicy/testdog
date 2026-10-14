@@ -103,6 +103,8 @@ export class RunRecorder {
         sequence: ++this.sequence,
         kind: event.kind,
         planNodeId: event.planNodeId,
+        modelCallId: event.modelCallId,
+        toolCallId: event.toolCallId,
         title:
           recorded?.action && 'target' in recorded.action && recorded.action.type !== 'navigate'
             ? `${event.title} · ${recorded.action.target.name || recorded.action.target.value}`
@@ -128,6 +130,7 @@ export class RunRecorder {
       const finishedAt = new Date().toISOString();
 
       await finishStep(step.id, {
+        modelCallId: event.modelCallId,
         status: event.phase === 'error' ? 'failed' : 'passed',
         finishedAt,
         durationMs: Date.parse(finishedAt) - Date.parse(step.startedAt),

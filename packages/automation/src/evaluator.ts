@@ -31,6 +31,9 @@ export class SemanticEvaluator implements Evaluator {
       },
     });
 
-    return decisionSchema.parse(response.structuredContent);
+    return {
+      ...decisionSchema.parse(response.structuredContent),
+      ...(response.callId ? { modelCallId: response.callId } : {}),
+    };
   }
 }

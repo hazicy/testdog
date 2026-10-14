@@ -53,11 +53,14 @@ export class DeviceRecorder {
         platformAssertion: event.platformAssertion,
         condition: event.condition,
         planNodeId: event.planNodeId,
+        modelCallId: event.modelCallId,
+        toolCallId: event.toolCallId,
         replayable: binding?.replayable ?? true,
       });
       await this.capture(session, 'before', event.id);
     } else {
       await finishStep(event.id, {
+        modelCallId: event.modelCallId,
         status: event.phase === 'error' ? 'failed' : 'passed',
         finishedAt: new Date().toISOString(),
         durationMs: Date.now() - (this.started.get(event.id) ?? Date.now()),

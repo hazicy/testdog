@@ -760,9 +760,9 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
     '问题',
     '计划画板',
     '编辑录制',
-    '执行日志',
-    'Console',
-    'Network',
+    '轨迹',
+    '控制台',
+    '网络',
     '布局',
   ]) {
     await expect(dialog.getByRole('button', { name, exact: true })).toBeVisible();
@@ -1409,14 +1409,14 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
   await plan.dragTo(execution, { targetPosition: { x: 2, y: 20 } });
   await expect(tabs.locator('.dv-tab').first()).toContainText('计划画板');
   await page.getByRole('button', { name: '执行回放', exact: true }).click();
-  await page.getByRole('button', { name: 'Console', exact: true }).click();
+  await page.getByRole('button', { name: '控制台', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeVisible();
   expect(logReads).toContain('console');
   expect(logReads).not.toContain('network');
-  await page.getByRole('button', { name: 'Network', exact: true }).click();
+  await page.getByRole('button', { name: '网络', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeVisible();
   expect(logReads).toContain('network');
-  await page.getByRole('button', { name: '执行日志', exact: true }).click();
+  await page.getByRole('button', { name: '轨迹', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeHidden();
   await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeHidden();
   await expect(dock.locator('[data-ui~="caseforge-dock"]')).toHaveCount(0);
@@ -1464,10 +1464,10 @@ test('execution studio opens a full height three pane layout', async ({ page }) 
   await expect(page.locator('section[aria-label="执行步骤"]')).toBeVisible();
   const left = await page.getByRole('button', { name: '执行步骤', exact: true }).boundingBox();
   const right = await page.getByRole('button', { name: '执行回放', exact: true }).boundingBox();
-  const bottom = await page.getByRole('button', { name: '执行日志', exact: true }).boundingBox();
+  const bottom = await page.getByRole('button', { name: '轨迹', exact: true }).boundingBox();
 
-  const consoleTab = await page.getByRole('button', { name: 'Console', exact: true }).boundingBox();
-  const networkTab = await page.getByRole('button', { name: 'Network', exact: true }).boundingBox();
+  const consoleTab = await page.getByRole('button', { name: '控制台', exact: true }).boundingBox();
+  const networkTab = await page.getByRole('button', { name: '网络', exact: true }).boundingBox();
 
   const bounds = await studio.boundingBox();
   const replayGroup = studio
@@ -1533,29 +1533,34 @@ test('bottom logs start collapsed and expand on tab selection', async ({ page })
     route.fulfill({ json: { logs: [], nextCursor: null } }),
   );
   await page.goto(`/runs/${run.id}`);
-  const logs = page.getByRole('button', { name: '执行日志', exact: true });
+  const logs = page.getByRole('button', { name: '轨迹', exact: true });
   const group = page.locator('.dv-groupview').filter({ has: logs });
 
   await expect(logs).toHaveAttribute('aria-expanded', 'false');
-  await expect(page.getByLabel('执行日志内容', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('AI 日志内容', { exact: true })).toHaveCount(0);
   expect((await group.boundingBox())!.height).toBeLessThanOrEqual(41);
   await logs.click();
   await expect(logs).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByLabel('执行日志内容', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('AI 日志内容', { exact: true })).toBeVisible();
   expect((await group.boundingBox())!.height).toBeGreaterThan(200);
   await logs.click();
   await expect(logs).toHaveAttribute('aria-expanded', 'false');
-  await page.getByRole('button', { name: 'Console', exact: true }).click();
+  await page.getByRole('button', { name: '控制台', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Network', exact: true }).click();
+  await page.getByRole('button', { name: '网络', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeVisible();
-  for (const name of ['Console', 'Network', 'Console', 'Network']) {
+  for (const name of ['控制台', '网络', '控制台', '网络']) {
     const tab = page.getByRole('button', { name, exact: true });
 
     await tab.focus();
     await tab.press('Enter');
     await expect(tab).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByRole('region', { name: `${name} 记录`, exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('region', {
+        name: `${name === '控制台' ? 'Console' : 'Network'} 记录`,
+        exact: true,
+      }),
+    ).toBeVisible();
   }
 });
 
@@ -1565,7 +1570,7 @@ test('group header actions maximize restore and collapse each group', async ({ p
     route.fulfill({ json: { logs: [], nextCursor: null } }),
   );
   await page.goto(`/runs/${run.id}`);
-  for (const name of ['执行步骤', '执行回放', '执行日志']) {
+  for (const name of ['执行步骤', '执行回放', '轨迹']) {
     const tab = page.locator('[data-ui~="dock-tab-button"]').filter({ hasText: name });
     const group = page.locator('.dv-groupview').filter({ has: tab });
 

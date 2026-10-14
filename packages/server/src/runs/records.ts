@@ -44,6 +44,8 @@ export function runRecord(row: typeof testRuns.$inferSelect): TestRun {
 export function stepRecord(row: typeof runSteps.$inferSelect): ExecutionStep {
   return {
     ...row,
+    modelCallId: optional(row.modelCallId),
+    toolCallId: optional(row.toolCallId),
     surface: optional(row.surface),
     observationRevision: optional(row.observationRevision),
     finishedAt: optional(row.finishedAt),

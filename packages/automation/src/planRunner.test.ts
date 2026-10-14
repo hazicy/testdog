@@ -13,6 +13,65 @@ const evaluator = { evaluate: vi.fn(async () => ({ passed: true, evidence: 'Veri
 
 beforeEach(() => vi.clearAllMocks());
 
+it('associates every dispatched action in a batch with its model and tool call', async () => {
+  const driver = session(false);
+  const planner = {
+    plan: vi
+      .fn<ActionPlanner['plan']>()
+      .mockResolvedValueOnce({
+        done: false,
+        modelCallId: 'model-1',
+        toolCallIds: ['tool-a', 'tool-b'],
+        steps: [
+          { platform: 'ios', action: { type: 'tap', target: { kind: 'identifier', value: 'a' } } },
+          { platform: 'ios', action: { type: 'tap', target: { kind: 'identifier', value: 'b' } } },
+        ],
+      })
+      .mockResolvedValue({ done: true, steps: [] }),
+  };
+
+  await new PlanRunner({ evaluator, session: driver, planner, signal, plan }).record();
+  expect(
+    driver.emit.mock.calls
+      .filter(([event]) => event.phase === 'finish')
+      .map(([event]) => [event.modelCallId, event.toolCallId]),
+  ).toEqual([
+    ['model-1', 'tool-a'],
+    ['model-1', 'tool-b'],
+  ]);
+});
+
+it('associates a failed AI assertion with its model call', async () => {
+  const driver = session();
+  const planner = {
+    plan: vi.fn<ActionPlanner['plan']>().mockResolvedValue({ done: true, steps: [] }),
+  };
+  const failing = {
+    evaluate: vi.fn(async () => ({
+      passed: false,
+      evidence: 'Missing heading',
+      modelCallId: 'model-assertion',
+    })),
+  };
+  const checkedPlan = {
+    ...plan,
+    nodes: { task: { ...plan.nodes.task, assertions: [{ description: 'Heading is visible' }] } },
+  };
+
+  await expect(
+    new PlanRunner({
+      evaluator: failing,
+      session: driver,
+      planner,
+      signal,
+      plan: checkedPlan,
+    }).record(),
+  ).rejects.toThrow('Missing heading');
+  expect(driver.emit).toHaveBeenCalledWith(
+    expect.objectContaining({ phase: 'error', modelCallId: 'model-assertion', kind: 'assertion' }),
+  );
+});
+
 const signal = new AbortController().signal;
 const plan = {
   rootId: 'task',

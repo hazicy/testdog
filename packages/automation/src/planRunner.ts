@@ -58,7 +58,8 @@ export class PlanRunner {
         await this.traced(event, async () => {
           const result = await session.check(assertion, signal);
 
-          if (!result.passed) throw new Error(result.evidence);
+          if (!result.passed)
+            throw Object.assign(new Error(result.evidence), { modelCallId: result.modelCallId });
 
           return result;
         });
@@ -70,7 +71,7 @@ export class PlanRunner {
           );
 
           if (event.assertion ? !result.passed : result.passed !== event.decision)
-            throw new Error(result.evidence);
+            throw Object.assign(new Error(result.evidence), { modelCallId: result.modelCallId });
 
           return result;
         });
@@ -131,7 +132,8 @@ export class PlanRunner {
         async () => {
           const result = await this.evaluate({ assertion }, 'assertion_result');
 
-          if (!result.passed) throw new Error(result.evidence);
+          if (!result.passed)
+            throw Object.assign(new Error(result.evidence), { modelCallId: result.modelCallId });
 
           return result;
         },
@@ -160,7 +162,7 @@ export class PlanRunner {
       if (revision !== session.revision) continue;
       if (decision.done) return;
       if (!decision.steps.length) throw new Error('Planner returned no actions');
-      for (const supplied of decision.steps) {
+      for (const [index, supplied] of decision.steps.entries()) {
         const step = PlatformActionSchema.parse(supplied);
 
         if (step.action.type === 'wait') {
@@ -170,14 +172,20 @@ export class PlanRunner {
           remainingWaitMs -= budget;
           step.action.timeoutMs = budget;
         } else if (++count > 20) throw new Error(`Exceeded 20 actions: ${node.goal}`);
-        await this.action(step);
+        await this.action(step, {
+          modelCallId: decision.modelCallId,
+          toolCallId: decision.toolCallIds?.[index],
+        });
         completedSteps.push(step);
         // The session owns whether dispatched actions require a fresh observation.
         if (session.executionPolicy.reobserveAfterAction || revision !== session.revision) break;
       }
     }
   }
-  private action(action: PlatformAction) {
+  private action(
+    action: PlatformAction,
+    source: Pick<SessionEvent, 'modelCallId' | 'toolCallId'> = {},
+  ) {
     action = PlatformActionSchema.parse(action);
     const { session, signal } = this.options;
 
@@ -197,6 +205,7 @@ export class PlanRunner {
               : 'action',
         title: `${action.action.type}`,
         action,
+        ...source,
       },
       () => session.perform(action, signal),
     );
@@ -224,8 +233,12 @@ export class PlanRunner {
     try {
       const result = await operation();
 
-      signal.throwIfAborted();
       const detail = result && typeof result === 'object' ? result : {};
+
+      if ('modelCallId' in detail && typeof detail.modelCallId === 'string')
+        base.modelCallId = detail.modelCallId;
+
+      signal.throwIfAborted();
 
       await session.emit({
         ...base,
@@ -236,6 +249,13 @@ export class PlanRunner {
 
       return result;
     } catch (error) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'modelCallId' in error &&
+        typeof error.modelCallId === 'string'
+      )
+        base.modelCallId = error.modelCallId;
       try {
         await session.emit({
           ...base,

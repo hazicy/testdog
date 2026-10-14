@@ -60,9 +60,19 @@ it('enforces timeout even for adapters ignoring cancellation', async () => {
     record,
   );
 
-  await expect(model.generate(params)).rejects.toThrow('超时');
+  await expect(
+    model.generate({ messages: [{ role: 'user', content: { type: 'text', text: 'Click next' } }] }),
+  ).rejects.toThrow('超时');
   expect(record).toHaveBeenCalledWith(
-    expect.objectContaining({ status: 'timeout', failedAttempts: 1 }),
+    expect.objectContaining({
+      status: 'timeout',
+      failedAttempts: 1,
+      trace: expect.objectContaining({
+        input: [{ role: 'user', content: 'Click next' }],
+        reply: '',
+        tools: [],
+      }),
+    }),
   );
 });
 it('shares attempt budget across concurrent calls and aborts before calling the provider', async () => {
@@ -78,4 +88,31 @@ it('shares attempt budget across concurrent calls and aborts before calling the 
   controller.abort(new Error('stop'));
   await expect(model.generate({ ...params, signal: controller.signal })).rejects.toThrow('stop');
   expect(generate).toHaveBeenCalledTimes(1);
+});
+
+it('persists the reply and tool calls under the same ID returned to the planner', async () => {
+  const record = vi.fn().mockResolvedValue(undefined);
+  const model = budgetedModel(
+    {
+      generate: async () => ({
+        ...result,
+        content: { type: 'text', text: 'Open the account page' },
+        toolCalls: [{ id: 'tool-1', name: 'click', arguments: '{"ref":"e1"}' }],
+      }),
+    },
+    budget,
+    record,
+  );
+  const response = await model.generate({
+    messages: [{ role: 'user', content: { type: 'text', text: 'PRIVATE INPUT' } }],
+  });
+
+  expect(response.callId).toMatch(/^[\da-f-]{36}$/);
+  expect(record).toHaveBeenCalledWith(
+    expect.objectContaining({
+      id: response.callId,
+      trace: expect.objectContaining({ reply: 'Open the account page', tools: response.toolCalls }),
+    }),
+  );
+  expect(record.mock.calls[0][0].trace.input).toEqual([{ role: 'user', content: 'PRIVATE INPUT' }]);
 });

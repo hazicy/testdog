@@ -42,19 +42,3 @@
     }
   }
 }
-.transcript {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
-  line-height: 1.75rem;
-}
-.event {
-  display: flex;
-  gap: 1rem;
-}
-.label {
-  flex-shrink: 0;
-  color: var(--page-muted);
-}
-.eventMessage {
-  color: var(--ink);
-}

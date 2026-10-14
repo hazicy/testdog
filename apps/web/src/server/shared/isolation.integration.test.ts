@@ -45,6 +45,7 @@ import { GET as listRuns, POST as createRun } from '@/app/api/runs/route';
 import { GET as getRun, DELETE as cancelRun } from '@/app/api/runs/[id]/route';
 import { GET as getLogs } from '@/app/api/runs/[id]/logs/route';
 import { GET as getUsage } from '@/app/api/runs/[id]/model-usage/route';
+import { GET as getModelCall } from '@/app/api/runs/[id]/model-usage/[callId]/route';
 import { GET as getPreview } from '@/app/api/runs/[id]/preview/route';
 import {
   GET as getArtifact,
@@ -228,6 +229,11 @@ test('returns 404 for cross-user reads, writes, evidence, logs, recording versio
   for (const handler of [getRun, getLogs, getUsage, getPreview, getRecording, getRunEvents]) {
     expect((await handler(foreign, context(run.id))).status).toBe(404);
   }
+
+  expect(
+    (await getModelCall(foreign, { params: Promise.resolve({ id: run.id, callId: randomUUID() }) }))
+      .status,
+  ).toBe(404);
 
   for (const handler of [getArtifact, headArtifact]) {
     expect(

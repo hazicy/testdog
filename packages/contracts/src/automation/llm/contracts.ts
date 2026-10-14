@@ -69,6 +69,7 @@ export type LLMGenerateParams = {
 };
 
 export type LLMGenerateResult = {
+  callId?: string;
   model?: string;
   usage?: { inputTokens: number; outputTokens: number };
   role: 'assistant';

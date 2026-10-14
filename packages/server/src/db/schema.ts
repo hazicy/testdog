@@ -22,6 +22,7 @@ import {
 import { sql } from 'drizzle-orm';
 import type { Plan, Assertion } from '@testdog/contracts/automation/compiler/schema';
 import type { BrowserLog, RecordingOperation } from '@testdog/contracts/runs/types';
+import type { ModelCallTrace } from '@testdog/contracts/runs/modelCalls';
 
 export const authUsers = pgTable('auth_users', {
   id: text().primaryKey(),
@@ -188,6 +189,8 @@ export const runSteps = pgTable(
       .references(() => testRuns.id, { onDelete: 'cascade' }),
     surface: jsonb().$type<Observation['surface']>(),
     observationRevision: integer(),
+    modelCallId: uuid().references(() => modelCalls.id, { onDelete: 'set null' }),
+    toolCallId: text(),
     sequence: integer().notNull(),
     kind: text({ enum: ['navigate', 'action', 'assertion', 'wait', 'branch'] }).notNull(),
     title: text().notNull(),
@@ -389,6 +392,7 @@ export const modelCalls = pgTable(
     inputTokens: integer(),
     outputTokens: integer(),
     errorCode: text(),
+    trace: jsonb().$type<ModelCallTrace>(),
   },
   (table) => [index('model_calls_run_idx').on(table.runId, table.startedAt, table.id)],
 );

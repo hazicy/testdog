@@ -26,6 +26,8 @@ export type RecordingOperation = {
   decision?: boolean;
 };
 export type ExecutionStep = RecordingOperation & {
+  modelCallId?: string;
+  toolCallId?: string;
   observationRevision?: number;
   id: string;
   runId: string;
@@ -130,6 +132,8 @@ export type RunSummary = Pick<
 >;
 export type StepSignal = {
   id: string;
+  modelCallId?: string;
+  toolCallId?: string;
   phase: 'start' | 'finish' | 'error';
   planNodeId?: string;
   kind: ExecutionStep['kind'];

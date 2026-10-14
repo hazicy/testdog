@@ -1,7 +1,11 @@
 import { setTimeout as delay } from 'node:timers/promises';
+import { randomUUID } from 'node:crypto';
 import type { ModelClient, LLMGenerateResult } from '@testdog/contracts/automation/llm/contracts';
+import type { ModelCallTrace } from '@testdog/contracts/runs/modelCalls';
+import { modelTrace } from './modelTrace';
 
 export type ModelCallMetric = {
+  id: string;
   startedAt: string;
   durationMs: number;
   model: string;
@@ -11,6 +15,7 @@ export type ModelCallMetric = {
   inputTokens?: number;
   outputTokens?: number;
   errorCode?: string;
+  trace?: ModelCallTrace;
 };
 export type ModelBudget = {
   timeoutMs: number;
@@ -74,6 +79,7 @@ export function budgetedModel(
         )
           throw new Error('测试 AI 调用预算已耗尽');
         const start = Date.now();
+        const callId = randomUUID();
         const startedAt = new Date(start).toISOString();
         const controller = new AbortController();
         const signal = params.signal
@@ -139,9 +145,19 @@ export function budgetedModel(
             }
           }
 
+          result = {
+            ...result,
+            callId,
+            toolCalls: (result.toolCalls || []).map((call, index) => ({
+              ...call,
+              id: call.id || `${callId}:${index}`,
+            })),
+          };
+
           return result;
         } catch (error) {
           failure = error;
+          if (error instanceof Error) Object.assign(error, { modelCallId: callId });
           throw error;
         } finally {
           clearTimeout(timer);
@@ -149,6 +165,7 @@ export function budgetedModel(
 
           duration += durationMs;
           await record({
+            id: callId,
             startedAt,
             durationMs,
             model: result?.model ?? 'deepseek-flash',
@@ -162,7 +179,8 @@ export function budgetedModel(
             retryCount,
             failedAttempts,
             ...result?.usage,
-            // Never persist raw provider errors, prompts, credentials or page contents.
+            trace: modelTrace(params, result),
+            // Provider failures may contain credentials; retain only their error class.
             errorCode: result ? undefined : failure instanceof Error ? failure.name : 'UNKNOWN',
           });
         }

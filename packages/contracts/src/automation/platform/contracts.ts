@@ -105,7 +105,7 @@ export const PlatformAssertionSchema = z
       ctx.addIssue({ code: 'custom', message: 'This assertion requires a target' });
   });
 export type PlatformAssertion = z.infer<typeof PlatformAssertionSchema>;
-export type CheckResult = { passed: boolean; evidence: string };
+export type CheckResult = { passed: boolean; evidence: string; modelCallId?: string };
 export type ReplayBinding = { action: PlatformAction; replayable: boolean };
 export type CaptureRequest = {
   kind: 'screenshot' | 'snapshot' | 'video' | 'device-trace' | 'log';
@@ -121,6 +121,8 @@ export type ArtifactDescriptor = {
 
 export type SessionEvent = {
   id: string;
+  modelCallId?: string;
+  toolCallId?: string;
   phase: 'start' | 'finish' | 'error';
   kind: 'navigate' | 'action' | 'wait' | 'assertion' | 'branch';
   title: string;
@@ -165,7 +167,12 @@ export interface ActionPlanner {
     capabilities: CapabilitySet;
     completedSteps: PlatformAction[];
     remainingWaitMs: number;
-  }): Promise<{ done: boolean; steps: PlatformAction[] }>;
+  }): Promise<{
+    done: boolean;
+    steps: PlatformAction[];
+    modelCallId?: string;
+    toolCallIds?: string[];
+  }>;
 }
 export type RunnerOptions = {
   plan: Plan;
