@@ -48,7 +48,7 @@ export type RunArtifact = {
   id: string;
   runId: string;
   stepId?: string;
-  kind: 'screenshot' | 'video' | 'trace' | 'snapshot' | 'log' | 'device-trace';
+  kind: 'screenshot' | 'video' | 'trace';
   stage: 'before' | 'after' | 'live' | 'final';
   pageId: string;
   pageUrl: string;

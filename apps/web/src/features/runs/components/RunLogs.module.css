@@ -14,31 +14,3 @@
     }
   }
 }
-.details {
-  position: relative;
-  font-size: 10px;
-  color: var(--page-muted);
-}
-.summary {
-  cursor: pointer;
-}
-.diagnosticLinks {
-  position: absolute;
-  right: 0px;
-  z-index: 10;
-  max-height: 15rem;
-  min-width: 12rem;
-  overflow: auto;
-  border: 1px solid var(--page-line);
-  background-color: var(--surface-raised);
-  padding: 0.75rem;
-}
-.diagnosticLink {
-  display: block;
-  padding-block: 0.25rem;
-  @media (hover: hover) {
-    &:hover {
-      color: var(--brand);
-    }
-  }
-}

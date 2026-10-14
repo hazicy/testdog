@@ -1,7 +1,7 @@
 import type { Browser } from 'playwright';
 import type { WebTarget } from '@testdog/contracts/automation/platform/target';
 
-const webArtifacts = ['screenshot', 'snapshot', 'video', 'trace', 'console', 'network'];
+const webArtifacts = ['screenshot', 'video', 'trace', 'console', 'network'];
 
 export interface BrowserConnection {
   browser: Browser;

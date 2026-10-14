@@ -1,4 +1,4 @@
-import { NativeDiagnostics } from '@testdog/automation/platform/native/nativeDiagnostics';
+import { NativeVideoRecorder } from '@testdog/automation/platform/native/nativeVideoRecorder';
 import { readFile, rm, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -32,7 +32,7 @@ export class AgentDeviceSession implements AutomationSession {
   private nodes: SnapshotNode[] = [];
   private viewport?: { width: number; height: number };
   private closing?: Promise<void>;
-  private diagnostics: NativeDiagnostics;
+  private videoRecorder: NativeVideoRecorder;
   private constructor(
     readonly id: string,
     private target: NativeTarget,
@@ -44,18 +44,11 @@ export class AgentDeviceSession implements AutomationSession {
     const settings = target.evidence || {};
     const enabled = {
       video: settings.video && available.includes('record'),
-      trace: settings.trace && available.includes('trace'),
-      logs: settings.logs && available.includes('logs'),
     };
 
-    for (const [key, command] of [
-      ['video', 'record'],
-      ['trace', 'trace'],
-      ['logs', 'logs'],
-    ] as const)
-      if (settings[key] && !available.includes(command))
-        throw new Error(`Device lacks requested evidence capability: ${key}`);
-    this.diagnostics = new NativeDiagnostics(client, id, enabled);
+    if (settings.video && !available.includes('record'))
+      throw new Error('Device lacks requested evidence capability: video');
+    this.videoRecorder = new NativeVideoRecorder(client, enabled);
     this.platform = target.platform;
     this.capabilities = {
       actions: [
@@ -68,13 +61,7 @@ export class AgentDeviceSession implements AutomationSession {
       ]
         .filter(([, command]) => available.includes(command))
         .map(([action]) => action),
-      artifacts: [
-        'screenshot',
-        'snapshot',
-        ...(enabled.video ? ['video'] : []),
-        ...(enabled.trace ? ['device-trace'] : []),
-        ...(enabled.logs ? ['log'] : []),
-      ],
+      artifacts: ['screenshot', ...(enabled.video ? ['video'] : [])],
       assertions: ['semantic', 'visible', 'text', 'value'],
       observations: ['accessibility-nodes', 'viewport', 'app'],
     };
@@ -193,7 +180,7 @@ export class AgentDeviceSession implements AutomationSession {
         onEvent,
       );
 
-      await session.diagnostics.start(signal);
+      await session.videoRecorder.start(signal);
 
       return session;
     } catch (error) {
@@ -424,17 +411,7 @@ export class AgentDeviceSession implements AutomationSession {
   }
   async capture(request: CaptureRequest, signal: AbortSignal): Promise<ArtifactDescriptor[]> {
     this.assertOpen();
-    if (request.kind === 'snapshot')
-      return [
-        {
-          kind: 'snapshot',
-          bytes: Buffer.from(JSON.stringify(this.observation ?? (await this.observe(signal)))),
-          contentType: 'application/json',
-          producer: 'agent-device',
-          format: 'caseforge-observation-v1',
-        },
-      ];
-    if (request.kind !== 'screenshot') return this.diagnostics.capture(request, signal);
+    if (request.kind !== 'screenshot') return this.videoRecorder.capture(request, signal);
     const directory = await mkdtemp(join(tmpdir(), 'caseforge-capture-'));
 
     try {
@@ -464,7 +441,7 @@ export class AgentDeviceSession implements AutomationSession {
     return this.client.capture.screenshot({ path, signal });
   }
   get safeToRelease() {
-    return this.diagnostics.safeToRelease;
+    return this.videoRecorder.safeToRelease;
   }
   private assertOpen() {
     if (this.closing) throw new Error('Native session is closing or closed');
@@ -476,14 +453,14 @@ export class AgentDeviceSession implements AutomationSession {
     const failures: unknown[] = [];
 
     try {
-      await this.diagnostics.stop(AbortSignal.timeout(20000));
+      await this.videoRecorder.stop(AbortSignal.timeout(20000));
     } catch (error) {
       failures.push(error);
     }
 
     try {
       await this.client.sessions.close({ signal: AbortSignal.timeout(30000) });
-      await this.diagnostics.cleanup();
+      await this.videoRecorder.cleanup();
     } catch (error) {
       failures.push(error);
     }

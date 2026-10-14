@@ -22,7 +22,7 @@ export class PlaywrightSession implements AutomationSession {
   readonly executionPolicy = { reobserveAfterAction: false };
   readonly capabilities = {
     actions: ['navigate', 'click', 'fill', 'press', 'wait', 'screenshot'],
-    artifacts: ['screenshot', 'snapshot', 'video', 'trace', 'console', 'network'],
+    artifacts: ['screenshot', 'video', 'trace', 'console', 'network'],
     assertions: ['semantic', 'visible', 'text', 'containsText', 'value', 'url'],
     observations: ['aria-tree', 'url', 'focused-element'],
   };
@@ -40,7 +40,6 @@ export class PlaywrightSession implements AutomationSession {
     page: Page,
     private hooks: ExecutionHooks = {},
     private useTouch = false,
-    private captureEvidence?: (session: AutomationSession, event: SessionEvent) => Promise<void>,
   ) {
     this.session = new BrowserSession(page);
     page.context().pages().forEach(this.registerPage);
@@ -176,16 +175,6 @@ export class PlaywrightSession implements AutomationSession {
   }
   async capture(request: CaptureRequest, signal: AbortSignal): Promise<ArtifactDescriptor[]> {
     signal.throwIfAborted();
-    if (request.kind === 'snapshot')
-      return [
-        {
-          kind: 'snapshot',
-          bytes: Buffer.from(JSON.stringify(await this.observe(signal))),
-          contentType: 'application/json',
-          producer: 'playwright',
-          format: 'caseforge-observation-v1',
-        },
-      ];
     if (request.kind !== 'screenshot')
       throw new Error('Web video/trace are exported during context finalization');
 
@@ -207,7 +196,6 @@ export class PlaywrightSession implements AutomationSession {
 
     this.hooks.onPage?.(page);
     await this.hooks.onStep?.(event, page);
-    await this.captureEvidence?.(this, event);
   }
 
   async close() {

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AgentDeviceClient } from 'agent-device';
 import { expect, it, vi } from 'vitest';
-import { NativeDiagnostics } from '@testdog/automation/platform/native/nativeDiagnostics';
+import { NativeVideoRecorder } from '@testdog/automation/platform/native/nativeVideoRecorder';
 
 it('retains quarantine when native recorder termination is unconfirmed', async () => {
   let path = '';
@@ -23,15 +23,15 @@ it('retains quarantine when native recorder termination is unconfirmed', async (
     };
   });
   const client = { recording: { record } } as unknown as AgentDeviceClient;
-  const diagnostics = new NativeDiagnostics(client, 'owned-session', { video: true });
+  const recorder = new NativeVideoRecorder(client, { video: true });
 
   try {
-    await diagnostics.start(new AbortController().signal);
-    await expect(
-      diagnostics.capture({ kind: 'video' }, new AbortController().signal),
-    ).rejects.toThrow('unconfirmed');
-    expect(diagnostics.safeToRelease).toBe(false);
-    await diagnostics.cleanup();
+    await recorder.start(new AbortController().signal);
+    await expect(recorder.capture({ kind: 'video' }, new AbortController().signal)).rejects.toThrow(
+      'unconfirmed',
+    );
+    expect(recorder.safeToRelease).toBe(false);
+    await recorder.cleanup();
     // Cleanup cannot delete a file that may still have a live writer.
     expect(await (await import('node:fs/promises')).stat(path)).toBeDefined();
   } finally {
@@ -57,14 +57,14 @@ it('rejects an exported file outside the exact capture directory', async () => {
       }),
     },
   } as unknown as AgentDeviceClient;
-  const diagnostics = new NativeDiagnostics(client, 'owned-session', { video: true });
+  const recorder = new NativeVideoRecorder(client, { video: true });
 
   try {
-    await diagnostics.start(new AbortController().signal);
-    await expect(
-      diagnostics.capture({ kind: 'video' }, new AbortController().signal),
-    ).rejects.toThrow('escaped');
-    await diagnostics.cleanup();
+    await recorder.start(new AbortController().signal);
+    await expect(recorder.capture({ kind: 'video' }, new AbortController().signal)).rejects.toThrow(
+      'escaped',
+    );
+    await recorder.cleanup();
     expect(await (await import('node:fs/promises')).stat(file)).toBeDefined();
   } finally {
     await rm(outside, { recursive: true, force: true });
@@ -89,17 +89,16 @@ it('shares a pending video export with concurrent finalization', async () => {
 
     return { recording: 'stopped', recorder: 'confirmed', outPath: path };
   });
-  const diagnostics = new NativeDiagnostics(
+  const recorder = new NativeVideoRecorder(
     { recording: { record } } as unknown as AgentDeviceClient,
-    'owned-session',
     { video: true },
   );
   const signal = new AbortController().signal;
 
   try {
-    await diagnostics.start(signal);
-    const capturing = diagnostics.capture({ kind: 'video' }, signal);
-    const stopping = diagnostics.stop(signal);
+    await recorder.start(signal);
+    const capturing = recorder.capture({ kind: 'video' }, signal);
+    const stopping = recorder.stop(signal);
 
     release();
     const artifacts = await capturing;
@@ -107,9 +106,9 @@ it('shares a pending video export with concurrent finalization', async () => {
     await stopping;
     expect(record.mock.calls.filter(([options]) => options.action === 'stop')).toHaveLength(1);
     expect(artifacts[0].bytes.toString()).toBe('owned video');
-    expect(await diagnostics.capture({ kind: 'video' }, signal)).toEqual(artifacts);
-    expect(diagnostics.safeToRelease).toBe(true);
+    expect(await recorder.capture({ kind: 'video' }, signal)).toEqual(artifacts);
+    expect(recorder.safeToRelease).toBe(true);
   } finally {
-    await diagnostics.cleanup();
+    await recorder.cleanup();
   }
 });

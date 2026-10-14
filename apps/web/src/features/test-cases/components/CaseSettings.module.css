@@ -22,19 +22,7 @@
   line-height: 1rem;
   color: var(--page-muted);
 }
-.fieldset {
-  & > :not(:last-child) {
-    margin-block-start: 0;
-    margin-block-end: 0.5rem;
-  }
-  font-size: 0.75rem;
-  line-height: 1rem;
-  color: var(--page-muted);
-}
-.legend {
-  margin-bottom: 0.5rem;
-}
-.diagnosticOption {
+.videoOption {
   display: flex;
   align-items: center;
   gap: 0.5rem;

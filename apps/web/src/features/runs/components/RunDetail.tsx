@@ -147,10 +147,6 @@ export function RunDetail({
     [issuePages, id],
   );
   const { frames, videos, trace, stepFrames, steps } = useMemo(() => indexRun(run), [run]);
-  const diagnostics =
-    run?.artifacts.filter((artifact) =>
-      ['snapshot', 'log', 'device-trace'].includes(artifact.kind),
-    ) || [];
   const currentIndex = follow
     ? Math.max(0, frames.length - 1)
     : (evidenceIndex ??
@@ -392,7 +388,6 @@ export function RunDetail({
             run={run}
             video={video}
             trace={trace}
-            diagnostics={diagnostics}
             onStep={(stepId) => {
               const step = steps.get(stepId);
 

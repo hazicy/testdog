@@ -108,11 +108,11 @@ export type PlatformAssertion = z.infer<typeof PlatformAssertionSchema>;
 export type CheckResult = { passed: boolean; evidence: string; modelCallId?: string };
 export type ReplayBinding = { action: PlatformAction; replayable: boolean };
 export type CaptureRequest = {
-  kind: 'screenshot' | 'snapshot' | 'video' | 'device-trace' | 'log';
+  kind: 'screenshot' | 'video';
   path?: string;
 };
 export type ArtifactDescriptor = {
-  kind: 'screenshot' | 'snapshot' | 'video' | 'device-trace' | 'log';
+  kind: 'screenshot' | 'video';
   contentType: string;
   bytes: Uint8Array;
   producer: string;

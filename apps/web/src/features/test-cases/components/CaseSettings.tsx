@@ -217,25 +217,14 @@ export function CaseSettings({
               ]}
             />
           </Label>
-          <fieldset className={styles.fieldset}>
-            <legend className={styles.legend}>诊断附件</legend>
-            {(
-              [
-                ['nativeVideo', '视频'],
-                ['nativeTrace', '设备 trace'],
-                ['nativeLogs', '应用日志'],
-              ] as const
-            ).map(([field, label]) => (
-              <label key={field} className={styles.diagnosticOption}>
-                <Checkbox
-                  checked={value[field]}
-                  disabled={busy}
-                  onCheckedChange={(checked) => onChange({ [field]: checked })}
-                />{' '}
-                {label}
-              </label>
-            ))}
-          </fieldset>
+          <label className={styles.videoOption}>
+            <Checkbox
+              checked={value.nativeVideo}
+              disabled={busy}
+              onCheckedChange={(checked) => onChange({ nativeVideo: checked })}
+            />{' '}
+            视频
+          </label>
           <Label>
             启动链接（可选）
             <Input

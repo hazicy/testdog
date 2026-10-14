@@ -26,8 +26,6 @@ const nativeFields = {
   evidence: z
     .strictObject({
       video: z.boolean().optional(),
-      trace: z.boolean().optional(),
-      logs: z.boolean().optional(),
     })
     .optional(),
   schemaVersion: z.literal(1).default(1),

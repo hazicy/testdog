@@ -82,19 +82,9 @@ export class DeviceRecorder {
         this.samplePending = false;
       });
   }
-  async finalizeDiagnostics(session: AutomationSession) {
-    const failures: unknown[] = [];
-
-    for (const kind of ['video', 'device-trace', 'log'] as const) {
-      if (!session.capabilities.artifacts.includes(kind)) continue;
-      try {
-        await this.evidence.capture(session, { kind }, 'final');
-      } catch (error) {
-        failures.push(error);
-      }
-    }
-
-    if (failures.length) throw new AggregateError(failures, 'Native diagnostics incomplete');
+  async finalizeVideo(session: AutomationSession) {
+    if (session.capabilities.artifacts.includes('video'))
+      await this.evidence.capture(session, { kind: 'video' }, 'final');
   }
   async drain() {
     this.stopping = true;
@@ -118,7 +108,6 @@ export class DeviceRecorder {
       }
 
       await this.evidence.capture(session, { kind: 'screenshot' }, stage, stepId);
-      await this.evidence.capture(session, { kind: 'snapshot' }, stage, stepId);
     });
 
     this.captureQueue = job.catch((error) => {

@@ -14,7 +14,7 @@ import { PersistenceQueue } from '@testdog/server/runs/persistenceQueue';
 
 beforeEach(() => vi.clearAllMocks());
 
-it('captures snapshot bytes and surface before queued storage while finalization waits', async () => {
+it('captures screenshot bytes and surface before queued storage while finalization waits', async () => {
   const root = await mkdtemp(join(tmpdir(), 'caseforge-evidence-'));
 
   vi.stubEnv('CASEFORGE_DATA_DIR', root);
@@ -38,14 +38,14 @@ it('captures snapshot bytes and surface before queued storage while finalization
       surface: { platform: 'web', id: 'page-1', url: 'https://example.com/before' },
     },
     capture: vi.fn(async () => [
-      { kind: 'snapshot', bytes: Buffer.from('before snapshot'), contentType: 'application/json' },
+      { kind: 'screenshot', bytes: Buffer.from('before screenshot'), contentType: 'image/png' },
     ]),
   };
 
   try {
     await sink.capture(
       session as unknown as AutomationSession,
-      { kind: 'snapshot' },
+      { kind: 'screenshot' },
       'before',
       'step',
     );
@@ -63,7 +63,7 @@ it('captures snapshot bytes and surface before queued storage while finalization
       stage: 'before',
       stepId: 'step',
     });
-    expect((await readFile(path)).toString()).toBe('before snapshot');
+    expect((await readFile(path)).toString()).toBe('before screenshot');
     sink.assertComplete();
   } finally {
     release();
@@ -87,31 +87,31 @@ it('keeps an earlier capture failure visible even after later evidence is saved 
       .mockRejectedValueOnce(new Error('capture disconnected'))
       .mockResolvedValueOnce([
         {
-          kind: 'snapshot',
-          bytes: Buffer.from('{"redacted":true}'),
-          contentType: 'application/json',
+          kind: 'screenshot',
+          bytes: Buffer.from('screenshot bytes'),
+          contentType: 'image/png',
           producer: 'agent-device',
-          format: 'caseforge-observation-v1',
+          format: 'png',
         },
       ]),
   } as unknown as AutomationSession;
 
   try {
-    await expect(sink.capture(session, { kind: 'snapshot' }, 'before', 'step')).rejects.toThrow(
+    await expect(sink.capture(session, { kind: 'screenshot' }, 'before', 'step')).rejects.toThrow(
       'disconnected',
     );
-    await sink.capture(session, { kind: 'snapshot' }, 'after', 'step');
+    await sink.capture(session, { kind: 'screenshot' }, 'after', 'step');
     expect(() => sink.assertComplete()).toThrow('disconnected');
     const [artifact, path] = persistence.insert.mock.calls[0];
 
     expect(artifact).toMatchObject({
       runId: run.id,
       stepId: 'step',
-      kind: 'snapshot',
+      kind: 'screenshot',
       producer: 'agent-device',
-      format: 'caseforge-observation-v1',
+      format: 'png',
     });
-    expect((await readFile(path)).toString()).toBe('{"redacted":true}');
+    expect((await readFile(path)).toString()).toBe('screenshot bytes');
   } finally {
     vi.unstubAllEnvs();
     await rm(root, { recursive: true, force: true });

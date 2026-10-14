@@ -30,7 +30,7 @@ vi.mock('@testdog/server/runs/deviceRecorder', () => ({
     sample = vi.fn();
     drain = mocks.drain;
     capture = mocks.capture;
-    finalizeDiagnostics = mocks.diagnostics;
+    finalizeVideo = mocks.diagnostics;
   },
 }));
 import { browserConnection } from '@testdog/automation/platform/web/providers/contracts';

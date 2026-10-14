@@ -161,7 +161,7 @@ test('native setup validates required selection and submits custom checkbox valu
     target: {
       platform: 'ios',
       deviceProfileId: 'iphone-fixture',
-      evidence: { video: true, trace: false, logs: false },
+      evidence: { video: true },
     },
   });
   release();

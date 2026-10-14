@@ -5,7 +5,6 @@ import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
 import { SemanticEvaluator, type Evaluator } from '@testdog/automation/evaluator';
 import { modelClient } from '@testdog/server/shared/model';
 import { previewInterval } from '@testdog/server/realtime/preview';
-import { EvidenceSink } from '@testdog/server/runs/evidenceSink';
 import type { BrowserContext, BrowserContextOptions } from 'playwright';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import { AgentDeviceSession } from '@testdog/automation/platform/native/agentDeviceSession';
@@ -95,7 +94,7 @@ export async function openPlatformRuntime(input: {
         for (const job of [
           () => recorder.drain(),
           () => recorder.capture(session, 'final'),
-          () => recorder.finalizeDiagnostics(session),
+          () => recorder.finalizeVideo(session),
         ]) {
           try {
             await job();
@@ -181,15 +180,7 @@ export async function openPlatformRuntime(input: {
     await recorder.start(context, artifacts);
     recorder.onPage(page);
     const hooks = { signal, onPage: recorder.onPage, onStep: recorder.onStep };
-    const evidence = new EvidenceSink(run, persistence);
-    const session = new PlaywrightSession(run.id, page, hooks, profile.hasTouch, (session, event) =>
-      evidence.capture(
-        session,
-        { kind: 'snapshot' },
-        event.phase === 'start' ? 'before' : 'after',
-        event.id,
-      ),
-    );
+    const session = new PlaywrightSession(run.id, page, hooks, profile.hasTouch);
 
     session.capabilities.artifacts = artifacts;
     let browserCleanup: Promise<void> | undefined;
@@ -226,8 +217,6 @@ export async function openPlatformRuntime(input: {
         signal.removeEventListener('abort', stop);
         await session.close();
         await recorder.stop(context!, interrupted);
-
-        evidence.assertComplete();
       },
     };
 

@@ -68,7 +68,7 @@ describe('native session invariants', () => {
 
     expect(second).toBe(first);
     await expect(session.observe(signal)).rejects.toThrow('closing or closed');
-    await expect(session.capture({ kind: 'snapshot' }, signal)).rejects.toThrow(
+    await expect(session.capture({ kind: 'screenshot' }, signal)).rejects.toThrow(
       'closing or closed',
     );
     await expect(

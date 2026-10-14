@@ -360,8 +360,6 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       const supported = session.environment.sdkCommands as string[];
       const evidence = {
         video: supported.includes('record'),
-        trace: supported.includes('trace'),
-        logs: supported.includes('logs'),
       };
 
       await session.close();
@@ -376,7 +374,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         getBuild,
       );
       expect(JSON.stringify(await session.observe(signal))).not.toContain('Welcome Ada');
-      for (const kind of ['video', 'device-trace', 'log'] as const) {
+      for (const kind of ['video'] as const) {
         if (!session.capabilities.artifacts.includes(kind)) continue;
         const artifacts = await session.capture({ kind }, signal);
 

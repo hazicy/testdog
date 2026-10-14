@@ -17,7 +17,6 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
     let batch: { testId: string; variants: unknown[] } | undefined;
     const now = new Date().toISOString();
     const runId = randomUUID();
-    const artifactId = randomUUID();
     let run: TestRun | undefined;
 
     await page.route('**/api/**', async (route) => {
@@ -116,20 +115,7 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
         startedAt: now,
         events: [],
         steps: [],
-        artifacts: [
-          {
-            id: artifactId,
-            runId,
-            kind: 'snapshot',
-            stage: 'final',
-            pageId: 'app',
-            pageUrl: '',
-            capturedAt: now,
-            elapsedMs: 100,
-            contentType: 'application/json',
-            size: 10,
-          },
-        ],
+        artifacts: [],
         replayable: false,
         cancelRequested: false,
         evidenceComplete: false,
@@ -137,11 +123,6 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
       };
       await page.goto(`${process.env.CASEFORGE_UI_URL}/runs/${runId}`);
       await browserExpect(page.getByText(/证据.*完整/).first()).toBeVisible();
-      await page.getByText('观察与诊断 (1)', { exact: true }).click();
-      await browserExpect(page.getByRole('link', { name: /snapshot · final/ })).toHaveAttribute(
-        'href',
-        `/api/runs/${runId}/artifacts/${artifactId}?download`,
-      );
       expect(errors).toEqual([]);
     } catch (error) {
       throw new Error(

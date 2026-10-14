@@ -47,11 +47,8 @@ export class EvidenceSink {
     for (const artifact of artifacts) {
       const id = randomUUID();
       const extension = {
-        snapshot: 'json',
         screenshot: 'png',
         video: 'mp4',
-        'device-trace': 'ndjson',
-        log: 'log',
       }[artifact.kind];
       const path = join(directory, `${id}.${extension}`);
 

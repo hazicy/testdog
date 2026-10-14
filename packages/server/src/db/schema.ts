@@ -229,7 +229,7 @@ export const runArtifacts = pgTable(
       .references(() => testRuns.id, { onDelete: 'cascade' }),
     stepId: uuid().references(() => runSteps.id, { onDelete: 'set null' }),
     kind: text({
-      enum: ['screenshot', 'video', 'trace', 'snapshot', 'log', 'device-trace'],
+      enum: ['screenshot', 'video', 'trace'],
     }).notNull(),
     stage: text({ enum: ['before', 'after', 'live', 'final'] }).notNull(),
     pageId: text().notNull(),
@@ -250,10 +250,7 @@ export const runArtifacts = pgTable(
       table.capturedAt,
       table.id,
     ),
-    check(
-      'run_artifacts_kind_check',
-      sql`${table.kind} in ('screenshot','video','trace','snapshot','log','device-trace')`,
-    ),
+    check('run_artifacts_kind_check', sql`${table.kind} in ('screenshot','video','trace')`),
     check('run_artifacts_stage_check', sql`${table.stage} in ('before','after','live','final')`),
     check('run_artifacts_size_check', sql`${table.size} >= 0 and ${table.elapsedMs} >= 0`),
   ],

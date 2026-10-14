@@ -10,8 +10,6 @@ export type CaseSettingsValue = {
   resetPolicy: 'preserve' | 'clear-data' | 'reinstall';
   launchUrl: string;
   nativeVideo: boolean;
-  nativeTrace: boolean;
-  nativeLogs: boolean;
   tags: string;
 };
 
@@ -29,8 +27,6 @@ export function initialCaseSettings(test?: TestCase): CaseSettingsValue {
     resetPolicy: native?.resetPolicy ?? 'preserve',
     launchUrl: native?.launchUrl ?? '',
     nativeVideo: native?.evidence?.video ?? false,
-    nativeTrace: native?.evidence?.trace ?? false,
-    nativeLogs: native?.evidence?.logs ?? false,
     tags: test?.tags.join(', ') ?? '',
   };
 }
@@ -50,7 +46,7 @@ export function caseTarget(value: CaseSettingsValue) {
         appId: value.appId,
         deviceProfileId: value.deviceProfileId,
         resetPolicy: value.resetPolicy,
-        evidence: { video: value.nativeVideo, trace: value.nativeTrace, logs: value.nativeLogs },
+        evidence: { video: value.nativeVideo },
         ...(value.buildArtifactId ? { buildArtifactId: value.buildArtifactId } : {}),
         ...(value.launchUrl.trim() ? { launchUrl: value.launchUrl.trim() } : {}),
       };

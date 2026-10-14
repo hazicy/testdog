@@ -52,15 +52,15 @@ it('supports loading executions with no captured evidence yet', () => {
   expect(indexRun().trace).toBeUndefined();
 });
 
-it('orders screenshots by capture time and excludes diagnostic artifacts from playback', () => {
+it('orders screenshots by capture time and excludes videos and traces from frame playback', () => {
   const later = { ...frame('later', 'after', 'step'), elapsedMs: 9000 };
   const earlier = { ...frame('earlier', 'before', 'step'), elapsedMs: 1000 };
   const indexed = indexRun({
     steps: [],
     artifacts: [
       later,
-      { ...frame('log', 'final'), kind: 'log', elapsedMs: 20000 },
-      { ...frame('snapshot', 'final'), kind: 'snapshot' },
+      { ...frame('video', 'final'), kind: 'video', elapsedMs: 20000 },
+      { ...frame('trace', 'final'), kind: 'trace' },
       earlier,
     ],
   });
