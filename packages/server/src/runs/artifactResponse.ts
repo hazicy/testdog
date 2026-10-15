@@ -1,7 +1,7 @@
 import { open, realpath } from 'node:fs/promises';
 import { isAbsolute, relative, sep } from 'node:path';
 import { Readable } from 'node:stream';
-import { artifactRoot, readArtifactFile } from '@testdog/server/runs/artifactStorage';
+import { artifactRoot, openRemoteArtifact } from '@testdog/server/runs/artifactStorage';
 
 export type ArtifactFile = { path: string; contentType: string; id: string; kind: string };
 type ArtifactRecord = ArtifactFile & { runId: string };
@@ -82,20 +82,32 @@ export async function artifactResponse(request: Request, artifact: ArtifactFile,
   }
 }
 
-// One HTTP contract for every backend; local files stream directly, objects are read and sliced.
+// Both backends stream only the requested bytes and share the same HTTP contract.
 export async function serveArtifact(request: Request, artifact: ArtifactRecord) {
   if (!artifact.path.startsWith('s3://'))
     return artifactResponse(request, artifact, artifactRoot());
-  const bytes = await readArtifactFile(artifact.runId, artifact.id, artifact.path);
-  const { headers, range, unsatisfiable } = representation(request, artifact, bytes.length);
-
-  if (unsatisfiable) return new Response(null, { status: 416, headers });
-  if (request.method === 'HEAD' || bytes.length === 0) return new Response(null, { headers });
-
-  return new Response(
-    new Uint8Array(bytes.subarray(range?.start ?? 0, (range?.end ?? bytes.length - 1) + 1)),
-    { status: range ? 206 : 200, headers },
+  const remote = await openRemoteArtifact(
+    artifact.runId,
+    artifact.id,
+    artifact.path,
+    request.signal,
   );
+  let streamOwnsClient = false;
+
+  try {
+    const { headers, range, unsatisfiable } = representation(request, artifact, remote.size);
+
+    if (unsatisfiable) return new Response(null, { status: 416, headers });
+    if (request.method === 'HEAD' || remote.size === 0) return new Response(null, { headers });
+    const body = await remote.stream(range);
+    const response = new Response(body, { status: range ? 206 : 200, headers });
+
+    streamOwnsClient = true;
+
+    return response;
+  } finally {
+    if (!streamOwnsClient) remote.close();
+  }
 }
 
 async function readArtifact(request: Request, artifact: ArtifactFile, root: string) {

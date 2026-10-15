@@ -1,8 +1,11 @@
-import { readFile } from 'node:fs/promises';
-import { isAbsolute, join, relative } from 'node:path';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -41,23 +44,26 @@ export async function storeArtifactFile(
 
   if (!config) return { path, rollback: async () => {} };
   const key = `${config.prefix}/${runId}/${id}`;
+  let body: ReturnType<typeof createReadStream> | undefined;
 
   try {
+    const { size } = await stat(path);
+
+    body = createReadStream(path);
     await config.client.send(
       new PutObjectCommand({
         Bucket: config.bucket,
         Key: key,
-        Body: await readFile(path),
+        Body: body,
+        ContentLength: size,
         ContentType: contentType,
       }),
       { abortSignal: AbortSignal.timeout(20000) },
     );
-  } catch (error) {
+  } finally {
+    body?.destroy();
     config.client.destroy();
-    throw error;
   }
-
-  config.client.destroy();
 
   return {
     path: `s3://${config.bucket}/${key}`,
@@ -75,36 +81,68 @@ export async function storeArtifactFile(
   };
 }
 
-export async function readArtifactFile(runId: string, id: string, path: string): Promise<Buffer> {
-  if (path.startsWith('s3://')) {
-    const config = remote();
+// The caller closes metadata-only reads; a returned stream owns the client until closed.
+export async function openRemoteArtifact(
+  runId: string,
+  id: string,
+  path: string,
+  signal: AbortSignal,
+) {
+  const config = remote();
 
-    if (!config || path !== `s3://${config.bucket}/${config.prefix}/${runId}/${id}`) {
-      config?.client.destroy();
-      throw new Error('Invalid artifact object reference');
-    }
-
-    try {
-      const object = await config.client.send(
-        new GetObjectCommand({
-          Bucket: config.bucket,
-          Key: `${config.prefix}/${runId}/${id}`,
-        }),
-        { abortSignal: AbortSignal.timeout(20000) },
-      );
-
-      if (!object.Body) throw new Error('Artifact body unavailable');
-
-      return Buffer.from(await object.Body.transformToByteArray());
-    } finally {
-      config.client.destroy();
-    }
+  if (!config || path !== `s3://${config.bucket}/${config.prefix}/${runId}/${id}`) {
+    config?.client.destroy();
+    throw new Error('Invalid artifact object reference');
   }
 
-  const local = relative(join(artifactRoot(), runId), path);
+  const object = { Bucket: config.bucket, Key: `${config.prefix}/${runId}/${id}` };
+  const close = () => config.client.destroy();
 
-  if (!local || local.startsWith('..') || isAbsolute(local))
-    throw new Error('Invalid artifact path');
+  try {
+    const metadata = await config.client.send(new HeadObjectCommand(object), {
+      abortSignal: AbortSignal.any([signal, AbortSignal.timeout(20000)]),
+    });
+    const size = metadata.ContentLength;
 
-  return readFile(path);
+    if (size === undefined || !Number.isSafeInteger(size) || size < 0)
+      throw new Error('Artifact size unavailable');
+
+    return {
+      size,
+      close,
+      async stream(range?: { start: number; end: number }) {
+        // Bound the wait for headers without cutting off an active large download.
+        const timeout = new AbortController();
+        const timer = setTimeout(() => timeout.abort(), 20000);
+        const result = await config.client
+          .send(
+            new GetObjectCommand({
+              ...object,
+              ...(range ? { Range: `bytes=${range.start}-${range.end}` } : {}),
+              IfMatch: metadata.ETag,
+            }),
+            { abortSignal: AbortSignal.any([signal, timeout.signal]) },
+          )
+          .finally(() => clearTimeout(timer));
+
+        if (!(result.Body instanceof Readable)) throw new Error('Artifact body unavailable');
+        const body = result.Body;
+        const abort = () => body.destroy();
+
+        signal.addEventListener('abort', abort, { once: true });
+        body.once('close', () => {
+          signal.removeEventListener('abort', abort);
+          close();
+        });
+        if (signal.aborted) abort();
+
+        return Readable.toWeb(body, {
+          strategy: { size: (chunk: Uint8Array) => chunk.byteLength },
+        }) as ReadableStream<Uint8Array>;
+      },
+    };
+  } catch (error) {
+    close();
+    throw error;
+  }
 }
