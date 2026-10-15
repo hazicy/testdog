@@ -35,13 +35,140 @@ beforeAll(async () => {
     'utf8',
   );
 
-  server = createServer((_request, response) => {
+  server = createServer((request, response) => {
     response.setHeader('Content-Type', 'text/html');
+    if (request.url === '/login' || request.url === '/register') {
+      const register = request.url === '/register';
+
+      response.end(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"></head><body>
+        <h1>${register ? '创建账号' : '登录 testdog'}</h1>
+        <form>${register ? '<label>姓名<input required></label>' : ''}
+          <label>邮箱<input type="email" required></label>
+          <label>密码<input type="password" required></label>
+          <button>${register ? '注册' : '登录'}</button>
+        </form>
+        <a href="${register ? '/login' : '/register'}">${register ? '登录' : '注册'}</a>
+        <script>document.querySelector('form').onsubmit = event => {
+          event.preventDefault();
+          document.querySelector('h1').textContent = '提交成功';
+          document.querySelector('form').hidden = true;
+        };</script>
+      </body></html>`);
+
+      return;
+    }
+
     response.end(html);
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
 });
+it.skipIf(!enabled)(
+  'switches between login and registration links without repeatedly clicking same-named submit buttons',
+  async () => {
+    const test = await saveTest(
+      {
+        name: '登录注册往返 · 同名链接与按钮',
+        url: `${url}/login`,
+        goal: `打开 ${url}/login。
+点击表单下方的“注册”链接。
+验证页面标题为“创建账号”，并显示姓名、邮箱和密码输入框。
+点击表单下方的“登录”链接。
+验证回到登录页，页面标题为“登录 testdog”。`,
+        tags: ['regression'],
+      },
+      undefined,
+      null,
+    );
+    const run = await createRun({ testId: test.id }, undefined, null);
+
+    await executeRun(run);
+    const result = await getRun(run.id, { userId: null });
+
+    expect(result.status, result.error).toBe('passed');
+    const clicks = result.steps.filter(
+      (step) => step.action?.platform === 'web' && step.action.action.type === 'click',
+    );
+
+    expect(clicks).toHaveLength(2);
+    expect(clicks.map((step) => step.action)).toMatchObject([
+      { action: { target: { kind: 'role', value: 'link', name: '注册' } } },
+      { action: { target: { kind: 'role', value: 'link', name: '登录' } } },
+    ]);
+  },
+  360000,
+);
+it.skipIf(!enabled).each([
+  {
+    name: 'explicit return navigation',
+    goal: '点击表单下方的“注册”链接，然后点击注册页面表单下方的“登录”链接返回登录页。',
+    expected: '页面主标题为“登录 testdog”',
+    clicks: [
+      { action: { target: { kind: 'role', value: 'link', name: '注册' } } },
+      { action: { target: { kind: 'role', value: 'link', name: '登录' } } },
+    ],
+  },
+  {
+    name: 'explicit same-named form submission',
+    goal: '点击表单下方的“注册”链接，在注册页面姓名填写 Ada，邮箱填写 ada@example.com，密码填写 TestPassword123!，然后点击表单的“注册”按钮。',
+    expected: '页面主标题为“提交成功”',
+    clicks: [
+      { action: { target: { kind: 'role', value: 'link', name: '注册' } } },
+      { action: { target: { kind: 'role', value: 'button', name: '注册' } } },
+    ],
+  },
+])(
+  'completes a compound task with $name',
+  async ({ goal, expected, clicks }) => {
+    const test = await saveTest(
+      {
+        name: goal,
+        url: `${url}/login`,
+        goal,
+        tags: ['regression'],
+        plan: {
+          rootId: 'root',
+          nodes: {
+            root: { id: 'root', kind: 'group', goal, children: ['open', 'task'], dependsOn: [] },
+            open: {
+              id: 'open',
+              kind: 'task',
+              actionType: 'navigate',
+              goal: `${url}/login`,
+              dependsOn: [],
+              requirementIds: [],
+              assertions: [],
+            },
+            task: {
+              id: 'task',
+              kind: 'task',
+              actionType: 'act',
+              goal,
+              dependsOn: [],
+              requirementIds: [],
+              assertions: [{ description: expected }],
+            },
+          },
+        },
+      },
+      undefined,
+      null,
+    );
+    const run = await createRun({ testId: test.id }, undefined, null);
+
+    await executeRun(run);
+    const result = await getRun(run.id, { userId: null });
+
+    expect(result.status, result.error).toBe('passed');
+    const actions = result.steps.filter(
+      (step) => step.action?.platform === 'web' && step.action.action.type === 'click',
+    );
+
+    expect(actions).toHaveLength(clicks.length);
+    expect(actions.map((step) => step.action)).toMatchObject(clicks);
+  },
+  360000,
+);
 afterAll(async () => {
   if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
   if (directory) await rm(directory, { recursive: true, force: true });

@@ -10,6 +10,7 @@ import {
   type RunnerOptions,
   type SessionEvent,
   type ReplayStep,
+  type Observation,
 } from '@testdog/contracts/automation/platform/contracts';
 
 // Owns business sequencing only. Driver objects and evidence capture belong to sessions.
@@ -151,6 +152,7 @@ export class PlanRunner {
   private async task(node: Extract<PlanNode, { kind: 'task' }>) {
     const { session, planner, signal } = this.options;
     const completedSteps: PlatformAction[] = [];
+    const completedObservations: Observation[] = [];
     let remainingWaitMs = 15000;
     let count = 0;
 
@@ -163,6 +165,7 @@ export class PlanRunner {
         observation,
         capabilities: session.capabilities,
         completedSteps,
+        completedObservations,
         remainingWaitMs,
       });
 
@@ -185,6 +188,7 @@ export class PlanRunner {
           toolCallId: decision.toolCallIds?.[index],
         });
         completedSteps.push(step);
+        completedObservations.push(observation);
         // The session owns whether dispatched actions require a fresh observation.
         if (session.executionPolicy.reobserveAfterAction || revision !== session.revision) break;
       }

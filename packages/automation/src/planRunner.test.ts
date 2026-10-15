@@ -253,6 +253,9 @@ it.each([true, false])(
 
     expect(driver.perform).toHaveBeenCalledTimes(dispatched);
     expect(planner.plan.mock.calls[1][0].completedSteps).toHaveLength(dispatched);
+    expect(planner.plan.mock.calls[1][0].completedObservations).toEqual(
+      Array.from({ length: dispatched }, () => planner.plan.mock.calls[0][0].observation),
+    );
     expect(driver.observe).toHaveBeenCalledTimes(2);
   },
 );

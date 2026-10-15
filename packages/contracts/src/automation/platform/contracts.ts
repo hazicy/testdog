@@ -166,6 +166,8 @@ export interface ActionPlanner {
     observation: Observation;
     capabilities: CapabilitySet;
     completedSteps: PlatformAction[];
+    /** Observation used to choose each dispatched step, in the same order. */
+    completedObservations?: Observation[];
     remainingWaitMs: number;
   }): Promise<{
     done: boolean;

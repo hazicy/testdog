@@ -57,6 +57,62 @@ it('returns completion without actions through the shared interface', async () =
   await expect(planner.plan(input)).resolves.toEqual({ done: true, steps: [] });
 });
 
+it('accepts explicit completion as a tool call without dispatching a browser action', async () => {
+  generate.mockResolvedValue({
+    content: { text: '' },
+    toolCalls: [{ name: 'done', arguments: '{}' }],
+  });
+
+  await expect(new WebActionPlanner(model).plan(input)).resolves.toEqual({ done: true, steps: [] });
+});
+
+it('rejects completion combined with an action', async () => {
+  generate.mockResolvedValue({
+    content: { text: '' },
+    toolCalls: [
+      { name: 'done', arguments: '{}' },
+      { name: 'click', arguments: '{"ref":"e1"}' },
+    ],
+  });
+
+  await expect(new WebActionPlanner(model).plan(input)).rejects.toThrow(
+    'Completion must not be combined with browser actions',
+  );
+});
+
+it('describes the clicked link on its source page even when its ref is reused by a submit button', async () => {
+  generate.mockResolvedValue({ content: { text: 'DONE' }, toolCalls: [] });
+  const planner = new WebActionPlanner(model);
+  const source = {
+    ...input.observation,
+    surface: { ...input.observation.surface, url: 'http://localhost:3001/login' },
+    tree: { children: [{ ref: 'e2', role: 'link', name: '注册', url: '/register' }] },
+  };
+  const destination = {
+    ...input.observation,
+    surface: { ...input.observation.surface, url: 'http://localhost:3001/register' },
+    tree: { children: [{ ref: 'e2', role: 'button', name: '注册' }] },
+  };
+
+  await planner.plan({
+    ...input,
+    goal: '点击表单下方的“注册”链接',
+    observation: destination,
+    completedObservations: [source],
+  });
+  const payload = JSON.parse(generate.mock.calls[0][0].messages[0].content.text);
+
+  expect(payload.completedSteps).toEqual([
+    {
+      ...input.completedSteps[0].action,
+      target: { kind: 'ariaRef', value: 'e2', name: '注册', role: 'link', url: '/register' },
+      sourceSurface: source.surface,
+    },
+  ]);
+  expect(payload.observation).toEqual(destination);
+  expect(payload).not.toHaveProperty('completedObservations');
+});
+
 it('rejects a batched wait so subsequent actions require a fresh observation', async () => {
   generate.mockResolvedValue({
     content: { text: '' },

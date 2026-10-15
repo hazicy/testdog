@@ -558,7 +558,7 @@ it('uses the validated target URL for new cases and native temporary runs', asyn
   );
 
   expect(saved.url).toBe('https://example.com/trimmed');
-  expect(saved.target).toMatchObject({ url: saved.url, deviceProfile: 'Pixel 7' });
+  expect(saved.target).toMatchObject({ url: saved.url, deviceProfile: 'legacy-desktop' });
   const native = await createQueuedRun(
     {
       case: 'Open app',

@@ -18,7 +18,7 @@ export function initialCaseSettings(test?: TestCase): CaseSettingsValue {
 
   return {
     platform: target?.platform ?? 'web',
-    webProfile: target?.platform === 'web' ? target.deviceProfile : 'Pixel 7',
+    webProfile: target?.platform === 'web' ? target.deviceProfile : 'legacy-desktop',
     appId: native?.appId ?? '',
     deviceProfileId: native?.deviceProfileId ?? '',
     buildArtifactId: native?.buildArtifactId ?? '',

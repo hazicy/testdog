@@ -820,14 +820,16 @@ test('web settings toggle mobile emulation without changing platform', async ({ 
   await openSettings(canvas);
   const mobile = canvas.getByRole('checkbox', { name: '移动模拟' });
 
-  await expect(mobile).toBeChecked();
-  await mobile.click();
   await expect(mobile).not.toBeChecked();
   await expect(canvas.getByText('桌面 Chromium · 1280 × 800', { exact: true })).toBeVisible();
   await expect(canvas.getByRole('combobox', { name: '浏览器与设备' })).toBeHidden();
   await expect(canvas.getByRole('combobox', { name: '平台', exact: true })).toContainText('Web');
   await mobile.click();
+  await expect(mobile).toBeChecked();
   await expect(canvas.getByRole('combobox', { name: '浏览器与设备' })).toContainText('Pixel 7');
+  await mobile.click();
+  await expect(mobile).not.toBeChecked();
+  await expect(canvas.getByRole('combobox', { name: '浏览器与设备' })).toBeHidden();
 });
 
 test('replay contains portrait landscape square and ultrawide media within the panel', async ({
