@@ -17,7 +17,6 @@ catalog:
   '@electric-sql/pglite': '^0.5.8'
   '@iconify-icons/lucide': '^2.0.18'
   '@iconify/react': '^6.0.2'
-  '@neondatabase/serverless': '^1.2.0'
   '@playwright/test': '1.63.0'
   '@stylistic/eslint-plugin': '^5.10.0'
   '@types/node': '^22'

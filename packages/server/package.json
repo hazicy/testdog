@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",
-    "@neondatabase/serverless": "catalog:",
     "@testdog/automation": "workspace:*",
     "@testdog/contracts": "workspace:*",
     "agent-device": "catalog:",
