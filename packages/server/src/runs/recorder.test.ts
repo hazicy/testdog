@@ -30,8 +30,8 @@ beforeEach(async () => {
   vi.clearAllMocks();
   preview.hasPreviewViewers.mockResolvedValue(true);
   preview.publishPreview.mockResolvedValue(undefined);
-  directory = await mkdtemp(join(tmpdir(), 'caseforge-recorder-'));
-  vi.stubEnv('CASEFORGE_DATA_DIR', directory);
+  directory = await mkdtemp(join(tmpdir(), 'testdog-recorder-'));
+  vi.stubEnv('TESTDOG_DATA_DIR', directory);
   vi.useFakeTimers();
 });
 afterEach(async () => {

@@ -15,9 +15,9 @@ import { PersistenceQueue } from '@testdog/server/runs/persistenceQueue';
 beforeEach(() => vi.clearAllMocks());
 
 it('captures screenshot bytes and surface before queued storage while finalization waits', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'caseforge-evidence-'));
+  const root = await mkdtemp(join(tmpdir(), 'testdog-evidence-'));
 
-  vi.stubEnv('CASEFORGE_DATA_DIR', root);
+  vi.stubEnv('TESTDOG_DATA_DIR', root);
   const queue = new PersistenceQueue();
   const sink = new EvidenceSink(
     { id: randomUUID(), startedAt: new Date().toISOString() } as TestRun,
@@ -74,9 +74,9 @@ it('captures screenshot bytes and surface before queued storage while finalizati
 });
 
 it('keeps an earlier capture failure visible even after later evidence is saved successfully', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'caseforge-evidence-'));
+  const root = await mkdtemp(join(tmpdir(), 'testdog-evidence-'));
 
-  vi.stubEnv('CASEFORGE_DATA_DIR', root);
+  vi.stubEnv('TESTDOG_DATA_DIR', root);
   const run = { id: randomUUID(), startedAt: new Date().toISOString() } as TestRun;
   const sink = new EvidenceSink(run);
   const session = {

@@ -6,20 +6,20 @@ import { hostname } from 'node:os';
 
 const isolated = vi.hoisted(() => ({
   pool: undefined as import('pg').Pool | undefined,
-  schema: `caseforge_test_${crypto.randomUUID().replaceAll('-', '')}`,
+  schema: `testdog_test_${crypto.randomUUID().replaceAll('-', '')}`,
 }));
 
 vi.mock('@testdog/server/db', async (original) => {
-  const connectionString = process.env.CASEFORGE_TEST_DATABASE_URL;
+  const connectionString = process.env.TESTDOG_TEST_DATABASE_URL;
 
   if (!connectionString) return original<typeof import('@testdog/server/db')>();
   const url = new URL(connectionString);
 
   if (
     !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) ||
-    !url.pathname.startsWith('/caseforge_test_')
+    !url.pathname.startsWith('/testdog_test_')
   )
-    throw new Error('Real PostgreSQL tests require an explicit local caseforge_test_ database');
+    throw new Error('Real PostgreSQL tests require an explicit local testdog_test_ database');
   const pg = await import('pg');
   const { drizzle } = await import('drizzle-orm/node-postgres');
 
@@ -49,7 +49,7 @@ import {
   ownerProcessStopped,
 } from '@testdog/server/scheduling/resourceRecovery';
 
-const live = !!process.env.CASEFORGE_TEST_DATABASE_URL;
+const live = !!process.env.TESTDOG_TEST_DATABASE_URL;
 
 beforeAll(async () => {
   if (!live) return;
@@ -155,7 +155,7 @@ it.skipIf(!live)(
   },
 );
 
-it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
+it.skipIf(!live || !process.env.TESTDOG_ANDROID_SERIAL)(
   'recovers a quarantined local emulator only after the old owner is gone and SDK health succeeds',
   async () => {
     const host = `recovery-${randomUUID()}`;
@@ -170,7 +170,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         hostId: host,
         platform: 'android',
         profileId: 'recovery-fixture',
-        deviceId: process.env.CASEFORGE_ANDROID_SERIAL!,
+        deviceId: process.env.TESTDOG_ANDROID_SERIAL!,
       },
     ]);
     const run = await createRun(
@@ -179,7 +179,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         target: {
           schemaVersion: 1,
           platform: 'android',
-          appId: 'com.caseforge.fixture',
+          appId: 'com.testdog.fixture',
           deviceProfileId: 'recovery-fixture',
           resetPolicy: 'preserve',
         },

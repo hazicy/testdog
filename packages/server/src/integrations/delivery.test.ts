@@ -78,11 +78,11 @@ it('sends signed Feishu text, respects provider codes, and hides provider respon
 });
 
 function configureSmtp(port = '587') {
-  vi.stubEnv('CASEFORGE_SMTP_HOST', 'smtp.example.com');
-  vi.stubEnv('CASEFORGE_SMTP_PORT', port);
-  vi.stubEnv('CASEFORGE_SMTP_USERNAME', 'sender@example.com');
-  vi.stubEnv('CASEFORGE_SMTP_PASSWORD', 'platform-secret');
-  vi.stubEnv('CASEFORGE_SMTP_FROM', 'sender@example.com');
+  vi.stubEnv('TESTDOG_SMTP_HOST', 'smtp.example.com');
+  vi.stubEnv('TESTDOG_SMTP_PORT', port);
+  vi.stubEnv('TESTDOG_SMTP_USERNAME', 'sender@example.com');
+  vi.stubEnv('TESTDOG_SMTP_PASSWORD', 'platform-secret');
+  vi.stubEnv('TESTDOG_SMTP_FROM', 'sender@example.com');
 }
 
 it.each(['465', '587'])(
@@ -137,11 +137,11 @@ it('rejects missing or invalid platform SMTP configuration without connecting or
 
   configureSmtp();
   for (const [key, value] of [
-    ['CASEFORGE_SMTP_HOST', ''],
-    ['CASEFORGE_SMTP_PORT', '25'],
-    ['CASEFORGE_SMTP_USERNAME', ''],
-    ['CASEFORGE_SMTP_PASSWORD', ''],
-    ['CASEFORGE_SMTP_FROM', 'invalid'],
+    ['TESTDOG_SMTP_HOST', ''],
+    ['TESTDOG_SMTP_PORT', '25'],
+    ['TESTDOG_SMTP_USERNAME', ''],
+    ['TESTDOG_SMTP_PASSWORD', ''],
+    ['TESTDOG_SMTP_FROM', 'invalid'],
   ]) {
     configureSmtp();
     vi.stubEnv(key, value);

@@ -4,7 +4,7 @@ import { readyRedis, redisKey } from '@testdog/server/shared/redis';
 import type { Preview } from '@testdog/contracts/runs/lib/realtime';
 
 export const previewInterval = () => {
-  const configured = Number(process.env.CASEFORGE_PREVIEW_INTERVAL_MS || 3000);
+  const configured = Number(process.env.TESTDOG_PREVIEW_INTERVAL_MS || 3000);
 
   return Number.isFinite(configured) ? Math.max(1000, configured) : 3000;
 };

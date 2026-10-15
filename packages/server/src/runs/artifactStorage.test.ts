@@ -13,10 +13,10 @@ import { serveArtifact } from '@testdog/server/runs/artifactResponse';
 afterEach(() => vi.unstubAllEnvs());
 
 test('local artifacts must belong to the requested run directory', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'caseforge-artifacts-'));
+  const directory = await mkdtemp(join(tmpdir(), 'testdog-artifacts-'));
 
-  vi.stubEnv('CASEFORGE_DATA_DIR', directory);
-  vi.stubEnv('CASEFORGE_ARTIFACT_BUCKET', '');
+  vi.stubEnv('TESTDOG_DATA_DIR', directory);
+  vi.stubEnv('TESTDOG_ARTIFACT_BUCKET', '');
   try {
     await mkdir(join(artifactRoot(), 'run'), { recursive: true });
     const path = join(artifactRoot(), 'run', 'image.png');
@@ -55,12 +55,12 @@ test('private S3 upload, retrieval and rollback use the exact owned object key',
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address() as { port: number };
 
-  vi.stubEnv('CASEFORGE_ARTIFACT_ENDPOINT', `http://127.0.0.1:${address.port}`);
-  vi.stubEnv('CASEFORGE_ARTIFACT_BUCKET', 'private-evidence');
-  vi.stubEnv('CASEFORGE_ARTIFACT_PREFIX', 'tests');
+  vi.stubEnv('TESTDOG_ARTIFACT_ENDPOINT', `http://127.0.0.1:${address.port}`);
+  vi.stubEnv('TESTDOG_ARTIFACT_BUCKET', 'private-evidence');
+  vi.stubEnv('TESTDOG_ARTIFACT_PREFIX', 'tests');
   vi.stubEnv('AWS_ACCESS_KEY_ID', 'fixture');
   vi.stubEnv('AWS_SECRET_ACCESS_KEY', 'fixture');
-  const directory = await mkdtemp(join(tmpdir(), 'caseforge-s3-'));
+  const directory = await mkdtemp(join(tmpdir(), 'testdog-s3-'));
 
   try {
     const path = join(directory, 'screen.png');

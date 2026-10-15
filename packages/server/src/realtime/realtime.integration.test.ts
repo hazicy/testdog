@@ -23,7 +23,7 @@ import { flushOutbox, stopOutboxPublisher } from '@testdog/server/realtime/realt
 import { eventStream } from '@/server/realtime/eventStream';
 import { GET as previewResponse } from '../../../../apps/web/src/app/api/runs/[id]/preview/route';
 
-const binary = process.env.CASEFORGE_TEST_REDIS_BINARY;
+const binary = process.env.TESTDOG_TEST_REDIS_BINARY;
 let server: ChildProcess;
 let database: Awaited<ReturnType<typeof createTestDatabase>>;
 const runId = randomUUID();
@@ -45,7 +45,7 @@ beforeAll(async () => {
     { stdio: 'ignore' },
   );
   vi.stubEnv('REDIS_URL', `redis://127.0.0.1:${port}`);
-  vi.stubEnv('CASEFORGE_REDIS_PREFIX', `test-${randomUUID()}`);
+  vi.stubEnv('TESTDOG_REDIS_PREFIX', `test-${randomUUID()}`);
   redisClient();
   redisClient(true);
   await vi.waitFor(

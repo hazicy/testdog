@@ -1,3 +1,5 @@
+name: testdog
+
 services:
   redis:
     image: redis:7-alpine
@@ -12,9 +14,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: caseforge
+      POSTGRES_USER: testdog
+      POSTGRES_PASSWORD: mkltiz419
+      POSTGRES_DB: testdog
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:

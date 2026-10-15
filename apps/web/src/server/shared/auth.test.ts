@@ -7,7 +7,7 @@ import { requireUserId, workspaceAuthorized } from '@/server/shared/auth';
 
 beforeEach(() => {
   getSession.mockReset();
-  vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', '');
+  vi.stubEnv('TESTDOG_ALLOW_UNAUTHENTICATED', '');
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -33,7 +33,7 @@ test('requires an explicit local opt-out in every environment', async () => {
   getSession.mockResolvedValue(null);
   vi.stubEnv('NODE_ENV', 'development');
   expect(await workspaceAuthorized(new Request('http://localhost/cases'))).toBe(false);
-  vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', 'true');
+  vi.stubEnv('TESTDOG_ALLOW_UNAUTHENTICATED', 'true');
   expect(await workspaceAuthorized(new Request('http://localhost/cases'))).toBe(true);
 });
 
@@ -42,7 +42,7 @@ test('derives ownership from the session and rejects unauthenticated API calls',
 
   getSession.mockResolvedValue(null);
   await expect(requireUserId(request)).rejects.toMatchObject({ status: 401 });
-  vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', 'true');
+  vi.stubEnv('TESTDOG_ALLOW_UNAUTHENTICATED', 'true');
   expect(await requireUserId(request)).toBeNull();
   getSession.mockResolvedValue({ user: { id: 'real-user' } });
   expect(await requireUserId(request)).toBe('real-user');

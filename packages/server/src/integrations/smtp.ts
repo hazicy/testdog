@@ -18,11 +18,11 @@ export const emailUnavailableMessage = '邮件通知暂不可用，请联系管�
 
 export function platformSmtpConfig() {
   const result = smtpConfig.safeParse({
-    host: process.env.CASEFORGE_SMTP_HOST,
-    port: Number(process.env.CASEFORGE_SMTP_PORT),
-    username: process.env.CASEFORGE_SMTP_USERNAME,
-    password: process.env.CASEFORGE_SMTP_PASSWORD,
-    from: process.env.CASEFORGE_SMTP_FROM,
+    host: process.env.TESTDOG_SMTP_HOST,
+    port: Number(process.env.TESTDOG_SMTP_PORT),
+    username: process.env.TESTDOG_SMTP_USERNAME,
+    password: process.env.TESTDOG_SMTP_PASSWORD,
+    from: process.env.TESTDOG_SMTP_FROM,
   });
 
   return result.success ? result.data : undefined;

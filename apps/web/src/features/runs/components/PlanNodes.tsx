@@ -17,7 +17,7 @@ import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
 import { ExecutionActions } from './ExecutionActions';
 import { StepBadge } from '@/features/test-cases/components/StepType';
 
-export const nodeDragType = 'application/x-caseforge-node';
+export const nodeDragType = 'application/x-testdog-node';
 export type NodeReview = {
   kind: 'added' | 'modified' | 'removed';
   before?: PlanNode;

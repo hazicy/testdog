@@ -45,11 +45,11 @@ export function modelBudgetFromEnv(): ModelBudget {
   };
 
   for (const key of Object.keys(defaults) as (keyof ModelBudget)[]) {
-    const value = process.env[`CASEFORGE_AI_${names[key]}`];
+    const value = process.env[`TESTDOG_AI_${names[key]}`];
 
     if (value !== undefined) defaults[key] = Number(value);
     if (!Number.isSafeInteger(defaults[key]) || defaults[key] < (key === 'maxRetries' ? 0 : 1))
-      throw new Error(`CASEFORGE_AI_${names[key]} 配置无效`);
+      throw new Error(`TESTDOG_AI_${names[key]} 配置无效`);
   }
 
   if (defaults.maxRetries > 3) throw new Error('AI 重试最多 3 次');

@@ -41,7 +41,7 @@
   border-top: var(--border-width) solid var(--page-line);
 }
 /* Set variables on Dockview's theme element so its defaults cannot shadow them. */
-.caseforgeDock {
+.dock {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -190,7 +190,7 @@
 }
 
 /* Hide inactive content at the panel boundary, including children with explicit visibility. */
-.caseforgeDock {
+.dock {
   & .dockPanel[hidden] {
     display: none;
   }

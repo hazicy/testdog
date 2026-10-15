@@ -15,8 +15,8 @@ import type { TestRun } from '@testdog/contracts/runs/types';
 import { RunAbortError } from '@testdog/server/runs/runAbort';
 import { finalizeRuntime } from '@testdog/server/runs/finalizeRuntime';
 
-const state = globalThis as typeof globalThis & { caseforgeJobs?: Map<string, AbortController> };
-const jobs = (state.caseforgeJobs ??= new Map());
+const state = globalThis as typeof globalThis & { testdogJobs?: Map<string, AbortController> };
+const jobs = (state.testdogJobs ??= new Map());
 
 export function cancelRun(id: string) {
   jobs.get(id)?.abort(new RunAbortError('CANCELLED', '用户停止了测试'));

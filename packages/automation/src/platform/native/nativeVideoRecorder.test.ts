@@ -39,7 +39,7 @@ it('retains quarantine when native recorder termination is unconfirmed', async (
   }
 });
 it('rejects an exported file outside the exact capture directory', async () => {
-  const outside = await mkdtemp(join(tmpdir(), 'caseforge-foreign-'));
+  const outside = await mkdtemp(join(tmpdir(), 'testdog-foreign-'));
   const file = join(outside, 'foreign.mp4');
 
   await writeFile(file, 'foreign');

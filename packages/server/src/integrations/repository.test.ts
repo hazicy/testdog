@@ -52,8 +52,8 @@ import { POST as testEndpoint } from '../../../../apps/web/src/app/api/integrati
 import { PUT as saveEndpoint } from '../../../../apps/web/src/app/api/integrations/[channel]/route';
 
 beforeEach(async () => {
-  vi.stubEnv('CASEFORGE_SMTP_HOST', '');
-  vi.stubEnv('CASEFORGE_INTEGRATION_SECRET', 'integration-test-secret-at-least-32-characters');
+  vi.stubEnv('TESTDOG_SMTP_HOST', '');
+  vi.stubEnv('TESTDOG_INTEGRATION_SECRET', 'integration-test-secret-at-least-32-characters');
   await isolated.client!.exec(
     'TRUNCATE auth_users, notification_integrations, notification_events, notification_deliveries, test_runs, issues, submission_requests CASCADE',
   );
@@ -129,11 +129,11 @@ const emailInput = {
 };
 
 function configureSmtp() {
-  vi.stubEnv('CASEFORGE_SMTP_HOST', 'smtp.platform.example.com');
-  vi.stubEnv('CASEFORGE_SMTP_PORT', '465');
-  vi.stubEnv('CASEFORGE_SMTP_USERNAME', 'platform@example.com');
-  vi.stubEnv('CASEFORGE_SMTP_PASSWORD', 'platform-secret');
-  vi.stubEnv('CASEFORGE_SMTP_FROM', 'platform@example.com');
+  vi.stubEnv('TESTDOG_SMTP_HOST', 'smtp.platform.example.com');
+  vi.stubEnv('TESTDOG_SMTP_PORT', '465');
+  vi.stubEnv('TESTDOG_SMTP_USERNAME', 'platform@example.com');
+  vi.stubEnv('TESTDOG_SMTP_PASSWORD', 'platform-secret');
+  vi.stubEnv('TESTDOG_SMTP_FROM', 'platform@example.com');
 }
 
 it('stores only email preferences and rejects user-supplied SMTP parameters', async () => {
@@ -416,7 +416,7 @@ it('queues explicit tests while disabled and enforces route authentication, idem
 
 it('allows replacing credentials after encryption key rotation without exposing old secrets', async () => {
   await saveIntegration('feishu', input, 'alice');
-  vi.stubEnv('CASEFORGE_INTEGRATION_SECRET', 'new-integration-test-secret-at-least-32-characters');
+  vi.stubEnv('TESTDOG_INTEGRATION_SECRET', 'new-integration-test-secret-at-least-32-characters');
   const view = (await readIntegrations('alice')).integrations[0];
 
   expect(view.configured).toBe(false);

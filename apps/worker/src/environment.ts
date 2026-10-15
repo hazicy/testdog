@@ -8,4 +8,4 @@ const runtimeRoot = existsSync(resolve(workspaceRoot, 'pnpm-workspace.yaml'))
   : process.cwd();
 
 loadDotenv({ path: [resolve(process.cwd(), '.env'), resolve(runtimeRoot, '.env')] });
-process.env.CASEFORGE_DATA_DIR ||= resolve(runtimeRoot, '.automation');
+process.env.TESTDOG_DATA_DIR ||= resolve(runtimeRoot, '.automation');

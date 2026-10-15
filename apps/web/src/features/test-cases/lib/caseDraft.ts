@@ -12,7 +12,7 @@ export type CaseDraft = {
   plan: Plan;
   settings?: CaseSettingsValue;
 };
-const key = (id: string) => `caseforge:case-draft:${id}`;
+const key = (id: string) => `testdog:case-draft:${id}`;
 
 export function writeCaseDraft(id: string, draft: CaseDraft) {
   sessionStorage.setItem(key(id), JSON.stringify(draft));

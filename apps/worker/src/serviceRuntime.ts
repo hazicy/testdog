@@ -28,9 +28,7 @@ export function backgroundServices(role: Role, configured?: string): readonly Se
   const services = configured.split(',').map((name) => name.trim());
 
   if (services.some((name) => !Object.hasOwn(starters, name)))
-    throw new Error(
-      'CASEFORGE_BACKGROUND_SERVICES must be none or maintenance,notifications,outbox',
-    );
+    throw new Error('TESTDOG_BACKGROUND_SERVICES must be none or maintenance,notifications,outbox');
 
   return [...new Set(services)] as Service[];
 }
@@ -40,7 +38,7 @@ export async function runServiceProcess(
   role: Role,
   work?: (context: { signal: AbortSignal; stop: () => void }) => Promise<void>,
 ) {
-  const services = backgroundServices(role, process.env.CASEFORGE_BACKGROUND_SERVICES);
+  const services = backgroundServices(role, process.env.TESTDOG_BACKGROUND_SERVICES);
   const controller = new AbortController();
   const stop = () => controller.abort();
   const stopped = new Promise<void>((resolve) =>

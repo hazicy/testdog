@@ -8,13 +8,13 @@ import {
 } from '@aws-sdk/client-s3';
 
 export const artifactRoot = () =>
-  join(process.env.CASEFORGE_DATA_DIR || join(process.cwd(), '.automation'), 'artifacts');
+  join(process.env.TESTDOG_DATA_DIR || join(process.cwd(), '.automation'), 'artifacts');
 
 function remote() {
-  const bucket = process.env.CASEFORGE_ARTIFACT_BUCKET;
+  const bucket = process.env.TESTDOG_ARTIFACT_BUCKET;
 
   if (!bucket) return undefined;
-  const prefix = (process.env.CASEFORGE_ARTIFACT_PREFIX || 'caseforge').replace(/^\/+|\/+$/g, '');
+  const prefix = (process.env.TESTDOG_ARTIFACT_PREFIX || 'testdog').replace(/^\/+|\/+$/g, '');
 
   if (!prefix || prefix.split('/').some((part) => part === '..'))
     throw new Error('Invalid artifact prefix');
@@ -24,8 +24,8 @@ function remote() {
     prefix,
     client: new S3Client({
       region: process.env.AWS_REGION || 'us-east-1',
-      endpoint: process.env.CASEFORGE_ARTIFACT_ENDPOINT || undefined,
-      forcePathStyle: !!process.env.CASEFORGE_ARTIFACT_ENDPOINT,
+      endpoint: process.env.TESTDOG_ARTIFACT_ENDPOINT || undefined,
+      forcePathStyle: !!process.env.TESTDOG_ARTIFACT_ENDPOINT,
       maxAttempts: 2,
     }),
   };

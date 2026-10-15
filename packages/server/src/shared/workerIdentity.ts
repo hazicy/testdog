@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
 
-const state = globalThis as typeof globalThis & { caseforgeWorkerId?: string };
+const state = globalThis as typeof globalThis & { testdogWorkerId?: string };
 
-export const owner = (state.caseforgeWorkerId ??= randomUUID());
+export const owner = (state.testdogWorkerId ??= randomUUID());

@@ -39,7 +39,7 @@ ON CONFLICT ("runId", sequence) DO NOTHING;
 --> statement-breakpoint
 ALTER TABLE "test_runs" DROP COLUMN "events";
 --> statement-breakpoint
-CREATE OR REPLACE FUNCTION caseforge_realtime_event() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION testdog_realtime_event() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
   row_data jsonb;
   run_id uuid;
@@ -94,5 +94,5 @@ END;
 $$;
 
 --> statement-breakpoint
-CREATE TRIGGER caseforge_execution_event AFTER INSERT ON automation_run_events
-FOR EACH ROW EXECUTE FUNCTION caseforge_realtime_event();
+CREATE TRIGGER testdog_execution_event AFTER INSERT ON automation_run_events
+FOR EACH ROW EXECUTE FUNCTION testdog_realtime_event();

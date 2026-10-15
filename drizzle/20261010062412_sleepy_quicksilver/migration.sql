@@ -15,7 +15,7 @@ CREATE INDEX "realtime_outbox_pending_idx" ON "realtime_outbox" ("id") WHERE "pu
 ALTER TABLE "realtime_outbox" ADD CONSTRAINT "realtime_outbox_runId_test_runs_id_fkey" FOREIGN KEY ("runId") REFERENCES "test_runs"("id") ON DELETE CASCADE;
 --> statement-breakpoint
 -- Heartbeats and internal revision bumps do not generate user-visible events.
-CREATE FUNCTION caseforge_run_revision() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION testdog_run_revision() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     NEW."realtimeRevision" := 1;
@@ -27,10 +27,10 @@ BEGIN
 END;
 $$;
 --> statement-breakpoint
-CREATE TRIGGER caseforge_run_revision BEFORE INSERT OR UPDATE ON test_runs
-FOR EACH ROW EXECUTE FUNCTION caseforge_run_revision();
+CREATE TRIGGER testdog_run_revision BEFORE INSERT OR UPDATE ON test_runs
+FOR EACH ROW EXECUTE FUNCTION testdog_run_revision();
 --> statement-breakpoint
-CREATE FUNCTION caseforge_realtime_event() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION testdog_realtime_event() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
   row_data jsonb;
   run_id uuid;
@@ -71,17 +71,17 @@ BEGIN
 END;
 $$;
 --> statement-breakpoint
-CREATE TRIGGER caseforge_run_event AFTER INSERT OR UPDATE ON test_runs
-FOR EACH ROW EXECUTE FUNCTION caseforge_realtime_event();
+CREATE TRIGGER testdog_run_event AFTER INSERT OR UPDATE ON test_runs
+FOR EACH ROW EXECUTE FUNCTION testdog_realtime_event();
 --> statement-breakpoint
-CREATE TRIGGER caseforge_step_event AFTER INSERT OR UPDATE ON run_steps
-FOR EACH ROW EXECUTE FUNCTION caseforge_realtime_event();
+CREATE TRIGGER testdog_step_event AFTER INSERT OR UPDATE ON run_steps
+FOR EACH ROW EXECUTE FUNCTION testdog_realtime_event();
 --> statement-breakpoint
-CREATE TRIGGER caseforge_artifact_event AFTER INSERT ON run_artifacts
-FOR EACH ROW EXECUTE FUNCTION caseforge_realtime_event();
+CREATE TRIGGER testdog_artifact_event AFTER INSERT ON run_artifacts
+FOR EACH ROW EXECUTE FUNCTION testdog_realtime_event();
 --> statement-breakpoint
-CREATE TRIGGER caseforge_log_event AFTER INSERT ON run_browser_logs
-FOR EACH ROW EXECUTE FUNCTION caseforge_realtime_event();
+CREATE TRIGGER testdog_log_event AFTER INSERT ON run_browser_logs
+FOR EACH ROW EXECUTE FUNCTION testdog_realtime_event();
 --> statement-breakpoint
-CREATE TRIGGER caseforge_test_event AFTER INSERT OR UPDATE OR DELETE ON test_cases
-FOR EACH ROW EXECUTE FUNCTION caseforge_realtime_event();
+CREATE TRIGGER testdog_test_event AFTER INSERT OR UPDATE OR DELETE ON test_cases
+FOR EACH ROW EXECUTE FUNCTION testdog_realtime_event();

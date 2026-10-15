@@ -18,7 +18,7 @@ ALTER TABLE "test_cases" ADD CONSTRAINT "test_cases_userId_auth_users_id_fkey" F
 ALTER TABLE "test_runs" ADD CONSTRAINT "test_runs_userId_auth_users_id_fkey" FOREIGN KEY ("userId") REFERENCES "auth_users"("id");
 --> statement-breakpoint
 -- Persist ownership with notifications, including case deletion events.
-CREATE OR REPLACE FUNCTION caseforge_realtime_event() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION testdog_realtime_event() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
   row_data jsonb;
   run_id uuid;

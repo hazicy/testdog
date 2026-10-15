@@ -14,7 +14,7 @@ export default function CaseCanvasPage() {
   const router = useRouter();
   const raw = useSyncExternalStore(
     () => () => {},
-    () => sessionStorage.getItem(`caseforge:case-draft:${draftId}`),
+    () => sessionStorage.getItem(`testdog:case-draft:${draftId}`),
     () => undefined,
   );
 

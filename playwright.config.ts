@@ -17,9 +17,9 @@ export default defineConfig({
     env: {
       HOSTNAME: '127.0.0.1',
       PORT: '3100',
-      CASEFORGE_ALLOW_UNAUTHENTICATED: 'true',
+      TESTDOG_ALLOW_UNAUTHENTICATED: 'true',
       BETTER_AUTH_URL: 'http://127.0.0.1:3100',
-      BETTER_AUTH_SECRET: 'caseforge-ui-test-secret-at-least-32-characters',
+      BETTER_AUTH_SECRET: 'testdog-ui-test-secret-at-least-32-characters',
     },
   },
 });

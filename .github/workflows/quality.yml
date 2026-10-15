@@ -21,7 +21,7 @@ jobs:
       RUN_LIVE_TESTS: 'false'
       RUN_WORKSPACE_LIVE_TESTS: 'false'
       OPENAI_API_KEY: test-placeholder
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/caseforge
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/testdog
     steps:
       - uses: actions/checkout@v7
         with:

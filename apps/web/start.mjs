@@ -7,7 +7,7 @@ const workspaceRoot = resolve(process.cwd(), '../..');
 
 if (existsSync(resolve(workspaceRoot, 'pnpm-workspace.yaml'))) {
   loadDotenv({ path: [resolve(process.cwd(), '.env'), resolve(workspaceRoot, '.env')] });
-  process.env.CASEFORGE_DATA_DIR ||= resolve(workspaceRoot, '.automation');
+  process.env.TESTDOG_DATA_DIR ||= resolve(workspaceRoot, '.automation');
 }
 
 await cp('public', '.next/standalone/apps/web/public', { recursive: true });

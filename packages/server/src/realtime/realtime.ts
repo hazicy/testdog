@@ -8,7 +8,7 @@ import { workspaceChannel } from '@testdog/server/shared/ownership';
 
 type Listener = (message: string) => void;
 const state = globalThis as typeof globalThis & {
-  caseforgeRealtime?: {
+  testdogRealtime?: {
     listeners: Map<string, Set<Listener>>;
     subscribed?: Promise<void>;
     publisher?: ReturnType<typeof setInterval>;
@@ -16,7 +16,7 @@ const state = globalThis as typeof globalThis & {
     cleanedAt: number;
   };
 };
-const shared: NonNullable<typeof state.caseforgeRealtime> = (state.caseforgeRealtime ??= {
+const shared: NonNullable<typeof state.testdogRealtime> = (state.testdogRealtime ??= {
   listeners: new Map(),
   cleanedAt: 0,
 });

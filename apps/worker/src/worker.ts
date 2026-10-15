@@ -19,11 +19,11 @@ const configSchema = z
     }),
   )
   .min(1);
-const hostId = process.env.CASEFORGE_HOST_ID || hostname();
+const hostId = process.env.TESTDOG_HOST_ID || hostname();
 const workerId = `${hostId}:${process.pid}:${randomUUID()}`;
 const configs = configSchema.parse(
   JSON.parse(
-    process.env.CASEFORGE_RESOURCES ||
+    process.env.TESTDOG_RESOURCES ||
       JSON.stringify([{ id: `${hostId}:web:1`, platform: 'web', profileId: 'mobile' }]),
   ),
 );
@@ -35,7 +35,7 @@ for (const resource of configs) {
     throw new Error('Local iOS worker requires macOS');
 }
 
-const concurrency = Number(process.env.CASEFORGE_WORKER_CONCURRENCY || configs.length);
+const concurrency = Number(process.env.TESTDOG_WORKER_CONCURRENCY || configs.length);
 
 if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > configs.length)
   throw new Error('Worker concurrency must be between 1 and the number of resources');

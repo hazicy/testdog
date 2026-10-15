@@ -19,7 +19,7 @@ export class NativeVideoRecorder {
   ) {}
   async start(signal: AbortSignal) {
     if (!this.enabled.video) return;
-    this.directory = await mkdtemp(join(tmpdir(), 'caseforge-device-evidence-'));
+    this.directory = await mkdtemp(join(tmpdir(), 'testdog-device-evidence-'));
     await this.client.recording.record({
       action: 'start',
       path: join(this.directory, 'video.mp4'),

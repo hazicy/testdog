@@ -4,23 +4,23 @@
 
 ## 环境配置
 
-使用仓库 `package.json` 指定的 Node.js 和 pnpm 版本。环境变量清单及示例值在 [.env.example](../.env.example)；`CASEFORGE_*` 名称继续沿用以兼容既有部署。
+使用仓库 `package.json` 指定的 Node.js 和 pnpm 版本。环境变量清单及示例值在 [.env.example](../.env.example)，项目配置统一使用 `TESTDOG_*` 前缀。升级时将原有项目配置项的前缀改为 `TESTDOG_`，保留原值，尤其是数据目录、对象存储前缀和加密密钥；数据库连接继续指向已有数据库。执行数据库迁移会同步统一已有函数和触发器的名称。
 
 本地 workspace 默认读取根目录 `.env`，应用目录 `.env` 优先，已有进程环境变量优先于文件。根目录 `.automation` 是默认数据目录。部署产物不复制本地 `.env`，生产服务通过自己的环境变量提供配置，并为数据使用绝对路径。配置变更后重启所有使用该配置的 API、worker 或后台进程。执行节点需要常驻 Node.js 进程和持久存储。
 
-| 配置                                                                                                                      | 使用范围与要求                                                                                                                           |
-| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                                                                            | API、worker 与后台服务连接同一个 PostgreSQL；数据库必须持久化                                                                            |
-| `OPENAI_API_KEY`                                                                                                          | 提供给需要编译或执行语义判断的服务，当前模型适配器连接 DeepSeek                                                                          |
-| `AUTOMATION_HEADLESS`                                                                                                     | 本地默认有界面，服务器设置为 `true`                                                                                                      |
-| `REDIS_URL`、`CASEFORGE_REDIS_PREFIX`                                                                                     | API、worker 与 outbox 发布进程使用相同值，按环境区分前缀                                                                                 |
-| `CASEFORGE_DATA_DIR`                                                                                                      | 本地附件持久目录，生产使用绝对路径；跨主机存储见下文                                                                                     |
-| `BETTER_AUTH_SECRET`、`BETTER_AUTH_URL`                                                                                   | Web 必填；secret 至少 32 字符，URL 为实际访问 origin，生产使用 HTTPS                                                                     |
-| `CASEFORGE_INTEGRATION_SECRET`                                                                                            | API、执行与通知进程保持一致，至少 32 字符；未设置时使用 `BETTER_AUTH_SECRET`，用于通知及浏览器提供方的加密；更换密钥后需重新配置加密数据 |
-| `CASEFORGE_SMTP_HOST`、`CASEFORGE_SMTP_PORT`、`CASEFORGE_SMTP_USERNAME`、`CASEFORGE_SMTP_PASSWORD`、`CASEFORGE_SMTP_FROM` | API 和通知发送进程配置平台邮件服务；支持 465 TLS、587 STARTTLS；用户仅在界面配置收件人                                                   |
-| `CASEFORGE_ALLOW_PRIVATE_SMTP`                                                                                            | 可信内网 SMTP 可显式设置 `true`，TLS 校验仍开启                                                                                          |
-| `CASEFORGE_PREVIEW_INTERVAL_MS`                                                                                           | 实时画面默认 3000 ms，最低 1000 ms；不改变永久证据采集                                                                                   |
-| `CASEFORGE_AI_*`                                                                                                          | 模型预算参数，示例值见环境变量清单，预算语义见 [工作台文档](workspace.md#租约维护与模型预算)                                             |
+| 配置                                                                                                            | 使用范围与要求                                                                                                                           |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                                                                                  | API、worker 与后台服务连接同一个 PostgreSQL；数据库必须持久化                                                                            |
+| `OPENAI_API_KEY`                                                                                                | 提供给需要编译或执行语义判断的服务，当前模型适配器连接 DeepSeek                                                                          |
+| `AUTOMATION_HEADLESS`                                                                                           | 本地默认有界面，服务器设置为 `true`                                                                                                      |
+| `REDIS_URL`、`TESTDOG_REDIS_PREFIX`                                                                             | API、worker 与 outbox 发布进程使用相同值，按环境区分前缀                                                                                 |
+| `TESTDOG_DATA_DIR`                                                                                              | 本地附件持久目录，生产使用绝对路径；跨主机存储见下文                                                                                     |
+| `BETTER_AUTH_SECRET`、`BETTER_AUTH_URL`                                                                         | Web 必填；secret 至少 32 字符，URL 为实际访问 origin，生产使用 HTTPS                                                                     |
+| `TESTDOG_INTEGRATION_SECRET`                                                                                    | API、执行与通知进程保持一致，至少 32 字符；未设置时使用 `BETTER_AUTH_SECRET`，用于通知及浏览器提供方的加密；更换密钥后需重新配置加密数据 |
+| `TESTDOG_SMTP_HOST`、`TESTDOG_SMTP_PORT`、`TESTDOG_SMTP_USERNAME`、`TESTDOG_SMTP_PASSWORD`、`TESTDOG_SMTP_FROM` | API 和通知发送进程配置平台邮件服务；支持 465 TLS、587 STARTTLS；用户仅在界面配置收件人                                                   |
+| `TESTDOG_ALLOW_PRIVATE_SMTP`                                                                                    | 可信内网 SMTP 可显式设置 `true`，TLS 校验仍开启                                                                                          |
+| `TESTDOG_PREVIEW_INTERVAL_MS`                                                                                   | 实时画面默认 3000 ms，最低 1000 ms；不改变永久证据采集                                                                                   |
+| `TESTDOG_AI_*`                                                                                                  | 模型预算参数，示例值见环境变量清单，预算语义见 [工作台文档](workspace.md#租约维护与模型预算)                                             |
 
 ### 认证
 
@@ -34,7 +34,7 @@ openssl rand -base64 32
 
 第三方登录可配置 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` 或 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`。仅完整配置的提供方显示按钮；在提供商后台将回调地址设置为 `<BETTER_AUTH_URL>/api/auth/callback/google` 或 `<BETTER_AUTH_URL>/api/auth/callback/github`。
 
-受控本地部署和独立 UI 测试可以显式设置 `CASEFORGE_ALLOW_UNAUTHENTICATED=true`。匿名业务请求只访问无归属数据，已登录用户仍只访问自己的数据。用户隔离规则见 [工作台文档](workspace.md#用户数据归属)。
+受控本地部署和独立 UI 测试可以显式设置 `TESTDOG_ALLOW_UNAUTHENTICATED=true`。匿名业务请求只访问无归属数据，已登录用户仍只访问自己的数据。用户隔离规则见 [工作台文档](workspace.md#用户数据归属)。
 
 ### Redis 与反向代理
 
@@ -44,7 +44,7 @@ openssl rand -base64 32
 
 ### 附件与原生构建存储
 
-API 和 worker 需要访问同一份证据。本地附件模式挂载两端可访问、路径一致的持久目录；不同主机仅设置同名本地目录不会共享文件。跨主机可配置同一私有 S3 存储的 `CASEFORGE_ARTIFACT_BUCKET`、`CASEFORGE_ARTIFACT_PREFIX`、`AWS_REGION` 与 AWS 凭据；兼容 S3 的服务另设 `CASEFORGE_ARTIFACT_ENDPOINT`。对象保持私有，API 校验归属后提供附件和 Range 请求。
+API 和 worker 需要访问同一份证据。本地附件模式挂载两端可访问、路径一致的持久目录；不同主机仅设置同名本地目录不会共享文件。跨主机可配置同一私有 S3 存储的 `TESTDOG_ARTIFACT_BUCKET`、`TESTDOG_ARTIFACT_PREFIX`、`AWS_REGION` 与 AWS 凭据；兼容 S3 的服务另设 `TESTDOG_ARTIFACT_ENDPOINT`。对象保持私有，API 校验归属后提供附件和 Range 请求。
 
 原生构建登记保存文件路径，必须在实际设备节点登记，或让相关节点共享同路径的构建目录。证据对象存储不会自动分发 APK 或 `.app`。
 
@@ -56,10 +56,10 @@ API 和 worker 需要访问同一份证据。本地附件模式挂载两端可�
 
 ```bash
 pnpm maintenance
-CASEFORGE_BACKGROUND_SERVICES=none pnpm worker
+TESTDOG_BACKGROUND_SERVICES=none pnpm worker
 ```
 
-所有后台入口共用 `CASEFORGE_BACKGROUND_SERVICES`。未配置时使用下表默认组合；`none` 关闭后台服务，或用逗号分隔的 `maintenance,notifications,outbox` 选择子集。
+所有后台入口共用 `TESTDOG_BACKGROUND_SERVICES`。未配置时使用下表默认组合；`none` 关闭后台服务，或用逗号分隔的 `maintenance,notifications,outbox` 选择子集。
 
 | 入口          | 默认职责                             |
 | ------------- | ------------------------------------ |
@@ -67,13 +67,48 @@ CASEFORGE_BACKGROUND_SERVICES=none pnpm worker
 | maintenance   | 维护 + 通知 + outbox，不领取执行任务 |
 | notifications | 仅发送通知                           |
 
-需要单独扩容通知时，maintenance 使用 `CASEFORGE_BACKGROUND_SERVICES=maintenance,outbox`，另启 `pnpm notifications`。单独运行 outbox 可使用 `CASEFORGE_BACKGROUND_SERVICES=outbox pnpm maintenance`。多进程通过数据库锁协调；不需要在每个执行 worker 中重复配置后台服务。
+需要单独扩容通知时，maintenance 使用 `TESTDOG_BACKGROUND_SERVICES=maintenance,outbox`，另启 `pnpm notifications`。单独运行 outbox 可使用 `TESTDOG_BACKGROUND_SERVICES=outbox pnpm maintenance`。多进程通过数据库锁协调；不需要在每个执行 worker 中重复配置后台服务。
 
 SIGINT/SIGTERM 会停止领取任务，取消并等待当前执行，等待后台批次结束，再关闭 Redis 和数据库；启动或退出失败也执行清理。
 
 ## 部署产物
 
-Web 和 worker 可以分别构建、发布和扩容，共享数据库结构与任务快照需要版本兼容。输出目录必须尚不存在，打包工具不会覆盖已有部署。
+Web 和 worker 可以分别构建、发布和扩容，共享数据库结构与任务快照需要版本兼容。下文独立打包命令的输出目录必须尚不存在，打包工具不会覆盖已有部署。
+
+### Docker 单机部署
+
+服务器安装 Docker Engine 和 Docker Compose v2，在仓库根目录运行。此配置包含 Web、Web 测试 worker、PostgreSQL 和 Redis；镜像内安装 Chromium、WebKit 及 Linux 系统依赖，不需要宿主机安装 Node.js 或 pnpm。iOS 执行仍需要独立的 macOS/Xcode 节点。
+
+```bash
+cp .env.production.example .env.production
+openssl rand -hex 24
+openssl rand -base64 32
+```
+
+编辑 `.env.production`：将以上两个随机值分别填入 `POSTGRES_PASSWORD` 和 `BETTER_AUTH_SECRET`，填写 DeepSeek 的 `OPENAI_API_KEY`，将 `BETTER_AUTH_URL` 设置为实际访问 origin。不要提交此文件。数据库密码使用字母数字，避免 URL 编码问题；生产访问使用 HTTPS。
+
+```bash
+docker compose --env-file .env.production -f compose.prod.yml up -d --build
+docker compose --env-file .env.production -f compose.prod.yml ps -a
+docker compose --env-file .env.production -f compose.prod.yml logs -f web worker
+```
+
+首次构建会下载依赖和浏览器。PostgreSQL 就绪后，`migrate` 执行数据库迁移，成功退出后才启动 Web 和 worker；`migrate` 显示 `Exited (0)` 是正常状态。worker 默认包含维护、通知和 outbox，无需额外启动后台服务。
+
+Web 绑定宿主机 `127.0.0.1:3000`，使用服务器上的反向代理将 HTTPS 域名转发到此端口，并按上文关闭 SSE 缓冲和缓存。访问 `/register` 创建账号。本地试用时将 `BETTER_AUTH_URL` 改为 `http://localhost:3000`，通过本机浏览器或 SSH 端口转发访问。
+
+数据库和附件分别保存在 `postgres_data`、`automation_data` 命名卷，API 和 worker 共享 `/data`。PostgreSQL 和 Redis 不向宿主机开放端口。开发和生产 Compose 默认项目名均为 `testdog`，使用相同项目名时会复用同名 PostgreSQL 卷；已有部署若使用其他项目名，需要在所有命令中统一用 `-p` 指定原项目名以复用原卷。已有数据库必须沿用原密码，在 `.env.production` 中用 `POSTGRES_DB` 指定原数据库名（默认 `testdog`），修改环境变量不会重置数据库密码或重命名已有数据库。需要独立环境时，为所有 Compose 命令统一添加 `-p testdog-prod`。
+
+升级前备份数据库和附件，先构建新镜像，再停止所有旧写入者，执行迁移并启动新服务：
+
+```bash
+docker compose --env-file .env.production -f compose.prod.yml build
+docker compose --env-file .env.production -f compose.prod.yml stop web worker
+docker compose --env-file .env.production -f compose.prod.yml run --rm migrate
+docker compose --env-file .env.production -f compose.prod.yml up -d
+```
+
+迁移失败时先解决错误再启动应用。若还有单独部署的旧 API、worker 或后台进程，也需在迁移前停止。普通停止使用 `docker compose --env-file .env.production -f compose.prod.yml down`，保留数据卷；不要在需要保留数据时添加 `-v`。
 
 ### Web
 
@@ -106,7 +141,7 @@ node dist/worker.mjs
 
 worker 使用 esbuild 将 workspace 代码打包为 Node.js ESM，第三方依赖保留为外部模块，`pnpm deploy --legacy --prod` 生成生产依赖目录。产物不包含 Next.js、React 或 Web 应用，需要与部署平台、CPU 架构兼容；Linux 部署在相应 Linux 环境打包。
 
-分离部署时，产物中的组合对应为 `node dist/maintenance.mjs` 和 `CASEFORGE_BACKGROUND_SERVICES=none node dist/worker.mjs`；独立通知使用 `node dist/notifications.mjs`。还会输出 `register-build.mjs`、`recover-resource.mjs`、`assign-legacy-data.mjs`、`backfill-issues.mjs`，参数与下文仓库命令相同。
+分离部署时，产物中的组合对应为 `node dist/maintenance.mjs` 和 `TESTDOG_BACKGROUND_SERVICES=none node dist/worker.mjs`；独立通知使用 `node dist/notifications.mjs`。还会输出 `register-build.mjs`、`recover-resource.mjs`、`assign-legacy-data.mjs`、`backfill-issues.mjs`，参数与下文仓库命令相同。
 
 浏览器缓存、系统依赖、原生 SDK 和设备权限不包含在 JavaScript 产物中。
 
@@ -115,19 +150,19 @@ worker 使用 esbuild 将 workspace 代码打包为 Node.js ESM，第三方依�
 worker 默认登记一个本机 Web slot。原生资源必须提供明确设备 ID；Android 需要 Android SDK/ADB，本地 iOS 需要 macOS/Xcode。多个 worker 不应将同一设备重复登记为不同资源。
 
 ```bash
-CASEFORGE_HOST_ID=mac-worker CASEFORGE_RESOURCES='[{"id":"mac-worker:iphone","platform":"ios","profileId":"iphone","deviceId":"实际 UDID"}]' pnpm worker
-CASEFORGE_HOST_ID=android-worker CASEFORGE_RESOURCES='[{"id":"android-worker:pixel","platform":"android","profileId":"pixel","deviceId":"实际 ADB serial"}]' pnpm worker
+TESTDOG_HOST_ID=mac-worker TESTDOG_RESOURCES='[{"id":"mac-worker:iphone","platform":"ios","profileId":"iphone","deviceId":"实际 UDID"}]' pnpm worker
+TESTDOG_HOST_ID=android-worker TESTDOG_RESOURCES='[{"id":"android-worker:pixel","platform":"android","profileId":"pixel","deviceId":"实际 ADB serial"}]' pnpm worker
 pnpm register:build android /path/to/app.apk
 pnpm register:build ios /path/to/App.app
 ```
 
-默认并发数为登记资源数，`CASEFORGE_WORKER_CONCURRENCY` 可降低并发。每条执行独占资源；排队默认上限一小时（`CASEFORGE_QUEUE_TIMEOUT_MS`），准备两分钟、执行五分钟、归档三十秒，Web 归档后清理浏览器另有十秒上限。未确认清理的资源保持隔离。
+默认并发数为登记资源数，`TESTDOG_WORKER_CONCURRENCY` 可降低并发。每条执行独占资源；排队默认上限一小时（`TESTDOG_QUEUE_TIMEOUT_MS`），准备两分钟、执行五分钟、归档三十秒，Web 归档后清理浏览器另有十秒上限。未确认清理的资源保持隔离。
 
 ## 数据库迁移与升级
 
 本次移除输入引用的升级需要先停止 API 和 worker，再执行 `pnpm db:migrate`，清理用例和历史快照中的 `inputs` 配置后部署新版本。旧步骤中的 `${input.*}` 和 `${secret:*}` 不再解析，需要改写步骤后重新录制。
 
-迁移由部署流程执行一次，各应用启动时不会自动迁移。修改表结构后生成迁移的开发步骤见 [开发指南](development.md#数据库结构修改)。
+迁移由部署流程执行，各应用进程不会自动迁移。Docker Compose 使用独立的 `migrate` 服务完成这一步；其他部署方式执行下文命令。修改表结构后生成迁移的开发步骤见 [开发指南](development.md#数据库结构修改)。
 
 1. 停止旧 API 接收新执行和所有旧版本写入者；排空或停止旧 worker、maintenance、notifications。
 2. 确认迁移进程的 `DATABASE_URL` 指向目标数据库，执行 `pnpm db:migrate`。

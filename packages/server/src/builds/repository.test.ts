@@ -20,7 +20,7 @@ import { getBuild, hashBuild, installedBuildHash } from '@testdog/server/builds/
 
 afterAll(() => isolated.client?.close());
 it('validates platform, app identity and content hash before allowing an install', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'caseforge-build-test-'));
+  const directory = await mkdtemp(join(tmpdir(), 'testdog-build-test-'));
 
   try {
     const path = join(directory, 'fixture.apk');
@@ -57,7 +57,7 @@ it('validates platform, app identity and content hash before allowing an install
 });
 
 it('finishes installed APK hashing before deleting the pulled temporary files', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'caseforge-adb-fixture-'));
+  const root = await mkdtemp(join(tmpdir(), 'testdog-adb-fixture-'));
   const tools = join(root, 'platform-tools');
 
   await mkdir(tools);

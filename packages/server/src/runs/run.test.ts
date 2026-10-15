@@ -62,8 +62,8 @@ function ref(value: unknown, role: string): string | undefined {
 }
 
 beforeAll(async () => {
-  directory = await mkdtemp(join(tmpdir(), 'caseforge-recording-'));
-  vi.stubEnv('CASEFORGE_DATA_DIR', directory);
+  directory = await mkdtemp(join(tmpdir(), 'testdog-recording-'));
+  vi.stubEnv('TESTDOG_DATA_DIR', directory);
   vi.stubEnv('AUTOMATION_HEADLESS', 'true');
   server = createServer((request, response) => {
     if (request.url === '/api/check') {

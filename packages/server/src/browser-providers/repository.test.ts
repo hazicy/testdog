@@ -50,7 +50,7 @@ const input = {
 };
 
 beforeEach(async () => {
-  vi.stubEnv('CASEFORGE_INTEGRATION_SECRET', 'browser-provider-test-secret-at-least-32-characters');
+  vi.stubEnv('TESTDOG_INTEGRATION_SECRET', 'browser-provider-test-secret-at-least-32-characters');
   await isolated.client!.exec(
     'TRUNCATE auth_users, browser_provider_integrations, test_runs CASCADE',
   );

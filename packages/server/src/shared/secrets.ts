@@ -3,7 +3,7 @@ import { WorkspaceError } from '@testdog/server/shared/errors';
 import type { UserScope } from '@testdog/server/shared/ownership';
 
 function key() {
-  const secret = process.env.CASEFORGE_INTEGRATION_SECRET || process.env.BETTER_AUTH_SECRET;
+  const secret = process.env.TESTDOG_INTEGRATION_SECRET || process.env.BETTER_AUTH_SECRET;
 
   if (!secret || secret.length < 32)
     throw new WorkspaceError('集成密钥未配置，请先配置服务端集成密钥。');

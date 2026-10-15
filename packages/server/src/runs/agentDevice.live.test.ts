@@ -74,13 +74,13 @@ async function replayThroughRunner(
 it.skipIf(!live || process.platform !== 'darwin')(
   'runs an installed UIKit fixture through agent-device and replays stable bindings',
   async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'caseforge-ios-'));
+    const directory = await mkdtemp(join(tmpdir(), 'testdog-ios-'));
 
-    vi.stubEnv('CASEFORGE_DATA_DIR', directory);
+    vi.stubEnv('TESTDOG_DATA_DIR', directory);
     let udid: string | undefined;
     let session: AgentDeviceSession | undefined;
     const signal = AbortSignal.timeout(240000);
-    const app = join(directory, 'CaseForgeFixture.app');
+    const app = join(directory, 'TestdogFixture.app');
 
     try {
       await mkdir(app);
@@ -105,7 +105,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
           '-parse-as-library',
           'packages/automation/src/platform/native/fixtures/ios/Main.swift',
           '-o',
-          join(app, 'CaseForgeFixture'),
+          join(app, 'TestdogFixture'),
         ],
         { timeout: 120000 },
       );
@@ -122,7 +122,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
         await exec('xcrun', [
           'simctl',
           'create',
-          `CaseForge validation ${Date.now()}`,
+          `Testdog validation ${Date.now()}`,
           'com.apple.CoreSimulator.SimDeviceType.iPhone-17',
           runtime.identifier,
         ])
@@ -134,13 +134,13 @@ it.skipIf(!live || process.platform !== 'darwin')(
         schemaVersion: 1,
         platform: 'ios',
         buildArtifactId: build.id,
-        appId: 'com.caseforge.fixture',
+        appId: 'com.testdog.fixture',
         deviceProfileId: 'fixture',
         resetPolicy: 'preserve',
       } as const;
 
       session = await AgentDeviceSession.open(
-        `caseforge-fixture-${Date.now()}`,
+        `testdog-fixture-${Date.now()}`,
         target,
         udid,
         signal,
@@ -174,7 +174,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
       expect((await readFile(path)).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       await session.close();
       session = await AgentDeviceSession.open(
-        `caseforge-replay-${Date.now()}`,
+        `testdog-replay-${Date.now()}`,
         { ...target, resetPolicy: 'clear-data' },
         udid,
         signal,
@@ -202,19 +202,19 @@ it.skipIf(!live || process.platform !== 'darwin')(
   300000,
 );
 
-it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
+it.skipIf(!live || !process.env.TESTDOG_ANDROID_SERIAL)(
   'runs an Android fixture through agent-device and replays stable bindings',
   async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'caseforge-android-'));
+    const directory = await mkdtemp(join(tmpdir(), 'testdog-android-'));
 
-    vi.stubEnv('CASEFORGE_DATA_DIR', directory);
+    vi.stubEnv('TESTDOG_DATA_DIR', directory);
     const sdk = process.env.ANDROID_SDK_ROOT || join(process.env.HOME!, 'Library/Android/sdk');
     const java =
-      process.env.CASEFORGE_JAVA_HOME ||
+      process.env.TESTDOG_JAVA_HOME ||
       '/Applications/Android Studio.app/Contents/jbr/Contents/Home';
     const tools = join(sdk, 'build-tools', '36.0.0');
     const androidJar = join(sdk, 'platforms', 'android-36', 'android.jar');
-    const serial = process.env.CASEFORGE_ANDROID_SERIAL!;
+    const serial = process.env.TESTDOG_ANDROID_SERIAL!;
     const adb = join(sdk, 'platform-tools', 'adb');
     const signal = AbortSignal.timeout(180000);
     let session: AgentDeviceSession | undefined;
@@ -266,7 +266,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
           androidJar,
           '--output',
           directory,
-          join(classes, 'com/caseforge/fixture/MainActivity.class'),
+          join(classes, 'com/testdog/fixture/MainActivity.class'),
         ],
         { env },
       );
@@ -286,7 +286,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         '-keyalg',
         'RSA',
         '-dname',
-        'CN=CaseForge Fixture',
+        'CN=Testdog Fixture',
         '-validity',
         '1',
       ]);
@@ -300,13 +300,13 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
         schemaVersion: 1,
         platform: 'android',
         buildArtifactId: build.id,
-        appId: 'com.caseforge.fixture',
+        appId: 'com.testdog.fixture',
         deviceProfileId: 'fixture',
         resetPolicy: 'preserve',
       } as const;
 
       session = await AgentDeviceSession.open(
-        `caseforge-android-${Date.now()}`,
+        `testdog-android-${Date.now()}`,
         target,
         serial,
         signal,
@@ -318,12 +318,12 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       const commands: NativeAction[] = [
         {
           type: 'fill',
-          target: { kind: 'identifier', value: 'com.caseforge.fixture:id/fixture_name' },
+          target: { kind: 'identifier', value: 'com.testdog.fixture:id/fixture_name' },
           value: 'Ada',
         },
         {
           type: 'tap',
-          target: { kind: 'identifier', value: 'com.caseforge.fixture:id/fixture_submit' },
+          target: { kind: 'identifier', value: 'com.testdog.fixture:id/fixture_submit' },
         },
         { type: 'wait', text: 'Welcome Ada', timeoutMs: 5000 },
       ];
@@ -345,7 +345,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       expect((await readFile(path)).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       await session.close();
       session = await AgentDeviceSession.open(
-        `caseforge-android-replay-${Date.now()}`,
+        `testdog-android-replay-${Date.now()}`,
         { ...target, resetPolicy: 'clear-data' },
         serial,
         signal,
@@ -364,7 +364,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
 
       await session.close();
       session = await AgentDeviceSession.open(
-        `caseforge-android-reinstall-${Date.now()}`,
+        `testdog-android-reinstall-${Date.now()}`,
         { ...target, resetPolicy: 'reinstall', evidence },
         serial,
         signal,
@@ -387,7 +387,7 @@ it.skipIf(!live || !process.env.CASEFORGE_ANDROID_SERIAL)(
       expect(session.safeToRelease).toBe(true);
     } finally {
       await session?.close().catch(() => {});
-      await exec(adb, ['-s', serial, 'uninstall', 'com.caseforge.fixture']).catch(() => {});
+      await exec(adb, ['-s', serial, 'uninstall', 'com.testdog.fixture']).catch(() => {});
       await rm(directory, { recursive: true, force: true });
       vi.unstubAllEnvs();
     }

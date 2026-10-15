@@ -9,7 +9,7 @@ let root: string;
 let path: string;
 
 beforeEach(async () => {
-  directory = await mkdtemp(join(tmpdir(), 'caseforge-artifacts-'));
+  directory = await mkdtemp(join(tmpdir(), 'testdog-artifacts-'));
   root = join(directory, 'artifacts');
   await mkdir(root);
   path = join(root, 'video.webm');

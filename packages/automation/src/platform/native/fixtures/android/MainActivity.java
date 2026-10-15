@@ -1,4 +1,4 @@
-package com.caseforge.fixture;
+package com.testdog.fixture;
 import android.app.Activity;
 import android.os.Bundle;
 import android.widget.Button;

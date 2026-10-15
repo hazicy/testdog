@@ -37,25 +37,25 @@ RUN_LIVE_TESTS=true pnpm exec vitest run packages/automation/src/compiler/textCo
 Redis 集成测试启动临时本地 Redis，使用随机端口和独立 key 前缀，不访问开发数据库：
 
 ```bash
-CASEFORGE_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run packages/server/src/realtime/realtime.integration.test.ts
+TESTDOG_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run packages/server/src/realtime/realtime.integration.test.ts
 ```
 
-独立 PostgreSQL 调度验证只接受本地、名称以 `caseforge_test_` 开头的数据库，使用临时 schema 并清理，不读取 `DATABASE_URL`。同时设置 `CASEFORGE_ANDROID_SERIAL` 可验证原生健康恢复，设备必须专用于测试：
+独立 PostgreSQL 调度验证只接受本地、名称以 `testdog_test_` 开头的数据库，使用临时 schema 并清理，不读取 `DATABASE_URL`。同时设置 `TESTDOG_ANDROID_SERIAL` 可验证原生健康恢复，设备必须专用于测试：
 
 ```bash
-CASEFORGE_TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/caseforge_test_scheduler pnpm exec vitest run packages/server/src/scheduling/scheduler.postgres.test.ts
+TESTDOG_TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/testdog_test_scheduler pnpm exec vitest run packages/server/src/scheduling/scheduler.postgres.test.ts
 ```
 
-真实设备验证使用自建测试 app。Android 需指定已启动的专用 emulator、SDK 36 和 build-tools 36.0.0，Java 路径可用 `CASEFORGE_JAVA_HOME` 指定；iOS 会创建并删除独立 simulator，需要 macOS/Xcode：
+真实设备验证使用自建测试 app。Android 需指定已启动的专用 emulator、SDK 36 和 build-tools 36.0.0，Java 路径可用 `TESTDOG_JAVA_HOME` 指定；iOS 会创建并删除独立 simulator，需要 macOS/Xcode：
 
 ```bash
-RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/android-sdk pnpm exec vitest run packages/server/src/runs/agentDevice.live.test.ts
+RUN_DEVICE_LIVE_TESTS=true TESTDOG_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/android-sdk pnpm exec vitest run packages/server/src/runs/agentDevice.live.test.ts
 ```
 
 浏览器工作台的 live 验收需要先启动本地服务，仍使用隔离 API fixtures：
 
 ```bash
-CASEFORGE_UI_URL=http://localhost:3015 pnpm exec vitest run apps/web/src/features/workspace/workspace.live.test.ts
+TESTDOG_UI_URL=http://localhost:3015 pnpm exec vitest run apps/web/src/features/workspace/workspace.live.test.ts
 ```
 
 查看下载的 Playwright Trace：

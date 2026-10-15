@@ -50,8 +50,8 @@ export async function recoverLocalResource(id: string, hostId: string) {
       try {
         const page = await browser.newPage();
 
-        await page.setContent('<title>CaseForge recovery</title>');
-        if ((await page.title()) !== 'CaseForge recovery') return false;
+        await page.setContent('<title>Testdog recovery</title>');
+        if ((await page.title()) !== 'Testdog recovery') return false;
       } finally {
         await connection.close();
       }
@@ -79,7 +79,7 @@ export async function recoverLocalResource(id: string, hostId: string) {
       session: `recovery-${randomUUID()}`,
       responseLevel: 'full',
     });
-    const directory = await mkdtemp(join(tmpdir(), 'caseforge-recovery-'));
+    const directory = await mkdtemp(join(tmpdir(), 'testdog-recovery-'));
 
     try {
       await client.apps.open({

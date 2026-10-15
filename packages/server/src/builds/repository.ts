@@ -43,7 +43,7 @@ export async function registerBuild(platform: 'android' | 'ios', inputPath: stri
   }
 
   const id = randomUUID();
-  const root = join(process.env.CASEFORGE_DATA_DIR || join(process.cwd(), '.automation'), 'builds');
+  const root = join(process.env.TESTDOG_DATA_DIR || join(process.cwd(), '.automation'), 'builds');
 
   await mkdir(root, { recursive: true });
   const path = join(root, `${id}${platform === 'ios' ? '.app' : '.apk'}`);

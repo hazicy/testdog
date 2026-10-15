@@ -121,7 +121,7 @@ export async function sendNotification(
     clearTimeout(dnsTimer);
   }
 
-  if (!publicAddress(address) && process.env.CASEFORGE_ALLOW_PRIVATE_SMTP !== 'true')
+  if (!publicAddress(address) && process.env.TESTDOG_ALLOW_PRIVATE_SMTP !== 'true')
     throw new Error(emailUnavailableMessage);
   const transport = nodemailer.createTransport({
     host: address,

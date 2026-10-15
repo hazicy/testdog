@@ -5,7 +5,7 @@ ALTER TABLE "test_runs" DROP COLUMN "executingAt";--> statement-breakpoint
 ALTER TABLE "test_runs" DROP COLUMN "finalizingAt";--> statement-breakpoint
 ALTER TABLE "test_runs" DROP COLUMN "heartbeatAt";
 --> statement-breakpoint
-CREATE OR REPLACE FUNCTION caseforge_run_revision() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION testdog_run_revision() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     NEW."realtimeRevision" := 1;
@@ -17,7 +17,7 @@ BEGIN
 END;
 $$;
 --> statement-breakpoint
-CREATE OR REPLACE FUNCTION caseforge_realtime_event() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION testdog_realtime_event() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
   row_data jsonb;
   run_id uuid;

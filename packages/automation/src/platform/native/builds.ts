@@ -76,7 +76,7 @@ export async function installedBuildHash(
     )
   )
     throw new Error('无法获取已安装应用的 APK 路径');
-  const directory = await mkdtemp(join(tmpdir(), 'caseforge-fingerprint-'));
+  const directory = await mkdtemp(join(tmpdir(), 'testdog-fingerprint-'));
 
   try {
     for (const [index, path] of paths.entries())

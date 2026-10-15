@@ -27,7 +27,7 @@ import { backgroundServices, runServiceProcess } from './serviceRuntime';
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.stubEnv('CASEFORGE_BACKGROUND_SERVICES', undefined);
+  vi.stubEnv('TESTDOG_BACKGROUND_SERVICES', undefined);
   services.maintenance.mockReturnValue(services.stopMaintenance);
   services.notifications.mockReturnValue(services.stopNotifications);
 });
@@ -43,7 +43,7 @@ it('selects the default deployment or an explicit subset without duplicate servi
     'outbox',
   ]);
   for (const config of ['', 'unknown', 'none,outbox'])
-    expect(() => backgroundServices('worker', config)).toThrow('CASEFORGE_BACKGROUND_SERVICES');
+    expect(() => backgroundServices('worker', config)).toThrow('TESTDOG_BACKGROUND_SERVICES');
 });
 
 it('handles repeated signals once and waits for consumers and publishers before closing connections', async () => {

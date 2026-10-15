@@ -379,10 +379,10 @@ export function DockTabs<T extends string>({
     >
       <div
         ref={container}
-        data-ui="caseforge-dock"
+        data-ui="dock"
         data-compact={isCompact}
         aria-label={label}
-        className={clsx([studioStyles.caseforgeDock, 'dockview-theme-light'].join(' '), className)}
+        className={clsx([studioStyles.dock, 'dockview-theme-light'].join(' '), className)}
       >
         {isCompact && (
           <div

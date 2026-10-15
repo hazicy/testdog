@@ -27,8 +27,8 @@ let directory: string;
 
 beforeAll(async () => {
   if (!enabled) return;
-  directory = await mkdtemp(join(tmpdir(), 'caseforge-live-'));
-  vi.stubEnv('CASEFORGE_DATA_DIR', directory);
+  directory = await mkdtemp(join(tmpdir(), 'testdog-live-'));
+  vi.stubEnv('TESTDOG_DATA_DIR', directory);
   vi.stubEnv('AUTOMATION_HEADLESS', 'true');
   const html = await readFile(
     join(process.cwd(), 'packages/server/src/runs/fixtures/checkout.html'),
@@ -78,7 +78,7 @@ it.skipIf(!enabled)(
 
     expect(result.status, result.error).toBe('passed');
     expect(result.steps.length).toBe(recorded.steps.length);
-    const preview = process.env.CASEFORGE_PREVIEW_DIR;
+    const preview = process.env.TESTDOG_PREVIEW_DIR;
 
     if (preview) {
       await mkdir(preview, { recursive: true });

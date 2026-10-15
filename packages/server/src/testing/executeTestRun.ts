@@ -5,7 +5,7 @@ import { claimRun, registerResources, withLease } from '@testdog/server/scheduli
 import { owner } from '@testdog/server/shared/workerIdentity';
 
 export async function executeTestRun(run: TestRun): Promise<void> {
-  const hostId = process.env.CASEFORGE_HOST_ID || hostname();
+  const hostId = process.env.TESTDOG_HOST_ID || hostname();
 
   await registerResources([
     { id: `${hostId}:web:inline`, hostId, platform: 'web', profileId: 'mobile' },

@@ -83,7 +83,7 @@ function request(path: string, account?: Account, body?: object, key?: string, m
 }
 
 beforeAll(async () => {
-  vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', '');
+  vi.stubEnv('TESTDOG_ALLOW_UNAUTHENTICATED', '');
   fixture.auth = betterAuth({
     baseURL: 'http://localhost:3000',
     secret: 'isolation-integration-secret-with-at-least-32-characters',
@@ -368,7 +368,7 @@ test('requires authentication at route level and only exposes unassigned records
     tags: input.tags,
     target: defaultWebTarget(input.url),
   });
-  vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', 'true');
+  vi.stubEnv('TESTDOG_ALLOW_UNAUTHENTICATED', 'true');
   try {
     expect(
       (await (await listTests(request('/api/tests'))).json()).tests.map(
@@ -382,6 +382,6 @@ test('requires authentication at route level and only exposes unassigned records
       ),
     ).toEqual(['Private test']);
   } finally {
-    vi.stubEnv('CASEFORGE_ALLOW_UNAUTHENTICATED', '');
+    vi.stubEnv('TESTDOG_ALLOW_UNAUTHENTICATED', '');
   }
 });

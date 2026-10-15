@@ -412,7 +412,7 @@ export class AgentDeviceSession implements AutomationSession {
   async capture(request: CaptureRequest, signal: AbortSignal): Promise<ArtifactDescriptor[]> {
     this.assertOpen();
     if (request.kind !== 'screenshot') return this.videoRecorder.capture(request, signal);
-    const directory = await mkdtemp(join(tmpdir(), 'caseforge-capture-'));
+    const directory = await mkdtemp(join(tmpdir(), 'testdog-capture-'));
 
     try {
       const path = join(directory, 'capture.png');

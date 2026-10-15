@@ -182,10 +182,10 @@ export async function recoverLeases() {
     );
 
     if (!lock.rows[0].acquired) return;
-    const queueTimeout = Number(process.env.CASEFORGE_QUEUE_TIMEOUT_MS || 3600000);
+    const queueTimeout = Number(process.env.TESTDOG_QUEUE_TIMEOUT_MS || 3600000);
 
     if (!Number.isFinite(queueTimeout) || queueTimeout < 1000)
-      throw new Error('CASEFORGE_QUEUE_TIMEOUT_MS 必须为正毫秒数');
+      throw new Error('TESTDOG_QUEUE_TIMEOUT_MS 必须为正毫秒数');
     await tx
       .update(testRuns)
       .set({

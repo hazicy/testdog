@@ -191,7 +191,7 @@ test('canvas settings and embedded trial work on portrait and landscape phones',
   await page.addInitScript(
     ({ draftId, saved, plan }) => {
       sessionStorage.setItem(
-        `caseforge:case-draft:${draftId}`,
+        `testdog:case-draft:${draftId}`,
         JSON.stringify({
           test: saved,
           name: saved.name,

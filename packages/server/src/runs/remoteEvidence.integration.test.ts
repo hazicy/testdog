@@ -34,8 +34,8 @@ afterEach(async () => {
 it.each([false, true])(
   'archives native remote evidence (interrupted=%s)',
   async (interrupted) => {
-    directory = await mkdtemp(join(tmpdir(), 'caseforge-remote-browser-'));
-    vi.stubEnv('CASEFORGE_DATA_DIR', directory);
+    directory = await mkdtemp(join(tmpdir(), 'testdog-remote-browser-'));
+    vi.stubEnv('TESTDOG_DATA_DIR', directory);
     // The real Playwright server exercises native transport and remote video transfer without cloud credentials.
     server = await chromium.launchServer({ headless: true, wsPath: '/chromium/playwright' });
     const connection = await browserlessProvider.connect(

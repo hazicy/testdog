@@ -1,7 +1,7 @@
 import { createClient } from 'redis';
 
 export function redisKey(suffix: string) {
-  return `${process.env.CASEFORGE_REDIS_PREFIX || 'caseforge'}:${suffix}`;
+  return `${process.env.TESTDOG_REDIS_PREFIX || 'testdog'}:${suffix}`;
 }
 
 function makeClient() {
@@ -23,13 +23,13 @@ function makeClient() {
 
 type Client = ReturnType<typeof makeClient>;
 const state = globalThis as typeof globalThis & {
-  caseforgeRedis?: Client;
-  caseforgeRedisSubscriber?: Client;
+  testdogRedis?: Client;
+  testdogRedisSubscriber?: Client;
 };
 
 export function redisClient(subscriber = false) {
   if (!process.env.REDIS_URL) throw new Error('Redis is not configured');
-  const field = subscriber ? 'caseforgeRedisSubscriber' : 'caseforgeRedis';
+  const field = subscriber ? 'testdogRedisSubscriber' : 'testdogRedis';
   const client = (state[field] ??= makeClient());
 
   if (!client.isOpen) void client.connect().catch(() => {});
@@ -46,8 +46,8 @@ export async function readyRedis(subscriber = false) {
 }
 
 export async function closeRedis() {
-  for (const client of [state.caseforgeRedis, state.caseforgeRedisSubscriber])
+  for (const client of [state.testdogRedis, state.testdogRedisSubscriber])
     if (client?.isOpen) client.destroy();
-  state.caseforgeRedis = undefined;
-  state.caseforgeRedisSubscriber = undefined;
+  state.testdogRedis = undefined;
+  state.testdogRedisSubscriber = undefined;
 }

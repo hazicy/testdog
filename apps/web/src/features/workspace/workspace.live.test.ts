@@ -4,7 +4,7 @@ import { expect, it } from 'vitest';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 import type { TestRun } from '@testdog/contracts/runs/types';
 
-it.skipIf(!process.env.CASEFORGE_UI_URL)(
+it.skipIf(!process.env.TESTDOG_UI_URL)(
   'edits native setup and submits a platform matrix in the real workspace UI',
   async () => {
     const browser = await chromium.launch();
@@ -59,7 +59,7 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
       await route.fulfill({ json: body });
     });
     try {
-      await page.goto(`${process.env.CASEFORGE_UI_URL}/cases`);
+      await page.goto(`${process.env.TESTDOG_UI_URL}/cases`);
       await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
       const dialog = page.locator('.case-canvas-page');
 
@@ -121,7 +121,7 @@ it.skipIf(!process.env.CASEFORGE_UI_URL)(
         evidenceComplete: false,
         targetSnapshot: tests[0].target,
       };
-      await page.goto(`${process.env.CASEFORGE_UI_URL}/runs/${runId}`);
+      await page.goto(`${process.env.TESTDOG_UI_URL}/runs/${runId}`);
       await browserExpect(page.getByText(/证据.*完整/).first()).toBeVisible();
       expect(errors).toEqual([]);
     } catch (error) {

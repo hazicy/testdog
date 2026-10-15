@@ -157,7 +157,7 @@ test('uses one replay player and pauses video when leaving execution', async ({
     }),
   );
   const recordingContext = await browser.newContext({
-    recordVideo: { dir: '/private/tmp/caseforge-test-video', size: { width: 320, height: 200 } },
+    recordVideo: { dir: '/private/tmp/testdog-test-video', size: { width: 320, height: 200 } },
   });
   const recordingPage = await recordingContext.newPage();
 
@@ -688,7 +688,7 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
 
   await page.addInitScript(
     ({ draftId, draft }) =>
-      sessionStorage.setItem(`caseforge:case-draft:${draftId}`, JSON.stringify(draft)),
+      sessionStorage.setItem(`testdog:case-draft:${draftId}`, JSON.stringify(draft)),
     { draftId, draft },
   );
   let submissions = 0;
@@ -787,7 +787,7 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
   await expect
     .poll(() =>
       page.evaluate(
-        (id) => JSON.parse(sessionStorage.getItem(`caseforge:case-draft:${id}`)!).name,
+        (id) => JSON.parse(sessionStorage.getItem(`testdog:case-draft:${id}`)!).name,
         draftId,
       ),
     )
@@ -1318,7 +1318,7 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
   await page.addInitScript((snapshot) => {
     const streams: EventTarget[] = [];
 
-    Object.assign(window, { __caseforgeStreams: streams });
+    Object.assign(window, { __testdogStreams: streams });
     class FakeEventSource extends EventTarget {
       onerror = null;
       constructor() {
@@ -1338,8 +1338,7 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
   await page.goto(`/runs/${run.id}`);
   await expect(page.getByText('执行中', { exact: true })).toBeVisible();
   await page.waitForFunction(
-    () =>
-      (window as unknown as { __caseforgeStreams: EventTarget[] }).__caseforgeStreams.length > 0,
+    () => (window as unknown as { __testdogStreams: EventTarget[] }).__testdogStreams.length > 0,
   );
   // A healthy stream disables periodic reads even as the elapsed-time clock ticks.
   await page.clock.fastForward(5500);
@@ -1347,7 +1346,7 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
   await page.getByRole('button', { name: '停止执行', exact: true }).click();
   await expect.poll(() => reads).toBe(2);
   await page.evaluate((step) => {
-    const streams = (window as unknown as { __caseforgeStreams: EventTarget[] }).__caseforgeStreams;
+    const streams = (window as unknown as { __testdogStreams: EventTarget[] }).__testdogStreams;
 
     streams.at(-1)!.dispatchEvent(
       new MessageEvent('updates', {
@@ -1374,8 +1373,8 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
   ).toBeVisible();
   await page.evaluate(() => {
     const streams = (
-      window as unknown as { __caseforgeStreams: (EventTarget & { onerror: () => void })[] }
-    ).__caseforgeStreams;
+      window as unknown as { __testdogStreams: (EventTarget & { onerror: () => void })[] }
+    ).__testdogStreams;
 
     streams.at(-1)!.onerror();
   });
@@ -1419,7 +1418,7 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
   await page.getByRole('button', { name: 'AI 调用', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeHidden();
   await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeVisible();
-  await expect(dock.locator('[data-ui~="caseforge-dock"]')).toHaveCount(0);
+  await expect(dock.locator('[data-ui~="dock"]')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
