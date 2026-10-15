@@ -1,6 +1,13 @@
+import en from '../../../../messages/en.json';
 import { expect, it } from 'vitest';
 import { PlanSchema } from '@testdog/contracts/automation/compiler/schema';
-import { editablePlan, emptyPlan, insertStep, planText } from '@/features/test-cases/lib/authoring';
+import {
+  editablePlan,
+  emptyPlan,
+  insertStep,
+  planText,
+  caseName,
+} from '@/features/test-cases/lib/authoring';
 
 it('splits assertions into independent editable steps without changing dependency completion boundaries', () => {
   const source = PlanSchema.parse({
@@ -76,4 +83,27 @@ it('rejects invalid insertion positions and existing IDs without overwriting nod
     expect(() => insertStep(plan, { groupId: 'root', index }, 'act', 'new')).toThrow();
   expect(() => insertStep(plan, { groupId: 'root', index: 0 }, 'act', 'root')).toThrow();
   expect(plan.nodes.root).toMatchObject({ children: [] });
+});
+
+it('uses localized defaults without rewriting existing authored content', () => {
+  const labels = en.authoring;
+  const plan = insertStep(
+    emptyPlan('', labels),
+    { groupId: 'root', index: 0 },
+    'branch',
+    'branch',
+    labels,
+  );
+
+  expect(plan.nodes.root).toMatchObject({ goal: 'Test case' });
+  expect(plan.nodes.branch).toMatchObject({ condition: 'Describe the branch condition' });
+  expect(plan.nodes['branch:then']).toMatchObject({ goal: 'Condition true' });
+  expect(planText(plan, labels)).toContain('If: Describe the branch condition');
+  expect(caseName('', 'en', labels)).toMatch(/^New test /);
+  expect(caseName('现有测试', 'en', labels)).toBe('现有测试');
+  const source = emptyPlan('用户填写的名称');
+
+  expect(editablePlan(source, undefined, labels).nodes.root).toMatchObject({
+    goal: '用户填写的名称',
+  });
 });

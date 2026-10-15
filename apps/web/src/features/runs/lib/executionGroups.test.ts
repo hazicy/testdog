@@ -91,10 +91,10 @@ it('retains branch labels, repeated assertions and references through hidden seq
   const [shared, reference] = groups[0].children;
 
   expect(shared.title).toBe('shared');
-  expect(shared.pathLabel).toBe('YES / 条件成立');
+  expect(shared.pathLabel).toBe('yesCondition');
   expect(shared.actions).toEqual([]);
   expect(shared.children.map((entry) => entry.actions)).toEqual([[first], [second]]);
-  expect(reference.pathLabel).toBe('NO / 条件不成立');
+  expect(reference.pathLabel).toBe('noCondition');
   expect(reference.reference).toBe(shared.id);
   expect(reference.steps).toEqual([]);
   expect(ungrouped).toEqual([]);

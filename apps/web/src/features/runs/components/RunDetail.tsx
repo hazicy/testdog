@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { LoadingState } from '@/components/shared/LoadingState';
 
 import clsx from 'clsx';
@@ -45,14 +47,14 @@ const emptySteps: ExecutionStep[] = [];
 const PlanBoard = dynamic(
   () => import('@/features/runs/components/PlanBoard').then((module) => module.PlanBoard),
   {
-    loading: () => <LoadingState message="正在加载计划…" />,
+    loading: () => <LoadingState />,
   },
 );
 const RecordingEditor = dynamic(
   () =>
     import('@/features/runs/components/RecordingEditor').then((module) => module.RecordingEditor),
   {
-    loading: () => <LoadingState message="正在加载录制脚本…" />,
+    loading: () => <LoadingState />,
   },
 );
 
@@ -67,6 +69,7 @@ export function RunDetail({
   onRunChange?: (run: TestRun) => void;
   onRunCreated?: (run: TestRun) => void;
 }) {
+  const t = useTranslations('runs');
   const router = useRouter();
   const submit = useRunSubmission();
   const [busy, setBusy] = useState(false);
@@ -209,10 +212,10 @@ export function RunDetail({
                 <Button
                   variant="ghost"
                   className={styles.action}
-                  aria-label={`查看问题：${entry.issue.title}`}
+                  aria-label={t('viewIssue', { title: entry.issue.title })}
                   onClick={() => selectRunIssue(entry)}
                 >
-                  <span className={styles.issueBadge}>问题</span>
+                  <span className={styles.issueBadge}>{t('issue')}</span>
                   <span className={styles.issueTitle}>{entry.issue.title}</span>
                   <span className={styles.issueTime}>
                     ▶ {time(issuePosition(run, entry.occurrence))}
@@ -221,7 +224,7 @@ export function RunDetail({
               </div>
             ))
         : null,
-    [run, runIssues, selectRunIssue],
+    [run, runIssues, selectRunIssue, t],
   );
 
   const openIssue = useCallback(
@@ -240,7 +243,11 @@ export function RunDetail({
     if ((action === 'record' || action === 'replay') && !run) return;
     const setPending = action === 'export' ? setExporting : setBusy;
     const failure =
-      action === 'export' ? '导出失败' : action === 'cancel' ? '停止失败' : '启动失败';
+      action === 'export'
+        ? t('exportFailed')
+        : action === 'cancel'
+          ? t('stopFailed')
+          : t('startFailed');
 
     setPending(true);
     try {
@@ -364,10 +371,10 @@ export function RunDetail({
   if (unavailable || (!run && error))
     return (
       <ErrorState
-        message={unavailable ? '执行记录不存在' : error || '无法加载执行记录'}
+        message={unavailable ? t('runNotFound') : error || t('runLoadFailed')}
         retry={() => void refresh()}
         href="/runs"
-        linkLabel="返回执行记录"
+        linkLabel={t('backToRuns')}
       />
     );
 
@@ -387,7 +394,7 @@ export function RunDetail({
       />
       {run?.evidenceComplete === false && (
         <p role="alert" className={studioStyles.studioAlert}>
-          本次执行的证据归档不完整，请查看执行错误。
+          {t('incompleteEvidence')}
         </p>
       )}
       {error && (
@@ -399,7 +406,7 @@ export function RunDetail({
             size="sm"
             className={styles.refresh}
           >
-            刷新
+            {t('refresh')}
           </Button>
         </div>
       )}
@@ -418,9 +425,12 @@ export function RunDetail({
       )}
       <DockTabs
         key={`${id}:${layoutVersion}`}
-        label="执行工作台"
+        label={t('workbench')}
         className={studioStyles.runStudioDock}
-        tabs={runWorkspaceTabs(layout, runIssues.length)}
+        tabs={runWorkspaceTabs(layout, runIssues.length).map((tab) => ({
+          ...tab,
+          label: t(`panels.${tab.id}`),
+        }))}
         revealPanels={revealPanels}
         value={view}
         onChange={(panel) => act({ type: 'panel', panel })}

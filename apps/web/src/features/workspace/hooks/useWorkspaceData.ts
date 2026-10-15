@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
@@ -19,6 +21,7 @@ type ListPage = {
 const emptyCounts = emptyRunCounts();
 
 export function useWorkspaceData(isTests: boolean) {
+  const t = useTranslations('workspace');
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
@@ -99,7 +102,7 @@ export function useWorkspaceData(isTests: boolean) {
     runCount: stats?.runCount ?? 0,
     loading: listLoading || statsLoading,
     error:
-      error || (loadError instanceof Error ? loadError.message : loadError ? '无法加载工作区' : ''),
+      error || (loadError instanceof Error ? loadError.message : loadError ? t('loadFailed') : ''),
     setError,
     counts,
     latestRuns,

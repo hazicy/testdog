@@ -1,5 +1,8 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+import { useIssueLabels } from '@/features/issues/presentation';
+
 import clsx from 'clsx';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
@@ -14,8 +17,6 @@ import { Select } from '@/components/ui/Select';
 import { asset, time } from '@/features/runs/presentation';
 import type { RunArtifact, TestRun } from '@testdog/contracts/runs/types';
 import {
-  issueStatuses,
-  issueSeverities,
   type Issue,
   type IssueOccurrence,
   type IssueStatus,
@@ -49,6 +50,8 @@ function RunIssueCard({
   onFrame: (frame: RunArtifact) => void;
   onUpdated: () => Promise<unknown>;
 }) {
+  const t = useTranslations('issues');
+  const { issueStatuses, issueSeverities } = useIssueLabels();
   const { issue, occurrence } = entry;
   const snapshot = occurrence.snapshot;
   const [busy, setBusy] = useState(false);
@@ -76,7 +79,7 @@ function RunIssueCard({
       });
       await onUpdated();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '更新失败');
+      setError(cause instanceof Error ? cause.message : t('updateFailed'));
     } finally {
       setBusy(false);
     }
@@ -88,7 +91,7 @@ function RunIssueCard({
         <div className={styles.container}>
           <span className={styles.label}>ISSUE {String(index + 1).padStart(2, '0')}</span>
           <Button onClick={() => onSelect(entry)}>
-            ▶ 回放问题 {time(issuePosition(run, occurrence))}
+            {t('replayIssue', { time: time(issuePosition(run, occurrence)) })}
           </Button>
         </div>
         <h2 className={styles.heading}>{issue.title}</h2>
@@ -100,20 +103,24 @@ function RunIssueCard({
               ↗ {snapshot.url}
             </a>
           )}
-          <span className={styles.mutedText}>严重程度：{issueSeverities[issue.severity]}</span>
+          <span className={styles.mutedText}>
+            {t('severityText', { value: issueSeverities[issue.severity] })}
+          </span>
         </div>
         <div className={styles.comparison}>
           <div className={styles.expected}>
-            <h3 className={styles.subheading}>预期 EXPECTED</h3>
-            <p className={styles.description}>{expected || '未记录预期结果'}</p>
+            <h3 className={styles.subheading}>{t('expected')}</h3>
+            <p className={styles.description}>{expected || t('noExpected')}</p>
           </div>
           <div className={styles.actual}>
-            <h3 className={styles.actualHeading}>实际 ACTUAL</h3>
-            <p className={styles.description}>{actual || '未记录实际结果'}</p>
+            <h3 className={styles.actualHeading}>{t('actual')}</h3>
+            <p className={styles.description}>{actual || t('noActual')}</p>
           </div>
         </div>
         <details open className={styles.details}>
-          <summary className={styles.summary}>复现步骤 · {reproduction.length}</summary>
+          <summary className={styles.summary}>
+            {t('reproductionCount', { count: reproduction.length })}
+          </summary>
           <ol className={styles.ol}>
             {reproduction.map((title, position) => (
               <li key={position} className={styles.item}>
@@ -124,7 +131,9 @@ function RunIssueCard({
           </ol>
         </details>
         <details className={styles.details}>
-          <summary className={styles.summary}>截图证据 · {screenshots.length}</summary>
+          <summary className={styles.summary}>
+            {t('screenshotCount', { count: screenshots.length })}
+          </summary>
           {screenshots.length ? (
             <div className={styles.screenshots}>
               {screenshots.map((frame) => (
@@ -132,12 +141,12 @@ function RunIssueCard({
                   key={frame.id}
                   variant="ghost"
                   className={styles.action}
-                  aria-label={`回放证据 ${time(frame.elapsedMs)}`}
+                  aria-label={t('replayEvidence', { time: time(frame.elapsedMs) })}
                   onClick={() => onFrame(frame)}
                 >
                   <Image
                     src={asset(run.id, frame)}
-                    alt={`问题截图 ${time(frame.elapsedMs)}`}
+                    alt={t('issueScreenshot', { time: time(frame.elapsedMs) })}
                     width={160}
                     height={100}
                     unoptimized
@@ -147,7 +156,7 @@ function RunIssueCard({
               ))}
             </div>
           ) : (
-            <p className={styles.emptyEvidence}>未归档截图证据。</p>
+            <p className={styles.emptyEvidence}>{t('noScreenshots')}</p>
           )}
         </details>
         {error && (
@@ -158,7 +167,7 @@ function RunIssueCard({
       </div>
       <footer className={clsx(studioStyles.runIssueActions, styles.footer)}>
         <Select
-          aria-label={`问题状态：${issue.title}`}
+          aria-label={t('statusForIssue', { title: issue.title })}
           className={styles.select}
           value={issue.status}
           disabled={busy}
@@ -172,24 +181,24 @@ function RunIssueCard({
             try {
               await navigator.clipboard.writeText(
                 [
-                  `请修复以下问题：${issue.title}`,
-                  `地址：${snapshot.url}`,
-                  `预期：${expected}`,
-                  `实际：${actual}`,
-                  '复现步骤：',
+                  t('fixIssue', { title: issue.title }),
+                  t('address', { value: snapshot.url }),
+                  t('expectedText', { value: expected }),
+                  t('actualText', { value: actual }),
+                  t('reproductionPrompt'),
                   ...reproduction.map((title, position) => `${position + 1}. ${title}`),
                 ].join('\n'),
               );
               setCopied(true);
             } catch {
-              setError('复制失败，请检查浏览器剪贴板权限。');
+              setError(t('clipboardFailed'));
             }
           }}
         >
-          {copied ? '已复制修复提示词' : '复制修复提示词'}
+          {copied ? t('copiedPrompt') : t('copyPrompt')}
         </Button>
         <Link href={`/issues/${issue.id}`} className={styles.detailsLink}>
-          查看问题详情 ↗
+          {t('viewDetails')}
         </Link>
       </footer>
     </article>
@@ -219,6 +228,7 @@ export function RunIssues({
   hasMore: boolean;
   onLoadMore: () => void;
 }) {
+  const t = useTranslations('issues');
   const selectedIndex = Math.max(
     0,
     entries.findIndex((entry) => entry.occurrence.id === selectedId),
@@ -226,12 +236,15 @@ export function RunIssues({
   const selected = entries[selectedIndex];
 
   return (
-    <section aria-label="执行关联问题" className={clsx(studioStyles.runIssuesView, styles.article)}>
+    <section
+      aria-label={t('linkedIssues')}
+      className={clsx(studioStyles.runIssuesView, styles.article)}
+    >
       <div className={styles.toolbar}>
-        <p className={styles.issueCount}>本次执行 · {entries.length} 个问题</p>
+        <p className={styles.issueCount}>{t('linkedCount', { count: entries.length })}</p>
         {entries.length > 1 && (
           <Select
-            aria-label="选择执行问题"
+            aria-label={t('chooseRunIssue')}
             className={styles.issueSelector}
             value={selected.occurrence.id}
             onValueChange={(id) => {
@@ -247,32 +260,32 @@ export function RunIssues({
         )}
         {hasMore && (
           <Button className={styles.issueSelector} disabled={loading} onClick={onLoadMore}>
-            加载更多问题
+            {t('loadMore')}
           </Button>
         )}
       </div>
       {loading && !entries.length && (
         <p role="status" className={styles.loading}>
-          正在加载关联问题…
+          {t('loadingLinked')}
         </p>
       )}
       {error && (
         <p role="alert" className={styles.loadError}>
-          无法加载关联问题：{error}
+          {t('linkedLoadError', { error })}
           <Button
             variant="ghost"
             size="sm"
             className={styles.retry}
             onClick={() => void onUpdated()}
           >
-            重试
+            {t('retry')}
           </Button>
         </p>
       )}
       {!loading && !error && !selected && (
         <div className={styles.emptyState}>
-          <h2 className={styles.emptyTitle}>本次执行暂无关联问题</h2>
-          <p className={styles.emptyHint}>自动发现的问题和手动关联的问题会显示在这里。</p>
+          <h2 className={styles.emptyTitle}>{t('noLinkedIssues')}</h2>
+          <p className={styles.emptyHint}>{t('linkedHint')}</p>
         </div>
       )}
       {selected && (

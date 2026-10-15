@@ -1,19 +1,4 @@
 .marketing {
-  --page: #fcfbf8;
-  --ink: #292723;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --page-line: #e7e3dd;
-  --text-secondary: #6c6861;
-  --text-subtle: #77716a;
-  --code-surface: #f4f1eb;
-  --brand: #b45736;
-  --brand-hover: #99482e;
-  --success: #49815a;
-  --success-strong: #42664a;
-  --success-soft: #f0f6ef;
-  --success-line: #d7e1d5;
-  color-scheme: light;
   background: var(--page);
   color: var(--ink);
   font-size: var(--text-lg);
@@ -31,7 +16,7 @@
 }
 .marketing {
   & :focus-visible {
-    outline: var(--focus-width) solid #b45736;
+    outline: var(--focus-width) solid var(--brand);
     outline-offset: 0.375rem;
   }
 }
@@ -41,7 +26,7 @@
   left: 1.25rem;
   z-index: 100;
   padding: var(--space-3);
-  background: #ffffff;
+  background: var(--surface);
 
   &:focus {
     top: 1.25rem;
@@ -51,9 +36,9 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background: #fcfbf8e8;
+  background: color-mix(in srgb, var(--page) 91%, transparent);
   backdrop-filter: blur(1.25rem);
-  border-bottom: var(--border-width) solid #e7e3dd;
+  border-bottom: var(--border-width) solid var(--page-line);
 }
 .marketingNav {
   height: 5rem;
@@ -65,12 +50,12 @@
     display: flex;
     gap: var(--space-8);
     margin-left: auto;
-    color: #716b63;
+    color: var(--text-secondary);
   }
 }
 .marketingNav nav a:hover,
 .marketingFooter a:hover {
-  color: #b45736;
+  color: var(--brand);
 }
 .marketingButton {
   display: inline-flex;
@@ -78,29 +63,29 @@
   justify-content: center;
   gap: var(--space-6);
   padding: 0.8125rem var(--space-6);
-  border: var(--border-width) solid #ded8ce;
+  border: var(--border-width) solid var(--control-line);
   border-radius: var(--radius-lg);
   font-weight: 500;
   transition:
     transform 0.25s,
     background 0.25s,
     box-shadow 0.25s;
-  background: #ffffff;
+  background: var(--surface);
 
   &:hover {
     transform: translateY(-0.1875rem);
-    background: #f5f1eb;
+    background: var(--surface-muted);
   }
 
   &.primary {
-    background: #b45736;
-    border-color: #b45736;
-    color: #ffffff;
+    background: var(--brand);
+    border-color: var(--brand);
+    color: var(--brand-foreground);
     box-shadow: 0 0 2rem #b457360d;
   }
 
   &.primary:hover {
-    background: #99482e;
+    background: var(--brand-hover);
     box-shadow: 0 0 2.5rem #b457361f;
   }
 
@@ -123,7 +108,7 @@
   width: 0.375rem;
   height: 0.375rem;
   border-radius: 50%;
-  background: #b45736;
+  background: var(--brand);
   box-shadow: 0 0 0.75rem #b4573633;
   animation: marketing-pulse 3s ease-in-out infinite;
 }
@@ -137,14 +122,14 @@
 }
 .marketing h1 > span,
 .marketingClosing h2 span {
-  color: #b45736;
-  background: linear-gradient(110deg, #a45132, #bf7850 65%, #a65e43);
+  color: var(--brand);
+  background: linear-gradient(110deg, var(--brand-active), #bf7850 65%, #a65e43);
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .marketingIntro {
   margin-top: 1.625rem;
-  color: #77716a;
+  color: var(--text-subtle);
   line-height: 2;
   font-size: 1.0625rem;
 }
@@ -207,7 +192,7 @@
     position: absolute;
     width: 0.5625rem;
     height: 0.5625rem;
-    background: #b45736;
+    background: var(--brand);
     border-radius: 50%;
     box-shadow: 0 0 1.375rem #d6a07b;
     offset-path: border-box;
@@ -231,11 +216,11 @@
   align-items: center;
   justify-content: center;
   border-radius: 2.375rem;
-  border: var(--border-width) solid #ead6c3;
-  background: linear-gradient(145deg, #fffefa, #f4e9dc 70%);
+  border: var(--border-width) solid var(--brand-line);
+  background: linear-gradient(145deg, var(--surface), var(--brand-soft) 70%);
   box-shadow:
-    inset 0 0.0625rem 0.0625rem #ffffff,
-    0.625rem 0.9375rem 0 #eee3d6,
+    inset 0 0.0625rem 0.0625rem var(--surface),
+    0.625rem 0.9375rem 0 var(--brand-soft),
     0.625rem 1rem 0 0.0625rem #d9bc9b66,
     0 0 5rem #c1976920;
   animation: marketing-float 7s ease-in-out infinite;
@@ -243,7 +228,7 @@
   & span {
     font-family: var(--font-geist-mono), monospace;
     font-size: var(--text-sm);
-    color: #a98268;
+    color: var(--brand-link);
     margin-top: var(--space-2);
   }
 }
@@ -252,8 +237,8 @@
   display: flex;
   gap: var(--space-3);
   align-items: center;
-  background: #fffffff0;
-  border: var(--border-width) solid #e8e1d6;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: var(--border-width) solid var(--page-line);
   border-radius: var(--radius-xl);
   padding: var(--space-3-5) 1.125rem;
   box-shadow: 0 0.75rem 2.1875rem #59402b0a;
@@ -269,11 +254,11 @@
 }
 .artIcon {
   font-family: var(--font-geist-mono), monospace;
-  color: #b45736;
+  color: var(--brand);
   font-size: var(--text-3xl);
 
   &.green {
-    color: #49815a;
+    color: var(--success);
   }
 }
 .labelInput {
@@ -293,13 +278,13 @@
 }
 
 .marketingPlatforms {
-  border-block: var(--border-width) solid #e7e3dd;
+  border-block: var(--border-width) solid var(--page-line);
   display: flex;
   gap: 1.875rem;
   justify-content: space-between;
   align-items: center;
   padding-block: var(--space-7);
-  color: #77716a;
+  color: var(--text-subtle);
   font-size: var(--text-lg);
 
   & > div {
@@ -307,7 +292,7 @@
     gap: 2.375rem;
     font-size: var(--text-2xl);
     font-weight: 500;
-    color: #625b53;
+    color: var(--control-ink);
   }
 }
 
@@ -327,7 +312,7 @@
   position: relative;
 
   & h2 span {
-    color: #9c948a;
+    color: var(--text-faint);
   }
 }
 
@@ -339,7 +324,7 @@
 }
 .marketingFeature {
   padding: var(--space-3-5) var(--space-6) var(--space-7);
-  background: #f6f3ed;
+  background: var(--surface-muted);
   border: var(--border-width) solid transparent;
   border-radius: 0.875rem;
   transition:
@@ -347,7 +332,7 @@
     transform 0.3s;
 
   &:hover {
-    border-color: #cda78a;
+    border-color: var(--brand-line);
     transform: translateY(-0.3125rem);
   }
 }
@@ -368,7 +353,7 @@
   }
 
   & > p:last-child {
-    color: #77716a;
+    color: var(--text-subtle);
     font-size: var(--text-lg);
     line-height: 1.9;
     margin-top: var(--space-3);
@@ -376,9 +361,9 @@
 }
 .marketingPrompt {
   width: 100%;
-  border: var(--border-width) solid #e8e1d6;
+  border: var(--border-width) solid var(--page-line);
   border-radius: var(--radius-lg);
-  background: #fffefa;
+  background: var(--surface);
   box-shadow: 0 0.75rem 1.5625rem #59402b08;
   transform: rotate(-3deg);
 
@@ -386,26 +371,26 @@
     display: flex;
     justify-content: space-between;
     padding: var(--space-2-5) var(--space-3);
-    border-bottom: var(--border-width) solid #e7e3dd;
+    border-bottom: var(--border-width) solid var(--page-line);
     font-family: var(--font-geist-mono), monospace;
     font-size: var(--text-sm);
-    color: #77716a;
+    color: var(--text-subtle);
   }
 
   & p {
     padding: var(--space-3);
     font-size: var(--text-lg);
     line-height: 2.2;
-    color: #696258;
+    color: var(--control-ink);
   }
 
   & em {
     font-style: normal;
-    color: #a45132;
+    color: var(--brand-active);
   }
 }
 .marketingCaret {
-  color: #a45132;
+  color: var(--brand-active);
   animation: marketing-pulse 1.5s infinite;
 }
 
@@ -417,29 +402,29 @@
   & > span {
     display: flex;
     justify-content: space-between;
-    border: var(--border-width) solid #e8e1d6;
+    border: var(--border-width) solid var(--page-line);
     border-radius: var(--radius-md);
     padding: var(--space-2-5) var(--space-4);
-    color: #77716a;
-    background: #f8f6f1;
+    color: var(--text-subtle);
+    background: var(--surface-muted);
   }
 
   & i {
     display: block;
     font-style: normal;
-    color: #c2b3a0;
+    color: var(--text-faint);
     height: 1.5625rem;
   }
 
   & .active {
-    border-color: #dfb99a;
-    background: #f6e9db;
-    color: #a45132;
+    border-color: var(--brand-line);
+    background: var(--brand-soft);
+    color: var(--brand-active);
   }
 
   & b {
     font-weight: 400;
-    color: #49815a;
+    color: var(--success);
   }
 
   & .marketingLive {
@@ -455,12 +440,12 @@
 .marketingEvidenceCheck {
   width: 3.125rem;
   height: 3.125rem;
-  border: var(--border-width) solid #c7d9c3;
-  background: #eef5eb;
+  border: var(--border-width) solid var(--success-line);
+  background: var(--success-soft);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: #49815a;
+  color: var(--success);
   font-size: 1.5625rem;
   box-shadow: 0 0 2.5rem #72946b0c;
 }
@@ -479,10 +464,10 @@
 
   & > div > span {
     font-size: var(--text-sm);
-    border: var(--border-width) solid #e7e3dd;
+    border: var(--border-width) solid var(--page-line);
     padding: 0.1875rem 0.4375rem;
     border-radius: var(--radius-sm);
-    color: #77716a;
+    color: var(--text-subtle);
   }
 }
 .marketingDemoHeading {
@@ -494,9 +479,9 @@
 
 .marketingDemo {
   margin-top: var(--space-8);
-  border: var(--border-width) solid #e7e3dd;
+  border: var(--border-width) solid var(--page-line);
   border-radius: var(--radius-2xl);
-  background: #ffffff;
+  background: var(--surface);
   box-shadow: 0 1.25rem 6.25rem #59402b08;
   overflow: hidden;
 
@@ -510,8 +495,8 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-3-5) 1.375rem;
-  border-bottom: var(--border-width) solid #e8e1d6;
-  color: #77716a;
+  border-bottom: var(--border-width) solid var(--page-line);
+  color: var(--text-subtle);
   font-family: var(--font-geist-mono), monospace;
   font-size: var(--text-sm);
 
@@ -548,11 +533,11 @@
   gap: 4.375rem;
 
   & details {
-    border-bottom: var(--border-width) solid #e8e1d6;
+    border-bottom: var(--border-width) solid var(--page-line);
   }
 
   & details:first-child {
-    border-top: var(--border-width) solid #e8e1d6;
+    border-top: var(--border-width) solid var(--page-line);
   }
 
   & summary {
@@ -569,7 +554,7 @@
   }
 
   & summary span {
-    color: #a68770;
+    color: var(--text-subtle);
     font-size: 1.375rem;
     transition: transform 0.2s;
   }
@@ -579,7 +564,7 @@
   }
 
   & details p {
-    color: #77716a;
+    color: var(--text-subtle);
     font-size: 0.9375rem;
     line-height: 2;
     padding: 0 1.5625rem var(--space-6) 0;
@@ -590,7 +575,7 @@
   margin-top: 6.875rem;
   padding: var(--space-20) var(--space-5);
   text-align: center;
-  border-block: var(--border-width) solid #e7e3dd;
+  border-block: var(--border-width) solid var(--page-line);
   isolation: isolate;
 }
 .marketingClosingGlow {
@@ -615,7 +600,7 @@
   gap: var(--space-7);
   padding-block: 2.125rem;
   font-size: var(--text-md);
-  color: #77716a;
+  color: var(--text-subtle);
 
   & > span {
     margin-left: auto;
@@ -835,4 +820,21 @@
   .marketingCore {
     transform: rotate(-8deg);
   }
+}
+
+:global(html[data-theme='light']) .marketing {
+  --page: #fcfbf8;
+  --ink: #292723;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --page-line: #e7e3dd;
+  --text-secondary: #6c6861;
+  --text-subtle: #77716a;
+  --code-surface: #f4f1eb;
+  --brand: #b45736;
+  --brand-hover: #99482e;
+  --success: #49815a;
+  --success-strong: #42664a;
+  --success-soft: #f0f6ef;
+  --success-line: #d7e1d5;
 }

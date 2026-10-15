@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import folderIcon from '@iconify-icons/lucide/folder';
@@ -10,7 +12,6 @@ import { executionGroups, type ExecutionGroup } from '@/features/runs/lib/execut
 import { stepResult } from '@/features/runs/lib/boardResults';
 import { statusStyles } from '@/components/ui/statusStyles';
 import { Collapsible } from '@/components/ui/Collapsible';
-import { statuses } from '@/features/runs/presentation';
 import { ExecutionActions, type ExecutionActionsProps } from './ExecutionActions';
 import styles from './StepList.module.css';
 
@@ -46,6 +47,8 @@ function PlannedStep({
   scopeId: string;
   actions: ExecutionActionsProps;
 }) {
+  const t = useTranslations('runs');
+  const statusText = useTranslations('workspace');
   const ref = useRef<HTMLDivElement>(null);
   const { status } = stepResult(entry.steps);
   const selected = entry.steps.some((step) => step.id === actions.selectedId)
@@ -70,7 +73,7 @@ function PlannedStep({
         >
           <Icon icon={referenceIcon} width="12" aria-hidden="true" />
           <span>
-            {entry.pathLabel && `${entry.pathLabel} · `}
+            {entry.pathLabel && `${t(entry.pathLabel as 'yesCondition' | 'noCondition')} · `}
             {entry.title}
           </span>
         </button>
@@ -92,12 +95,16 @@ function PlannedStep({
               {isGroup ? <Icon icon={folderIcon} width="14" /> : number}
             </span>
             <span className={styles.content}>
-              {entry.pathLabel && <span className={styles.pathLabel}>{entry.pathLabel}</span>}
+              {entry.pathLabel && (
+                <span className={styles.pathLabel}>
+                  {t(entry.pathLabel as 'yesCondition' | 'noCondition')}
+                </span>
+              )}
               <span className={styles.planTitle}>{entry.title}</span>
             </span>
             {showStatus && (
               <span data-slot="status" data-status={status} className={statusStyles(status)}>
-                {status === 'none' ? '暂无动作' : statuses[status]}
+                {status === 'none' ? t('noStepActions') : statusText(status)}
               </span>
             )}
             <Icon icon={chevronIcon} width="12" className={styles.chevron} aria-hidden="true" />
@@ -132,6 +139,7 @@ export const StepList = memo(function StepList({
   running,
   ...actions
 }: ExecutionActionsProps & { plan?: Plan; running: boolean }) {
+  const t = useTranslations('runs');
   const scopeId = useId();
   const { groups, ungrouped } = useMemo(
     () => executionGroups(plan, actions.steps),
@@ -139,7 +147,7 @@ export const StepList = memo(function StepList({
   );
 
   return (
-    <section aria-label="步骤" className={styles.section}>
+    <section aria-label={t('steps')} className={styles.section}>
       {groups.length > 0 && (
         <ol className={styles.groups}>
           {groups.map((entry, index) => (
@@ -155,12 +163,12 @@ export const StepList = memo(function StepList({
       )}
       {ungrouped.length > 0 && (
         <>
-          {groups.length > 0 && <h2 className={styles.ungroupedHeading}>其他动作</h2>}
+          {groups.length > 0 && <h2 className={styles.ungroupedHeading}>{t('otherActions')}</h2>}
           <ExecutionActions {...actions} steps={ungrouped} />
         </>
       )}
       {!groups.length && !actions.steps.length && (
-        <p className={styles.description}>{running ? '正在生成计划…' : '暂无步骤'}</p>
+        <p className={styles.description}>{running ? t('generatingPlan') : t('noSteps')}</p>
       )}
     </section>
   );

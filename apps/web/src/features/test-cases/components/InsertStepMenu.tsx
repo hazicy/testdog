@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 
 import boardStyles from '@/features/runs/components/plan-board.module.css';
@@ -11,7 +13,7 @@ import { Menu } from '@base-ui/react/menu';
 import type { Node, NodeProps } from '@xyflow/react';
 import {
   StepBadge,
-  stepTypes,
+  useStepTypes,
   type BoardStepType,
 } from '@/features/test-cases/components/StepType';
 
@@ -30,6 +32,8 @@ export type InsertFlowNode = Node<
 >;
 
 export function InsertStepMenu({ data }: NodeProps<InsertFlowNode>) {
+  const t = useTranslations('editor');
+  const stepTypes = useStepTypes();
   const [index, setIndex] = useState(data.index);
 
   return (
@@ -69,12 +73,12 @@ export function InsertStepMenu({ data }: NodeProps<InsertFlowNode>) {
             sideOffset={8}
             className={boardStyles.stepMenuPositioner}
           >
-            <Menu.Popup className={boardStyles.stepTypeMenu} aria-label="选择节点类型">
+            <Menu.Popup className={boardStyles.stepTypeMenu} aria-label={t('nodeType')}>
               <label className={styles.field}>
-                插入位置
+                {t('insertPosition')}
                 <select
                   className={styles.select}
-                  aria-label="插入位置"
+                  aria-label={t('insertPosition')}
                   value={index}
                   onChange={(event) => setIndex(Number(event.target.value))}
                   onKeyDown={(event) => {

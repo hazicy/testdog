@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 
 import styles from './RunLayoutPopover.module.css';
@@ -17,25 +19,25 @@ import type { RunLayout } from '@/features/runs/lib/runLayout';
 const presets = [
   {
     id: 'default',
-    label: '预设',
+    label: 'default',
     columns: '1fr 1fr',
     cells: ['1 / 1 / 3 / 2', '1 / 2 / 2 / 3', '2 / 2 / 3 / 3'],
   },
   {
     id: 'review',
-    label: '审阅',
+    label: 'review',
     columns: '1fr 1fr 1fr',
     cells: ['1 / 1 / 3 / 2', '1 / 2 / 2 / 3', '2 / 2 / 3 / 3', '1 / 3 / 3 / 4'],
   },
   {
     id: 'notes',
-    label: '问题',
+    label: 'notes',
     columns: '1fr 1fr 1fr',
     cells: ['1 / 1 / 3 / 2', '1 / 2 / 3 / 3', '1 / 3 / 2 / 4', '2 / 3 / 3 / 4'],
   },
   {
     id: 'debug',
-    label: '调试',
+    label: 'debug',
     columns: '1fr 1fr 1fr',
     cells: ['1 / 1 / 3 / 2', '1 / 2 / 3 / 3', '1 / 3 / 2 / 4', '2 / 3 / 3 / 4'],
   },
@@ -48,6 +50,7 @@ export function RunLayoutPopover({
   value: RunLayout;
   onChange: (layout: RunLayout) => void;
 }) {
+  const t = useTranslations('runs');
   const [open, setOpen] = useState(false);
 
   function select(layout: RunLayout) {
@@ -59,17 +62,17 @@ export function RunLayoutPopover({
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger
         className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
-        aria-label="布局"
-        title="布局"
+        aria-label={t('layout')}
+        title={t('layout')}
       >
         <Icon icon={layoutIcon} width="16" aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="end" sideOffset={10} className={styles.positioner}>
           <Popover.Popup className={styles.popup}>
-            <Popover.Title className={styles.title}>布局</Popover.Title>
+            <Popover.Title className={styles.title}>{t('layout')}</Popover.Title>
             <Popover.Description className={styles.description}>
-              选择工作台布局，也可拖动标签调整面板。
+              {t('layoutHint')}
             </Popover.Description>
             <div className={styles.container}>
               {presets.map((preset) => (
@@ -92,7 +95,7 @@ export function RunLayoutPopover({
                       <span key={area} style={{ gridArea: area }} className={styles.previewCell} />
                     ))}
                   </span>
-                  <span className={styles.presetLabel}>{preset.label}</span>
+                  <span className={styles.presetLabel}>{t(`layouts.${preset.label}`)}</span>
                 </Button>
               ))}
             </div>
@@ -104,7 +107,7 @@ export function RunLayoutPopover({
                 onClick={() => select(value === 'focus' ? 'default' : 'focus')}
               >
                 <Icon icon={focusIcon} width="16" aria-hidden="true" />
-                {value === 'focus' ? '退出专注模式' : '专注模式'}
+                {value === 'focus' ? t('exitFocus') : t('focus')}
               </Button>
               <Button
                 variant="ghost"
@@ -112,7 +115,7 @@ export function RunLayoutPopover({
                 className={styles.reset}
                 onClick={() => select('default')}
               >
-                恢复默认布局
+                {t('resetLayout')}
               </Button>
             </div>
           </Popover.Popup>

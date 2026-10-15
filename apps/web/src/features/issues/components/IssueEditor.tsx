@@ -1,5 +1,8 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+import { useIssueLabels } from '@/features/issues/presentation';
+
 import styles from './IssueEditor.module.css';
 
 import { Input } from '@/components/ui/Input';
@@ -12,14 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { api } from '@/client/api';
 import { useRunSubmission } from '@/client/useRunSubmission';
-import {
-  closeReasons,
-  issueCategories,
-  issueSeverities,
-  issueStatuses,
-  type Issue,
-  type IssuePage,
-} from '@testdog/contracts/issues/types';
+import { type Issue, type IssuePage } from '@testdog/contracts/issues/types';
 import type { ExecutionStep, TestRun } from '@testdog/contracts/runs/types';
 import useSWR from 'swr';
 import { fetchJson } from '@/client/api';
@@ -40,6 +36,8 @@ export function IssueEditor({
   onDismiss: () => void;
   onSaved: (issue: Issue) => void;
 }) {
+  const t = useTranslations('issues');
+  const { issueStatuses, issueCategories, issueSeverities, closeReasons } = useIssueLabels();
   const titleId = useId();
   const [baseVersion] = useState(issue?.version);
   const submit = useRunSubmission();
@@ -48,8 +46,10 @@ export function IssueEditor({
   const [description, setDescription] = useState(
     issue?.description ??
       [
-        step?.assertion?.description ? `预期：${step.assertion.description}` : '',
-        step?.evidence ? `验证证据：${step.evidence}` : '',
+        step?.assertion?.description
+          ? t('expectedText', { value: step.assertion.description })
+          : '',
+        step?.evidence ? t('evidenceText', { value: step.evidence }) : '',
         (step ? step.error : run?.error) ?? '',
       ]
         .filter(Boolean)
@@ -74,7 +74,7 @@ export function IssueEditor({
     setError('');
     try {
       if (mode === 'link' && run) {
-        if (!chosen) throw new Error('请选择要关联的问题。');
+        if (!chosen) throw new Error(t('selectIssue'));
         await api.post(`/api/issues/${chosen}/occurrences`, {
           json: { runId: run.id, stepId: step?.id },
         });
@@ -109,7 +109,7 @@ export function IssueEditor({
         onSaved(response.issue);
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '保存失败');
+      setError(cause instanceof Error ? cause.message : t('saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -120,13 +120,13 @@ export function IssueEditor({
       <form onSubmit={save}>
         <DialogHeader>
           <h2 id={titleId} className={styles.heading}>
-            {issue ? '编辑问题' : '创建或关联问题'}
+            {issue ? t('editIssue') : t('createOrLink')}
           </h2>
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label="关闭问题编辑"
+            aria-label={t('closeEditor')}
             disabled={busy}
             onClick={onDismiss}
           >
@@ -136,28 +136,27 @@ export function IssueEditor({
         <div className={styles.container}>
           {run && (
             <p className={styles.description}>
-              来源：{run.name}
-              {step ? ` / ${step.title}` : ''}，提交后关联执行和已归档证据。
+              {t('source', { name: run.name, step: step ? ` / ${step.title}` : '' })}
             </p>
           )}
           {run && !issue && (
-            <div className={styles.group} role="group" aria-label="问题操作">
+            <div className={styles.group} role="group" aria-label={t('issueActions')}>
               <Button
                 type="button"
                 aria-pressed={mode === 'create'}
                 onClick={() => setMode('create')}
               >
-                创建新问题
+                {t('createNew')}
               </Button>
               <Button type="button" aria-pressed={mode === 'link'} onClick={() => setMode('link')}>
-                关联已有问题
+                {t('linkExisting')}
               </Button>
             </div>
           )}
           {mode === 'link' ? (
             <>
               <label className={styles.field}>
-                搜索问题
+                {t('search')}
                 <Input
                   className={styles.input}
                   value={search}
@@ -169,11 +168,11 @@ export function IssueEditor({
                 />
               </label>
               <Select
-                aria-label="选择已有问题"
+                aria-label={t('chooseExisting')}
                 value={chosen}
                 onValueChange={setChosen}
                 items={[
-                  { value: '', label: '请选择问题' },
+                  { value: '', label: t('chooseIssue') },
                   ...(page?.issues.map((item) => ({
                     value: item.id,
                     label: `${issueStatuses[item.status]} · ${item.title}`,
@@ -184,7 +183,7 @@ export function IssueEditor({
           ) : (
             <>
               <label className={styles.field}>
-                问题标题
+                {t('issueTitle')}
                 <Input
                   className={styles.input}
                   required
@@ -195,7 +194,7 @@ export function IssueEditor({
               </label>
               <div>
                 <label htmlFor={`${titleId}-description`} className={styles.field}>
-                  问题描述
+                  {t('description')}
                 </label>
                 <Textarea
                   id={`${titleId}-description`}
@@ -207,13 +206,13 @@ export function IssueEditor({
               </div>
               <div className={styles.classification}>
                 <Select
-                  aria-label="问题分类"
+                  aria-label={t('category')}
                   value={category}
                   onValueChange={(value) => setCategory(value as typeof category)}
                   items={options(issueCategories)}
                 />
                 <Select
-                  aria-label="严重程度"
+                  aria-label={t('severity')}
                   value={severity}
                   onValueChange={(value) => setSeverity(value as typeof severity)}
                   items={options(issueSeverities)}
@@ -221,7 +220,7 @@ export function IssueEditor({
               </div>
               {issue && (
                 <Select
-                  aria-label="问题状态"
+                  aria-label={t('issueStatus')}
                   value={status}
                   onValueChange={(value) => setStatus(value as typeof status)}
                   items={options(issueStatuses)}
@@ -229,7 +228,7 @@ export function IssueEditor({
               )}
               {issue && status === 'closed' && (
                 <Select
-                  aria-label="关闭原因"
+                  aria-label={t('closeReason')}
                   value={reason}
                   onValueChange={(value) => setReason(value as typeof reason)}
                   items={options(closeReasons)}
@@ -245,10 +244,10 @@ export function IssueEditor({
         </div>
         <DialogFooter>
           <Button type="button" disabled={busy} onClick={onDismiss}>
-            取消
+            {t('cancel')}
           </Button>
           <Button type="submit" variant="primary" disabled={busy || (mode === 'link' && !chosen)}>
-            {busy ? '保存中…' : mode === 'link' ? '关联问题' : '保存问题'}
+            {busy ? t('saving') : mode === 'link' ? t('linkIssue') : t('saveIssue')}
           </Button>
         </DialogFooter>
       </form>

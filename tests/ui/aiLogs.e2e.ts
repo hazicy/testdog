@@ -383,6 +383,16 @@ test('AI trajectories load lazily and connect replies and tool results to execut
   await page.screenshot({ path: testInfo.outputPath('ai-trajectory.png') });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(drawer.getByRole('button', { name: '关闭调用详情' })).toBeVisible();
+  await expect
+    .poll(() =>
+      drawer.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        const parent = element.parentElement!.getBoundingClientRect();
+
+        return { y: bounds.y - parent.y, height: bounds.height - parent.height };
+      }),
+    )
+    .toEqual({ y: 0, height: 0 });
   expect(await drawer.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   const bounds = await drawer.boundingBox();
 

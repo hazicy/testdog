@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 const workspaceRoot = resolve(process.cwd(), '../..');
 
@@ -18,4 +19,4 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['192.168.2.123'],
 };
 
-export default nextConfig;
+export default createNextIntlPlugin()(nextConfig);

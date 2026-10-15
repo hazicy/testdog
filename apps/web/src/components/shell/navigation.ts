@@ -5,11 +5,11 @@ import integrationsIcon from '@iconify-icons/lucide/plug';
 import settingsIcon from '@iconify-icons/lucide/settings';
 
 export const workspaceNavigation = [
-  { href: '/cases', name: '测试用例', icon: testsIcon },
-  { href: '/runs', name: '执行记录', icon: runsIcon },
-  { href: '/issues', name: '问题追踪', icon: issuesIcon },
-  { href: '/integrations', name: '集成', icon: integrationsIcon },
-  { href: '/settings', name: '设置', icon: settingsIcon },
+  { href: '/cases', key: 'test_cases', icon: testsIcon },
+  { href: '/runs', key: 'runs', icon: runsIcon },
+  { href: '/issues', key: 'issues', icon: issuesIcon },
+  { href: '/integrations', key: 'integrations', icon: integrationsIcon },
+  { href: '/settings', key: 'settings', icon: settingsIcon },
 ] as const;
 
 export function activeWorkspaceNavigation(pathname: string) {

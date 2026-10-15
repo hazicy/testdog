@@ -6,7 +6,7 @@ import {
   type Plan,
   type PlanNode,
 } from '@testdog/contracts/automation/compiler/schema';
-import type { Insertion } from '@/features/test-cases/lib/authoring';
+import { defaultAuthoringLabels, type Insertion } from '@/features/test-cases/lib/authoring';
 
 function subtreeIds(plan: Plan, id: string): Set<string> {
   const ids = new Set<string>();
@@ -32,11 +32,13 @@ export function updateNodeContent(
   id: string,
   content: string,
   assertionIndex?: number,
+  labels = defaultAuthoringLabels,
 ): Plan {
   const node = plan.nodes[id];
 
   if (assertionIndex !== undefined) {
-    if (node.kind !== 'task' || !node.assertions[assertionIndex]) throw new Error('无效的断言位置');
+    if (node.kind !== 'task' || !node.assertions[assertionIndex])
+      throw new Error(labels.invalidAssertion);
     const assertions = node.assertions.map((assertion, index) =>
       index === assertionIndex ? { ...assertion, description: content } : assertion,
     );
@@ -98,7 +100,7 @@ export function duplicateNode(plan: Plan, id: string): Plan {
   return PlanSchema.parse({ ...plan, nodes });
 }
 
-export function removeNode(plan: Plan, id: string): Plan {
+export function removeNode(plan: Plan, id: string, labels = defaultAuthoringLabels): Plan {
   if (id === plan.rootId) return plan;
   const nodes = structuredClone(plan.nodes);
   const candidates = subtreeIds(plan, id);
@@ -112,7 +114,7 @@ export function removeNode(plan: Plan, id: string): Plan {
         id,
         kind: 'group',
         presentation: 'sequence',
-        goal: '空分支',
+        goal: labels.emptyBranch,
         children: [],
         dependsOn: [],
       };

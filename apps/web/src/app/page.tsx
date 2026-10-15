@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import clsx from 'clsx';
 import marketingStyles from '@/features/marketing/components/marketing.module.css';
 import Link from 'next/link';
@@ -6,34 +7,35 @@ import { Brand } from '@/components/brand/Brand';
 import { MarketingDemo } from '@/features/marketing/components/MarketingDemo';
 import { MarketingMotion } from '@/features/marketing/components/MarketingMotion';
 
-const faqs = [
-  ['需要编写测试脚本吗？', '描述步骤和预期即可。录制后，也可以编辑操作与 Playwright 断言。'],
-  ['支持哪些平台？', '支持 Web、Android 和 iOS。原生测试需配置设备 worker 与应用构建。'],
-  ['如何确认测试结果？', '通过截图、断言、日志和录像，查看执行结果与失败位置。'],
-  ['可以在本地部署吗？', '可以。配置 PostgreSQL、Redis 和模型服务后，启动应用与执行 worker。'],
-];
-
 export default function Home() {
+  const t = useTranslations('marketing');
+  const faqs = [
+    [t('faqScripts'), t('faqScriptsAnswer')],
+    [t('faqPlatforms'), t('faqPlatformsAnswer')],
+    [t('faqResults'), t('faqResultsAnswer')],
+    [t('faqHosting'), t('faqHostingAnswer')],
+  ];
+
   return (
     <MarketingMotion className={marketingStyles.marketing}>
       <a href="#main-content" className={marketingStyles.marketingSkip}>
-        跳转到主内容
+        {t('skip')}
       </a>
       <header className={marketingStyles.marketingHeader}>
         <div className={clsx(marketingStyles.marketingContainer, marketingStyles.marketingNav)}>
-          <Link href="/" aria-label="testdog 首页">
+          <Link href="/" aria-label={t('home')}>
             <Brand />
           </Link>
-          <nav aria-label="页面导航">
-            <a href="#features">产品能力</a>
-            <a href="#workflow">使用流程</a>
-            <a href="#faq">常见问题</a>
+          <nav aria-label={t('navigation')}>
+            <a href="#features">{t('features')}</a>
+            <a href="#workflow">{t('workflow')}</a>
+            <a href="#faq">{t('faq')}</a>
           </nav>
           <Link
             href="/cases"
             className={clsx(marketingStyles.marketingButton, marketingStyles.small)}
           >
-            进入工作台 <span aria-hidden="true">↗</span>
+            {t('openWorkspace')} <span aria-hidden="true">↗</span>
           </Link>
         </div>
       </header>
@@ -43,22 +45,22 @@ export default function Home() {
         >
           <div>
             <h1 data-entrance="100">
-              把测试交给 AI。
+              {t('heroFirst')}
               <br />
-              <span>把信心带回发布。</span>
+              <span>{t('heroSecond')}</span>
             </h1>
             <p className={marketingStyles.marketingIntro} data-entrance="200">
-              用自然语言写测试，在真实环境中验证。
+              {t('intro')}
             </p>
             <div className={marketingStyles.marketingActions} data-entrance="300">
               <Link
                 href="/cases"
                 className={clsx(marketingStyles.marketingButton, marketingStyles.primary)}
               >
-                开始使用 <span aria-hidden="true">↗</span>
+                {t('getStarted')} <span aria-hidden="true">↗</span>
               </Link>
               <a href="#workflow" className={marketingStyles.marketingButton}>
-                查看演示 <span aria-hidden="true">↓</span>
+                {t('viewDemo')} <span aria-hidden="true">↓</span>
               </a>
             </div>
           </div>
@@ -66,7 +68,7 @@ export default function Home() {
             className={marketingStyles.marketingArt}
             data-hero-art
             data-entrance="150"
-            aria-label="testdog 将描述转化为测试证据的动态示意"
+            aria-label={t('illustration')}
           >
             <div className={marketingStyles.marketingArtGrid} />
             <div className={clsx(marketingStyles.marketingOrbit, marketingStyles.orbitOne)} />
@@ -80,14 +82,14 @@ export default function Home() {
             <div className={clsx(marketingStyles.marketingArtLabel, marketingStyles.labelInput)}>
               <span className={marketingStyles.artIcon}>Aa</span>
               <div>
-                <strong>「验证用户成功登录」</strong>
+                <strong>{t('examplePrompt')}</strong>
               </div>
             </div>
             <div className={clsx(marketingStyles.marketingArtLabel, marketingStyles.labelExecute)}>
               <span className={marketingStyles.artIcon}>↗</span>
               <div>
                 <strong>
-                  真实执行
+                  {t('realExecution')}
                   <span className={marketingStyles.marketingLive} />
                 </strong>
               </div>
@@ -95,7 +97,7 @@ export default function Home() {
             <div className={clsx(marketingStyles.marketingArtLabel, marketingStyles.labelResult)}>
               <span className={clsx(marketingStyles.artIcon, marketingStyles.green)}>✓</span>
               <div>
-                <strong>验证通过</strong>
+                <strong>{t('verified')}</strong>
               </div>
             </div>
           </div>
@@ -103,7 +105,7 @@ export default function Home() {
         <div
           className={clsx(marketingStyles.marketingPlatforms, marketingStyles.marketingContainer)}
         >
-          <span>跨平台，轻松测。</span>
+          <span>{t('crossPlatform')}</span>
           <div>
             <span>◎ Web</span>
             <span>◉ Android</span>
@@ -115,59 +117,59 @@ export default function Home() {
           className={clsx(marketingStyles.marketingSection, marketingStyles.marketingContainer)}
         >
           <div className={marketingStyles.marketingSectionHeading} data-reveal>
-            <h2>测试，本该如此简单。</h2>
+            <h2>{t('featuresTitle')}</h2>
           </div>
           <div className={marketingStyles.marketingFeatures}>
             <article className={marketingStyles.marketingFeature} data-reveal>
               <div className={marketingStyles.marketingFeatureVisual}>
                 <div className={marketingStyles.marketingPrompt}>
-                  <span>测试用例</span>
+                  <span>{t('testCase')}</span>
                   <p>
-                    打开登录页面
+                    {t('openLogin')}
                     <br />
-                    输入邮箱和密码
+                    {t('enterCredentials')}
                     <br />
-                    点击「登录」
+                    {t('clickLogin')}
                     <br />
-                    <em>验证页面显示「欢迎回来」</em>
+                    <em>{t('verifyWelcome')}</em>
                     <b className={marketingStyles.marketingCaret}>▍</b>
                   </p>
                 </div>
               </div>
-              <h3>会表达，就能写测试。</h3>
-              <p>描述步骤与预期，AI 生成执行计划。</p>
+              <h3>{t('describeTitle')}</h3>
+              <p>{t('describeBody')}</p>
             </article>
             <article className={marketingStyles.marketingFeature} data-reveal="100">
               <div className={marketingStyles.marketingFeatureVisual}>
                 <div className={marketingStyles.marketingMiniFlow}>
-                  <span>观察页面</span>
+                  <span>{t('observe')}</span>
                   <i>↓</i>
                   <span className={marketingStyles.active}>
-                    执行操作 <b className={marketingStyles.marketingLive} />
+                    {t('act')} <b className={marketingStyles.marketingLive} />
                   </span>
                   <i>↓</i>
                   <span>
-                    验证结果 <b>✓</b>
+                    {t('verify')} <b>✓</b>
                   </span>
                 </div>
               </div>
-              <h3>在真实环境里，走一遍。</h3>
-              <p>浏览器与原生设备，真实操作，逐步验证。</p>
+              <h3>{t('realTitle')}</h3>
+              <p>{t('realBody')}</p>
             </article>
             <article className={marketingStyles.marketingFeature} data-reveal="200">
               <div className={marketingStyles.marketingFeatureVisual}>
                 <div className={marketingStyles.marketingEvidence}>
                   <span className={marketingStyles.marketingEvidenceCheck}>✓</span>
-                  <strong>预期与页面状态一致</strong>
+                  <strong>{t('evidenceMatch')}</strong>
                   <div>
-                    <span>截图证据</span>
-                    <span>执行日志</span>
-                    <span>画面回放</span>
+                    <span>{t('screenshots')}</span>
+                    <span>{t('logs')}</span>
+                    <span>{t('playback')}</span>
                   </div>
                 </div>
               </div>
-              <h3>结果可信，也有迹可循。</h3>
-              <p>截图、日志与回放，让每一步有据可循。</p>
+              <h3>{t('evidenceTitle')}</h3>
+              <p>{t('evidenceBody')}</p>
             </article>
           </div>
         </section>
@@ -177,7 +179,7 @@ export default function Home() {
         >
           <div className={marketingStyles.marketingDemoHeading} data-reveal>
             <div>
-              <h2>写下步骤，见证结果。</h2>
+              <h2>{t('workflowTitle')}</h2>
             </div>
           </div>
           <div className={marketingStyles.marketingDemo} data-reveal>
@@ -187,7 +189,7 @@ export default function Home() {
                 <i />
                 <i />
               </span>
-              <span>交互示例</span>
+              <span>{t('interactiveDemo')}</span>
             </div>
             <MarketingDemo />
           </div>
@@ -202,7 +204,7 @@ export default function Home() {
           data-reveal
         >
           <div>
-            <h2>常见问题</h2>
+            <h2>{t('faq')}</h2>
           </div>
           <div>
             {faqs.map(([question, answer]) => (
@@ -222,22 +224,22 @@ export default function Home() {
         >
           <div className={marketingStyles.marketingClosingGlow} />
           <h2>
-            下一次发布，
+            {t('closingFirst')}
             <br />
-            <span>让信心先到位。</span>
+            <span>{t('closingSecond')}</span>
           </h2>
           <Link
             href="/cases"
             className={clsx(marketingStyles.marketingButton, marketingStyles.primary)}
           >
-            开始使用 testdog <span aria-hidden="true">↗</span>
+            {t('getStartedBrand')} <span aria-hidden="true">↗</span>
           </Link>
         </section>
       </main>
       <footer className={clsx(marketingStyles.marketingContainer, marketingStyles.marketingFooter)}>
         <Brand />
         <span>© {new Date().getFullYear()} testdog</span>
-        <a href="#main-content">回到顶部 ↑</a>
+        <a href="#main-content">{t('backTop')}</a>
       </footer>
     </MarketingMotion>
   );

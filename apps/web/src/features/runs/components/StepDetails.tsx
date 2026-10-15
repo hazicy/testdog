@@ -1,9 +1,11 @@
+import { useTranslations } from 'next-intl';
 import styles from './StepDetails.module.css';
 import { statusStyles } from '@/components/ui/statusStyles';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
-import { statuses } from '@/features/runs/presentation';
 
 export function StepDetails({ step, runError }: { step: ExecutionStep; runError?: string }) {
+  const t = useTranslations('runs');
+  const statusText = useTranslations('workspace');
   const action = step.action?.action;
   const error = step.error || (step.status === 'failed' ? runError : undefined);
 
@@ -13,7 +15,7 @@ export function StepDetails({ step, runError }: { step: ExecutionStep; runError?
         <h3 className={styles.subheading}>{step.title}</h3>
         <span data-slot="status" data-status={step.status} className={statusStyles(step.status)}>
           <span />
-          {statuses[step.status]}
+          {statusText(step.status)}
         </span>
       </div>
       <p className={styles.description}>
@@ -38,9 +40,11 @@ export function StepDetails({ step, runError }: { step: ExecutionStep; runError?
           )}
         </div>
       )}
-      {step.evidence && <p className={styles.evidence}>验证证据：{step.evidence}</p>}
+      {step.evidence && (
+        <p className={styles.evidence}>{t('evidence', { value: step.evidence })}</p>
+      )}
       {error && <pre className={styles.errorDetails}>{error}</pre>}
-      {!step.replayable && <p className={styles.label}>无法准确定位操作目标，请重新录制。</p>}
+      {!step.replayable && <p className={styles.label}>{t('locateFailed')}</p>}
     </div>
   );
 }

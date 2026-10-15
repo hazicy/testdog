@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 
 import styles from './UserMenu.module.css';
@@ -11,6 +13,7 @@ import { authClient } from '@/client/auth';
 import { Button } from '@/components/ui/Button';
 
 export function UserMenu({ collapsed }: { collapsed: boolean }) {
+  const t = useTranslations('ui');
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const [signingOut, setSigningOut] = useState(false);
@@ -26,16 +29,16 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
       router.replace('/login');
       router.refresh();
     } catch {
-      setError('退出失败，请重试');
+      setError(t('sign_out_failed_please_try_again'));
       setSigningOut(false);
     }
   }
 
-  if (isPending) return <p className={styles.loading}>加载账号…</p>;
+  if (isPending) return <p className={styles.loading}>{t('loading_account')}</p>;
   if (!session)
     return (
       <Link href="/login" className={styles.signIn}>
-        登录
+        {t('sign_in')}
       </Link>
     );
 
@@ -55,7 +58,7 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
         )}
       </div>
       <Button className={styles.signOut} disabled={signingOut} onClick={signOut}>
-        {signingOut ? '退出中…' : '退出'}
+        {signingOut ? t('signing_out') : t('sign_out')}
       </Button>
       {error && (
         <p role="alert" className={styles.error}>

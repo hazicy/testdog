@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import styles from './TestEditor.module.css';
 import editorStyles from '@/features/test-cases/components/test-editor.module.css';
 
@@ -19,7 +21,7 @@ import {
 } from '@/features/test-cases/lib/planReview';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import { testSchema } from '@testdog/contracts/test-cases/schemas';
-import { caseName, editablePlan, emptyPlan, planText } from '@/features/test-cases/lib/authoring';
+import { useAuthoring } from '@/features/test-cases/hooks/useAuthoring';
 import { writeCaseDraft, type CaseDraft } from '@/features/test-cases/lib/caseDraft';
 import { CaseSettings } from '@/features/test-cases/components/CaseSettings';
 import { CasePrompt } from '@/features/test-cases/components/CasePrompt';
@@ -51,10 +53,12 @@ export function TestEditor({
   initialDraft?: CaseDraft;
   draftId?: string;
 }) {
+  const t = useTranslations('editor');
+  const { caseName, editablePlan, emptyPlan, planText } = useAuthoring();
   const submitRun = useRunSubmission();
   const [savedCase] = useState<TestCase | undefined>(duplicate ? undefined : test);
   const [name, setName] = useState(
-    initialDraft?.name ?? (test ? `${test.name}${duplicate ? '（副本）' : ''}` : caseName('')),
+    initialDraft?.name ?? (test ? `${test.name}${duplicate ? t('copySuffix') : ''}` : caseName('')),
   );
   const nameChanged = useRef(!!test || (!!initialDraft && initialDraft.name !== caseName('')));
   const [configuration, setConfiguration] = useState<CaseSettingsValue>(() => {
@@ -120,7 +124,7 @@ export function TestEditor({
     if (root.kind === 'group')
       setPlan({
         ...plan,
-        nodes: { ...plan.nodes, [root.id]: { ...root, goal: value || '未命名测试' } },
+        nodes: { ...plan.nodes, [root.id]: { ...root, goal: value || t('untitled') } },
       });
   }
 
@@ -159,7 +163,7 @@ export function TestEditor({
       });
       setComposerOpen(false);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : '转换失败，请重试');
+      setFormError(error instanceof Error ? error.message : t('conversionFailed'));
     }
   }
 
@@ -193,7 +197,7 @@ export function TestEditor({
       if (accepted) setGoal('');
       setFormError('');
     } catch {
-      setFormError('该变更与其他步骤有关，请先处理关联变更。');
+      setFormError(t('relatedChanges'));
     }
   }
 
@@ -240,7 +244,7 @@ export function TestEditor({
 
     setFormError('');
     if (!hasSteps) {
-      setFormError('请点击画板上的 ＋ 添加至少一个步骤。');
+      setFormError(t('addStep'));
 
       return;
     }
@@ -259,19 +263,19 @@ export function TestEditor({
 
     if (!parsed.success) {
       const missing = !name.trim()
-        ? '测试名称'
+        ? t('testName')
         : platform !== 'web' && !appId.trim()
-          ? '应用标识'
+          ? t('appId')
           : platform !== 'web' && !deviceProfileId
-            ? '设备配置'
-            : '测试目标和标签';
+            ? t('deviceProfile')
+            : t('targetAndTags');
 
       setFormError(
         parsed.error.issues.find((issue) => issue.code === 'custom')?.message ??
-          `请在测试设置中检查${missing}。`,
+          t('checkSettings', { field: missing }),
       );
       if (!name.trim()) {
-        setFormError('请填写测试名称。');
+        setFormError(t('enterName'));
         nameRef.current?.focus();
       } else if (!parsed.error.issues.some((issue) => issue.path[0] === 'plan')) {
         setSettingsOpen(true);
@@ -307,7 +311,9 @@ export function TestEditor({
         await onSaved(result?.test);
       }
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : trial ? '试跑失败' : '保存失败');
+      setFormError(
+        error instanceof Error ? error.message : trial ? t('trialFailed') : t('saveFailed'),
+      );
     } finally {
       setSaving(false);
     }
@@ -325,13 +331,13 @@ export function TestEditor({
       <aside
         className={editorStyles.caseToolbar}
         data-collapsed={!settingsOpen}
-        aria-label="测试面板"
+        aria-label={t('testPanel')}
       >
         <input
           ref={nameRef}
           className={editorStyles.caseName}
           name="testName"
-          aria-label="测试名称"
+          aria-label={t('testName')}
           required
           maxLength={120}
           value={name}
@@ -343,7 +349,7 @@ export function TestEditor({
               event.currentTarget.blur();
             }
           }}
-          placeholder="未命名测试"
+          placeholder={t('untitled')}
         />
         <div className={editorStyles.casePanelActions}>
           <Button
@@ -352,8 +358,8 @@ export function TestEditor({
             size="sm"
             className={editorStyles.caseEnvironment}
             ref={settingsRef}
-            aria-label={settingsOpen ? '收起面板' : '展开面板'}
-            title="测试设置"
+            aria-label={settingsOpen ? t('collapsePanel') : t('expandPanel')}
+            title={t('testSettings')}
             aria-expanded={settingsOpen}
             aria-controls="case-panel-settings"
             onClick={() => setSettingsOpen(!settingsOpen)}
@@ -369,9 +375,9 @@ export function TestEditor({
               {platform === 'web' ? 'Web' : platform === 'ios' ? 'iOS' : 'Android'} ·{' '}
               {platform === 'web'
                 ? webProfile === 'legacy-desktop'
-                  ? '桌面'
+                  ? t('desktop')
                   : webProfile
-                : deviceProfileId || '选择设备'}
+                : deviceProfileId || t('selectDevice')}
             </span>
             <Icon icon={settingsIcon} width="14" aria-hidden="true" />
           </Button>
@@ -382,8 +388,8 @@ export function TestEditor({
               variant="ghost"
               size="icon-sm"
               className={editorStyles.casePanelGenerate}
-              aria-label={hasSteps ? '描述调整' : '描述生成'}
-              title={hasSteps ? '描述调整' : '描述生成'}
+              aria-label={hasSteps ? t('describeChanges') : t('describeGeneration')}
+              title={hasSteps ? t('describeChanges') : t('describeGeneration')}
               aria-expanded={composerOpen}
               aria-controls="case-prompt-section"
               data-pending={!!candidate || compiling}
@@ -397,8 +403,8 @@ export function TestEditor({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="撤销生成"
-                title="撤销生成"
+                aria-label={t('undoGeneration')}
+                title={t('undoGeneration')}
                 disabled={busy}
                 onClick={undoGeneration}
               >
@@ -411,23 +417,23 @@ export function TestEditor({
               type="submit"
               variant="ghost"
               size="sm"
-              aria-label="Save"
-              title="保存"
+              aria-label={t('save')}
+              title={t('save')}
               disabled={editingLocked}
             >
               <Icon icon={saveIcon} width="15" aria-hidden="true" />
-              <span className={editorStyles.caseSaveLabel}>保存</span>
+              <span className={editorStyles.caseSaveLabel}>{t('save')}</span>
             </Button>
             <Button
               type="button"
               variant="primary"
               size="sm"
-              aria-label="Run"
-              title={trialActive ? '查看正在进行的试跑' : '试跑当前草稿，不保存用例'}
+              aria-label={t('trial')}
+              title={trialActive ? t('viewActiveTrial') : t('trialHint')}
               disabled={editingLocked}
               onClick={() => void save(true)}
             >
-              <Icon icon={playIcon} width="15" aria-hidden="true" /> 试跑
+              <Icon icon={playIcon} width="15" aria-hidden="true" /> {t('trial')}
             </Button>
           </div>
         </div>
@@ -474,7 +480,7 @@ export function TestEditor({
       data-ui="case-canvas-page"
       ref={canvasRef}
       className={editorStyles.caseCanvasPage}
-      aria-label="测试画板"
+      aria-label={t('canvas')}
       aria-busy={busy}
     >
       {content}
@@ -489,12 +495,12 @@ export function TestEditor({
       )}
       {candidate && (
         <div className={editorStyles.caseCanvasPreview} role="status">
-          <span>{pendingChanges.length} 项变更待审阅</span>
+          <span>{t('pendingChanges', { count: pendingChanges.length })}</span>
           <Button type="button" size="xs" onClick={() => decideAll(false)}>
-            全部拒绝
+            {t('rejectAll')}
           </Button>
           <Button type="button" variant="primary" size="xs" onClick={() => decideAll(true)}>
-            全部接受
+            {t('acceptAll')}
           </Button>
         </div>
       )}
@@ -503,21 +509,17 @@ export function TestEditor({
         onOpenChange={setComposerOpen}
         container={canvasRef}
         finalFocus={generateRef}
-        title={hasSteps ? '调整步骤' : '描述测试'}
+        title={hasSteps ? t('adjustSteps') : t('describeTest')}
         value={goal}
         onChange={setGoal}
-        placeholder={
-          hasSteps
-            ? '描述要新增或修改的步骤，以及预期结果…'
-            : '描述测试步骤和预期结果，可附上网站地址…'
-        }
+        placeholder={hasSteps ? t('changePrompt') : t('prompt')}
         busy={busy}
         onCancel={() => {
           compilation.cancel();
-          setFormError('已取消生成，画板和描述已保留。');
+          setFormError(t('cancelledCanvas'));
         }}
         error={formError}
-        submitLabel={hasSteps ? '预览' : '生成'}
+        submitLabel={hasSteps ? t('preview') : t('generate')}
         onSubmit={compile}
       />
     </section>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ListFooter } from '@/components/shared/ListFooter';
@@ -62,59 +64,56 @@ export function WorkspaceList({
   start,
   exportRun,
 }: Props) {
+  const t = useTranslations('workspace');
   const visibleTests = tests;
   const visibleRuns = runs;
 
   return (
     <section
       className={workspaceStyles.workspaceIndexList}
-      aria-label={isTests ? '测试用例列表' : '执行记录列表'}
+      aria-label={isTests ? t('testList') : t('runList')}
     >
       <div className={workspaceStyles.workspaceIndexToolbar}>
         <div className={clsx(workspaceStyles.workspaceIndexSearch, styles.searchField)}>
           <Icon icon={searchIcon} className={styles.searchIcon} width="16" aria-hidden="true" />
           <Input
-            aria-label={isTests ? '搜索测试' : '搜索结果'}
+            aria-label={isTests ? t('searchTests') : t('searchResults')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={isTests ? '搜索用例…' : '搜索执行记录…'}
+            placeholder={isTests ? t('testPlaceholder') : t('runPlaceholder')}
             className={styles.searchInput}
           />
         </div>
         <div className={workspaceStyles.workspaceIndexFilter}>
           <Select
-            aria-label="状态筛选"
+            aria-label={t('statusFilter')}
             value={filter}
             onValueChange={(value) => setFilter(value)}
             className={styles.statusFilter}
             items={[
-              { value: 'all', label: '全部状态' },
-              { value: 'passed', label: '已通过' },
-              { value: 'failed', label: '失败' },
-              { value: 'queued', label: '排队中' },
-              { value: 'preparing', label: '准备中' },
-              { value: 'finalizing', label: '归档中' },
-              { value: 'running', label: '执行中' },
-              { value: 'cancelled', label: '已停止' },
-              isTests && { value: 'none', label: '未运行' },
+              { value: 'all', label: t('allStatuses') },
+              { value: 'passed', label: t('passed') },
+              { value: 'failed', label: t('failed') },
+              { value: 'queued', label: t('queued') },
+              { value: 'preparing', label: t('preparing') },
+              { value: 'finalizing', label: t('finalizing') },
+              { value: 'running', label: t('running') },
+              { value: 'cancelled', label: t('cancelled') },
+              isTests && { value: 'none', label: t('none') },
             ]}
           />
         </div>
         <div className={workspaceStyles.workspaceIndexToolbarActions}>{actions}</div>
       </div>
       {loading ? (
-        <LoadingState className={workspaceStyles.workspaceIndexEmpty} message="正在加载工作区…" />
+        <LoadingState className={workspaceStyles.workspaceIndexEmpty} message={t('loading')} />
       ) : (isTests ? visibleTests.length === 0 : visibleRuns.length === 0) ? (
         <EmptyState
           data-ui="workspace-index-empty"
           className={workspaceStyles.workspaceIndexEmpty}
           illustration={query || filter !== 'all' ? 'search' : isTests ? 'tests' : 'runs'}
           message={
-            query || filter !== 'all'
-              ? '没有符合条件的记录'
-              : isTests
-                ? '还没有测试用例'
-                : '暂无执行记录'
+            query || filter !== 'all' ? t('noMatches') : isTests ? t('noTests') : t('noRuns')
           }
           actions={
             query || filter !== 'all' ? (
@@ -124,24 +123,19 @@ export function WorkspaceList({
                   setFilter('all');
                 }}
               >
-                清除筛选
+                {t('clearFilters')}
               </Button>
             ) : !isTests ? (
               <Link href="/cases" className={buttonStyles({ size: 'sm' })}>
-                浏览测试 <Icon icon={chevronIcon} width="14" aria-hidden="true" />
+                {t('browseTests')} <Icon icon={chevronIcon} width="14" aria-hidden="true" />
               </Link>
             ) : null
           }
         />
       ) : (
         <div>
-          <p className={styles.scrollHint}>左右滑动查看时间与操作 →</p>
-          <div
-            className={styles.tableViewport}
-            tabIndex={0}
-            role="region"
-            aria-label="可横向滚动的记录表格"
-          >
+          <p className={styles.scrollHint}>{t('scrollHint')}</p>
+          <div className={styles.tableViewport} tabIndex={0} role="region" aria-label={t('table')}>
             <Table
               className={clsx(workspaceStyles.workspaceIndexTable, {
                 [workspaceStyles.isResults]: !isTests,
@@ -149,11 +143,11 @@ export function WorkspaceList({
             >
               <TableHeader className={styles.tableHeader}>
                 <TableRow>
-                  <TableHead>{isTests ? '用例' : '测试'}</TableHead>
-                  <TableHead>{isTests ? '最近状态' : '状态'}</TableHead>
-                  <TableHead>{isTests ? '最近执行' : '开始时间'}</TableHead>
-                  {!isTests && <TableHead>耗时</TableHead>}
-                  <TableHead className={styles.actionsHeading}>操作</TableHead>
+                  <TableHead>{isTests ? t('case') : t('test')}</TableHead>
+                  <TableHead>{isTests ? t('latestStatus') : t('status')}</TableHead>
+                  <TableHead>{isTests ? t('latestRun') : t('startedAt')}</TableHead>
+                  {!isTests && <TableHead>{t('duration')}</TableHead>}
+                  <TableHead className={styles.actionsHeading}>{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

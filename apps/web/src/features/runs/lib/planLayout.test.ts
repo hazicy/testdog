@@ -68,7 +68,7 @@ it('lays out nested groups, shared branch targets and cross-group dependencies w
 
   expect(reference).toMatchObject({
     planNodeId: 'shared',
-    pathLabel: 'YES / 条件成立',
+    pathLabel: 'yesCondition',
   });
   expect(edges).toContainEqual(
     expect.objectContaining({ source: reference.id, target: 'plan:shared', kind: 'reference' }),

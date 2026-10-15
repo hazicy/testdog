@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
@@ -49,6 +51,7 @@ export function RunPlayer({
   durationMs,
   playback,
 }: Props) {
+  const t = useTranslations('runs');
   const [dimensions, setDimensions] = useState({ width: 1280, height: 800 });
   const [videoDuration, setVideoDuration] = useState(0);
   const [failedVideo, setFailedVideo] = useState<string>();
@@ -97,7 +100,7 @@ export function RunPlayer({
   }
 
   return (
-    <section aria-label="浏览器画面" className={studioStyles.studioPanel}>
+    <section aria-label={t('browserView')} className={studioStyles.studioPanel}>
       <div className={studioStyles.studioPanelToolbar}>
         <span className={styles.label}>
           {dimensions.width} × {dimensions.height} ·{' '}
@@ -110,22 +113,22 @@ export function RunPlayer({
         {(video || trace) && (
           <div className={styles.downloadActions}>
             {video && (
-              <Tooltip content="下载录像">
+              <Tooltip content={t('downloadVideo')}>
                 <a
                   href={`${asset(id, video)}?download`}
                   className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
-                  aria-label="下载录像"
+                  aria-label={t('downloadVideo')}
                 >
                   <Icon icon={videoIcon} width="16" aria-hidden="true" />
                 </a>
               </Tooltip>
             )}
             {trace && (
-              <Tooltip content="下载 Trace">
+              <Tooltip content={t('downloadTrace')}>
                 <a
                   href={`${asset(id, trace)}?download`}
                   className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
-                  aria-label="下载 Trace"
+                  aria-label={t('downloadTrace')}
                 >
                   <Icon icon={archiveIcon} width="16" aria-hidden="true" />
                 </a>
@@ -140,7 +143,7 @@ export function RunPlayer({
             <video
               ref={videoElement}
               key={video?.id}
-              aria-label="执行录像"
+              aria-label={t('runVideo')}
               src={video ? asset(id, video) : undefined}
               className={styles.video}
               playsInline
@@ -175,7 +178,7 @@ export function RunPlayer({
           ) : previewUrl && follow ? (
             <Image
               src={previewUrl}
-              alt="实时执行画面"
+              alt={t('liveView')}
               width={1280}
               height={800}
               unoptimized
@@ -191,7 +194,7 @@ export function RunPlayer({
           ) : currentFrame ? (
             <Image
               src={asset(id, currentFrame)}
-              alt={`执行画面：${currentFrame.pageUrl || currentFrame.surface?.id || ''}`}
+              alt={t('frameView', { url: currentFrame.pageUrl || currentFrame.surface?.id || '' })}
               width={1280}
               height={800}
               unoptimized
@@ -205,7 +208,7 @@ export function RunPlayer({
             />
           ) : (
             <p className={styles.description}>
-              {active ? '执行环境正在准备，画面即将出现。' : '本次执行尚未生成画面。'}
+              {active ? t('environmentPreparing') : t('noFrames')}
             </p>
           )}
         </div>
@@ -217,12 +220,12 @@ export function RunPlayer({
             variant="primary"
             size="icon"
             disabled={!useVideo && frames.length < 2}
-            aria-label={playing ? '暂停回看' : '播放回看'}
+            aria-label={playing ? t('pausePlayback') : t('playPlayback')}
             onClick={toggle}
           >
             <Icon icon={playing ? pauseIcon : resultsIcon} width="20" aria-hidden="true" />
           </Button>
-          <span aria-label="回放时间" className={styles.playbackTime}>
+          <span aria-label={t('playbackTime')} className={styles.playbackTime}>
             {time(position)} / {time(total)}
           </span>
           <div className={styles.container}>
@@ -247,16 +250,16 @@ export function RunPlayer({
                       style={{ left: `${percent}%` }}
                     />
                   ))}
-                  <Slider.Thumb aria-label="画面时间轴" className={styles.thumb} />
+                  <Slider.Thumb aria-label={t('timeline')} className={styles.thumb} />
                 </Slider.Track>
               </Slider.Control>
             </Slider.Root>
-            <div className={styles.actionMarkers} aria-label="回放动作标记">
+            <div className={styles.actionMarkers} aria-label={t('actionMarkers')}>
               {marks.map(({ step, elapsed, percent }) => (
                 <Button
                   variant="ghost"
                   key={step.id}
-                  aria-label={`跳转动作：${step.title}`}
+                  aria-label={t('jumpAction', { title: step.title })}
                   title={`${time(elapsed)} · ${step.title}`}
                   onClick={() => seek(elapsed)}
                   className={clsx(
@@ -271,7 +274,7 @@ export function RunPlayer({
             </div>
           </div>
           <Select
-            aria-label="回看速度"
+            aria-label={t('playbackSpeed')}
             value={speed}
             onValueChange={(value) => playback.setSpeed(Number(value))}
             className={styles.speedSelect}
@@ -283,7 +286,7 @@ export function RunPlayer({
           />
           {useVideo && videos.length > 1 && (
             <Select
-              aria-label="录像页面"
+              aria-label={t('videoPage')}
               value={video?.id || ''}
               onValueChange={(value) => {
                 setVideoDuration(0);

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { isActiveRun, type TestRun } from '@testdog/contracts/runs/types';
@@ -14,6 +16,7 @@ import {
 } from '@testdog/contracts/runs/lib/realtime';
 
 export function useRunData(id: string, previewEnabled: boolean) {
+  const t = useTranslations('runs');
   const [preview, setPreview] = useState<Preview>();
   const [error, setError] = useState('');
   const { cache } = useSWRConfig();
@@ -93,7 +96,7 @@ export function useRunData(id: string, previewEnabled: boolean) {
     run,
     error:
       error ||
-      (loadError instanceof Error ? loadError.message : loadError ? '无法读取执行记录' : ''),
+      (loadError instanceof Error ? loadError.message : loadError ? t('runLoadFailed') : ''),
     setError,
     unavailable,
     previewUrl,

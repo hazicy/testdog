@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import studioStyles from '@/features/runs/components/run-studio.module.css';
 
 import { ModelUsagePanel } from '@/features/runs/components/ModelUsagePanel';
@@ -12,8 +14,10 @@ type Props = {
 };
 
 export function RunLogs({ id, run, onStep }: Props) {
+  const t = useTranslations('runs');
+
   return (
-    <div className={studioStyles.studioPanel} aria-label="AI 调用内容">
+    <div className={studioStyles.studioPanel} aria-label={t('aiContent')}>
       <ModelUsagePanel
         id={id}
         active={!!run && ['queued', 'preparing', 'running', 'finalizing'].includes(run.status)}

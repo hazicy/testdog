@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import styles from './TrialRunDialog.module.css';
 
 import { useCallback, useId, useState } from 'react';
@@ -12,7 +14,6 @@ import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
 import { fetchJson } from '@/client/api';
 import { isActiveRun, type TestRun } from '@testdog/contracts/runs/types';
-import { statuses } from '@/features/runs/presentation';
 import { RunDetail } from '@/features/runs/components/RunDetail';
 
 export function TrialRunDialog({
@@ -26,6 +27,8 @@ export function TrialRunDialog({
   onClose: () => void;
   onActiveChange: (active: boolean) => void;
 }) {
+  const t = useTranslations('editor');
+  const statusText = useTranslations('workspace');
   const titleId = useId();
   const [currentId, setCurrentId] = useState(id);
   const [run, setRun] = useState<TestRun>();
@@ -51,7 +54,8 @@ export function TrialRunDialog({
       <DialogHeader className={styles.dialogHeader}>
         <div>
           <h2 id={titleId} className={styles.heading}>
-            草稿试跑{run ? ` · ${statuses[run.status]}` : ''}
+            {t('draftTrial')}
+            {run ? ` · ${statusText(run.status)}` : ''}
           </h2>
         </div>
         <div className={styles.container}>
@@ -61,9 +65,9 @@ export function TrialRunDialog({
             rel="noopener noreferrer"
             className={buttonStyles({ variant: 'ghost', size: 'sm' })}
           >
-            查看完整记录 ↗
+            {t('viewFullRun')}
           </Link>
-          <Button size="icon-sm" variant="ghost" aria-label="关闭试跑" onClick={onClose}>
+          <Button size="icon-sm" variant="ghost" aria-label={t('closeTrial')} onClick={onClose}>
             <Icon icon={closeIcon} width="18" aria-hidden="true" />
           </Button>
         </div>

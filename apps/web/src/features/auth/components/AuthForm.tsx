@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import styles from './AuthForm.module.css';
 
 import { useState, type FormEvent } from 'react';
@@ -22,11 +24,12 @@ export function AuthForm({
   callbackURL?: string;
   oauthError?: boolean;
 }) {
+  const t = useTranslations('auth');
   const router = useRouter();
   const register = mode === 'register';
   const destination = safeCallbackURL(callbackURL);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState(oauthError ? '第三方登录未完成，请重试。' : '');
+  const [error, setError] = useState(oauthError ? t('oauthIncomplete') : '');
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,11 +48,7 @@ export function AuthForm({
         : await authClient.signIn.email(credentials);
 
       if (result.error) {
-        setError(
-          register
-            ? '注册失败，请检查填写内容或使用已有邮箱登录。'
-            : '登录失败，请检查邮箱和密码。',
-        );
+        setError(register ? t('registrationFailed') : t('loginFailed'));
         setPending(false);
 
         return;
@@ -58,7 +57,7 @@ export function AuthForm({
       router.replace(destination);
       router.refresh();
     } catch {
-      setError('暂时无法连接，请稍后重试。');
+      setError(t('connectionFailed'));
       setPending(false);
     }
   }
@@ -74,11 +73,11 @@ export function AuthForm({
       });
 
       if (result.error) {
-        setError('第三方登录暂时不可用，请重试或使用邮箱登录。');
+        setError(t('oauthUnavailable'));
         setPending(false);
       }
     } catch {
-      setError('暂时无法连接，请稍后重试。');
+      setError(t('connectionFailed'));
       setPending(false);
     }
   }
@@ -86,14 +85,12 @@ export function AuthForm({
   return (
     <main id="main-content" className={styles.mainContent}>
       <div className={styles.page}>
-        <Link href="/" aria-label="testdog 首页">
+        <Link href="/" aria-label={t('home')}>
           <Brand />
         </Link>
         <div>
-          <h1 className={styles.title}>{register ? '创建账号' : '登录 testdog'}</h1>
-          <p className={styles.subtitle}>
-            {register ? '使用邮箱注册，开始管理和运行测试。' : '登录后继续使用测试工作区。'}
-          </p>
+          <h1 className={styles.title}>{register ? t('createAccount') : t('signInTitle')}</h1>
+          <p className={styles.subtitle}>{register ? t('registerSubtitle') : t('loginSubtitle')}</p>
         </div>
         {providers.length > 0 && (
           <div className={styles.providers}>
@@ -104,26 +101,25 @@ export function AuthForm({
                 disabled={pending}
                 onClick={() => social(provider)}
               >
-                使用 {provider === 'google' ? 'Google' : 'GitHub'}{' '}
-                {register ? '注册 / 登录' : '登录'}
+                {t('social', { provider: provider === 'google' ? 'Google' : 'GitHub' })}
               </Button>
             ))}
-            <p className={styles.providerDivider}>或使用邮箱</p>
+            <p className={styles.providerDivider}>{t('orEmail')}</p>
           </div>
         )}
         <form onSubmit={submit} className={styles.credentials}>
           {register && (
             <label className={styles.field}>
-              <span>姓名</span>
+              <span>{t('name')}</span>
               <Input name="name" autoComplete="name" required maxLength={100} disabled={pending} />
             </label>
           )}
           <label className={styles.field}>
-            <span>邮箱</span>
+            <span>{t('email')}</span>
             <Input name="email" type="email" autoComplete="email" required disabled={pending} />
           </label>
           <label className={styles.field}>
-            <span>密码</span>
+            <span>{t('password')}</span>
             <Input
               name="password"
               type="password"
@@ -137,7 +133,7 @@ export function AuthForm({
           </label>
           {register && (
             <p id="password-hint" className={styles.passwordHint}>
-              至少 8 个字符
+              {t('passwordHint')}
             </p>
           )}
           {error && (
@@ -151,11 +147,11 @@ export function AuthForm({
             className={styles.providerButton}
             disabled={pending}
           >
-            {pending ? '请稍候…' : register ? '注册' : '登录'}
+            {pending ? t('pending') : register ? t('register') : t('login')}
           </Button>
         </form>
         <p className={styles.accountPrompt}>
-          {register ? '已有账号？' : '还没有账号？'}{' '}
+          {register ? t('existingAccount') : t('newAccount')}{' '}
           <Link
             className={styles.accountLink}
             href={
@@ -164,7 +160,7 @@ export function AuthForm({
               encodeURIComponent(destination)
             }
           >
-            {register ? '登录' : '注册'}
+            {register ? t('login') : t('register')}
           </Link>
         </p>
       </div>

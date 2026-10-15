@@ -252,8 +252,9 @@ test('links a failed step to an existing issue and filters the issue list', asyn
     }),
   );
   await page.goto(`/runs/${runId}`);
+  await page.getByRole('button', { name: '计划', exact: true }).click();
   await page
-    .getByRole('region', { name: '步骤' })
+    .locator('[data-plan-node="amount"]')
     .getByRole('button', { name: '创建或关联问题' })
     .click();
   await page.getByRole('button', { name: '关联已有问题', exact: true }).click();
@@ -517,4 +518,38 @@ test('selects among issues in the issue tab and shows a clear empty state', asyn
   await page.reload();
   await page.getByRole('button', { name: '问题', exact: true }).click();
   await expect(panel.getByRole('heading', { name: '本次执行暂无关联问题' })).toBeVisible();
+});
+
+test('English issue list and detail translate labels while preserving issue content', async ({
+  page,
+  context,
+}) => {
+  await context.addCookies([{ name: 'locale', value: 'en', url: 'http://127.0.0.1:3100' }]);
+  await page.route('**/api/issues{,?*}', (route) =>
+    route.fulfill({ json: { issues: [initial], nextCursor: null } }),
+  );
+  await page.route(`**/api/issues/${issueId}`, (route) =>
+    route.fulfill({
+      json: { issue: initial, occurrences: [occurrence], events: [], verifications: [] },
+    }),
+  );
+  await page.goto('/issues');
+  await expect(page.getByRole('textbox', { name: 'Search issues', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Open', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell').filter({ hasText: 'High' })).toBeVisible();
+  await page.getByRole('link', { name: initial.title, exact: true }).click();
+  await expect(page.getByRole('heading', { name: initial.title, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark resolved', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Verification', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit issue', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Edit issue', exact: true });
+
+  await expect(editor.getByLabel('Issue title', { exact: true })).toHaveValue(initial.title);
+  await expect(editor.getByRole('combobox', { name: 'Severity', exact: true })).toContainText(
+    'High',
+  );
+  await editor.getByRole('combobox', { name: 'Issue status', exact: true }).click();
+  await expect(
+    page.getByRole('option', { name: 'Pending verification', exact: true }),
+  ).toBeVisible();
 });

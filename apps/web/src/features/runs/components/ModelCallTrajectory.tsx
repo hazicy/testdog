@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import useSWR from 'swr';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@iconify/react/offline';
@@ -9,10 +11,7 @@ import { fetchJson } from '@/client/api';
 import { Button } from '@/components/ui/Button';
 import type { ModelCallDetail } from '@testdog/contracts/runs/modelCalls';
 import styles from './ModelUsagePanel.module.css';
-import { modelCallPurposes } from '@/features/runs/presentation';
-
-const stepStatuses = { running: '执行中', passed: '完成', failed: '失败' };
-const roles = { system: '系统', user: '用户', assistant: '助手' };
+import { useModelCallPurposes } from '@/features/runs/presentation';
 
 function content(value: string) {
   try {
@@ -33,6 +32,8 @@ export function ModelCallTrajectory({
   active: boolean;
   onStep: (id: string) => void;
 }) {
+  const t = useTranslations('runs');
+  const modelCallPurposes = useModelCallPurposes();
   const data = useSWR<ModelCallDetail>(`/api/runs/${runId}/model-usage/${callId}`, fetchJson, {
     refreshInterval: active ? 5000 : 0,
   });
@@ -47,16 +48,16 @@ export function ModelCallTrajectory({
   if (data.error)
     return (
       <div role="alert" className={styles.error}>
-        无法加载调用详情
+        {t('callLoadFailed')}
         <Button size="xs" onClick={() => void data.mutate()}>
-          重试
+          {t('retry')}
         </Button>
       </div>
     );
   if (!data.data)
     return (
       <p role="status" className={styles.loading}>
-        正在加载…
+        {t('loading')}
       </p>
     );
   const { trace, steps } = data.data;
@@ -64,35 +65,35 @@ export function ModelCallTrajectory({
   return (
     <div className={styles.trajectory}>
       {!!trace?.input?.length && (
-        <section aria-label="模型输入">
+        <section aria-label={t('modelInput')}>
           {trace.input.map((message, index) => (
             <section key={index} className={styles.traceSection}>
               <h3>
                 <span className={styles.role} data-role={message.role}>
-                  {roles[message.role]}
+                  {t(`roles.${message.role}`)}
                 </span>
               </h3>
               <CopyableContent
                 value={content(message.content)}
-                label={`复制${roles[message.role]}输入`}
+                label={t('copyRoleInput', { role: t(`roles.${message.role}`) })}
               />
             </section>
           ))}
         </section>
       )}
       {trace?.reply && (
-        <section className={styles.traceSection} aria-label="模型回复">
-          <h3 title={trace.truncated ? '较长的回复或参数已截断' : undefined}>
+        <section className={styles.traceSection} aria-label={t('modelReply')}>
+          <h3 title={trace.truncated ? t('truncated') : undefined}>
             <span className={styles.role} data-role="assistant">
-              助手
+              {t('assistant')}
             </span>
-            {trace.purpose ? modelCallPurposes[trace.purpose] || trace.purpose : '模型回复'}
+            {trace.purpose ? modelCallPurposes[trace.purpose] || trace.purpose : t('modelReply')}
           </h3>
-          <CopyableContent value={content(trace.reply)} label="复制模型回复" />
+          <CopyableContent value={content(trace.reply)} label={t('copyReply')} />
         </section>
       )}
       {!!trace?.tools.length && (
-        <ol className={styles.tools} aria-label="工具调用">
+        <ol className={styles.tools} aria-label={t('toolCalls')}>
           {trace.tools.map((tool) => {
             const results = steps.filter((step) => step.toolCallId === tool.id);
             const status = results.at(-1)?.status;
@@ -101,23 +102,27 @@ export function ModelCallTrajectory({
               <li key={tool.id} className={styles.traceSection}>
                 <h3>
                   <span className={styles.role} data-role="tool">
-                    工具
+                    {t('tool')}
                   </span>
                   <span
                     className={styles.toolName}
-                    title={trace.truncated ? '较长的回复或参数已截断' : undefined}
+                    title={trace.truncated ? t('truncated') : undefined}
                   >
                     {tool.name}
                   </span>
                   <span className={styles.toolState} data-status={status}>
-                    {status ? stepStatuses[status] : active ? '等待执行' : '未执行'}
+                    {status
+                      ? t(`stepStatuses.${status}`)
+                      : active
+                        ? t('waiting')
+                        : t('notExecuted')}
                   </span>
                 </h3>
                 <div className={styles.toolBody}>
-                  <h4>参数</h4>
+                  <h4>{t('parameters')}</h4>
                   <CopyableContent
                     value={content(tool.arguments)}
-                    label={`复制 ${tool.name} 参数`}
+                    label={t('copyToolParams', { name: tool.name })}
                   />
                   {results.map((step) => (
                     <StepResult key={step.id} step={step} onStep={onStep} />
@@ -136,7 +141,7 @@ export function ModelCallTrajectory({
             {step.action && (
               <CopyableContent
                 value={JSON.stringify(step.action.action, null, 2)}
-                label="复制步骤动作"
+                label={t('copyAction')}
               />
             )}
             <StepResult step={step} onStep={onStep} />
@@ -153,12 +158,17 @@ function StepResult({
   step: ModelCallDetail['steps'][number];
   onStep: (id: string) => void;
 }) {
+  const t = useTranslations('runs');
   const duration = step.durationMs !== undefined ? `${step.durationMs} ms` : undefined;
   const decision =
-    step.decision === undefined ? undefined : step.decision ? '判断成立' : '判断不成立';
+    step.decision === undefined
+      ? undefined
+      : step.decision
+        ? t('decisionTrue')
+        : t('decisionFalse');
   const result = [
     step.title,
-    stepStatuses[step.status],
+    t(`stepStatuses.${step.status}`),
     duration,
     step.error,
     step.evidence,
@@ -168,20 +178,20 @@ function StepResult({
     .join('\n');
 
   return (
-    <div className={styles.stepResult} aria-label={`执行结果：${step.title}`}>
+    <div className={styles.stepResult} aria-label={t('executionResult', { title: step.title })}>
       <h4>
-        结果{' '}
+        {t('result')}{' '}
         <span className={styles.toolState} data-status={step.status}>
-          {stepStatuses[step.status]}
+          {t(`stepStatuses.${step.status}`)}
         </span>
         {duration && <span className={styles.duration}>{duration}</span>}
-        <CopyButton label="复制执行结果" value={result} />
+        <CopyButton label={t('copyResult')} value={result} />
       </h4>
-      {step.error && <CopyableContent value={step.error} label="复制错误信息" error />}
-      {step.evidence && <CopyableContent value={step.evidence} label="复制执行证据" />}
+      {step.error && <CopyableContent value={step.error} label={t('copyError')} error />}
+      {step.evidence && <CopyableContent value={step.evidence} label={t('copyEvidence')} />}
       {decision && <span>{decision}</span>}
       <Button variant="ghost" size="xs" onClick={() => onStep(step.id)}>
-        查看步骤
+        {t('viewStep')}
       </Button>
     </div>
   );
@@ -205,6 +215,7 @@ function CopyableContent({
 }
 
 function CopyButton({ value, label }: { value: string; label: string }) {
+  const t = useTranslations('runs');
   const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   useEffect(() => {
@@ -221,7 +232,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
           role={status === 'failed' ? 'alert' : 'status'}
           className={status === 'failed' ? styles.errorCode : undefined}
         >
-          {status === 'copied' ? '已复制' : '复制失败，请重试'}
+          {status === 'copied' ? t('copied') : t('copyFailed')}
         </span>
       )}
       <Button

@@ -62,7 +62,7 @@ for (const list of [
     await expect(footer).toHaveCount(0);
     release();
     await expect(page.getByRole('table').getByText(saved.name, { exact: true })).toBeVisible();
-    await expect(footer).toContainText('本页 1 条记录');
+    await expect(footer).not.toContainText('条记录');
     await expect(footer).toContainText('第 1 页');
     await expect(page.getByRole('button', { name: '上一页', exact: true })).toBeDisabled();
     await page.getByRole('button', { name: '下一页', exact: true }).click();

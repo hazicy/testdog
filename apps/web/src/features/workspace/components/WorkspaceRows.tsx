@@ -1,3 +1,4 @@
+import { useTranslations, useFormatter } from 'next-intl';
 import clsx from 'clsx';
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
 import styles from './WorkspaceRows.module.css';
@@ -22,17 +23,9 @@ import { WorkspaceRowMenu } from '@/features/workspace/components/WorkspaceRowMe
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 import type { RunSummary } from '@testdog/contracts/runs/types';
 
-const statusLabels = {
-  queued: '排队中',
-  preparing: '准备中',
-  finalizing: '归档中',
-  running: '执行中',
-  passed: '已通过',
-  failed: '失败',
-  cancelled: '已停止',
-};
-
 function Status({ status }: { status?: RunSummary['status'] }) {
+  const t = useTranslations('workspace');
+
   return (
     <span
       data-slot="status"
@@ -52,7 +45,7 @@ function Status({ status }: { status?: RunSummary['status'] }) {
         width="14"
         aria-hidden="true"
       />
-      {status ? statusLabels[status] : '未运行'}
+      {status ? t(status) : t('none')}
     </span>
   );
 }
@@ -65,15 +58,6 @@ function address(value: string) {
   } catch {
     return value;
   }
-}
-
-function date(value: string) {
-  return new Date(value).toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function duration(run: RunSummary) {
@@ -113,6 +97,15 @@ export function WorkspaceRows({
   start,
   exportRun,
 }: Props) {
+  const t = useTranslations('workspace');
+  const format = useFormatter();
+  const date = (value: string) =>
+    format.dateTime(new Date(value), {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   const latest = (id: string) => latestRuns.get(id);
 
   return (
@@ -159,7 +152,10 @@ export function WorkspaceRows({
                     <Link href={`/runs/${run.id}`} className={styles.link}>
                       <time
                         dateTime={run.startedAt}
-                        title={new Date(run.startedAt).toLocaleString('zh-CN')}
+                        title={format.dateTime(new Date(run.startedAt), {
+                          dateStyle: 'medium',
+                          timeStyle: 'medium',
+                        })}
                       >
                         {date(run.startedAt)}
                       </time>
@@ -172,37 +168,37 @@ export function WorkspaceRows({
                   <div className={styles.container}>
                     <Button
                       size="xs"
-                      title={running ? '请等待当前测试完成后再运行' : '运行测试'}
+                      title={running ? t('waitToRun') : t('runTest')}
                       disabled={starting}
                       onClick={() => void start(test.id)}
                     >
-                      <Icon icon={resultsIcon} width="14" aria-hidden="true" /> 运行
+                      <Icon icon={resultsIcon} width="14" aria-hidden="true" /> {t('run')}
                     </Button>
                     <WorkspaceRowMenu
-                      label={`更多操作：${test.name}`}
+                      label={t('moreActions', { name: test.name })}
                       actions={[
                         {
-                          label: '编辑用例',
-                          accessibleLabel: `编辑 ${test.name}`,
+                          label: t('editCase'),
+                          accessibleLabel: t('edit', { name: test.name }),
                           icon: editIcon,
                           onSelect: () => openEditor(test),
                         },
                         {
-                          label: '复制用例',
-                          accessibleLabel: `复制 ${test.name}`,
+                          label: t('duplicateCase'),
+                          accessibleLabel: t('duplicate', { name: test.name }),
                           icon: copyIcon,
                           onSelect: () => openEditor(test, true),
                         },
                         {
-                          label: '矩阵运行',
-                          accessibleLabel: `矩阵运行 ${test.name}`,
+                          label: t('runMatrix'),
+                          accessibleLabel: t('matrix', { name: test.name }),
                           icon: matrixIcon,
                           disabled: starting,
                           onSelect: () => openMatrix(test),
                         },
                         {
-                          label: '删除用例',
-                          accessibleLabel: `删除 ${test.name}`,
+                          label: t('deleteCase'),
+                          accessibleLabel: t('delete', { name: test.name }),
                           icon: trashIcon,
                           danger: true,
                           onSelect: () => setDeleting(test),
@@ -237,7 +233,10 @@ export function WorkspaceRows({
               <TableCell className={workspaceStyles.workspaceIndexTime}>
                 <time
                   dateTime={run.startedAt}
-                  title={new Date(run.startedAt).toLocaleString('zh-CN')}
+                  title={format.dateTime(new Date(run.startedAt), {
+                    dateStyle: 'medium',
+                    timeStyle: 'medium',
+                  })}
                 >
                   {date(run.startedAt)}
                 </time>
@@ -252,14 +251,14 @@ export function WorkspaceRows({
                       variant: 'ghost',
                     })}
                   >
-                    详情 <Icon icon={chevronIcon} width="13" aria-hidden="true" />
+                    {t('details')} <Icon icon={chevronIcon} width="13" aria-hidden="true" />
                   </Link>
                   <WorkspaceRowMenu
-                    label={`更多操作：${run.name}`}
+                    label={t('moreActions', { name: run.name })}
                     actions={[
                       {
-                        label: '导出结果',
-                        accessibleLabel: `导出 ${run.name} 的结果`,
+                        label: t('exportResults'),
+                        accessibleLabel: t('export', { name: run.name }),
                         icon: downloadIcon,
                         disabled: exporting,
                         onSelect: () => void exportRun(run),

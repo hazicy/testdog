@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import styles from './BrowserLogPanel.module.css';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -14,14 +16,14 @@ import { NetworkEntries } from './BrowserNetworkPanel';
 import type { BrowserLog, BrowserLogPage } from '@testdog/contracts/runs/types';
 
 const consoleFilters = [
-  ['all', '全部'],
+  ['all', 'All'],
   ['error', 'Error'],
   ['warning', 'Warning'],
   ['info', 'Info'],
   ['debug', 'Verbose'],
 ];
 const networkFilters = [
-  ['all', '全部'],
+  ['all', 'All'],
   ['fetch', 'Fetch/XHR'],
   ['script', 'JS'],
   ['stylesheet', 'CSS'],
@@ -68,6 +70,7 @@ export function BrowserLogPanel({
   elapsedMs?: number;
   stepId?: string;
 }) {
+  const t = useTranslations('runs');
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState('all');
   const [filter, setFilter] = useState('all');
@@ -113,15 +116,15 @@ export function BrowserLogPanel({
   return (
     <section
       className={styles.panel}
-      aria-label={kind === 'console' ? 'Console 记录' : 'Network 记录'}
+      aria-label={kind === 'console' ? t('consoleLogs') : t('networkLogs')}
     >
       <div className={styles.toolbar}>
         <div className={styles.search}>
           <Icon icon={searchIcon} width="14" aria-hidden="true" />
           <Input
-            aria-label="搜索浏览器记录"
+            aria-label={t('searchBrowserLogs')}
             className={styles.input}
-            placeholder={kind === 'console' ? '过滤日志内容…' : '过滤 URL、状态码…'}
+            placeholder={kind === 'console' ? t('filterConsole') : t('filterNetwork')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -129,7 +132,7 @@ export function BrowserLogPanel({
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label="清除搜索"
+              aria-label={t('clearSearch')}
               onClick={() => setQuery('')}
             >
               ×
@@ -137,23 +140,23 @@ export function BrowserLogPanel({
           )}
         </div>
         <Select
-          aria-label="记录范围"
+          aria-label={t('logScope')}
           className={styles.select}
           value={scope}
           onValueChange={(value) => {
             setScope(value);
           }}
           items={[
-            { value: 'all', label: '全部记录' },
-            { value: 'step', label: '当前步骤', disabled: !stepId },
-            { value: 'time', label: '截至回放时间', disabled: elapsedMs == null },
+            { value: 'all', label: t('allLogs') },
+            { value: 'step', label: t('currentStep'), disabled: !stepId },
+            { value: 'time', label: t('untilPlayback'), disabled: elapsedMs == null },
           ]}
         />
       </div>
       <div
         className={styles.filterbar}
         role="group"
-        aria-label={kind === 'console' ? '本页日志级别' : '本页资源类型'}
+        aria-label={kind === 'console' ? t('logLevel') : t('resourceType')}
       >
         {filters.map(([value, label]) => (
           <Button
@@ -164,7 +167,7 @@ export function BrowserLogPanel({
             className={styles.filter}
             onClick={() => setFilter(value)}
           >
-            {label}
+            {value === 'all' ? t('all') : label}
             {kind === 'console' && (
               <span>{records.filter((log) => matchesFilter(log, value)).length}</span>
             )}
@@ -173,25 +176,25 @@ export function BrowserLogPanel({
       </div>
       {data.error && (
         <div role="alert" className={styles.loadError}>
-          <span>{data.error instanceof Error ? data.error.message : '无法加载浏览器记录'}</span>
+          <span>{data.error instanceof Error ? data.error.message : t('logsLoadFailed')}</span>
           <Button size="xs" onClick={() => void mutate()}>
-            重试
+            {t('retry')}
           </Button>
         </div>
       )}
       <div className={styles.body}>
         {data.isLoading ? (
           <div className={styles.empty} role="status">
-            正在加载浏览器记录…
+            {t('loadingLogs')}
           </div>
         ) : !visible.length ? (
           <div className={styles.empty}>
             <strong>
               {query || filter !== 'all' || scope !== 'all'
-                ? '没有匹配的记录'
+                ? t('noMatches')
                 : kind === 'console'
-                  ? '暂无 Console 日志'
-                  : '暂无网络请求'}
+                  ? t('noConsoleLogs')
+                  : t('noRequests')}
             </strong>
           </div>
         ) : kind === 'network' ? (
@@ -210,17 +213,17 @@ export function BrowserLogPanel({
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label="上一页"
+              aria-label={t('previousPage')}
               disabled={!cursors.length || data.isLoading}
               onClick={() => setCursors(cursors.slice(0, -1))}
             >
               ‹
             </Button>
-            <span>第 {cursors.length + 1} 页</span>
+            <span>{t('page', { page: cursors.length + 1 })}</span>
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label="下一页"
+              aria-label={t('nextPage')}
               disabled={!data.data?.nextCursor || data.isLoading}
               onClick={() => {
                 if (data.data?.nextCursor) setCursors([...cursors, data.data.nextCursor]);
@@ -236,6 +239,7 @@ export function BrowserLogPanel({
 }
 
 export function LogRow({ log }: { log: BrowserLog }) {
+  const t = useTranslations('runs');
   const [open, setOpen] = useState(false);
   const level = ['warn', 'warning'].includes(log.level || '') ? 'warning' : log.level || 'log';
 
@@ -251,22 +255,22 @@ export function LogRow({ log }: { log: BrowserLog }) {
         <span className={styles.level} title={level}>
           {level === 'error' ? '×' : level === 'warning' ? '!' : '·'}
         </span>
-        <span className={styles.message}>{log.message || '（空日志）'}</span>
+        <span className={styles.message}>{log.message || t('emptyLog')}</span>
         <span className={styles.source} title={log.pageUrl}>
           {log.pageId}
         </span>
       </summary>
       {open && (
         <div className={styles.consoleDetail}>
-          <pre>{log.message || '（空日志）'}</pre>
+          <pre>{log.message || t('emptyLog')}</pre>
           <dl>
-            <dt>Level</dt>
+            <dt>{t('levelLabel')}</dt>
             <dd>{log.level || 'log'}</dd>
-            <dt>Page URL</dt>
+            <dt>{t('pageUrlLabel')}</dt>
             <dd>{log.pageUrl || '—'}</dd>
-            <dt>Step</dt>
+            <dt>{t('stepLabel')}</dt>
             <dd>{log.stepId || '—'}</dd>
-            <dt>记录时间</dt>
+            <dt>{t('recordedAt')}</dt>
             <dd>{log.at}</dd>
           </dl>
         </div>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import styles from './BrowserlessForm.module.css';
 
 import { useId, useState } from 'react';
@@ -19,6 +21,7 @@ export function BrowserlessForm({
   onSaved: () => Promise<unknown>;
   onDismiss: () => void;
 }) {
+  const t = useTranslations('integrations');
   const titleId = useId();
   const [state, setState] = useState(integration);
   const [endpoint, setEndpoint] = useState('');
@@ -53,10 +56,10 @@ export function BrowserlessForm({
       setToken('');
       setClearToken(false);
       setDirty(false);
-      setMessage('配置已保存。');
+      setMessage(t('saved'));
       await onSaved();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '保存失败');
+      setError(cause instanceof Error ? cause.message : t('saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -75,9 +78,9 @@ export function BrowserlessForm({
         })
         .json<{ browserVersion: string }>();
 
-      setMessage(`连接测试成功，浏览器版本：${result.browserVersion}。`);
+      setMessage(t('connectionSuccess', { version: result.browserVersion }));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '连接测试失败');
+      setError(cause instanceof Error ? cause.message : t('connectionFailed'));
     } finally {
       setBusy(false);
     }
@@ -91,18 +94,25 @@ export function BrowserlessForm({
             Browserless
           </h2>
           <p className={styles.subtitle}>
-            {state.configured ? (state.enabled ? '已启用' : '已配置 · 未启用') : '未配置'}
+            {state.configured
+              ? state.enabled
+                ? t('enabled')
+                : t('configuredDisabled')
+              : t('unconfigured')}
           </p>
         </div>
-        <Button variant="ghost" size="sm" aria-label="关闭配置" disabled={busy} onClick={onDismiss}>
-          关闭
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={t('closeConfig')}
+          disabled={busy}
+          onClick={onDismiss}
+        >
+          {t('close')}
         </Button>
       </DialogHeader>
       <form className={styles.form} onSubmit={save} onChange={() => setDirty(true)}>
-        <p className={styles.connectionHint}>
-          用于 Web Chromium 执行，WebKit 仍使用本地浏览器。请填写 Playwright 原生协议的
-          /chromium/playwright 端点，服务端需兼容 Playwright 1.63.0。启用后连接失败将终止执行。
-        </p>
+        <p className={styles.connectionHint}>{t('browserlessSetup')}</p>
         {state.configurationError && (
           <p role="alert" className={styles.error}>
             {state.configurationError}
@@ -110,7 +120,7 @@ export function BrowserlessForm({
         )}
         <div>
           <label htmlFor={`${titleId}-endpoint`} className={styles.field}>
-            WebSocket 地址
+            {t('websocket')}
           </label>
           <Input
             id={`${titleId}-endpoint`}
@@ -121,14 +131,14 @@ export function BrowserlessForm({
             onChange={(event) => setEndpoint(event.target.value)}
             placeholder={
               state.configured
-                ? '已保存，留空保留原地址'
+                ? t('keepAddress')
                 : 'wss://production-sfo.browserless.io/chromium/playwright'
             }
           />
         </div>
         <div>
           <label htmlFor={`${titleId}-token`} className={styles.field}>
-            Token（可选）
+            {t('token')}
           </label>
           <Input
             id={`${titleId}-token`}
@@ -136,11 +146,7 @@ export function BrowserlessForm({
             autoComplete="new-password"
             value={token}
             onChange={(event) => setToken(event.target.value)}
-            placeholder={
-              state.hasCredentials
-                ? '已保存，留空保留原 Token'
-                : '云服务 API Token；自部署无认证时可留空'
-            }
+            placeholder={state.hasCredentials ? t('keepToken') : t('tokenHint')}
           />
         </div>
         {state.hasCredentials && (
@@ -152,7 +158,7 @@ export function BrowserlessForm({
                 setDirty(true);
               }}
             />
-            清除已保存的 Token
+            {t('clearToken')}
           </label>
         )}
         <label className={styles.clearCredential}>
@@ -163,7 +169,7 @@ export function BrowserlessForm({
               setDirty(true);
             }}
           />
-          启用 Browserless
+          {t('enableBrowserless')}
         </label>
         {error && (
           <p role="alert" className={styles.error}>
@@ -177,18 +183,18 @@ export function BrowserlessForm({
         )}
         <div className={styles.container}>
           <Button type="submit" variant="primary" disabled={busy}>
-            {busy ? '处理中…' : '保存配置'}
+            {busy ? t('processing') : t('save')}
           </Button>
           <Button
             type="button"
             disabled={busy || !state.configured || dirty}
             onClick={() => void test()}
           >
-            测试连接
+            {t('testConnection')}
           </Button>
         </div>
         {dirty && state.configured && (
-          <p className={styles.unsavedHint}>先保存修改，再测试连接。</p>
+          <p className={styles.unsavedHint}>{t('saveBeforeConnection')}</p>
         )}
       </form>
     </Dialog>

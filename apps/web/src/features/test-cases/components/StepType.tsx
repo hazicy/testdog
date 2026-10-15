@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import boardStyles from '@/features/runs/components/plan-board.module.css';
 
 import { Icon } from '@iconify/react/offline';
@@ -13,16 +15,23 @@ import group from '@iconify-icons/lucide/list-tree';
 import branch from '@iconify-icons/lucide/git-branch';
 import type { StepType } from '@testdog/contracts/automation/compiler/schema';
 
-export const stepTypes = [
-  { value: 'navigate', label: 'Navigate', description: '打开网站地址' },
-  { value: 'act', label: 'Act', description: '操作页面或应用' },
-  { value: 'assert', label: 'Assert', description: '验证预期结果' },
-  { value: 'login', label: 'Login', description: '执行登录步骤' },
-  { value: 'files', label: 'Files', description: '打开或下载页面文件' },
-  { value: 'screenshot', label: 'Screenshot', description: '保存当前画面截图' },
-  { value: 'group', label: 'Group', description: '分组并排展示，组内顺序执行' },
-  { value: 'branch', label: 'Branch', description: '根据条件选择路径' },
+const stepTypes = [
+  { value: 'navigate', label: 'Navigate' },
+  { value: 'act', label: 'Act' },
+  { value: 'assert', label: 'Assert' },
+  { value: 'login', label: 'Login' },
+  { value: 'files', label: 'Files' },
+  { value: 'screenshot', label: 'Screenshot' },
+  { value: 'group', label: 'Group' },
+  { value: 'branch', label: 'Branch' },
 ] as const;
+
+export function useStepTypes() {
+  const t = useTranslations('stepTypes');
+
+  return stepTypes.map((item) => ({ ...item, description: t(item.value) }));
+}
+
 export type BoardStepType = StepType | 'group' | 'branch';
 const icons = { navigate, act, assert, login, files, screenshot, group, branch };
 

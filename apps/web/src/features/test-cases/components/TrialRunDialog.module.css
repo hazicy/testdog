@@ -4,6 +4,10 @@
   max-width: 90rem;
   flex-direction: column;
   overflow: hidden;
+  @media (height <= 30rem) {
+    height: calc(100dvh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
+  }
 }
 .dialogHeader {
   flex-wrap: wrap;

@@ -1,14 +1,6 @@
+import { useTranslations } from 'next-intl';
 import type { RunArtifact } from '@testdog/contracts/runs/types';
 
-export const statuses = {
-  queued: '排队中',
-  preparing: '准备中',
-  finalizing: '归档中',
-  running: '执行中',
-  passed: '已通过',
-  failed: '失败',
-  cancelled: '已停止',
-};
 export const time = (ms: number) =>
   `${Math.floor(ms / 60000)
     .toString()
@@ -18,9 +10,13 @@ export const time = (ms: number) =>
 export const asset = (runId: string, artifact: RunArtifact) =>
   `/api/runs/${runId}/artifacts/${artifact.id}`;
 
-export const modelCallPurposes: Record<string, string> = {
-  plan: '生成计划',
-  native_action: '动作规划',
-  assertion_result: '断言',
-  branch_result: '分支判断',
-};
+export function useModelCallPurposes(): Record<string, string> {
+  const t = useTranslations('runs.purposes');
+
+  return {
+    plan: t('plan'),
+    native_action: t('native_action'),
+    assertion_result: t('assertion_result'),
+    branch_result: t('branch_result'),
+  };
+}

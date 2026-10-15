@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import styles from './RunMatrixDialog.module.css';
 
 import { DialogHeader, DialogFooter } from '@/components/ui/Dialog';
@@ -23,6 +25,7 @@ export function RunMatrixDialog({
   onClose: () => void;
   onSubmit: (event: FormEvent, code: string) => Promise<void>;
 }) {
+  const t = useTranslations('editor');
   const [matrixCode, setMatrixCode] = useState(() => {
     const target = test.target || {
       schemaVersion: 1,
@@ -40,32 +43,30 @@ export function RunMatrixDialog({
       titleId="matrix-title"
       busy={busy}
       onDismiss={() => onClose()}
-      initialFocus='[aria-label="运行配置（JSON）"]'
+      initialFocus="#matrix-code"
     >
       <form onSubmit={(event) => void onSubmit(event, matrixCode)}>
         <DialogHeader>
           <h2 id="matrix-title" className={styles.matrixTitle}>
-            平台矩阵 · {test.name}
+            {t('matrixTitle', { name: test.name })}
           </h2>
         </DialogHeader>
         <div className={styles.container}>
-          <p className={styles.description}>
-            填写 1–10 个运行配置。每项包含 target，可用 goal
-            覆盖该平台的步骤与预期。所有运行一起创建，各自排队。
-          </p>
+          <p className={styles.description}>{t('matrixHint')}</p>
           <Label>
-            运行配置（JSON）
+            {t('matrixConfig')}
             <Textarea
+              id="matrix-code"
               className={styles.input}
               required
-              aria-label="运行配置（JSON）"
+              aria-label={t('matrixConfig')}
               value={matrixCode}
               disabled={busy}
               onChange={(event) => setMatrixCode(event.target.value)}
             />
           </Label>
           <details className={styles.details}>
-            <summary>平台配置示例</summary>
+            <summary>{t('matrixExamples')}</summary>
             <pre className={styles.code}>
               {JSON.stringify(
                 [
@@ -107,10 +108,10 @@ export function RunMatrixDialog({
         </div>
         <DialogFooter>
           <Button type="button" disabled={busy} onClick={() => onClose()}>
-            取消
+            {t('cancel')}
           </Button>
           <Button type="submit" variant="primary" disabled={busy}>
-            {busy ? '创建中…' : '运行矩阵'}
+            {busy ? t('creating') : t('runMatrix')}
           </Button>
         </DialogFooter>
       </form>

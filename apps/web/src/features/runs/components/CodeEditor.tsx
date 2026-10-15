@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import studioStyles from '@/features/runs/components/run-studio.module.css';
 
 import { useEffect, useMemo, useRef } from 'react';
@@ -19,17 +21,20 @@ export function CodeEditor({
   value,
   onChange,
   readOnly = false,
-  label = 'Playwright 录制脚本',
+  label,
 }: {
   value: string;
   label?: string;
   onChange: (code: string) => void;
   readOnly?: boolean;
 }) {
+  const t = useTranslations('runs');
+  const editorLabel = label ?? t('playwrightScript');
   const parent = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView>(null);
   const changed = useRef(onChange);
   const editing = useMemo(() => new Compartment(), []);
+  const accessibility = useMemo(() => new Compartment(), []);
 
   useEffect(() => {
     changed.current = onChange;
@@ -50,15 +55,26 @@ export function CodeEditor({
           syntaxHighlighting(defaultHighlightStyle),
           bracketMatching(),
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-          EditorView.contentAttributes.of({
-            'aria-label': label,
-            spellcheck: 'false',
-          }),
+          accessibility.of(
+            EditorView.contentAttributes.of({
+              'aria-label': editorLabel,
+              spellcheck: 'false',
+            }),
+          ),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) changed.current(update.state.doc.toString());
           }),
           EditorView.theme({
-            '&': { backgroundColor: 'var(--surface)', fontSize: 'var(--text-md)', height: '100%' },
+            '&': {
+              backgroundColor: 'var(--surface)',
+              color: 'var(--ink)',
+              fontSize: 'var(--text-md)',
+              height: '100%',
+            },
+            '.cm-cursor': { borderLeftColor: 'var(--ink)' },
+            '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection':
+              { backgroundColor: 'var(--brand-soft)' },
+            '.cm-activeLineGutter': { backgroundColor: 'var(--editor-active-line)' },
             '.cm-scroller': {
               fontFamily: 'var(--font-geist-mono), monospace',
               lineHeight: '1.8',
@@ -96,6 +112,16 @@ export function CodeEditor({
       ]),
     });
   }, [editing, readOnly]);
+  useEffect(() => {
+    editor.current?.dispatch({
+      effects: accessibility.reconfigure(
+        EditorView.contentAttributes.of({
+          'aria-label': editorLabel,
+          spellcheck: 'false',
+        }),
+      ),
+    });
+  }, [accessibility, editorLabel]);
   useEffect(() => {
     const view = editor.current;
 

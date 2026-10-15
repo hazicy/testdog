@@ -49,10 +49,12 @@ test('settings supports direct visits, refresh and collapsed navigation', async 
   await page.goto('/settings');
   await page.reload();
   await expect(page.getByRole('heading', { name: '设置', level: 1, exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: '登录', exact: true }).last()).toHaveAttribute(
-    'href',
-    '/login?callbackURL=%2Fsettings',
-  );
+  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
+  await expect(
+    page
+      .getByRole('tabpanel', { name: '账户资料' })
+      .getByRole('link', { name: '登录', exact: true }),
+  ).toHaveAttribute('href', '/login?callbackURL=%2Fsettings');
 
   await page.getByRole('button', { name: '收起侧栏' }).click();
   const sidebar = page.getByRole('navigation', { name: '工作区导航' });

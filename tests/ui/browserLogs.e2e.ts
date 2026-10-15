@@ -82,26 +82,26 @@ test('network supports sorting, resource filtering and structured request inspec
   const table = panel.getByRole('table', { name: '网络请求' });
 
   await expect(table.getByRole('row')).toHaveCount(4);
-  await table.getByRole('button', { name: /^Time/ }).click();
+  await table.getByRole('button', { name: /^耗时/ }).click();
   await expect(table.locator('tbody tr').first()).toContainText('app.js');
-  await table.getByRole('button', { name: /^Time/ }).click();
+  await table.getByRole('button', { name: /^耗时/ }).click();
   await expect(table.locator('tbody tr').first()).toContainText('orders');
   await panel.getByRole('button', { name: 'Fetch/XHR', exact: true }).click();
   await expect(table.getByRole('row')).toHaveCount(3);
   await panel.getByRole('button', { name: /^查看请求 GET .*users/ }).click();
   const detail = panel.getByRole('complementary', { name: '请求详情' });
 
-  await expect(detail.getByRole('heading', { name: /^Request Headers/ })).toBeVisible();
+  await expect(detail.getByRole('heading', { name: /^请求头/ })).toBeVisible();
   await expect(detail.getByText('[redacted]', { exact: true })).toBeVisible();
-  await detail.getByRole('tab', { name: 'Query', exact: true }).click();
+  await detail.getByRole('tab', { name: '参数', exact: true }).click();
   await expect(detail.getByText('limit', { exact: true })).toBeVisible();
   await expect(detail.getByText('tag', { exact: true })).toHaveCount(2);
-  await detail.getByRole('tab', { name: 'Timing', exact: true }).click();
+  await detail.getByRole('tab', { name: '计时', exact: true }).click();
   await expect(detail.getByText('120 ms', { exact: true })).toBeVisible();
-  await detail.getByRole('tab', { name: 'Headers', exact: true }).click();
+  await detail.getByRole('tab', { name: '请求头', exact: true }).click();
   await panel.screenshot({ path: testInfo.outputPath('network-wide.png') });
   await page.setViewportSize({ width: 900, height: 850 });
-  await expect(detail.getByRole('tab', { name: 'Headers', exact: true })).toBeVisible();
+  await expect(detail.getByRole('tab', { name: '请求头', exact: true })).toBeVisible();
   await panel.screenshot({ path: testInfo.outputPath('network-narrow.png') });
   await detail.getByRole('button', { name: '关闭请求详情' }).click();
   await expect(detail).toHaveCount(0);
@@ -128,7 +128,7 @@ test('console distinguishes levels, expands sources and searches across records'
   await expect(panel).toContainText('Deprecated API');
   await panel.getByRole('button', { name: /^Error/ }).click();
   await panel.locator('summary').click();
-  await expect(panel.getByText('Page URL', { exact: true })).toBeVisible();
+  await expect(panel.getByText('页面地址', { exact: true })).toBeVisible();
   await expect(panel.locator('pre')).toContainText('Request failed <script>');
   await panel.screenshot({ path: testInfo.outputPath('console.png') });
   await panel.getByRole('button', { name: /^全部/ }).click();

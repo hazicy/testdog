@@ -139,7 +139,7 @@ test('native setup validates required selection and submits custom checkbox valu
   await dialog.locator('[data-step-type=act] [data-ui~="plan-content-button"]').click();
   await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('Verify welcome');
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('设备配置');
   expect(submitted).toBeUndefined();
   await dialog.getByLabel('设备配置', { exact: true }).click();
@@ -150,7 +150,7 @@ test('native setup validates required selection and submits custom checkbox valu
   await video.press('Space');
   await expect(video).toBeChecked();
 
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toHaveAttribute('aria-busy', 'true');
   await expect(video).toBeDisabled();
   await expect(dialog.getByLabel('平台', { exact: true })).toBeDisabled();
@@ -298,8 +298,8 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await expect(panel).toHaveAttribute('data-collapsed', 'true');
   await expect(panel.getByRole('button', { name: '展开面板' })).toBeVisible();
   await expect(panel.getByRole('button', { name: '返回用例列表' })).toHaveCount(0);
-  await expect(panel.getByRole('button', { name: 'Run', exact: true })).toBeVisible();
-  await expect(panel.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+  await expect(panel.getByRole('button', { name: '试跑', exact: true })).toBeVisible();
+  await expect(panel.getByRole('button', { name: '保存', exact: true })).toBeVisible();
   const canvas = page.locator('[data-ui~="plan-viewport"]');
   const viewport = page.locator('.react-flow__viewport');
 
@@ -350,11 +350,11 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await page.getByLabel('测试步骤与预期结果').fill('打开 https://example.com，验证首页');
   await page.getByRole('button', { name: '生成', exact: true }).click();
   await page.getByRole('button', { name: '全部接受' }).click();
-  await panel.getByRole('button', { name: 'Run', exact: true }).click();
+  await panel.getByRole('button', { name: '试跑', exact: true }).click();
   await expect(page.getByRole('region', { name: '测试画板' }).getByRole('alert')).toHaveText(
     '运行暂时失败',
   );
-  await panel.getByRole('button', { name: 'Run', exact: true }).click();
+  await panel.getByRole('button', { name: '试跑', exact: true }).click();
   await expect(page.getByRole('dialog', { name: /草稿试跑/ })).toBeVisible();
   expect(attempts).toBe(2);
   expect(writes).toEqual([]);
@@ -432,10 +432,10 @@ test('reviews generated edits, additions and deletions individually before savin
   await page.getByRole('button', { name: '拒绝变更 c', exact: true }).click();
   await page.getByRole('button', { name: '拒绝变更 b', exact: true }).click();
   await expect(page.locator('[data-plan-node=b]')).toContainText('点击登录');
-  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '保存', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: '接受变更 d', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: '保存', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.locator('[data-ui~="case-canvas-page"]')).toHaveCount(0);
   expect(stored?.plan.nodes.root.children).toEqual(['a', 'b', 'd']);
   expect(stored?.plan.nodes.a.goal).toBe('打开账号页');

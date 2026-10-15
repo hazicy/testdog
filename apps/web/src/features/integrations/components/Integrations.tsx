@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations, useFormatter } from 'next-intl';
+
 import clsx from 'clsx';
 
 import styles from './Integrations.module.css';
@@ -34,9 +36,7 @@ import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import {
-  notificationKinds,
   notificationEvents,
-  deliveryStatuses,
   type Integration,
   type IntegrationsResponse,
   type NotificationEvent,
@@ -54,6 +54,7 @@ function ChannelForm({
   onSaved: () => Promise<unknown>;
   onDismiss: () => void;
 }) {
+  const t = useTranslations('integrations');
   const titleId = useId();
   const submit = useRunSubmission();
   const [enabled, setEnabled] = useState(integration.enabled);
@@ -102,10 +103,10 @@ function ChannelForm({
       setSigningSecret('');
       setClearSigningSecret(false);
       setDirty(false);
-      setMessage('配置已保存。');
+      setMessage(t('saved'));
       await onSaved();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '保存失败');
+      setError(cause instanceof Error ? cause.message : t('saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -117,10 +118,10 @@ function ChannelForm({
     setMessage('');
     try {
       await submit(`/api/integrations/${channel}/test`, {});
-      setMessage('测试通知已提交，可在发送记录查看结果。');
+      setMessage(t('notificationSubmitted'));
       await onSaved();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '测试通知提交失败');
+      setError(cause instanceof Error ? cause.message : t('notificationFailed'));
     } finally {
       setBusy(false);
     }
@@ -154,16 +155,20 @@ function ChannelForm({
       <DialogHeader>
         <div>
           <h2 id={titleId} className={styles.heading}>
-            {notificationKinds[channel]}
+            {t(`channels.${channel}`)}
           </h2>
           <p className={styles.subtitle}>
-            {configured ? (integration.enabled ? '已启用' : '已配置 · 未启用') : '未配置'}
+            {configured
+              ? integration.enabled
+                ? t('enabled')
+                : t('configuredDisabled')
+              : t('unconfigured')}
           </p>
         </div>
         <Button
           variant="ghost"
           size="icon"
-          aria-label="关闭配置"
+          aria-label={t('closeConfig')}
           disabled={busy}
           onClick={onDismiss}
         >
@@ -178,24 +183,20 @@ function ChannelForm({
       <form onSubmit={save} onChange={() => setDirty(true)} className={styles.form}>
         {channel === 'feishu' ? (
           <>
-            <p className={styles.webhookHint}>
-              添加飞书群自定义机器人后，填写 Webhook 地址。通知内容包含 testdog 标识，支持签名校验。
-            </p>
+            <p className={styles.webhookHint}>{t('feishuSetup')}</p>
             {field(
-              'Webhook 地址',
+              t('webhook'),
               webhook,
               setWebhook,
               'password',
-              configured
-                ? '已保存，留空保留原地址'
-                : 'https://open.feishu.cn/open-apis/bot/v2/hook/…',
+              configured ? t('keepAddress') : 'https://open.feishu.cn/open-apis/bot/v2/hook/…',
             )}
             {field(
-              '签名密钥（可选）',
+              t('signingSecret'),
               signingSecret,
               setSigningSecret,
               'password',
-              integration.hasSigningSecret ? '已保存，留空保留原密钥' : '机器人启用签名校验时填写',
+              integration.hasSigningSecret ? t('keepSecret') : t('secretHint'),
             )}
             {integration.hasSigningSecret && (
               <label className={styles.clearSecret}>
@@ -206,7 +207,7 @@ function ChannelForm({
                     setDirty(true);
                   }}
                 />
-                清除已保存的签名密钥
+                {t('clearSecret')}
               </label>
             )}
           </>
@@ -214,15 +215,15 @@ function ChannelForm({
           <>
             {!emailAvailable && (
               <p role="status" className={styles.webhookHint}>
-                邮件通知暂不可用，请联系管理员。
+                {t('emailUnavailable')}
               </p>
             )}
-            {field('收件邮箱', recipients, setRecipients, 'text', '多个邮箱用逗号分隔，最多10个')}
+            {field(t('recipients'), recipients, setRecipients, 'text', t('recipientsHint'))}
           </>
         )}
         <fieldset className={styles.fieldset}>
-          <legend className={styles.legend}>通知事件</legend>
-          {Object.entries(notificationEvents).map(([value, label]) => (
+          <legend className={styles.legend}>{t('eventsLabel')}</legend>
+          {Object.keys(notificationEvents).map((value) => (
             <label key={value} className={styles.clearSecret}>
               <Checkbox
                 checked={events.includes(value as NotificationEvent)}
@@ -235,7 +236,7 @@ function ChannelForm({
                   setDirty(true);
                 }}
               />
-              {label}
+              {t(`events.${value as NotificationEvent}`)}
             </label>
           ))}
         </fieldset>
@@ -247,7 +248,7 @@ function ChannelForm({
               setDirty(true);
             }}
           />
-          启用事件通知
+          {t('enableNotifications')}
         </label>
         {error && (
           <p role="alert" className={styles.saveError}>
@@ -261,23 +262,25 @@ function ChannelForm({
         )}
         <div className={styles.container}>
           <Button type="submit" variant="primary" disabled={busy}>
-            {busy ? '处理中…' : '保存配置'}
+            {busy ? t('processing') : t('save')}
           </Button>
           <Button
             type="button"
             disabled={busy || !configured || dirty || (channel === 'email' && !emailAvailable)}
             onClick={() => void test()}
           >
-            发送测试通知
+            {t('sendTest')}
           </Button>
         </div>
-        {dirty && configured && <p className={styles.unsavedHint}>先保存修改，再发送测试通知。</p>}
+        {dirty && configured && <p className={styles.unsavedHint}>{t('saveBeforeTest')}</p>}
       </form>
     </Dialog>
   );
 }
 
 export function Integrations() {
+  const t = useTranslations('integrations');
+  const format = useFormatter();
   const historyTitleId = useId();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [configuringBrowser, setConfiguringBrowser] = useState<string>();
@@ -303,7 +306,7 @@ export function Integrations() {
       await api.post(`/api/integrations/${channel}/deliveries/${id}/retry`);
       await mutate();
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : '重试失败');
+      setActionError(cause instanceof Error ? cause.message : t('retryFailed'));
     } finally {
       setRetrying(undefined);
     }
@@ -311,19 +314,19 @@ export function Integrations() {
 
   return (
     <div className={clsx(workspaceStyles.workspaceIndex, styles.page)}>
-      <h1 className={styles.accessibleLabel}>集成</h1>
+      <h1 className={styles.accessibleLabel}>{t('title')}</h1>
       {error && (
         <p className={styles.loadError} role="alert">
           {error.message}
         </p>
       )}
       {!data ? (
-        <p role="status">正在加载集成配置…</p>
+        <p role="status">{t('loading')}</p>
       ) : (
         <>
           <section aria-labelledby="browser-services-title" className={styles.section}>
             <h2 id="browser-services-title" className={styles.browserServicesTitle}>
-              浏览器服务
+              {t('browserServices')}
             </h2>
             <div className={styles.browserServices}>
               {data.browserProviders.map((integration) => (
@@ -333,27 +336,31 @@ export function Integrations() {
                     <div className={styles.serviceHeading}>
                       <h3 className={styles.browserServicesTitle}>{integration.name}</h3>
                       {integration.configurationError ? (
-                        <span className={styles.configurationError}>配置异常</span>
+                        <span className={styles.configurationError}>{t('configError')}</span>
                       ) : (
                         integration.configured && (
                           <span className={styles.configuredStatus}>
-                            {integration.enabled ? '已启用' : '已配置'}
+                            {integration.enabled ? t('enabled') : t('configured')}
                           </span>
                         )
                       )}
                     </div>
-                    <p className={styles.serviceDescription}>{integration.description}</p>
+                    <p className={styles.serviceDescription}>
+                      {integration.provider === 'browserless'
+                        ? t('browserlessDescription')
+                        : integration.description}
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label={`配置${integration.name}`}
+                    aria-label={t('configureName', { name: integration.name })}
                     aria-haspopup="dialog"
                     disabled={!browserProviderForms[integration.provider]}
                     onClick={() => setConfiguringBrowser(integration.provider)}
                   >
                     <Icon icon={settingsIcon} width="14" aria-hidden="true" />
-                    配置
+                    {t('configure')}
                     <Icon icon={chevronRightIcon} width="14" aria-hidden="true" />
                   </Button>
                 </div>
@@ -371,7 +378,7 @@ export function Integrations() {
           <section aria-labelledby="communication-title">
             <div className={styles.notificationHeading}>
               <h2 id="communication-title" className={styles.browserServicesTitle}>
-                消息通知
+                {t('notifications')}
               </h2>
               <Button
                 variant="ghost"
@@ -383,7 +390,7 @@ export function Integrations() {
                 }}
               >
                 <Icon icon={historyIcon} width="14" aria-hidden="true" />
-                发送记录
+                {t('history')}
               </Button>
             </div>
             <div className={styles.browserServices}>
@@ -398,35 +405,33 @@ export function Integrations() {
                   <div className={styles.serviceContent}>
                     <div className={styles.serviceHeading}>
                       <h3 className={styles.browserServicesTitle}>
-                        {notificationKinds[integration.channel]}
+                        {t(`channels.${integration.channel}`)}
                       </h3>
                       {integration.channel === 'email' && !data.emailAvailable ? (
-                        <span className={styles.unsavedHint}>暂不可用</span>
+                        <span className={styles.unsavedHint}>{t('unavailable')}</span>
                       ) : integration.configured && !integration.configurationError ? (
                         <span className={styles.notificationStatus}>
                           <Icon icon={circleCheckIcon} width="12" aria-hidden="true" />
-                          {integration.enabled ? '已启用' : '已配置'}
+                          {integration.enabled ? t('enabled') : t('configured')}
                         </span>
                       ) : null}
                       {integration.configurationError && (
-                        <span className={styles.configurationError}>配置异常</span>
+                        <span className={styles.configurationError}>{t('configError')}</span>
                       )}
                     </div>
                     <p className={styles.serviceDescription}>
-                      {integration.channel === 'feishu'
-                        ? '在飞书群接收测试结果和问题通知。'
-                        : '通过邮件向团队发送测试结果和问题通知。'}
+                      {integration.channel === 'feishu' ? t('feishuHint') : t('emailHint')}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label={`配置${notificationKinds[integration.channel]}`}
+                    aria-label={t('configureName', { name: t(`channels.${integration.channel}`) })}
                     aria-haspopup="dialog"
                     onClick={() => setConfiguring(integration.channel)}
                   >
                     <Icon icon={settingsIcon} width="14" aria-hidden="true" />
-                    配置
+                    {t('configure')}
                     <Icon icon={chevronRightIcon} width="14" aria-hidden="true" />
                   </Button>
                 </div>
@@ -451,26 +456,26 @@ export function Integrations() {
             >
               <DialogHeader>
                 <h2 id={historyTitleId} className={styles.heading}>
-                  发送记录
+                  {t('history')}
                 </h2>
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="关闭发送记录"
+                  aria-label={t('closeHistory')}
                   disabled={!!retrying}
                   onClick={() => setHistoryOpen(false)}
                 >
                   <Icon icon={closeIcon} width="18" aria-hidden="true" />
                 </Button>
               </DialogHeader>
-              <section className={styles.deliveryHistory} aria-label="发送记录">
+              <section className={styles.deliveryHistory} aria-label={t('history')}>
                 {actionError && (
                   <p role="alert" className={styles.deliveryError}>
                     {actionError}
                   </p>
                 )}
                 {!data.deliveries.length ? (
-                  <p className={styles.webhookHint}>暂无发送记录。</p>
+                  <p className={styles.webhookHint}>{t('noDeliveries')}</p>
                 ) : (
                   <div className={styles.deliveryTable}>
                     <Table
@@ -482,29 +487,35 @@ export function Integrations() {
                     >
                       <TableHeader className={styles.tableHeader}>
                         <TableRow>
-                          <TableHead className={styles.tableHead}>渠道 / 通知</TableHead>
-                          <TableHead className={styles.tableHead}>状态</TableHead>
-                          <TableHead className={styles.tableHead}>发送时间</TableHead>
-                          <TableHead className={styles.tableHead}>操作</TableHead>
+                          <TableHead className={styles.tableHead}>
+                            {t('channelNotification')}
+                          </TableHead>
+                          <TableHead className={styles.tableHead}>{t('status')}</TableHead>
+                          <TableHead className={styles.tableHead}>{t('sentAt')}</TableHead>
+                          <TableHead className={styles.tableHead}>{t('actions')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {data.deliveries.map((item) => (
                           <TableRow key={item.id} className={styles.tableRow}>
                             <TableCell className={styles.tableHead}>
-                              <p>{notificationKinds[item.channel]}</p>
+                              <p>{t(`channels.${item.channel}`)}</p>
                               <p className={styles.deliveryTitle}>{item.title}</p>
                             </TableCell>
                             <TableCell className={styles.tableHead}>
                               <p>
-                                {deliveryStatuses[item.status]} · {item.attempts} 次尝试
+                                {t(`deliveryStatuses.${item.status}`)} ·{' '}
+                                {t('attempts', { count: item.attempts })}
                               </p>
                               {item.lastError && (
                                 <p className={styles.deliveryFailure}>{item.lastError}</p>
                               )}
                             </TableCell>
                             <TableCell className={styles.tableCell}>
-                              {new Date(item.sentAt ?? item.createdAt).toLocaleString('zh-CN')}
+                              {format.dateTime(new Date(item.sentAt ?? item.createdAt), {
+                                dateStyle: 'medium',
+                                timeStyle: 'medium',
+                              })}
                             </TableCell>
                             <TableCell className={styles.tableHead}>
                               {item.status === 'failed' && (
@@ -515,7 +526,7 @@ export function Integrations() {
                                   }
                                   onClick={() => void retry(item.channel, item.id)}
                                 >
-                                  重试
+                                  {t('retry')}
                                 </Button>
                               )}
                             </TableCell>

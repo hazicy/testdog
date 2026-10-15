@@ -1,5 +1,8 @@
 'use client';
 
+import { useTranslations, useFormatter } from 'next-intl';
+import { useIssueLabels, useIssuePresentation } from '@/features/issues/presentation';
+
 import { LoadingState } from '@/components/shared/LoadingState';
 
 import styles from './IssueDetail.module.css';
@@ -24,17 +27,8 @@ import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { asset } from '@/features/runs/presentation';
-import {
-  issueStatuses,
-  issueCategories,
-  issueSeverities,
-  closeReasons,
-  verificationLabels,
-  type IssueDetail as Detail,
-  type IssueOccurrence,
-} from '@testdog/contracts/issues/types';
+import { type IssueDetail as Detail, type IssueOccurrence } from '@testdog/contracts/issues/types';
 import { IssueEditor } from '@/features/issues/components/IssueEditor';
-import { environmentLabel, relativeTime } from '@/features/issues/presentation';
 
 function VerificationAction({
   id,
@@ -49,6 +43,8 @@ function VerificationAction({
   onStarted: () => void;
   onError: (message: string) => void;
 }) {
+  const t = useTranslations('issues');
+  const format = useFormatter();
   const submit = useRunSubmission();
   const [busy, setBusy] = useState(false);
   const [version, setVersion] = useState('current');
@@ -72,7 +68,7 @@ function VerificationAction({
       });
       onStarted();
     } catch (cause) {
-      onError(cause instanceof Error ? cause.message : '启动失败');
+      onError(cause instanceof Error ? cause.message : t('startFailed'));
     } finally {
       setBusy(false);
     }
@@ -81,19 +77,24 @@ function VerificationAction({
   return (
     <div className={styles.page}>
       <Select
-        aria-label={`验证版本：${occurrence.snapshot.name}`}
+        aria-label={t('verificationVersion', { name: occurrence.snapshot.name })}
         value={version}
         onValueChange={setVersion}
         className={styles.select}
         items={[
           {
             value: 'current',
-            label: '当前用例 · 原执行目标',
+            label: t('currentTarget'),
             disabled: !occurrence.snapshot.testId,
           },
           ...(data?.versions.map((item) => ({
             value: item.id,
-            label: `录制版本 · ${new Date(item.createdAt).toLocaleString('zh-CN')}`,
+            label: t('recordingVersion', {
+              date: format.dateTime(new Date(item.createdAt), {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              }),
+            }),
           })) ?? []),
         ]}
       />
@@ -104,7 +105,7 @@ function VerificationAction({
         }}
         disabled={isLoading}
       >
-        {loadVersions ? '刷新录制版本' : '加载录制版本'}
+        {loadVersions ? t('refreshVersions') : t('loadVersions')}
       </Button>
       {versionsError && (
         <p role="alert" className={styles.error}>
@@ -116,13 +117,18 @@ function VerificationAction({
         onClick={() => void start()}
         disabled={busy || active || (version === 'current' && !occurrence.snapshot.testId)}
       >
-        {busy ? '启动中…' : '发起回归验证'}
+        {busy ? t('starting') : t('startVerification')}
       </Button>
     </div>
   );
 }
 
 export function IssueDetail({ id }: { id: string }) {
+  const t = useTranslations('issues');
+  const format = useFormatter();
+  const { issueStatuses, issueCategories, issueSeverities, closeReasons, verificationLabels } =
+    useIssueLabels();
+  const { relativeTime, environmentLabel } = useIssuePresentation();
   const {
     data,
     error: loadError,
@@ -147,7 +153,7 @@ export function IssueDetail({ id }: { id: string }) {
       setComment('');
       await mutate();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '提交失败');
+      setError(cause instanceof Error ? cause.message : t('submitFailed'));
     } finally {
       setBusy(false);
     }
@@ -156,13 +162,13 @@ export function IssueDetail({ id }: { id: string }) {
   if (loadError && !data)
     return (
       <ErrorState
-        message={loadError.message || '无法加载问题'}
+        message={loadError.message || t('loadFailed')}
         retry={() => void mutate()}
         href="/issues"
-        linkLabel="返回问题追踪"
+        linkLabel={t('backToIssues')}
       />
     );
-  if (!data) return <LoadingState message="正在加载问题…" />;
+  if (!data) return <LoadingState message={t('loading')} />;
   const { issue, occurrences, events, verifications } = data;
   const latest = occurrences[0];
   const expected =
@@ -175,7 +181,7 @@ export function IssueDetail({ id }: { id: string }) {
   return (
     <article className={styles.article}>
       <Link href="/issues" className={styles.link}>
-        ← 返回问题追踪
+        {t('backLink')}
       </Link>
       <div className={styles.header}>
         <div className={styles.headingGroup}>
@@ -200,25 +206,25 @@ export function IssueDetail({ id }: { id: string }) {
                 });
                 await mutate();
               } catch (cause) {
-                setError(cause instanceof Error ? cause.message : '更新失败');
+                setError(cause instanceof Error ? cause.message : t('updateFailed'));
               } finally {
                 setBusy(false);
               }
             }}
           >
-            {issue.status === 'closed' ? '重新打开' : '标记已解决'}
+            {issue.status === 'closed' ? t('reopen') : t('resolve')}
           </Button>
           <Button
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(
                   [
-                    `请修复以下问题：${issue.title}`,
+                    t('fixIssue', { title: issue.title }),
                     issue.description,
-                    `地址：${latest?.snapshot.url ?? '未提供'}`,
-                    `预期：${expected ?? '未提供'}`,
-                    `实际：${actual ?? '未提供'}`,
-                    '复现步骤：',
+                    t('address', { value: latest?.snapshot.url ?? t('notProvided') }),
+                    t('expectedText', { value: expected ?? t('notProvided') }),
+                    t('actualText', { value: actual ?? t('notProvided') }),
+                    t('reproductionPrompt'),
                     ...(latest?.snapshot.reproduction ?? []).map(
                       (title, index) => `${index + 1}. ${title}`,
                     ),
@@ -226,26 +232,32 @@ export function IssueDetail({ id }: { id: string }) {
                 );
                 setCopied(true);
               } catch {
-                setError('复制失败，请检查浏览器剪贴板权限。');
+                setError(t('clipboardFailed'));
               }
             }}
           >
-            {copied ? '已复制修复提示词' : '复制修复提示词'}
+            {copied ? t('copiedPrompt') : t('copyPrompt')}
           </Button>
           <Button className={styles.action} onClick={() => setEditing(true)}>
-            编辑问题
+            {t('editIssue')}
           </Button>
         </div>
       </div>
       <div className={styles.metadata}>
         <span className={styles.environment}>{environmentLabel(latest)}</span>
-        <span>{new Set(occurrences.map((item) => item.runId)).size} 次执行</span>
-        <span>首次出现 {relativeTime(occurrences.at(-1)?.createdAt ?? issue.createdAt)}</span>
-        <span>最近出现 {relativeTime(latest?.createdAt ?? issue.createdAt)}</span>
+        <span>
+          {t('runsCount', { count: new Set(occurrences.map((item) => item.runId)).size })}
+        </span>
+        <span>
+          {t('firstSeen', { time: relativeTime(occurrences.at(-1)?.createdAt ?? issue.createdAt) })}
+        </span>
+        <span>{t('lastSeen', { time: relativeTime(latest?.createdAt ?? issue.createdAt) })}</span>
         <span>{issueStatuses[issue.status]}</span>
         <span>{issueCategories[issue.category]}</span>
         <span>{issueSeverities[issue.severity]}</span>
-        {issue.closeReason && <span>关闭原因：{closeReasons[issue.closeReason]}</span>}
+        {issue.closeReason && (
+          <span>{t('closeReasonText', { reason: closeReasons[issue.closeReason] })}</span>
+        )}
       </div>
       {(error || loadError) && (
         <p className={styles.loadError} role="alert">
@@ -253,17 +265,17 @@ export function IssueDetail({ id }: { id: string }) {
         </p>
       )}
       {latest && (
-        <section className={styles.section} aria-label="最近出现">
-          <h2 className={styles.heading}>最近出现</h2>
+        <section className={styles.section} aria-label={t('latestOccurrence')}>
+          <h2 className={styles.heading}>{t('latestOccurrence')}</h2>
           <div className={styles.latestOccurrence}>
             <div className={styles.comparison}>
               <div>
-                <h3 className={styles.expectedHeading}>预期 EXPECTED</h3>
-                <p className={styles.description}>{expected || '未记录预期结果'}</p>
+                <h3 className={styles.expectedHeading}>{t('expected')}</h3>
+                <p className={styles.description}>{expected || t('noExpected')}</p>
               </div>
               <div>
-                <h3 className={styles.actualHeading}>实际 ACTUAL</h3>
-                <p className={styles.description}>{actual || '未记录实际结果'}</p>
+                <h3 className={styles.actualHeading}>{t('actual')}</h3>
+                <p className={styles.description}>{actual || t('noActual')}</p>
               </div>
             </div>
             <div className={styles.reproduction}>
@@ -277,7 +289,7 @@ export function IssueDetail({ id }: { id: string }) {
                   ↗ {latest.snapshot.url}
                 </a>
               )}
-              <h3 className={styles.reproductionHeading}>复现步骤 REPRODUCTION</h3>
+              <h3 className={styles.reproductionHeading}>{t('reproduction')}</h3>
               <ol className={styles.ol}>
                 {(
                   latest.snapshot.reproduction ??
@@ -295,13 +307,15 @@ export function IssueDetail({ id }: { id: string }) {
           </div>
         </section>
       )}
-      <p className={styles.issueDescription}>{issue.description || '尚未补充描述。'}</p>
-      <section className={styles.historySection} aria-label="问题出现记录">
+      <p className={styles.issueDescription}>{issue.description || t('noDescription')}</p>
+      <section className={styles.historySection} aria-label={t('occurrences')}>
         <div className={styles.historyHeading}>
-          <h2 className={styles.historyTitle}>出现记录 · {occurrences.length}</h2>
+          <h2 className={styles.historyTitle}>
+            {t('occurrenceCount', { count: occurrences.length })}
+          </h2>
           <span className={styles.historySummary}>
-            {new Set(occurrences.map((item) => item.runId)).size} 次执行 ·{' '}
-            {new Set(occurrences.map(environmentLabel)).size} 个环境
+            {t('runsCount', { count: new Set(occurrences.map((item) => item.runId)).size })} ·{' '}
+            {t('environmentCount', { count: new Set(occurrences.map(environmentLabel)).size })}
           </span>
         </div>
         {occurrences.length > 0 && (
@@ -309,11 +323,13 @@ export function IssueDetail({ id }: { id: string }) {
             <Table>
               <TableHeader className={styles.tableHeader}>
                 <TableRow>
-                  {['状态', '执行', '环境', '耗时', '开始时间'].map((title) => (
-                    <TableHead className={styles.tableHead} key={title}>
-                      {title}
-                    </TableHead>
-                  ))}
+                  {[t('status'), t('run'), t('environment'), t('duration'), t('startedAt')].map(
+                    (title) => (
+                      <TableHead className={styles.tableHead} key={title}>
+                        {title}
+                      </TableHead>
+                    ),
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -322,13 +338,13 @@ export function IssueDetail({ id }: { id: string }) {
                     <TableCell className={styles.tableCell}>
                       <span className={styles.runStatus}>
                         {item.snapshot.runStatus === 'passed'
-                          ? '通过'
+                          ? t('passed')
                           : item.snapshot.runStatus === 'cancelled'
-                            ? '已取消'
+                            ? t('cancelled')
                             : item.snapshot.runStatus === 'failed' ||
                                 item.snapshot.step?.status === 'failed'
-                              ? '失败'
-                              : '未知'}
+                              ? t('failed')
+                              : t('unknown')}
                       </span>
                     </TableCell>
                     <TableCell className={styles.tableCell}>
@@ -351,9 +367,7 @@ export function IssueDetail({ id }: { id: string }) {
             </Table>
           </div>
         )}
-        {!occurrences.length && (
-          <p className={styles.emptyMessage}>尚未关联测试执行，可从执行详情关联到此问题。</p>
-        )}
+        {!occurrences.length && <p className={styles.emptyMessage}>{t('noRuns')}</p>}
         {occurrences.map((item) => (
           <div key={item.id} className={styles.occurrence}>
             <div className={styles.occurrenceHeading}>
@@ -361,18 +375,25 @@ export function IssueDetail({ id }: { id: string }) {
                 {item.snapshot.name} {item.snapshot.step && ` / ${item.snapshot.step.title}`}
               </strong>
               <Link className={styles.detailsLink} href={`/runs/${item.runId}`}>
-                查看发现时的执行
+                {t('viewDiscoveryRun')}
               </Link>
             </div>
             <p className={styles.occurrenceMetadata}>
               {item.snapshot.target?.platform ?? 'web'} ·{' '}
-              {new Date(item.createdAt).toLocaleString('zh-CN')}
+              {format.dateTime(new Date(item.createdAt), {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
             </p>
             {item.snapshot.step?.assertion && (
-              <p className={styles.assertion}>预期：{item.snapshot.step.assertion.description}</p>
+              <p className={styles.assertion}>
+                {t('expectedText', { value: item.snapshot.step.assertion.description })}
+              </p>
             )}
             {item.snapshot.step?.evidence && (
-              <p className={styles.evidence}>验证证据：{item.snapshot.step.evidence}</p>
+              <p className={styles.evidence}>
+                {t('evidenceText', { value: item.snapshot.step.evidence })}
+              </p>
             )}
             {item.snapshot.error && <p className={styles.occurrenceError}>{item.snapshot.error}</p>}
             <div className={styles.screenshots}>
@@ -392,7 +413,9 @@ export function IssueDetail({ id }: { id: string }) {
                       unoptimized
                       className={styles.image}
                       src={asset(item.runId, frame)}
-                      alt={`问题证据：${frame.stage === 'before' ? '执行前' : '执行后'}`}
+                      alt={t('issueEvidence', {
+                        stage: frame.stage === 'before' ? t('before') : t('after'),
+                      })}
                     />
                   </a>
                 ))}
@@ -410,30 +433,26 @@ export function IssueDetail({ id }: { id: string }) {
           </div>
         ))}
       </section>
-      <section className={styles.historySection} aria-label="回归验证">
-        <h2 className={styles.verificationHeading}>回归验证</h2>
-        {!verifications.length && (
-          <p className={styles.emptyMessage}>
-            从出现记录发起验证。通过后，请确认结果并标记已解决。
-          </p>
-        )}
+      <section className={styles.historySection} aria-label={t('verification')}>
+        <h2 className={styles.verificationHeading}>{t('verification')}</h2>
+        {!verifications.length && <p className={styles.emptyMessage}>{t('verificationHint')}</p>}
         {verifications.map((item) => (
           <div key={item.id} className={styles.verification}>
             <div className={styles.verificationSummary}>
               <strong>{verificationLabels[item.outcome]}</strong>
               <Link className={styles.detailsLink} href={`/runs/${item.runId}`}>
-                查看回归执行
+                {t('viewVerificationRun')}
               </Link>
             </div>
             <p className={styles.verificationExplanation}>{item.explanation}</p>
           </div>
         ))}
       </section>
-      <section className={styles.historySection} aria-label="处理记录">
-        <h2 className={styles.verificationHeading}>处理记录</h2>
+      <section className={styles.historySection} aria-label={t('activity')}>
+        <h2 className={styles.verificationHeading}>{t('activity')}</h2>
         <form onSubmit={addComment} className={styles.form}>
           <label className={styles.field}>
-            补充处理说明
+            {t('comment')}
             <Textarea
               className={styles.input}
               value={comment}
@@ -443,7 +462,7 @@ export function IssueDetail({ id }: { id: string }) {
             />
           </label>
           <Button className={styles.commentSubmit} type="submit" disabled={busy || !comment.trim()}>
-            添加说明
+            {t('addComment')}
           </Button>
         </form>
         <ol className={styles.events}>
@@ -451,7 +470,10 @@ export function IssueDetail({ id }: { id: string }) {
             <li key={event.id} className={styles.event}>
               <p className={styles.eventMessage}>{event.message}</p>
               <p className={styles.eventTime}>
-                {new Date(event.createdAt).toLocaleString('zh-CN')}
+                {format.dateTime(new Date(event.createdAt), {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}
               </p>
             </li>
           ))}

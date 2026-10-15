@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 
 import styles from './PlanBoard.module.css';
@@ -39,7 +41,9 @@ type BoardProps = {
 };
 
 export function PlanBoard(props: BoardProps) {
-  if (!props.plan) return <p className={styles.description}>计划生成后会在此展示。</p>;
+  const t = useTranslations('runs');
+
+  if (!props.plan) return <p className={styles.description}>{t('planEmpty')}</p>;
 
   return (
     <ReactFlowProvider>
@@ -67,6 +71,7 @@ function PlanBoardContent({
   onFrame,
   onIssue,
 }: BoardProps & { plan: Plan }) {
+  const t = useTranslations('runs');
   const [hoveredId, setHoveredId] = useState<string>();
   const history = usePlanHistory(plan, onChange);
   const { nodes, edges, error, onNodesChange } = usePlanBoard({
@@ -179,7 +184,7 @@ function PlanBoardContent({
         <div
           data-ui="plan-viewport"
           className={clsx(boardStyles.planViewport, { [boardStyles.hasComposer]: viewportOverlay })}
-          aria-label="计划"
+          aria-label={t('plan')}
           tabIndex={0}
           onMouseLeave={() => setHoveredId(undefined)}
           onMouseMove={(event) => {
@@ -267,14 +272,14 @@ function PlanBoardContent({
               data-ui="plan-viewport-controls"
               className={boardStyles.planViewportControls}
               role="group"
-              aria-label="画板视图"
+              aria-label={t('canvasView')}
             >
               {onChange && (
                 <>
                   <button
                     type="button"
-                    aria-label="撤销画板操作"
-                    title="撤销（Ctrl / ⌘ Z）"
+                    aria-label={t('undoCanvas')}
+                    title={t('undoShortcut')}
                     disabled={!history.canUndo}
                     onClick={history.undo}
                   >
@@ -282,8 +287,8 @@ function PlanBoardContent({
                   </button>
                   <button
                     type="button"
-                    aria-label="重做画板操作"
-                    title="重做（Ctrl / ⌘ Shift Z）"
+                    aria-label={t('redoCanvas')}
+                    title={t('redoShortcut')}
                     disabled={!history.canRedo}
                     onClick={history.redo}
                   >
@@ -291,25 +296,25 @@ function PlanBoardContent({
                   </button>
                 </>
               )}
-              <button type="button" aria-label="缩小画板" onClick={() => void flow.zoomOut()}>
+              <button type="button" aria-label={t('zoomOut')} onClick={() => void flow.zoomOut()}>
                 −
               </button>
               <button
                 type="button"
-                aria-label="画板恢复原始比例"
-                title="恢复 100%"
+                aria-label={t('resetZoom')}
+                title={t('reset100')}
                 onClick={() => void flow.zoomTo(1)}
               >
                 {Math.round(zoom * 100)}%
               </button>
               <button
                 type="button"
-                aria-label="全览画板"
+                aria-label={t('fitCanvas')}
                 onClick={() => void flow.fitView({ padding: viewPadding, maxZoom: 1 })}
               >
-                全览
+                {t('fit')}
               </button>
-              <button type="button" aria-label="放大画板" onClick={() => void flow.zoomIn()}>
+              <button type="button" aria-label={t('zoomIn')} onClick={() => void flow.zoomIn()}>
                 ＋
               </button>
             </div>
@@ -320,7 +325,7 @@ function PlanBoardContent({
           <aside
             id="case-panel-settings"
             className={boardStyles.planInspector}
-            aria-label="测试设置"
+            aria-label={t('testSettings')}
             onKeyDown={(event) => {
               if (event.key === 'Escape' && !event.defaultPrevented) {
                 event.stopPropagation();
@@ -329,12 +334,12 @@ function PlanBoardContent({
             }}
           >
             <div className={styles.container}>
-              <h3 className={styles.subheading}>测试设置</h3>
+              <h3 className={styles.subheading}>{t('testSettings')}</h3>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label="关闭设置"
+                aria-label={t('closeSettings')}
                 onClick={onSettingsClose}
               >
                 ×

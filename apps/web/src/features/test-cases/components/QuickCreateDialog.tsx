@@ -1,10 +1,12 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, type RefObject } from 'react';
 import { CasePrompt } from '@/features/test-cases/components/CasePrompt';
 import { useRouter } from 'next/navigation';
 import { usePlanCompilation } from '@/features/test-cases/hooks/usePlanCompilation';
-import { caseName, editablePlan } from '@/features/test-cases/lib/authoring';
+import { useAuthoring } from '@/features/test-cases/hooks/useAuthoring';
 import { writeCaseDraft } from '@/features/test-cases/lib/caseDraft';
 
 export function QuickCreateDialog({
@@ -14,6 +16,8 @@ export function QuickCreateDialog({
   onClose: () => void;
   container: RefObject<HTMLElement | null>;
 }) {
+  const t = useTranslations('editor');
+  const { caseName, editablePlan } = useAuthoring();
   const router = useRouter();
   const [goal, setGoal] = useState('');
   const compilation = usePlanCompilation();
@@ -35,7 +39,7 @@ export function QuickCreateDialog({
       writeCaseDraft(id, { name, goal, plan });
       router.push(`/cases/editor/${id}`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '生成失败，请重试');
+      setError(cause instanceof Error ? cause.message : t('generateFailed'));
     }
   }
 
@@ -46,17 +50,17 @@ export function QuickCreateDialog({
         if (!open) onClose();
       }}
       container={container}
-      title="快速创建"
+      title={t('quickCreate')}
       value={goal}
       onChange={setGoal}
-      placeholder="描述测试步骤和预期结果，可附上网站地址…"
+      placeholder={t('prompt')}
       busy={busy}
       onCancel={() => {
         compilation.cancel();
-        setError('已取消生成，描述已保留。');
+        setError(t('cancelledPrompt'));
       }}
       error={error}
-      submitLabel="生成"
+      submitLabel={t('generate')}
       onSubmit={create}
     />
   );

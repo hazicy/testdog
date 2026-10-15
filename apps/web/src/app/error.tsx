@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { ErrorState } from '@/components/shared/ErrorState';
 
 export default function ErrorPage({
@@ -8,5 +10,7 @@ export default function ErrorPage({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  return <ErrorState message="页面暂时无法打开，请稍后重试" retry={reset} />;
+  const t = useTranslations('shared');
+
+  return <ErrorState message={t('pageError')} retry={reset} />;
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/Button';
@@ -7,7 +9,7 @@ import { Tabs } from '@/components/ui/Tabs';
 import type { BrowserLog } from '@testdog/contracts/runs/types';
 import styles from './BrowserLogPanel.module.css';
 
-export function requestUrl(log: BrowserLog) {
+export function requestUrl(log: BrowserLog, unknownName = '—') {
   try {
     const url = new URL(log.url || '');
 
@@ -17,7 +19,7 @@ export function requestUrl(log: BrowserLog) {
       url,
     };
   } catch {
-    return { name: log.url || '未知请求', host: '', url: undefined };
+    return { name: log.url || unknownName, host: '', url: undefined };
   }
 }
 
@@ -26,6 +28,7 @@ export function requestFailed(log: BrowserLog) {
 }
 
 export function NetworkEntries({ logs }: { logs: BrowserLog[] }) {
+  const t = useTranslations('runs');
   const [selectedId, setSelectedId] = useState<string>();
   const [sort, setSort] = useState<{
     key: 'elapsedMs' | 'status' | 'durationMs';
@@ -60,20 +63,20 @@ export function NetworkEntries({ logs }: { logs: BrowserLog[] }) {
   return (
     <div className={clsx(styles.networkWorkspace, selected && styles.hasSelection)}>
       <div className={styles.requestList}>
-        <table className={styles.requestTable} aria-label="网络请求">
+        <table className={styles.requestTable} aria-label={t('networkRequests')}>
           <thead>
             <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Method</th>
-              {heading('Status', 'status')}
-              <th scope="col">Type</th>
-              {heading('Time', 'durationMs')}
-              {heading('Waterfall', 'elapsedMs')}
+              <th scope="col">{t('nameLabel')}</th>
+              <th scope="col">{t('methodLabel')}</th>
+              {heading(t('statusLabel'), 'status')}
+              <th scope="col">{t('typeLabel')}</th>
+              {heading(t('timeLabel'), 'durationMs')}
+              {heading(t('waterfall'), 'elapsedMs')}
             </tr>
           </thead>
           <tbody>
             {sorted.map((log) => {
-              const url = requestUrl(log);
+              const url = requestUrl(log, t('unknownRequest'));
 
               return (
                 <tr
@@ -85,7 +88,10 @@ export function NetworkEntries({ logs }: { logs: BrowserLog[] }) {
                     <button
                       className={styles.requestName}
                       type="button"
-                      aria-label={`查看请求 ${log.method || '—'} ${log.url || url.name}`}
+                      aria-label={t('viewRequest', {
+                        method: log.method || '—',
+                        url: log.url || url.name,
+                      })}
                       aria-pressed={selectedId === log.id}
                       onClick={() => setSelectedId(log.id)}
                       title={log.url}
@@ -107,7 +113,11 @@ export function NetworkEntries({ logs }: { logs: BrowserLog[] }) {
                   <td>
                     <div
                       className={styles.waterfall}
-                      title={`开始 ${(log.elapsedMs / 1000).toFixed(2)} s${log.durationMs === undefined ? ' · 耗时未采集' : ` · 耗时 ${log.durationMs} ms`}`}
+                      title={t('requestTiming', {
+                        start: (log.elapsedMs / 1000).toFixed(2),
+                        duration:
+                          log.durationMs === undefined ? t('notCaptured') : `${log.durationMs} ms`,
+                      })}
                     >
                       <span
                         style={{
@@ -144,6 +154,8 @@ function Fields({ values }: { values: [string, ReactNode][] }) {
 }
 
 function Headers({ label, values }: { label: string; values?: Record<string, string> }) {
+  const t = useTranslations('runs');
+
   return (
     <section className={styles.detailSection}>
       <h3>
@@ -152,39 +164,40 @@ function Headers({ label, values }: { label: string; values?: Record<string, str
       {values && Object.keys(values).length ? (
         <Fields values={Object.entries(values)} />
       ) : (
-        <p className={styles.detailEmpty}>未采集到请求头信息</p>
+        <p className={styles.detailEmpty}>{t('noHeaders')}</p>
       )}
     </section>
   );
 }
 
 function RequestDetails({ log, close }: { log: BrowserLog; close: () => void }) {
+  const t = useTranslations('runs');
   const [copyStatus, setCopyStatus] = useState('');
-  const url = requestUrl(log);
+  const url = requestUrl(log, t('unknownRequest'));
 
   async function copyUrl() {
     try {
       await navigator.clipboard.writeText(log.url || '');
-      setCopyStatus('URL 已复制');
+      setCopyStatus(t('urlCopied'));
     } catch {
-      setCopyStatus('复制失败，请从下方选择 URL 复制');
+      setCopyStatus(t('copyUrlFailed'));
     }
   }
 
   return (
-    <aside className={styles.requestDetails} aria-label="请求详情">
+    <aside className={styles.requestDetails} aria-label={t('requestDetails')}>
       <div className={styles.detailTitle}>
         <span title={log.url}>{url.name}</span>
-        <Button variant="ghost" size="icon-xs" aria-label="关闭请求详情" onClick={close}>
+        <Button variant="ghost" size="icon-xs" aria-label={t('closeRequest')} onClick={close}>
           ×
         </Button>
       </div>
       <Tabs.Root defaultValue="headers" className={styles.detailTabs}>
-        <Tabs.List className={styles.tabList} aria-label="请求详情视图">
+        <Tabs.List className={styles.tabList} aria-label={t('requestDetailView')}>
           {[
-            ['headers', 'Headers'],
-            ['query', 'Query'],
-            ['timing', 'Timing'],
+            ['headers', t('headersLabel')],
+            ['query', t('queryLabel')],
+            ['timing', t('timingLabel')],
           ].map(([value, label]) => (
             <Tabs.Tab key={value} value={value} className={styles.tab}>
               {label}
@@ -194,9 +207,9 @@ function RequestDetails({ log, close }: { log: BrowserLog; close: () => void }) 
         <Tabs.Panel value="headers" className={styles.detailContent}>
           <section className={styles.detailSection}>
             <div className={styles.sectionHeading}>
-              <h3>General</h3>
+              <h3>{t('generalLabel')}</h3>
               <Button variant="ghost" size="xs" disabled={!log.url} onClick={() => void copyUrl()}>
-                复制 URL
+                {t('copyUrl')}
               </Button>
             </div>
             {copyStatus && (
@@ -206,36 +219,39 @@ function RequestDetails({ log, close }: { log: BrowserLog; close: () => void }) 
             )}
             <Fields
               values={[
-                ['Request URL', log.url],
-                ['Request Method', log.method],
-                ['Status Code', log.failure ? `FAILED · ${log.failure}` : log.status],
-                ['Resource Type', log.resourceType],
-                ['Page', log.pageId],
-                ['Page URL', log.pageUrl],
+                [t('requestUrlLabel'), log.url],
+                [t('requestMethodLabel'), log.method],
+                [t('statusCodeLabel'), log.failure ? `FAILED · ${log.failure}` : log.status],
+                [t('resourceTypeLabel'), log.resourceType],
+                [t('pageLabel'), log.pageId],
+                [t('pageUrlLabel'), log.pageUrl],
               ]}
             />
           </section>
-          <Headers label="Response Headers" values={log.responseHeaders} />
-          <Headers label="Request Headers" values={log.requestHeaders} />
+          <Headers label={t('responseHeadersLabel')} values={log.responseHeaders} />
+          <Headers label={t('requestHeadersLabel')} values={log.requestHeaders} />
         </Tabs.Panel>
         <Tabs.Panel value="query" className={styles.detailContent}>
           <section className={styles.detailSection}>
-            <h3>Query String Parameters</h3>
+            <h3>{t('queryParameters')}</h3>
             {url.url?.search ? (
               <Fields values={Array.from(url.url.searchParams.entries())} />
             ) : (
-              <p className={styles.detailEmpty}>此请求没有查询参数</p>
+              <p className={styles.detailEmpty}>{t('noQuery')}</p>
             )}
           </section>
         </Tabs.Panel>
         <Tabs.Panel value="timing" className={styles.detailContent}>
           <section className={styles.detailSection}>
-            <h3>Timing</h3>
+            <h3>{t('timingLabel')}</h3>
             <Fields
               values={[
-                ['执行起点后', `${(log.elapsedMs / 1000).toFixed(3)} s`],
-                ['请求耗时', log.durationMs === undefined ? '未采集' : `${log.durationMs} ms`],
-                ['记录时间', log.at],
+                [t('elapsed'), `${(log.elapsedMs / 1000).toFixed(3)} s`],
+                [
+                  t('requestDuration'),
+                  log.durationMs === undefined ? t('notCaptured') : `${log.durationMs} ms`,
+                ],
+                [t('recordedAt'), log.at],
               ]}
             />
           </section>

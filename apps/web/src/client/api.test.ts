@@ -80,9 +80,10 @@ describe('JSON transport', () => {
     await expect(api('http://localhost/api/runs').json()).rejects.toBe(error);
   });
 
-  it.each(['GET', 'POST'])(
-    'times out stalled %s requests and releases the timer',
-    async (method) => {
+  it.each(['GET', 'POST'].flatMap((method) => ['zh', 'en'].map((locale) => ({ method, locale }))))(
+    'times out stalled $method requests in $locale and releases the timer',
+    async ({ method, locale }) => {
+      vi.stubGlobal('document', { documentElement: { lang: locale } });
       vi.useFakeTimers();
       vi.stubGlobal(
         'fetch',
@@ -97,9 +98,13 @@ describe('JSON transport', () => {
       const failure = expect(pending).rejects.toMatchObject({
         name: 'TimeoutError',
         message:
-          method === 'GET'
-            ? '请求超时，请稍后重试。'
-            : '请求超时，操作可能已完成，请刷新确认后再试。',
+          locale === 'en'
+            ? method === 'GET'
+              ? 'The request timed out. Please try again.'
+              : 'The request timed out. The action may have completed. Refresh to check before trying again.'
+            : method === 'GET'
+              ? '请求超时，请稍后重试。'
+              : '请求超时，操作可能已完成，请刷新确认后再试。',
       });
 
       await vi.advanceTimersByTimeAsync(15000);
@@ -187,5 +192,52 @@ describe('JSON transport', () => {
       api('http://localhost/api/runs', { signal: AbortSignal.abort(reason) }).json(),
     ).rejects.toBe(reason);
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('localized transport errors', () => {
+  it('uses the current document language for invalid responses and network failures', async () => {
+    vi.stubGlobal('document', { documentElement: { lang: 'en' } });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('<h1>Bad Gateway</h1>', { status: 502 })),
+    );
+    await expect(api('http://localhost/api/runs').json()).rejects.toThrow(
+      'Invalid server response. Please try again.',
+    );
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    await expect(api('http://localhost/api/runs').json()).rejects.toThrow(
+      'Unable to connect. Check your network and try again.',
+    );
+  });
+
+  it('switches language without reloading the transport module and preserves server detail', async () => {
+    const document = { documentElement: { lang: 'en' } };
+
+    vi.stubGlobal('document', document);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ error: 'offline' }, { status: 503 })),
+    );
+    await expect(api('http://localhost/api/runs').json()).rejects.toThrow(
+      'Request failed. Please try again.',
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ message: '请先登录' }, { status: 401 })),
+    );
+    await expect(api('http://localhost/api/runs').json()).rejects.toThrow('Please sign in first');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ error: 'offline' }, { status: 503 })),
+    );
+    document.documentElement.lang = 'zh-CN';
+    await expect(api('http://localhost/api/runs').json()).rejects.toThrow('请求失败，请稍后重试。');
+    document.documentElement.lang = 'en';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ message: 'Quota exceeded' }, { status: 429 })),
+    );
+    await expect(api('http://localhost/api/runs').json()).rejects.toThrow('Quota exceeded');
   });
 });

@@ -1,3 +1,6 @@
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { cookies } from 'next/headers';
 import clsx from 'clsx';
 import styles from './layout.module.css';
 import type { Metadata } from 'next';
@@ -16,20 +19,29 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-export const metadata: Metadata = {
-  title: 'Testdog',
-  description:
-    '用自然语言编写测试用例，让 AI 规划操作、Playwright 执行浏览器任务，以页面证据验证结果。testdog，让每一次测试更简单。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('marketing');
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+  return { title: 'Testdog', description: t('metaDescription') };
+}
+
+export default async function RootLayout({ children }: LayoutProps<'/'>) {
+  const locale = await getLocale();
+  const theme = (await cookies()).get('theme')?.value === 'dark' ? 'dark' : 'light';
+
   return (
-    <html lang="zh-CN" className={clsx(geistSans.variable, geistMono.variable)}>
+    <html
+      lang={locale === 'zh' ? 'zh-CN' : 'en'}
+      data-theme={theme}
+      className={clsx(geistSans.variable, geistMono.variable)}
+    >
       <body>
         <div className={styles.container}>
-          <AuthCacheBoundary>
-            <AppShell>{children}</AppShell>
-          </AuthCacheBoundary>
+          <NextIntlClientProvider>
+            <AuthCacheBoundary>
+              <AppShell>{children}</AppShell>
+            </AuthCacheBoundary>
+          </NextIntlClientProvider>
         </div>
       </body>
     </html>

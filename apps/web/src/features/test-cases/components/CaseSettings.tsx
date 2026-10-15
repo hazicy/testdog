@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import styles from './CaseSettings.module.css';
 
 import { Label } from '@/components/ui/Label';
@@ -25,6 +27,7 @@ export function CaseSettings({
   onChange: (patch: Partial<CaseSettingsValue>) => void;
   busy: boolean;
 }) {
+  const t = useTranslations('editor');
   const {
     platform,
     webProfile,
@@ -48,46 +51,46 @@ export function CaseSettings({
   return (
     <div className={styles.container}>
       <Label>
-        平台
+        {t('platform')}
         <Select
-          aria-label="平台"
+          aria-label={t('platform')}
           value={platform}
           disabled={busy}
           onValueChange={(value) => onChange({ platform: value as CaseSettingsValue['platform'] })}
           items={[
-            { value: 'web', label: 'Web · 浏览器' },
-            { value: 'android', label: 'Android · 原生应用' },
-            { value: 'ios', label: 'iOS · 原生应用' },
+            { value: 'web', label: t('web') },
+            { value: 'android', label: t('android') },
+            { value: 'ios', label: t('ios') },
           ]}
         />
       </Label>
       {platform === 'web' ? (
         <>
           <Label>
-            浏览器与设备
+            {t('browserDevice')}
             <Select
-              aria-label="浏览器与设备"
+              aria-label={t('browserDevice')}
               value={webProfile}
               disabled={busy}
               onValueChange={(value) =>
                 onChange({ webProfile: value as CaseSettingsValue['webProfile'] })
               }
               items={[
-                { value: 'legacy-desktop', label: '桌面 · Chromium' },
+                { value: 'legacy-desktop', label: t('desktopChromium') },
                 { value: 'Pixel 7', label: 'Pixel 7 · Chromium' },
                 { value: 'iPhone 13', label: 'iPhone 13 · WebKit' },
               ]}
             />
           </Label>
           <Label>
-            User-Agent <span className={styles.optionalHint}>（可选）</span>
+            User-Agent <span className={styles.optionalHint}>{t('optional')}</span>
             <Input
               aria-label="User-Agent"
               value={userAgent}
               disabled={busy}
               maxLength={2048}
               onChange={(event) => onChange({ userAgent: event.target.value })}
-              placeholder="使用设备默认值"
+              placeholder={t('deviceDefault')}
               spellCheck={false}
               autoCapitalize="none"
               autoCorrect="off"
@@ -97,10 +100,10 @@ export function CaseSettings({
       ) : (
         <>
           <Label>
-            应用标识
+            {t('appId')}
             <Input
               required
-              aria-label="应用标识"
+              aria-label={t('appId')}
               value={appId}
               disabled={busy}
               onChange={(event) => onChange({ appId: event.target.value })}
@@ -108,15 +111,15 @@ export function CaseSettings({
             />
           </Label>
           <Label>
-            设备配置
+            {t('deviceProfile')}
             <Select
               required
-              aria-label="设备配置"
+              aria-label={t('deviceProfile')}
               value={deviceProfileId}
               disabled={busy}
               onValueChange={(value) => onChange({ deviceProfileId: value })}
               items={[
-                { value: '', label: '选择已登记的设备配置' },
+                { value: '', label: t('selectProfile') },
                 deviceResources
                   .filter((resource) => resource.platform === platform)
                   .map((resource) => ({
@@ -125,10 +128,10 @@ export function CaseSettings({
                       <>
                         {resource.profileId} ·{' '}
                         {resource.status === 'quarantined'
-                          ? '隔离中'
+                          ? t('quarantined')
                           : resource.status === 'busy'
-                            ? '使用中'
-                            : '可用'}
+                            ? t('inUse')
+                            : t('available')}
                       </>
                     ),
                   })),
@@ -136,19 +139,26 @@ export function CaseSettings({
                   !deviceResources.some(
                     (resource) =>
                       resource.profileId === deviceProfileId && resource.platform === platform,
-                  ) && { value: deviceProfileId, label: <>{deviceProfileId} · 未连接</> },
+                  ) && {
+                    value: deviceProfileId,
+                    label: (
+                      <>
+                        {deviceProfileId} · {t('disconnected')}
+                      </>
+                    ),
+                  },
               ]}
             />
           </Label>
           <Label>
-            应用构建
+            {t('build')}
             <Select
-              aria-label="应用构建"
+              aria-label={t('build')}
               value={buildArtifactId}
               disabled={busy}
               onValueChange={(value) => onChange({ buildArtifactId: value })}
               items={[
-                { value: '', label: '使用设备上已安装的应用' },
+                { value: '', label: t('installedApp') },
                 builds
                   .filter((build) => build.platform === platform && build.appId === appId)
                   .map((build) => ({
@@ -162,24 +172,28 @@ export function CaseSettings({
                 !!buildArtifactId &&
                   !builds.some((build) => build.id === buildArtifactId) && {
                     value: buildArtifactId,
-                    label: <>{buildArtifactId} · 不可用</>,
+                    label: (
+                      <>
+                        {buildArtifactId} · {t('unavailable')}
+                      </>
+                    ),
                   },
               ]}
             />
           </Label>
           <Label>
-            初始化策略
+            {t('resetPolicy')}
             <Select
-              aria-label="初始化策略"
+              aria-label={t('resetPolicy')}
               value={resetPolicy}
               disabled={busy}
               onValueChange={(value) =>
                 onChange({ resetPolicy: value as CaseSettingsValue['resetPolicy'] })
               }
               items={[
-                { value: 'preserve', label: '保留应用数据' },
-                { value: 'clear-data', label: '清除应用数据' },
-                { value: 'reinstall', label: '重新安装所选构建' },
+                { value: 'preserve', label: t('preserve') },
+                { value: 'clear-data', label: t('clearData') },
+                { value: 'reinstall', label: t('reinstall') },
               ]}
             />
           </Label>
@@ -189,10 +203,10 @@ export function CaseSettings({
               disabled={busy}
               onCheckedChange={(checked) => onChange({ nativeVideo: checked })}
             />{' '}
-            视频
+            {t('video')}
           </label>
           <Label>
-            启动链接（可选）
+            {t('launchUrl')}
             <Input
               value={launchUrl}
               disabled={busy}
@@ -200,18 +214,16 @@ export function CaseSettings({
               placeholder="myapp://login"
             />
           </Label>
-          <p className={styles.description}>
-            设备繁忙时会排队。重新安装及 iOS 清除数据需要选择应用构建。
-          </p>
+          <p className={styles.description}>{t('deviceHint')}</p>
         </>
       )}
       <Label>
-        标签 <span className={styles.optionalHint}>（可选，逗号分隔）</span>
+        {t('tags')} <span className={styles.optionalHint}>{t('optionalTags')}</span>
         <Input
           value={tags}
           disabled={busy}
           onChange={(event) => onChange({ tags: event.target.value })}
-          placeholder="冒烟测试, 登录"
+          placeholder={t('tagExample')}
         />
       </Label>
     </div>

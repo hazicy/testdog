@@ -25,6 +25,7 @@ test('profile and security settings remain usable on a narrow phone', async ({ p
   await page.setViewportSize({ width: 320, height: 640 });
   await mockAccount(page);
   await page.goto('/settings');
+  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
   await expect(page.getByLabel('姓名', { exact: true })).toBeVisible();
   await page.getByRole('tab', { name: '登录安全' }).click();
   await expect(page.getByLabel('当前密码', { exact: true })).toBeVisible();
@@ -40,6 +41,7 @@ test('profile and security settings remain usable on a narrow phone', async ({ p
 test('saves the profile and updates the sidebar and refreshed page', async ({ page }) => {
   await mockAccount(page);
   await page.goto('/settings');
+  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
   await expect(page.getByLabel('邮箱', { exact: true })).toHaveValue('user@example.com');
   await expect(page.getByLabel('邮箱', { exact: true })).toHaveAttribute('readonly', '');
   await page.getByLabel('姓名', { exact: true }).fill('更新用户');
@@ -47,6 +49,7 @@ test('saves the profile and updates the sidebar and refreshed page', async ({ pa
   await expect(page.getByRole('status')).toHaveText('资料已保存。');
   await expect(page.locator('aside').getByText('更新用户', { exact: true })).toBeVisible();
   await page.reload();
+  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
   await expect(page.getByLabel('姓名', { exact: true })).toHaveValue('更新用户');
 });
 
@@ -72,6 +75,7 @@ test('validates confirmation, handles incorrect passwords and clears fields on s
       : route.fulfill({ json: { token: 'new-token', user: { id: 'user-1' } } });
   });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
   await page.getByRole('tab', { name: '登录安全' }).click();
   await page.getByLabel('当前密码', { exact: true }).fill('old-password');
   await page.getByLabel('新密码', { exact: true }).fill('new-password');
@@ -94,6 +98,7 @@ test('validates confirmation, handles incorrect passwords and clears fields on s
 test('guides third-party accounts to their login provider', async ({ page }) => {
   await mockAccount(page, 'github');
   await page.goto('/settings');
+  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
   await page.getByRole('tab', { name: '登录安全' }).click();
   await expect(page.getByText('此账户使用第三方登录', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: '修改密码', exact: true })).toHaveCount(0);
@@ -111,6 +116,7 @@ test('keeps profile edits when saving fails and supports retry', async ({ page }
       : route.fulfill({ json: { status: true } });
   });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
   await page.getByLabel('姓名', { exact: true }).fill('保留草稿');
   await page.getByRole('button', { name: '保存资料' }).click();
   await expect(page.getByRole('main').getByRole('alert')).toHaveText('资料保存失败，请稍后重试。');

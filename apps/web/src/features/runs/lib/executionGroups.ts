@@ -40,8 +40,8 @@ export function executionGroups(plan: Plan | undefined, steps: ExecutionStep[]) 
 
     if (node.kind === 'group') entry.children = node.children.flatMap((child) => visit(child));
     if (node.kind === 'branch') {
-      entry.children = visit(node.then, 'YES / 条件成立');
-      if (node.otherwise) entry.children.push(...visit(node.otherwise, 'NO / 条件不成立'));
+      entry.children = visit(node.then, 'yesCondition');
+      if (node.otherwise) entry.children.push(...visit(node.otherwise, 'noCondition'));
     }
 
     if (

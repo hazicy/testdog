@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
@@ -115,6 +117,7 @@ function Header({ api }: IDockviewPanelHeaderProps) {
 }
 
 function GroupActions({ api, containerApi }: IDockviewHeaderActionsProps) {
+  const t = useTranslations('dock');
   const { collapsedGroups, collapse } = useContext(ContentContext);
   const collapsed = collapsedGroups.has(api.id);
   const [maximized, setMaximized] = useState(api.isMaximized());
@@ -135,8 +138,8 @@ function GroupActions({ api, containerApi }: IDockviewHeaderActionsProps) {
     >
       <button
         type="button"
-        aria-label={maximized ? '还原分组' : '最大化分组'}
-        title={maximized ? '还原' : '最大化'}
+        aria-label={maximized ? t('restoreGroup') : t('maximizeGroup')}
+        title={maximized ? t('restore') : t('maximize')}
         onClick={() => {
           if (maximized) {
             api.exitMaximized();
@@ -152,8 +155,8 @@ function GroupActions({ api, containerApi }: IDockviewHeaderActionsProps) {
       </button>
       <button
         type="button"
-        aria-label={collapsed ? '展开分组' : '折叠分组'}
-        title={collapsed ? '展开' : '折叠'}
+        aria-label={collapsed ? t('expandGroup') : t('collapseGroup')}
+        title={collapsed ? t('expand') : t('collapse')}
         aria-expanded={!collapsed}
         onClick={() => {
           if (api.isMaximized()) {
@@ -191,6 +194,7 @@ export function DockTabs<T extends string>({
   label: string;
   revealPanels?: readonly T[];
 }) {
+  const t = useTranslations('dock');
   const dock = useRef<DockviewApi | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const mobileTabs = useRef<HTMLDivElement>(null);
@@ -224,6 +228,10 @@ export function DockTabs<T extends string>({
       ?.querySelector('[aria-selected="true"]')
       ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [activeId, isCompact]);
+
+  useEffect(() => {
+    for (const tab of tabs) dock.current?.getPanel(tab.id)?.api.setTitle(tab.label);
+  }, [tabs]);
 
   function collapse(api: DockviewGroupPanelApi, collapsed: boolean) {
     if (api.isMaximized()) api.exitMaximized();
@@ -389,7 +397,7 @@ export function DockTabs<T extends string>({
             ref={mobileTabs}
             className={styles.mobileTabs}
             role="tablist"
-            aria-label={`${label}标签`}
+            aria-label={t('tabs', { label })}
           >
             {tabs.map((tab, index) => (
               <button

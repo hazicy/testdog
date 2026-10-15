@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations, useMessages } from 'next-intl';
+
 import { useCallback, useMemo, useState } from 'react';
 import type { Edge, NodeChange } from '@xyflow/react';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
@@ -45,6 +47,8 @@ export function usePlanBoard({
   onIssue,
   hoveredId,
 }: Options) {
+  const t = useTranslations('runs');
+  const labels = useMessages().authoring;
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const onNodesChange = useCallback((changes: NodeChange<BoardNode>[]) => {
@@ -83,7 +87,7 @@ export function usePlanBoard({
       onChange?.(operation());
       setError('');
     } catch {
-      setError('操作会产生循环或无效引用，请调整节点后重试。');
+      setError(t('invalidReference'));
     }
   }
 
@@ -125,16 +129,16 @@ export function usePlanBoard({
         review: review?.[node.id],
         assertionIndex: item.assertionIndex,
         reference: item.reference,
-        pathLabel: item.pathLabel,
+        pathLabel: item.pathLabel ? t(item.pathLabel as 'yesCondition' | 'noCondition') : undefined,
         steps: nodeSteps,
         onStep,
         editable: !!onChange && !item.reference,
         mutable:
           item.assertionIndex === undefined && node.id !== plan.rootId && positions.has(node.id),
         onContent: (value: string) =>
-          commit(() => updateNodeContent(plan, node.id, value, item.assertionIndex)),
+          commit(() => updateNodeContent(plan, node.id, value, item.assertionIndex, labels)),
         onDuplicate: () => commit(() => duplicateNode(plan, node.id)),
-        onRemove: () => commit(() => removeNode(plan, node.id)),
+        onRemove: () => commit(() => removeNode(plan, node.id, labels)),
         onDrop: (id: string) => {
           const position = positions.get(node.id);
 
@@ -183,12 +187,12 @@ export function usePlanBoard({
 
       if (group.kind !== 'group') continue;
       const positions = [
-        { index: 0, label: '分组开头' },
+        { index: 0, label: t('groupStart') },
         ...group.children.map((id, index) => {
           const child = plan.nodes[id];
           const title = child.kind === 'branch' ? child.condition : child.goal;
 
-          return { index: index + 1, label: `在「${title}」后` };
+          return { index: index + 1, label: t('afterNode', { title }) };
         }),
       ];
 
@@ -204,12 +208,17 @@ export function usePlanBoard({
         data: {
           persistent: item.index === group.children.length,
           revealed: !!item.anchorId && item.anchorId === hoveredId,
-          label: `在 ${item.groupId} 的第 ${item.index + 1} 个位置添加节点`,
+          label: t('insertNode', { group: item.groupId, index: item.index + 1 }),
           index: item.index,
           positions,
-          description: `添加到「${group.goal}」· ${positions[item.index].label}`,
+          description: t('addToGroup', {
+            group: group.goal,
+            position: positions[item.index].label,
+          }),
           onInsert: (type, index) =>
-            commit(() => insertStep(plan, { groupId: item.groupId, index }, type)),
+            commit(() =>
+              insertStep(plan, { groupId: item.groupId, index }, type, undefined, labels),
+            ),
           onDrop: (id: string) => commit(() => moveNode(plan, id, item)),
         },
       });
@@ -219,12 +228,13 @@ export function usePlanBoard({
     () =>
       layout.edges.map((edge) => ({
         ...edge,
+        label: edge.label ? t(edge.label as 'reference') : undefined,
         selectable: false,
         type: 'smoothstep',
         sourceHandle: edge.kind === 'reference' ? 'node-out' : 'sequence-out',
         targetHandle: edge.kind === 'reference' ? 'node-in' : 'sequence-in',
         style: {
-          stroke: edge.kind === 'sequence' ? '#e5e7eb' : 'var(--plan-edge)',
+          stroke: edge.kind === 'sequence' ? 'var(--page-line)' : 'var(--plan-edge)',
           strokeWidth: 1.2,
           strokeDasharray:
             edge.kind === 'dependency' || edge.kind === 'reference' ? '5 4' : undefined,
@@ -233,10 +243,12 @@ export function usePlanBoard({
         labelBgStyle: { fill: 'var(--surface)' },
         ariaLabel:
           edge.kind === 'dependency'
-            ? `依赖：${edge.source.slice(5)} → ${edge.target.slice(5)}`
-            : edge.label,
+            ? t('dependency', { source: edge.source.slice(5), target: edge.target.slice(5) })
+            : edge.label
+              ? t(edge.label as 'reference')
+              : undefined,
       })),
-    [layout],
+    [layout, t],
   );
 
   return { nodes, edges, error, onNodesChange };

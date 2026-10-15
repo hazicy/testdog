@@ -1,3 +1,8 @@
+import zh from '../../../../messages/zh.json';
+
+export type AuthoringLabels = typeof zh.authoring;
+export const defaultAuthoringLabels: AuthoringLabels = zh.authoring;
+
 import {
   PlanSchema,
   type Plan,
@@ -7,11 +12,17 @@ import {
 
 export type Insertion = { groupId: string; index: number };
 
-export function emptyPlan(title: string): Plan {
+export function emptyPlan(title: string, labels = defaultAuthoringLabels): Plan {
   return {
     rootId: 'root',
     nodes: {
-      root: { id: 'root', kind: 'group', goal: title || '测试用例', children: [], dependsOn: [] },
+      root: {
+        id: 'root',
+        kind: 'group',
+        goal: title || labels.testCase,
+        children: [],
+        dependsOn: [],
+      },
     },
   };
 }
@@ -32,7 +43,7 @@ const task = (
 
 // Keep the original task ID as a sequence boundary so dependencies still wait for
 // its assertions. The canvas displays actions and assertions as separate cards.
-export function editablePlan(source: Plan, title?: string): Plan {
+export function editablePlan(source: Plan, title?: string, labels = defaultAuthoringLabels): Plan {
   const plan = structuredClone(source);
   const freshId = (base: string) => {
     let id = base;
@@ -80,7 +91,7 @@ export function editablePlan(source: Plan, title?: string): Plan {
     plan.nodes[id] = {
       id,
       kind: 'group',
-      goal: title || '测试用例',
+      goal: title || labels.testCase,
       children: [plan.rootId],
       dependsOn: [],
     };
@@ -104,7 +115,7 @@ export function editablePlan(source: Plan, title?: string): Plan {
         id,
         kind: 'group',
         presentation: 'sequence',
-        goal: field === 'then' ? '条件成立' : '条件不成立',
+        goal: field === 'then' ? labels.trueBranch : labels.falseBranch,
         children: [target],
         dependsOn: [],
       };
@@ -120,6 +131,7 @@ export function insertStep(
   insertion: Insertion,
   type: StepType | 'group' | 'branch',
   id = crypto.randomUUID(),
+  labels = defaultAuthoringLabels,
 ): Plan {
   const group = plan.nodes[insertion.groupId];
 
@@ -129,32 +141,32 @@ export function insertStep(
     insertion.index < 0 ||
     insertion.index > group.children.length
   )
-    throw new Error('请选择有效的插入位置');
+    throw new Error(labels.invalidInsertion);
   const createdIds = type === 'branch' ? [id, `${id}:then`, `${id}:otherwise`] : [id];
 
-  if (createdIds.some((ref) => Object.hasOwn(plan.nodes, ref))) throw new Error('节点 ID 已存在');
+  if (createdIds.some((ref) => Object.hasOwn(plan.nodes, ref))) throw new Error(labels.duplicateId);
   const nodes = { ...plan.nodes };
-  const labels = {
+  const stepLabels = {
     navigate: 'https://',
-    act: '填写操作步骤',
-    assert: '填写预期结果',
-    login: '填写登录步骤',
-    files: '填写文件操作',
-    screenshot: '截取当前页面',
+    act: labels.act,
+    assert: labels.assert,
+    login: labels.login,
+    files: labels.files,
+    screenshot: labels.screenshot,
   };
 
   if (type === 'group')
-    nodes[id] = { id, kind: 'group', goal: '新分组', children: [], dependsOn: [] };
+    nodes[id] = { id, kind: 'group', goal: labels.group, children: [], dependsOn: [] };
   else if (type === 'branch') {
     const then = `${id}:then`,
       otherwise = `${id}:otherwise`;
 
-    nodes[id] = { id, kind: 'branch', condition: '填写分支条件', then, otherwise, dependsOn: [] };
+    nodes[id] = { id, kind: 'branch', condition: labels.branch, then, otherwise, dependsOn: [] };
     nodes[then] = {
       id: then,
       kind: 'group',
       presentation: 'sequence',
-      goal: '条件成立',
+      goal: labels.trueBranch,
       children: [],
       dependsOn: [],
     };
@@ -162,11 +174,11 @@ export function insertStep(
       id: otherwise,
       kind: 'group',
       presentation: 'sequence',
-      goal: '条件不成立',
+      goal: labels.falseBranch,
       children: [],
       dependsOn: [],
     };
-  } else nodes[id] = task(id, type, labels[type]);
+  } else nodes[id] = task(id, type, stepLabels[type]);
   const children = [...group.children];
 
   children.splice(insertion.index, 0, id);
@@ -175,7 +187,7 @@ export function insertStep(
   return PlanSchema.parse({ ...plan, nodes });
 }
 
-export function planText(plan: Plan): string {
+export function planText(plan: Plan, labels = defaultAuthoringLabels): string {
   const lines: string[] = [];
   const seen = new Set<string>();
 
@@ -189,10 +201,10 @@ export function planText(plan: Plan): string {
       if (!node.presentation) lines.push(`${prefix}${node.goal}`);
       node.children.forEach((child) => visit(child, depth + (node.presentation ? 0 : 1)));
     } else if (node.kind === 'branch') {
-      lines.push(`${prefix}如果：${node.condition}`);
+      lines.push(`${prefix}${labels.ifPrefix}${node.condition}`);
       visit(node.then, depth + 1);
       if (node.otherwise) {
-        lines.push(`${prefix}否则：`);
+        lines.push(`${prefix}${labels.elsePrefix}`);
         visit(node.otherwise, depth + 1);
       }
     } else {
@@ -209,7 +221,7 @@ export function planText(plan: Plan): string {
   return lines.join('\n');
 }
 
-export function caseName(text: string): string {
+export function caseName(text: string, locale = 'zh', labels = defaultAuthoringLabels): string {
   const first = text
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -218,5 +230,5 @@ export function caseName(text: string): string {
 
   if (first) return first.slice(0, 80);
 
-  return `新测试 ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`;
+  return `${labels.newTest} ${new Date().toLocaleString(locale, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`;
 }

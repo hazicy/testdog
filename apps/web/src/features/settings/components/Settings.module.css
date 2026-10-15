@@ -21,7 +21,7 @@
 .error {
   font-size: var(--text-lg);
   line-height: 1.25rem;
-  color: oklch(57.7% 0.245 27.325);
+  color: var(--danger);
 }
 .loading {
   font-size: var(--text-lg);
@@ -104,6 +104,11 @@
   }
 }
 .tab {
+  @media (width < 48rem) {
+    & > svg {
+      display: none;
+    }
+  }
   display: flex;
   flex-shrink: 0;
   align-items: center;

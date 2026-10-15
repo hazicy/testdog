@@ -1,5 +1,8 @@
 'use client';
 
+import { useTranslations, useFormatter } from 'next-intl';
+import { useIssueLabels, useIssuePresentation } from '@/features/issues/presentation';
+
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ListFooter } from '@/components/shared/ListFooter';
@@ -26,14 +29,17 @@ import useSWR from 'swr';
 import { fetchJson } from '@/client/api';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { issueStatuses, issueSeverities, type IssuePage } from '@testdog/contracts/issues/types';
+import { type IssuePage } from '@testdog/contracts/issues/types';
 import { IssueEditor, options } from '@/features/issues/components/IssueEditor';
-import { environmentLabel, relativeTime } from '@/features/issues/presentation';
 import { Icon } from '@iconify/react/offline';
 import searchIcon from '@iconify-icons/lucide/search';
 import plusIcon from '@iconify-icons/lucide/plus';
 
 export function IssueList() {
+  const t = useTranslations('issues');
+  const format = useFormatter();
+  const { issueStatuses, issueSeverities } = useIssueLabels();
+  const { relativeTime, environmentLabel } = useIssuePresentation();
   const router = useRouter();
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
@@ -63,17 +69,20 @@ export function IssueList() {
   const items = data?.issues ?? [];
 
   return (
-    <section className={clsx(workspaceStyles.workspaceIndex, styles.section)} aria-label="问题追踪">
-      <h1 className={styles.accessibleLabel}>问题追踪</h1>
+    <section
+      className={clsx(workspaceStyles.workspaceIndex, styles.section)}
+      aria-label={t('issues')}
+    >
+      <h1 className={styles.accessibleLabel}>{t('issues')}</h1>
       <div
         className={clsx(workspaceStyles.workspaceIndexToolbar, workspaceStyles.issueIndexToolbar)}
       >
         <div className={clsx(workspaceStyles.workspaceIndexSearch, styles.container)}>
           <Icon icon={searchIcon} width="16" className={styles.icon} aria-hidden="true" />
           <Input
-            aria-label="搜索问题"
+            aria-label={t('search')}
             className={styles.input}
-            placeholder="搜索问题…"
+            placeholder={t('searchPlaceholder')}
             maxLength={200}
             value={q}
             onChange={(event) => setQ(event.target.value)}
@@ -81,17 +90,17 @@ export function IssueList() {
         </div>
         <div className={clsx(workspaceStyles.workspaceIndexFilter, styles.filters)}>
           <Select
-            aria-label="筛选问题状态"
+            aria-label={t('filterStatus')}
             className={styles.select}
             value={status}
             onValueChange={(value) => {
               setStatus(value);
               setCursors([]);
             }}
-            items={[{ value: 'all', label: '全部状态' }, ...options(issueStatuses)]}
+            items={[{ value: 'all', label: t('allStatuses') }, ...options(issueStatuses)]}
           />
           <Select
-            aria-label="筛选环境"
+            aria-label={t('filterEnvironment')}
             className={styles.select}
             value={platform}
             onValueChange={(value) => {
@@ -99,14 +108,14 @@ export function IssueList() {
               setCursors([]);
             }}
             items={[
-              { value: 'all', label: '全部环境' },
+              { value: 'all', label: t('allEnvironments') },
               { value: 'web', label: 'Web' },
               { value: 'android', label: 'Android' },
               { value: 'ios', label: 'iOS' },
             ]}
           />
           <Select
-            aria-label="问题排序"
+            aria-label={t('sort')}
             className={styles.select}
             value={sort}
             onValueChange={(value) => {
@@ -114,12 +123,12 @@ export function IssueList() {
               setCursors([]);
             }}
             items={[
-              { value: 'last_seen', label: '最近出现 ↓' },
-              { value: 'updated', label: '最近更新 ↓' },
+              { value: 'last_seen', label: t('lastSeenSort') },
+              { value: 'updated', label: t('updatedSort') },
             ]}
           />
           <Select
-            aria-label="筛选日期"
+            aria-label={t('filterDate')}
             className={styles.select}
             value={days}
             onValueChange={(value) => {
@@ -127,17 +136,17 @@ export function IssueList() {
               setCursors([]);
             }}
             items={[
-              { value: 'all', label: '全部日期' },
-              { value: '1', label: '最近 24 小时' },
-              { value: '7', label: '最近 7 天' },
-              { value: '30', label: '最近 30 天' },
+              { value: 'all', label: t('allDates') },
+              { value: '1', label: t('lastDay') },
+              { value: '7', label: t('lastWeek') },
+              { value: '30', label: t('lastMonth') },
             ]}
           />
         </div>
         <div className={workspaceStyles.workspaceIndexToolbarActions}>
           <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
             <Icon icon={plusIcon} width="16" aria-hidden="true" />
-            新建问题
+            {t('newIssue')}
           </Button>
         </div>
       </div>
@@ -147,30 +156,30 @@ export function IssueList() {
         </p>
       )}
       {isLoading ? (
-        <LoadingState className={workspaceStyles.workspaceIndexEmpty} message="正在加载问题…" />
+        <LoadingState className={workspaceStyles.workspaceIndexEmpty} message={t('loading')} />
       ) : !items.length ? (
         <EmptyState
           data-ui="workspace-index-empty"
           className={workspaceStyles.workspaceIndexEmpty}
           illustration={search || status !== 'all' ? 'search' : 'empty'}
-          message={search || status !== 'all' ? '没有匹配的问题' : '暂无问题'}
+          message={search || status !== 'all' ? t('noMatches') : t('noIssues')}
           actions={
             <Link href="/runs" className={styles.link}>
-              查看执行记录
+              {t('viewRuns')}
             </Link>
           }
         />
       ) : (
-        <div className={styles.region} tabIndex={0} role="region" aria-label="可横向滚动的问题表格">
+        <div className={styles.region} tabIndex={0} role="region" aria-label={t('scrollTable')}>
           <Table className={clsx(workspaceStyles.workspaceIndexTable, workspaceStyles.isIssues)}>
             <TableHeader className={styles.tableHeader}>
               <TableRow>
-                <TableHead>严重程度</TableHead>
-                <TableHead>问题</TableHead>
-                <TableHead>环境</TableHead>
-                <TableHead>执行次数</TableHead>
-                <TableHead>最近出现 ↓</TableHead>
-                <TableHead>状态</TableHead>
+                <TableHead>{t('severity')}</TableHead>
+                <TableHead>{t('issue')}</TableHead>
+                <TableHead>{t('environment')}</TableHead>
+                <TableHead>{t('runCount')}</TableHead>
+                <TableHead>{t('lastSeenSort')}</TableHead>
+                <TableHead>{t('status')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -193,7 +202,7 @@ export function IssueList() {
                       {issue.title}
                     </Link>
                     <p className={workspaceStyles.workspaceIndexDescription}>
-                      {issue.latestOccurrence?.snapshot.name ?? '手动创建'} ·{' '}
+                      {issue.latestOccurrence?.snapshot.name ?? t('manual')} ·{' '}
                       {issue.latestOccurrence?.snapshot.target?.platform ?? 'Web'}
                     </p>
                   </TableCell>
@@ -205,7 +214,10 @@ export function IssueList() {
                   <TableCell>{issue.runCount ?? 0}</TableCell>
                   <TableCell
                     className={clsx(workspaceStyles.workspaceIndexTime, styles.tableCell)}
-                    title={new Date(issue.lastSeen ?? issue.createdAt).toLocaleString('zh-CN')}
+                    title={format.dateTime(new Date(issue.lastSeen ?? issue.createdAt), {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
                   >
                     {relativeTime(issue.lastSeen ?? issue.createdAt)}
                   </TableCell>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
@@ -19,6 +21,7 @@ import menuIcon from '@iconify-icons/lucide/panel-left';
 import { activeWorkspaceNavigation, workspaceNavigation } from '@/components/shell/navigation';
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const t = useTranslations('ui');
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
@@ -49,10 +52,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className={shellStyles.appShell} data-collapsed={collapsed}>
       <a href="#main-content" className={styles.skipLink}>
-        跳转到主内容
+        {t('skip_to_main_content')}
       </a>
       <aside className={shellStyles.appShellSidebar}>
-        <Link href="/" className={shellStyles.appShellBrand} aria-label="testdog 首页">
+        <Link href="/" className={shellStyles.appShellBrand} aria-label={t('testdog_home')}>
           <span className={styles.compactBrand}>
             <Brand compact />
           </span>
@@ -61,13 +64,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
         </Link>
         <div className={shellStyles.appShellNavigation}>
-          <nav aria-label="工作区导航" className={styles.navigationItems}>
+          <nav aria-label={t('workspace_navigation')} className={styles.navigationItems}>
             {workspaceNavigation.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                title={item.name}
-                aria-label={item.name}
+                title={t(item.key)}
+                aria-label={t(item.key)}
                 aria-current={item === activeItem ? 'page' : undefined}
                 className={clsx(
                   styles.navigationLink,
@@ -75,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )}
               >
                 <Icon icon={item.icon} width="18" aria-hidden="true" />
-                {!collapsed && <span className={styles.navigationLabel}>{item.name}</span>}
+                {!collapsed && <span className={styles.navigationLabel}>{t(item.key)}</span>}
               </Link>
             ))}
           </nav>
@@ -91,20 +94,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             size="icon"
             className={styles.sidebarToggle}
             onClick={() => setCollapsed(!collapsed)}
-            aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
+            aria-label={collapsed ? t('expand_sidebar') : t('collapse_sidebar')}
             aria-expanded={!collapsed}
           >
             <Icon icon={menuIcon} width="18" aria-hidden="true" />
           </Button>
-          <nav aria-label="面包屑" className={styles.breadcrumbs}>
+          <nav aria-label={t('breadcrumbs')} className={styles.breadcrumbs}>
             <Link href="/cases" className={styles.breadcrumbLink}>
-              工作区
+              {t('workspace')}
             </Link>
             <Icon icon={chevronIcon} className={styles.separator} width="14" aria-hidden="true" />
             {canvas ? (
               <>
                 <Link href="/cases" className={styles.breadcrumbLink}>
-                  测试用例
+                  {t('test_cases')}
                 </Link>
                 <Icon
                   icon={chevronIcon}
@@ -113,12 +116,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   aria-hidden="true"
                 />
                 <span aria-current="page" className={styles.currentPage}>
-                  画板
+                  {t('canvas')}
                 </span>
               </>
             ) : (
               <span aria-current="page" className={styles.currentPage}>
-                {activeItem?.name ?? '页面不存在'}
+                {activeItem ? t(activeItem.key) : t('page_not_found')}
               </span>
             )}
           </nav>

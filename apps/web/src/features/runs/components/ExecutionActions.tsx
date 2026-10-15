@@ -1,16 +1,15 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import { memo, useId, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { actionIcon } from '@/features/runs/lib/actionIcon';
-import { statuses } from '@/features/runs/presentation';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
 import styles from './ExecutionActions.module.css';
-
-const kinds = { action: '操作', navigate: '导航', wait: '等待', assertion: '断言', branch: '分支' };
 
 export type ExecutionActionsProps = {
   steps: ExecutionStep[];
@@ -27,6 +26,8 @@ export const ExecutionActions = memo(function ExecutionActions({
   renderDetails,
   renderIssue,
 }: ExecutionActionsProps) {
+  const t = useTranslations('runs');
+  const statusText = useTranslations('workspace');
   const detailsId = useId();
   const [collapsedId, setCollapsedId] = useState<string>();
 
@@ -50,8 +51,8 @@ export const ExecutionActions = memo(function ExecutionActions({
               className={clsx(styles.action, { [styles.selected]: selected })}
             >
               <span
-                title={statuses[step.status]}
-                aria-label={statuses[step.status]}
+                title={statusText(step.status)}
+                aria-label={statusText(step.status)}
                 className={styles.sequence}
                 data-status={step.status}
               >
@@ -60,11 +61,11 @@ export const ExecutionActions = memo(function ExecutionActions({
               <span className={styles.content}>
                 <span className={styles.title}>{step.title}</span>
                 <span className={styles.metadata}>
-                  {kinds[step.kind]} · {step.pageId} ·{' '}
+                  {t(`kinds.${step.kind}`)} · {step.pageId} ·{' '}
                   {step.durationMs == null
                     ? step.status === 'running'
-                      ? '执行中'
-                      : '已中断'
+                      ? t('running')
+                      : t('interrupted')
                     : `${(step.durationMs / 1000).toFixed(1)}s`}
                 </span>
               </span>

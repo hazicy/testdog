@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 
 import styles from './RecordingEditor.module.css';
@@ -25,9 +27,10 @@ import {
 import { CodeEditor } from '@/features/runs/components/CodeEditor';
 import { api } from '@/client/api';
 import { downloadText } from '@/client/download';
-import { recordingCodeSchema, recordingInputMessage } from '@testdog/contracts/runs/schemas';
+import { recordingCodeSchema } from '@testdog/contracts/runs/schemas';
 
 export function RecordingEditor({ run }: { run: TestRun }) {
+  const t = useTranslations('runs');
   const router = useRouter();
   const submit = useRunSubmission();
   const platform = run.targetSnapshot.platform;
@@ -72,7 +75,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        if (!recordingCodeSchema.safeParse(code).success) throw new Error(recordingInputMessage);
+        if (!recordingCodeSchema.safeParse(code).success) throw new Error(t('recordingInput'));
         setValidation({
           code,
           count: (platform === 'web'
@@ -81,12 +84,16 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           ).length,
         });
       } catch (e) {
-        setValidation({ code, count: 0, error: e instanceof Error ? e.message : '脚本无效' });
+        setValidation({
+          code,
+          count: 0,
+          error: e instanceof Error ? e.message : t('invalidScript'),
+        });
       }
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [code, platform]);
+  }, [code, platform, t]);
 
   async function save(execute = false) {
     if (!canSave) return;
@@ -106,7 +113,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         version = data.version;
         setVersions((current) => [data.version, ...current]);
         setSelected(version.id);
-        setMessage('新版本已保存。');
+        setMessage(t('versionSaved'));
       }
 
       if (execute) {
@@ -119,7 +126,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         router.push(`/runs/${data.run.id}`);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存失败');
+      setError(e instanceof Error ? e.message : t('saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -134,12 +141,12 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   }
 
   if (isActiveRun(run.status))
-    return <p className={styles.description}>录制进行中，结束后可编辑操作和预期。</p>;
+    return <p className={styles.description}>{t('recordingInProgress')}</p>;
 
   return (
     <section
       className={clsx(studioStyles.studioPanel, studioStyles.recordingEditor)}
-      aria-label="录制脚本编辑器"
+      aria-label={t('recordingEditor')}
     >
       <div className={studioStyles.recordingEditorToolbar}>
         <div className={studioStyles.recordingEditorSource}>
@@ -147,7 +154,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             {platform === 'web' ? 'JavaScript' : 'JSON'}
           </span>
           <Select
-            aria-label="录制版本"
+            aria-label={t('recordingVersion')}
             className={studioStyles.recordingEditorVersion}
             value={selected}
             disabled={busy}
@@ -159,11 +166,11 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             items={[
               {
                 value: '',
-                label: run.recordingVersionId ? '执行快照' : '原始录制',
+                label: run.recordingVersionId ? t('snapshot') : t('originalRecording'),
               },
               versions.map((v, index) => ({
                 value: v.id,
-                label: `版本 ${versions.length - index}`,
+                label: t('version', { number: versions.length - index }),
               })),
             ]}
           />
@@ -172,8 +179,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="还原当前版本"
-            title="还原当前版本"
+            aria-label={t('restoreVersion')}
+            title={t('restoreVersion')}
             disabled={busy || !dirty}
             onClick={() => setCode(base)}
           >
@@ -182,8 +189,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="下载脚本"
-            title="下载脚本"
+            aria-label={t('downloadScript')}
+            title={t('downloadScript')}
             onClick={download}
           >
             <Icon icon={downloadIcon} width="16" aria-hidden="true" />
@@ -191,8 +198,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="保存版本"
-            title="保存版本"
+            aria-label={t('saveVersion')}
+            title={t('saveVersion')}
             disabled={!canSave}
             onClick={() => void save()}
           >
@@ -201,8 +208,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           <Button
             variant="primary"
             size="icon-sm"
-            aria-label="保存并重新运行"
-            title="保存修改后，按录制步骤重新运行"
+            aria-label={t('saveAndRun')}
+            title={t('saveAndRunHint')}
             disabled={!canSave}
             onClick={() => void save(true)}
           >
@@ -214,7 +221,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         value={code}
         onChange={setCode}
         readOnly={busy}
-        label={platform === 'web' ? 'Playwright 录制脚本' : '原生设备录制 JSON'}
+        label={platform === 'web' ? t('playwrightScript') : t('nativeRecording')}
       />
       {(error || (!validating && validation?.error)) && (
         <p role="alert" className={studioStyles.recordingEditorError}>

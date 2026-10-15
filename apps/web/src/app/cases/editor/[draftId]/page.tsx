@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingState } from '@/components/shared/LoadingState';
 
@@ -10,6 +12,7 @@ import { TestEditor } from '@/features/test-cases/components/TestEditor';
 import { clearCaseDraft, readCaseDraft } from '@/features/test-cases/lib/caseDraft';
 
 export default function CaseCanvasPage() {
+  const t = useTranslations('editor');
   const { draftId } = useParams<{ draftId: string }>();
   const router = useRouter();
   const raw = useSyncExternalStore(
@@ -18,12 +21,15 @@ export default function CaseCanvasPage() {
     () => undefined,
   );
 
-  if (raw === undefined) return <LoadingState message="正在打开画板…" />;
+  if (raw === undefined) return <LoadingState message={t('openingCanvas')} />;
   const draft = readCaseDraft(draftId);
 
   if (!draft)
     return (
-      <EmptyState message="当前草稿不可用" actions={<Link href="/cases">返回用例列表</Link>} />
+      <EmptyState
+        message={t('draftUnavailable')}
+        actions={<Link href="/cases">{t('backToCases')}</Link>}
+      />
     );
 
   return (

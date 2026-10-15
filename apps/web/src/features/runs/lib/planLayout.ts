@@ -116,7 +116,7 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
         source: refId,
         target: actual.get(id)?.first ?? `plan:${id}`,
         kind: 'reference',
-        label: '引用',
+        label: 'reference',
       });
 
       return { first: refId, exits: [refId], bottom: y + contentHeight, right: x + WIDTH };
@@ -202,7 +202,7 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
 
       if (!node.children.length) bottom += GAP;
     } else if (node.kind === 'branch') {
-      const yes = visit(node.then, x, bottom + GAP, 'YES / 条件成立');
+      const yes = visit(node.then, x, bottom + GAP, 'yesCondition');
 
       if (yes.first)
         edges.push({
@@ -215,7 +215,7 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
       let no: Subtree | undefined;
 
       if (node.otherwise) {
-        no = visit(node.otherwise, yes.right + COLUMN_GAP, y + rowHeight + GAP, 'NO / 条件不成立');
+        no = visit(node.otherwise, yes.right + COLUMN_GAP, y + rowHeight + GAP, 'noCondition');
         if (no.first)
           edges.push({
             id: `otherwise:${id}`,

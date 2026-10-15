@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import styles from './DeleteTestDialog.module.css';
 
 import { DialogFooter } from '@/components/ui/Dialog';
@@ -18,6 +20,7 @@ export function DeleteTestDialog({
   onClose: () => void;
   onDeleted: () => Promise<void>;
 }) {
+  const t = useTranslations('editor');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -28,7 +31,7 @@ export function DeleteTestDialog({
       await api.delete(`/api/tests/${test.id}`);
       await onDeleted();
     } catch (cause) {
-      setFormError(cause instanceof Error ? cause.message : '删除失败');
+      setFormError(cause instanceof Error ? cause.message : t('deleteFailed'));
     } finally {
       setSaving(false);
     }
@@ -38,9 +41,9 @@ export function DeleteTestDialog({
     <Dialog titleId="delete-title" busy={saving} onDismiss={onClose} className={styles.dialog}>
       <div className={styles.container}>
         <h2 id="delete-title" className={styles.deleteTitle}>
-          删除测试？
+          {t('deleteTitle')}
         </h2>
-        <p className={styles.description}>将删除「{test.name}」。历史执行结果会保留。</p>
+        <p className={styles.description}>{t('deleteDescription', { name: test.name })}</p>
         {formError && (
           <p role="alert" className={styles.error}>
             {formError}
@@ -49,10 +52,10 @@ export function DeleteTestDialog({
       </div>
       <DialogFooter>
         <Button disabled={saving} onClick={() => onClose()}>
-          取消
+          {t('cancel')}
         </Button>
         <Button disabled={saving} variant="danger" onClick={() => void remove()}>
-          {saving ? '删除中…' : '删除测试'}
+          {saving ? t('deleting') : t('delete')}
         </Button>
       </DialogFooter>
     </Dialog>

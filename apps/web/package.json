@@ -32,6 +32,7 @@
     "drizzle-orm": "catalog:",
     "ky": "catalog:",
     "next": "catalog:",
+    "next-intl": "^4.14.9",
     "playwright": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

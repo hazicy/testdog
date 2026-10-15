@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 
 import boardStyles from '@/features/runs/components/plan-board.module.css';
@@ -8,7 +10,7 @@ import styles from './PlanNodes.module.css';
 import { statusStyles } from '@/components/ui/statusStyles';
 import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
-import { asset, statuses } from '@/features/runs/presentation';
+import { asset } from '@/features/runs/presentation';
 import { type boardResult, planNodeTitle, stepResult } from '@/features/runs/lib/boardResults';
 import { memo, useId, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
@@ -50,6 +52,8 @@ export type PlanFlowNode = Node<
 >;
 
 export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNode>) {
+  const t = useTranslations('runs');
+  const statusText = useTranslations('workspace');
   const { node, steps } = data;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -105,24 +109,24 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
         <div className={clsx(boardStyles.planReviewActions, 'nodrag', 'nopan')}>
           <span>
             {data.review.kind === 'added'
-              ? '新增'
+              ? t('added')
               : data.review.kind === 'removed'
-                ? '删除'
-                : '修改'}
-            {data.review.count > 1 ? ` · ${data.review.count} 项关联变更` : ''}
+                ? t('delete')
+                : t('modified')}
+            {data.review.count > 1 ? ` · ${t('relatedChanges', { count: data.review.count })}` : ''}
           </span>
           <button
             type="button"
-            aria-label={`接受变更 ${node.id}`}
-            title="接受"
+            aria-label={t('acceptChange', { id: node.id })}
+            title={t('accept')}
             onClick={data.review.onAccept}
           >
             ✓
           </button>
           <button
             type="button"
-            aria-label={`拒绝变更 ${node.id}`}
-            title="拒绝"
+            aria-label={t('rejectChange', { id: node.id })}
+            title={t('reject')}
             onClick={data.review.onReject}
           >
             ×
@@ -134,8 +138,8 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           <button
             type="button"
             draggable
-            aria-label={`拖拽节点 ${node.id}`}
-            title="拖拽调整顺序"
+            aria-label={t('dragNode', { id: node.id })}
+            title={t('dragHint')}
             className={boardStyles.planDragHandle}
             onDragStart={(event) => {
               event.dataTransfer.setData(nodeDragType, node.id);
@@ -146,19 +150,19 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           </button>
           <button
             type="button"
-            aria-label={`复制节点 ${node.id}`}
-            title="复制"
+            aria-label={t('copyNode', { id: node.id })}
+            title={t('copy')}
             onClick={data.onDuplicate}
           >
-            复制
+            {t('copy')}
           </button>
           <button
             type="button"
-            aria-label={`删除节点 ${node.id}`}
-            title="删除"
+            aria-label={t('deleteNode', { id: node.id })}
+            title={t('delete')}
             onClick={data.onRemove}
           >
-            删除
+            {t('delete')}
           </button>
         </div>
       )}
@@ -173,7 +177,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             <textarea
               autoFocus
               className={clsx(boardStyles.planInlineInput, 'nodrag', 'nopan')}
-              aria-label={`节点内容 ${node.id}`}
+              aria-label={t('nodeContent', { id: node.id })}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               onBlur={finish}
@@ -193,12 +197,12 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
               className={boardStyles.planContentButton}
               aria-label={
                 data.editable
-                  ? `编辑节点 ${node.id}`
+                  ? t('editNode', { id: node.id })
                   : data.reference
-                    ? `查看引用节点 ${node.id}`
+                    ? t('viewReference', { id: node.id })
                     : data.assertionIndex !== undefined
-                      ? `查看断言 ${node.id} ${data.assertionIndex + 1}`
-                      : `查看节点 ${node.id}`
+                      ? t('viewAssertion', { id: node.id, index: data.assertionIndex + 1 })
+                      : t('viewNode', { id: node.id })
               }
               aria-expanded={data.editable ? undefined : expanded}
               aria-controls={data.editable ? undefined : actionsId}
@@ -213,7 +217,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             </button>
           )}
           {node.kind === 'branch' && !node.otherwise && (
-            <span className={boardStyles.planPathLabel}>NO / 条件不成立：跳过</span>
+            <span className={boardStyles.planPathLabel}>{t('skipFalse')}</span>
           )}
         </div>
         {!!steps.length && (
@@ -221,31 +225,40 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             <span />
             {data.result
               ? status === 'passed' && type !== 'assert'
-                ? '步骤已通过'
-                : statuses[status as keyof typeof statuses]
-              : `${steps.length} 步`}
+                ? t('stepPassed')
+                : statusText(status as 'running' | 'passed' | 'failed')
+              : t('stepCount', { count: steps.length })}
           </span>
         )}
       </div>
       {data.result && (
         <div className={clsx(boardStyles.planResult, 'nodrag', 'nopan')}>
           <div className={boardStyles.planResultSummary}>
-            {data.current && <span className={boardStyles.planPlaybackMarker}>当前回放位置</span>}
+            {data.current && (
+              <span className={boardStyles.planPlaybackMarker}>{t('playbackPosition')}</span>
+            )}
             {data.result.durationMs !== undefined && (
               <span>
-                {(data.result.durationMs / 1000).toFixed(1)}s · {steps.length} 步
+                {(data.result.durationMs / 1000).toFixed(1)}s ·{' '}
+                {t('stepCount', { count: steps.length })}
               </span>
             )}
-            {type === 'assert' && <p>预期：{content}</p>}
-            {data.result.primary?.evidence && <p>验证证据：{data.result.primary.evidence}</p>}
+            {type === 'assert' && <p>{t('expected', { value: content })}</p>}
+            {data.result.primary?.evidence && (
+              <p>{t('evidence', { value: data.result.primary.evidence })}</p>
+            )}
             {data.result.primary?.error && (
               <p className={boardStyles.planResultError}>{data.result.primary.error}</p>
             )}
             {node.kind === 'branch' && data.result.primary?.decision !== undefined && (
-              <p>判断结果：{data.result.primary.decision ? 'YES / 条件成立' : 'NO / 条件不成立'}</p>
+              <p>
+                {t('decision', {
+                  value: data.result.primary.decision ? t('yesCondition') : t('noCondition'),
+                })}
+              </p>
             )}
-            {!steps.length && <p>尚无执行结果</p>}
-            {steps.length > 0 && !data.result.frame && <p>暂无已归档截图</p>}
+            {!steps.length && <p>{t('noResult')}</p>}
+            {steps.length > 0 && !data.result.frame && <p>{t('noScreenshot')}</p>}
             {data.result.primary && (
               <Button
                 type="button"
@@ -253,7 +266,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
                 aria-controls={actionsId}
                 onClick={() => setExpanded(!expanded)}
               >
-                {expanded ? '收起动作' : '展开动作'}
+                {expanded ? t('collapseActions') : t('expandActions')}
               </Button>
             )}
             {data.result.primary && data.onIssue && (
@@ -262,7 +275,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
                 className={styles.action}
                 onClick={() => data.onIssue?.(data.result!.primary!)}
               >
-                创建或关联问题
+                {t('createIssue')}
               </Button>
             )}
           </div>
@@ -270,18 +283,23 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             <button
               type="button"
               className={boardStyles.planResultThumbnail}
-              aria-label={`查看截图：${content}`}
+              aria-label={t('viewScreenshot', { content })}
               onClick={() => data.onFrame?.(data.result!.frame!)}
             >
               <Image
                 src={asset(data.result.frame.runId, data.result.frame)}
-                alt={`证据截图：${content}`}
+                alt={t('evidenceScreenshot', { content })}
                 width={240}
                 height={140}
                 unoptimized
               />
               <span>
-                {data.result.frame.stage === 'before' ? '执行前截图' : '执行截图'} · 点击回看
+                {t('clickToReplay', {
+                  stage:
+                    data.result.frame.stage === 'before'
+                      ? t('beforeScreenshot')
+                      : t('runScreenshot'),
+                })}
               </span>
             </button>
           )}
@@ -294,7 +312,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           className={clsx(boardStyles.planInlineEvidence, 'nodrag', 'nopan')}
         >
           <ExecutionActions steps={steps} selectedId={data.currentStepId} onSelect={data.onStep} />
-          {!steps.length && <p>暂无执行动作</p>}
+          {!steps.length && <p>{t('noActions')}</p>}
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import styles from './Settings.module.css';
 
 import { useState, type FormEvent } from 'react';
@@ -14,8 +16,11 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Icon } from '@iconify/react/offline';
 import userIcon from '@iconify-icons/lucide/user-round';
 import shieldIcon from '@iconify-icons/lucide/shield-check';
+import settingsIcon from '@iconify-icons/lucide/settings-2';
+import { GeneralSettings } from './GeneralSettings';
 
 function ProfileForm({ name, email }: { name: string; email: string }) {
+  const t = useTranslations('ui');
   const [draft, setDraft] = useState(name);
   const [savedName, setSavedName] = useState(name);
   const [pending, setPending] = useState(false);
@@ -30,7 +35,7 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
     const value = draft.trim();
 
     if (!value) {
-      setError('请填写姓名。');
+      setError(t('enter_your_name'));
 
       return;
     }
@@ -40,16 +45,16 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
       const result = await authClient.updateUser({ name: value });
 
       if (result.error) {
-        setError('资料保存失败，请稍后重试。');
+        setError(t('could_not_save_your_profile_please_try_again'));
 
         return;
       }
 
       setDraft(value);
       setSavedName(value);
-      setMessage('资料已保存。');
+      setMessage(t('profile_saved'));
     } catch {
-      setError('暂时无法连接，请稍后重试。');
+      setError(t('unable_to_connect_please_try_again'));
     } finally {
       setPending(false);
     }
@@ -58,7 +63,7 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
   return (
     <form onSubmit={save} className={styles.form}>
       <label className={styles.field}>
-        <span>姓名</span>
+        <span>{t('name')}</span>
         <Input
           name="name"
           autoComplete="name"
@@ -73,10 +78,12 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
         />
       </label>
       <label className={styles.field}>
-        <span>邮箱</span>
+        <span>{t('email')}</span>
         <Input value={email} type="email" autoComplete="email" readOnly />
       </label>
-      <p className={styles.description}>邮箱用于登录，目前暂不支持修改。</p>
+      <p className={styles.description}>
+        {t('your_email_is_used_to_sign_in_and_cannot_be_changed')}
+      </p>
       {error && (
         <p role="alert" className={styles.error}>
           {error}
@@ -88,13 +95,14 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
         </p>
       )}
       <Button type="submit" variant="primary" disabled={pending || draft.trim() === savedName}>
-        {pending ? '保存中…' : '保存资料'}
+        {pending ? t('saving') : t('save_profile')}
       </Button>
     </form>
   );
 }
 
 function PasswordForm() {
+  const t = useTranslations('ui');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -110,13 +118,13 @@ function PasswordForm() {
     setError('');
     setMessage('');
     if (newPassword !== data.get('confirmPassword')) {
-      setError('两次输入的新密码不一致。');
+      setError(t('the_new_passwords_do_not_match'));
 
       return;
     }
 
     if (newPassword === currentPassword) {
-      setError('新密码不能与当前密码相同。');
+      setError(t('choose_a_password_different_from_your_current_password'));
 
       return;
     }
@@ -132,19 +140,19 @@ function PasswordForm() {
       if (result.error) {
         setError(
           result.error.code === 'INVALID_PASSWORD'
-            ? '当前密码不正确，请重新输入。'
+            ? t('incorrect_current_password_please_try_again')
             : result.error.status === 401
-              ? '登录已过期，请重新登录后修改密码。'
-              : '密码修改失败，请检查当前密码或稍后重试。',
+              ? t('your_session_has_expired_sign_in_again_to_change_your_password')
+              : t('could_not_change_your_password_check_your_current_password_or_try_again_later'),
         );
 
         return;
       }
 
       form.reset();
-      setMessage('密码已修改，其他设备的登录已退出。');
+      setMessage(t('password_changed_other_devices_have_been_signed_out'));
     } catch {
-      setError('暂时无法连接，请稍后重试。');
+      setError(t('unable_to_connect_please_try_again'));
     } finally {
       setPending(false);
     }
@@ -153,7 +161,7 @@ function PasswordForm() {
   return (
     <form onSubmit={save} className={styles.form}>
       <label className={styles.field}>
-        <span>当前密码</span>
+        <span>{t('current_password')}</span>
         <Input
           name="currentPassword"
           type="password"
@@ -164,7 +172,7 @@ function PasswordForm() {
         />
       </label>
       <label className={styles.field}>
-        <span>新密码</span>
+        <span>{t('new_password')}</span>
         <Input
           name="newPassword"
           type="password"
@@ -177,10 +185,10 @@ function PasswordForm() {
         />
       </label>
       <p id="new-password-hint" className={styles.description}>
-        使用 8–128 个字符。修改后将退出其他设备的登录。
+        {t('use_8_128_characters_other_devices_will_be_signed_out')}
       </p>
       <label className={styles.field}>
-        <span>确认新密码</span>
+        <span>{t('confirm_new_password')}</span>
         <Input
           name="confirmPassword"
           type="password"
@@ -202,14 +210,16 @@ function PasswordForm() {
         </p>
       )}
       <Button type="submit" variant="primary" disabled={pending}>
-        {pending ? '修改中…' : '修改密码'}
+        {pending ? t('updating') : t('change_password')}
       </Button>
     </form>
   );
 }
 
-export function Settings() {
-  const [tab, setTab] = useState('profile');
+export function Settings({ initialTheme }: { initialTheme: string }) {
+  const t = useTranslations('ui');
+  const general = useTranslations('preferences');
+  const [tab, setTab] = useState('general');
 
   const { data: session, isPending, error, refetch } = authClient.useSession();
   const accounts = useSWR<{ providerId: string }[]>(
@@ -217,88 +227,108 @@ export function Settings() {
     fetchJson,
   );
 
+  const accountState = isPending ? (
+    <p role="status" className={styles.sessionLoading}>
+      {t('loading_account')}
+    </p>
+  ) : error ? (
+    <div className={styles.sessionError}>
+      <p role="alert" className={styles.error}>
+        {t('could_not_load_your_account_please_try_again')}
+      </p>
+      <Button onClick={() => refetch()}>{t('reload')}</Button>
+    </div>
+  ) : !session ? (
+    <section aria-label={t('account_settings')} className={styles.section}>
+      <h2 className={styles.heading}>{t('sign_in_to_manage_your_account')}</h2>
+      <p className={styles.sessionLoading}>{t('sign_in_to_change_your_name_and_password')}</p>
+      <Link
+        href="/login?callbackURL=%2Fsettings"
+        className={buttonStyles({ className: styles.link })}
+      >
+        {t('sign_in')}
+      </Link>
+    </section>
+  ) : null;
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.title}>设置</h1>
+        <h1 className={styles.title}>{t('settings')}</h1>
       </header>
-      {isPending ? (
-        <p role="status" className={styles.sessionLoading}>
-          加载账户…
-        </p>
-      ) : error ? (
-        <div className={styles.sessionError}>
-          <p role="alert" className={styles.error}>
-            账户信息加载失败，请重试。
-          </p>
-          <Button onClick={() => refetch()}>重新加载</Button>
-        </div>
-      ) : !session ? (
-        <section aria-label="账户设置" className={styles.section}>
-          <h2 className={styles.heading}>登录后管理账户</h2>
-          <p className={styles.sessionLoading}>登录后可以修改姓名和密码。</p>
-          <Link
-            href="/login?callbackURL=%2Fsettings"
-            className={buttonStyles({ className: styles.link })}
-          >
-            登录
-          </Link>
-        </section>
-      ) : (
-        <Tabs.Root
-          key={session.user.id}
-          value={tab}
-          onValueChange={(value) => setTab(String(value))}
-          orientation="vertical"
-          className={styles.root}
-        >
-          <Tabs.List aria-label="设置分类" className={styles.list}>
-            <Tabs.Tab value="profile" className={styles.tab}>
-              <Icon icon={userIcon} width="16" aria-hidden="true" />
-              账户资料
-            </Tabs.Tab>
-            <Tabs.Tab value="security" className={styles.tab}>
-              <Icon icon={shieldIcon} width="16" aria-hidden="true" />
-              登录安全
-            </Tabs.Tab>
-          </Tabs.List>
-          <div className={styles.panels}>
-            <Tabs.Panel value="profile" keepMounted>
+      <Tabs.Root
+        value={tab}
+        onValueChange={(value) => setTab(String(value))}
+        orientation="vertical"
+        className={styles.root}
+      >
+        <Tabs.List aria-label={t('settings_categories')} className={styles.list}>
+          <Tabs.Tab value="general" className={styles.tab}>
+            <Icon icon={settingsIcon} width="16" aria-hidden="true" />
+            {general('title')}
+          </Tabs.Tab>
+          <Tabs.Tab value="profile" className={styles.tab}>
+            <Icon icon={userIcon} width="16" aria-hidden="true" />
+            {t('profile')}
+          </Tabs.Tab>
+          <Tabs.Tab value="security" className={styles.tab}>
+            <Icon icon={shieldIcon} width="16" aria-hidden="true" />
+            {t('security')}
+          </Tabs.Tab>
+        </Tabs.List>
+        <div className={styles.panels}>
+          <Tabs.Panel value="general" keepMounted>
+            <GeneralSettings initialTheme={initialTheme} />
+          </Tabs.Panel>
+          <Tabs.Panel value="profile" keepMounted>
+            {session ? (
               <section aria-labelledby="profile-title" className={styles.settingsSection}>
                 <h2 id="profile-title" className={styles.heading}>
-                  账户资料
+                  {t('profile')}
                 </h2>
-                <ProfileForm name={session.user.name} email={session.user.email} />
+                <ProfileForm
+                  key={session.user.id}
+                  name={session.user.name}
+                  email={session.user.email}
+                />
               </section>
-            </Tabs.Panel>
-            <Tabs.Panel value="security" keepMounted>
+            ) : (
+              accountState
+            )}
+          </Tabs.Panel>
+          <Tabs.Panel value="security" keepMounted>
+            {session ? (
               <section aria-labelledby="security-title" className={styles.settingsSection}>
                 <h2 id="security-title" className={styles.heading}>
-                  登录安全
+                  {t('security')}
                 </h2>
                 {accounts.error ? (
                   <div className={styles.sessionError}>
                     <p role="alert" className={styles.error}>
-                      登录方式加载失败，请重试。
+                      {t('could_not_load_sign_in_methods_please_try_again')}
                     </p>
-                    <Button onClick={() => accounts.mutate()}>重新加载登录方式</Button>
+                    <Button onClick={() => accounts.mutate()}>{t('reload_sign_in_methods')}</Button>
                   </div>
                 ) : !accounts.data ? (
                   <p role="status" className={styles.sessionLoading}>
-                    加载登录方式…
+                    {t('loading_sign_in_methods')}
                   </p>
                 ) : accounts.data.some((account) => account.providerId === 'credential') ? (
                   <PasswordForm />
                 ) : (
                   <p className={styles.providerHint}>
-                    此账户使用第三方登录，请前往对应的 Google 或 GitHub 账户管理密码。
+                    {t(
+                      'manage_your_password_through_the_google_or_github_account_you_use_to_sign_in',
+                    )}
                   </p>
                 )}
               </section>
-            </Tabs.Panel>
-          </div>
-        </Tabs.Root>
-      )}
+            ) : (
+              accountState
+            )}
+          </Tabs.Panel>
+        </div>
+      </Tabs.Root>
     </div>
   );
 }

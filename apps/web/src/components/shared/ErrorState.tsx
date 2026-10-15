@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import styles from './ErrorState.module.css';
 import textStyles from './StateContainer.module.css';
 import Link from 'next/link';
@@ -11,7 +12,7 @@ export function ErrorState({
   message,
   retry,
   href = '/cases',
-  linkLabel = '返回测试工作台',
+  linkLabel,
 }: {
   illustration?: 'not-found' | 'error';
   message: string;
@@ -19,6 +20,8 @@ export function ErrorState({
   href?: string;
   linkLabel?: string;
 }) {
+  const t = useTranslations('shared');
+
   return (
     <StateContainer aria-label={message}>
       <EmptyIllustration variant={illustration} />
@@ -28,11 +31,11 @@ export function ErrorState({
       <div className={styles.container}>
         {retry && (
           <Button variant="primary" size="sm" onClick={retry}>
-            重试
+            {t('retry')}
           </Button>
         )}
         <Link className={buttonStyles({ size: 'sm' })} href={href}>
-          {linkLabel}
+          {linkLabel ?? t('backToTests')}
         </Link>
       </div>
     </StateContainer>

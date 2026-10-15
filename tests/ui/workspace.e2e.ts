@@ -761,7 +761,7 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
   });
   await page.goto(`/cases/editor/${draftId}`);
   const canvas = page.getByRole('region', { name: '测试画板' });
-  const start = canvas.getByRole('button', { name: 'Run', exact: true });
+  const start = canvas.getByRole('button', { name: '试跑', exact: true });
 
   await openSettings(canvas);
   await canvas.getByRole('textbox', { name: 'User-Agent', exact: true }).fill('Caseforge-Test/1.0');
@@ -996,10 +996,10 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await dialog.getByRole('button', { name: '全部接受' }).click();
   await openSettings(dialog);
   await dialog.getByLabel('测试名称').fill('新用例');
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog.getByRole('alert')).toHaveText('保存暂时失败');
   await expect(dialog.getByLabel('测试名称')).toHaveValue('新用例');
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '更多操作：验证登录', exact: true }).click();
   await page.getByRole('menuitem', { name: '编辑 验证登录', exact: true }).click();
@@ -1008,14 +1008,14 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await dialog.getByRole('button', { name: '全部接受' }).click();
   await openSettings(dialog);
   await dialog.getByLabel('测试名称').fill('更新登录');
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '更多操作：更新登录', exact: true }).click();
   await page.getByRole('menuitem', { name: '复制 更新登录', exact: true }).click();
   await openSettings(dialog);
   await expect(dialog.getByLabel('测试名称')).toHaveValue('更新登录（副本）');
   await expect(dialog.getByRole('alert')).toHaveCount(0);
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   expect(writes.map((item) => item.method)).toEqual(['POST', 'PATCH', 'POST']);
   expect(writes[2].body.tags).toEqual(['登录']);
@@ -1249,8 +1249,12 @@ test('plan subflows retain both branch paths, shared references and external dep
   );
   await page.goto(`/runs/${run.id}`);
   await page.getByRole('button', { name: '计划', exact: true }).click();
-  await expect(page.getByText('YES / 条件成立', { exact: true })).toBeVisible();
-  await expect(page.getByText('NO / 条件不成立', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('.react-flow').getByText('YES / 条件成立', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.react-flow').getByText('NO / 条件不成立', { exact: true }),
+  ).toBeVisible();
   await expect(page.locator('.react-flow__edge[aria-label="依赖：external → root"]')).toBeVisible();
   const dependency = page.locator(
     '.react-flow__edge[aria-label="依赖：external → root"] .react-flow__edge-path',
@@ -1756,7 +1760,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await expect(dialog.locator('.case-editor-header')).toHaveCount(0);
   const panel = dialog.getByRole('complementary', { name: '测试面板' });
 
-  await expect(panel.getByRole('button', { name: 'Save' })).toBeVisible();
+  await expect(panel.getByRole('button', { name: '保存' })).toBeVisible();
   const panelBounds = await panel.boundingBox();
 
   expect(panelBounds!.height).toBeLessThan(100);
@@ -1847,7 +1851,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
     .locator('[data-ui~="plan-board"]')
     .screenshot({ path: 'artifacts/ui/case-tree-editor.png' });
 
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toBeHidden();
   const root = stored!.plan!.nodes.root;
 
@@ -1942,7 +1946,7 @@ test('converts text to independent action and assertion cards and preserves fail
   await dialog.getByRole('button', { name: '生成', exact: true }).click();
   await expect(dialog.locator('[data-step-type="act"]')).toContainText('点击登录');
   await expect(dialog.locator('[data-step-type="assert"]')).toContainText('显示邮箱表单');
-  await expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: '保存' })).toBeDisabled();
   await dialog.getByRole('button', { name: '全部接受' }).click();
   await dialog.getByRole('button', { name: '编辑节点 a:act', exact: true }).click();
   await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('点击邮箱登录');

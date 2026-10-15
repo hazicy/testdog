@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import editorStyles from '@/features/test-cases/components/test-editor.module.css';
 import styles from './CasePrompt.module.css';
 
@@ -42,6 +44,7 @@ export function CasePrompt({
   submitLabel,
   onSubmit,
 }: Props) {
+  const t = useTranslations('editor');
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const [hint, setHint] = useState('');
 
@@ -97,8 +100,8 @@ export function CasePrompt({
                   size: 'icon-sm',
                   className: styles.close,
                 })}
-                aria-label={busy ? '取消生成' : '关闭描述输入'}
-                title={busy ? '取消生成（Esc）' : '关闭（Esc）'}
+                aria-label={busy ? t('cancelGeneration') : t('closePrompt')}
+                title={busy ? t('cancelGenerationEsc') : t('closeEsc')}
               >
                 <Icon icon={closeIcon} width="18" aria-hidden="true" />
               </Dialog.Close>
@@ -108,7 +111,7 @@ export function CasePrompt({
               ref={promptRef}
               id="case-prompt"
               name="caseText"
-              aria-label="测试步骤与预期结果"
+              aria-label={t('stepsAndResults')}
               className={editorStyles.casePromptInput}
               placeholder={hint}
               maxLength={20000}
@@ -140,7 +143,7 @@ export function CasePrompt({
                 disabled={busy || !value.trim()}
                 title="⌘ / Ctrl + Enter"
               >
-                {busy ? '生成中…' : submitLabel}
+                {busy ? t('generating') : submitLabel}
                 <Icon icon={arrowRightIcon} width="16" aria-hidden="true" />
               </Button>
             </div>

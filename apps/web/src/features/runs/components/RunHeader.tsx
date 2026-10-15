@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import clsx from 'clsx';
 import { Tooltip } from '@/components/ui/Tooltip';
 import styles from './RunHeader.module.css';
@@ -16,7 +18,6 @@ import recordIcon from '@iconify-icons/lucide/rotate-cw';
 import { RunLayoutPopover } from '@/features/runs/components/RunLayoutPopover';
 import type { RunLayout } from '@/features/runs/lib/runLayout';
 import { isActiveRun, type TestRun } from '@testdog/contracts/runs/types';
-import { statuses } from '@/features/runs/presentation';
 
 type Props = {
   id: string;
@@ -43,6 +44,9 @@ export function RunHeader({
   cancel,
   exportReport,
 }: Props) {
+  const t = useTranslations('runs');
+  const statusText = useTranslations('workspace');
+
   return (
     <header className={styles.header}>
       <div className={styles.identity}>
@@ -50,17 +54,17 @@ export function RunHeader({
           <Link
             href="/runs"
             className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
-            aria-label="返回执行记录"
-            title="返回执行记录"
+            aria-label={t('backToRuns')}
+            title={t('backToRuns')}
           >
             <Icon icon={backIcon} width="16" aria-hidden="true" />
           </Link>
         )}
         <div className={styles.titleGroup}>
-          <p className={styles.accessibleLabel}>执行记录 / {id.slice(0, 8)}</p>
+          <p className={styles.accessibleLabel}>{t('runId', { id: id.slice(0, 8) })}</p>
           <Tooltip content={run?.name} disabled={!run?.name}>
             <h1 className={styles.title} tabIndex={run?.name ? 0 : undefined}>
-              {run?.name || '加载执行记录…'}
+              {run?.name || t('loadingRun')}
             </h1>
           </Tooltip>
           {run && (
@@ -70,51 +74,47 @@ export function RunHeader({
               className={clsx(statusStyles(run.status), styles.status)}
             >
               <span />
-              {statuses[run.status]}
+              {statusText(run.status)}
             </span>
           )}
         </div>
       </div>
-      <div className={styles.executionActions} role="group" aria-label="执行操作">
+      <div className={styles.executionActions} role="group" aria-label={t('runActions')}>
         {run && isActiveRun(run.status) ? (
           <Button
             variant="soft"
             size="sm"
             className={styles.executionButton}
             disabled={busy || run.cancelRequested}
-            aria-label={run.cancelRequested ? '正在停止…' : '停止执行'}
-            title={run.cancelRequested ? '正在停止…' : '停止执行'}
+            aria-label={run.cancelRequested ? t('stopping') : t('stopRun')}
+            title={run.cancelRequested ? t('stopping') : t('stopRun')}
             onClick={() => void cancel()}
           >
             <Icon icon={stopIcon} width="16" aria-hidden="true" />
-            {run.cancelRequested ? '正在停止…' : '停止'}
+            {run.cancelRequested ? t('stopping') : t('stop')}
           </Button>
         ) : (
           run && (
             <>
               <Button
                 disabled={busy || !run.replayable}
-                title={
-                  run.replayable
-                    ? '按已录制的步骤重新运行并验证结果'
-                    : '需先完成录制，并确保每个操作目标都能准确定位'
-                }
+                title={run.replayable ? t('replayHint') : t('recordFirst')}
                 variant="soft"
                 size="sm"
                 className={styles.executionButton}
-                aria-label="重新运行"
+                aria-label={t('rerun')}
                 onClick={() => void start('replay')}
               >
                 <Icon icon={resultsIcon} width="16" aria-hidden="true" />
-                重新运行
+                {t('rerun')}
               </Button>
               {run.testId && (
                 <Button
                   variant="ghost"
                   size="icon-xs"
                   className={styles.recordButton}
-                  aria-label="重新录制"
-                  title="重新录制"
+                  aria-label={t('rerecord')}
+                  title={t('rerecord')}
                   disabled={busy}
                   onClick={() => void start('record')}
                 >
@@ -129,8 +129,8 @@ export function RunHeader({
           variant="ghost"
           size="icon-xs"
           className={styles.recordButton}
-          aria-label="导出执行报告"
-          title="导出执行报告"
+          aria-label={t('exportReport')}
+          title={t('exportReport')}
           onClick={() => void exportReport()}
         >
           <Icon icon={downloadIcon} width="16" aria-hidden="true" />

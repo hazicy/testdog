@@ -225,7 +225,7 @@ test('canvas settings and embedded trial work on portrait and landscape phones',
     }
 
     await panel.getByRole('button', { name: '收起面板', exact: true }).click();
-    await panel.getByRole('button', { name: 'Run', exact: true }).click();
+    await panel.getByRole('button', { name: '试跑', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: /草稿试跑/ });
     const dock = dialog.getByLabel('执行工作台', { exact: true });
 
@@ -297,7 +297,7 @@ test('all integration configuration dialogs fit a touch phone', async ({ page })
     }),
   );
   await page.goto('/integrations');
-  for (const name of ['配置Browserless', '配置飞书', '配置邮件']) {
+  for (const name of ['配置Browserless', '配置飞书群机器人', '配置Email 邮件']) {
     await page.getByRole('button', { name, exact: true }).click();
     const dialog = page.getByRole('dialog');
 
