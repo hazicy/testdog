@@ -46,6 +46,49 @@ describe('mobile browser environments', () => {
     }, 30000);
   }
 
+  for (const [browser, deviceProfile] of [
+    ['chromium', 'legacy-desktop'],
+    ['chromium', 'Pixel 7'],
+    ['webkit', 'iPhone 13'],
+  ] as const) {
+    it(`applies a custom UA to navigator and HTTP requests for ${deviceProfile}`, async () => {
+      vi.stubEnv('AUTOMATION_HEADLESS', 'true');
+      const target = TestTargetSchema.parse({
+        platform: 'web',
+        browser,
+        deviceProfile,
+        userAgent: 'Caseforge-Test/1.0',
+      }) as WebTarget;
+      const profile = resolveWebProfile(target);
+      const defaults = resolveWebProfile({ ...target, userAgent: undefined });
+      const instance = await launchWebBrowser(target);
+
+      try {
+        const context = await instance.newContext(profile);
+        const page = await context.newPage();
+        const url = 'https://ua.test/';
+
+        await page.route(url, (route) =>
+          route.fulfill({ contentType: 'text/html', body: '<title>UA</title>' }),
+        );
+        const [request] = await Promise.all([page.waitForRequest(url), page.goto(url)]);
+
+        expect(await request.headerValue('user-agent')).toBe(target.userAgent);
+        expect(await page.evaluate(() => navigator.userAgent)).toBe(target.userAgent);
+        expect(profile.viewport).toEqual(defaults.viewport);
+        expect(profile.hasTouch).toBe(defaults.hasTouch);
+      } finally {
+        await instance.close();
+      }
+    }, 30000);
+  }
+
+  it('rejects empty, multiline and oversized UA values', () => {
+    for (const userAgent of ['', '   ', 'Test\r\nInjected: value', 'a'.repeat(2049)]) {
+      expect(TestTargetSchema.safeParse({ platform: 'web', userAgent }).success).toBe(false);
+    }
+  });
+
   it('preserves legacy desktop and rejects mismatched profiles and native URLs', () => {
     expect(
       resolveWebProfile({

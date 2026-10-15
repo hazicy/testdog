@@ -28,6 +28,7 @@ export function CaseSettings({
   const {
     platform,
     webProfile,
+    userAgent,
     appId,
     deviceProfileId,
     buildArtifactId,
@@ -61,22 +62,38 @@ export function CaseSettings({
         />
       </Label>
       {platform === 'web' ? (
-        <Label>
-          浏览器与设备
-          <Select
-            aria-label="浏览器与设备"
-            value={webProfile}
-            disabled={busy}
-            onValueChange={(value) =>
-              onChange({ webProfile: value as CaseSettingsValue['webProfile'] })
-            }
-            items={[
-              { value: 'legacy-desktop', label: '桌面 · Chromium' },
-              { value: 'Pixel 7', label: 'Pixel 7 · Chromium' },
-              { value: 'iPhone 13', label: 'iPhone 13 · WebKit' },
-            ]}
-          />
-        </Label>
+        <>
+          <Label>
+            浏览器与设备
+            <Select
+              aria-label="浏览器与设备"
+              value={webProfile}
+              disabled={busy}
+              onValueChange={(value) =>
+                onChange({ webProfile: value as CaseSettingsValue['webProfile'] })
+              }
+              items={[
+                { value: 'legacy-desktop', label: '桌面 · Chromium' },
+                { value: 'Pixel 7', label: 'Pixel 7 · Chromium' },
+                { value: 'iPhone 13', label: 'iPhone 13 · WebKit' },
+              ]}
+            />
+          </Label>
+          <Label>
+            User-Agent <span className={styles.optionalHint}>（可选）</span>
+            <Input
+              aria-label="User-Agent"
+              value={userAgent}
+              disabled={busy}
+              maxLength={2048}
+              onChange={(event) => onChange({ userAgent: event.target.value })}
+              placeholder="使用设备默认值"
+              spellCheck={false}
+              autoCapitalize="none"
+              autoCorrect="off"
+            />
+          </Label>
+        </>
       ) : (
         <>
           <Label>

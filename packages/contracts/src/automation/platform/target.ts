@@ -13,6 +13,13 @@ export const WebTargetSchema = z
     url: z.union([HttpUrlSchema, z.literal('')]).default(''),
     browser: z.enum(['chromium', 'webkit']).default('chromium'),
     deviceProfile: z.enum(['Pixel 7', 'iPhone 13', 'legacy-desktop']).default('legacy-desktop'),
+    userAgent: z
+      .string()
+      .trim()
+      .min(1)
+      .max(2048)
+      .refine((value) => !/[\r\n]/.test(value), 'User-Agent 不能包含换行')
+      .optional(),
     locale: z.string().min(1).optional(),
     timezoneId: z.string().min(1).optional(),
   })

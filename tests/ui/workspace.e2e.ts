@@ -736,6 +736,7 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
           platform: 'web',
           url: '',
           deviceProfile: 'legacy-desktop',
+          userAgent: 'Caseforge-Test/1.0',
         },
       },
     });
@@ -762,6 +763,9 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
   const canvas = page.getByRole('region', { name: '测试画板' });
   const start = canvas.getByRole('button', { name: 'Run', exact: true });
 
+  await openSettings(canvas);
+  await canvas.getByRole('textbox', { name: 'User-Agent', exact: true }).fill('Caseforge-Test/1.0');
+  await canvas.getByRole('button', { name: '收起面板', exact: true }).click();
   await start.click();
   await expect(canvas.getByRole('alert')).toHaveText('试跑暂时失败');
   expect(testWrites).toBe(0);
@@ -820,6 +824,10 @@ test('web settings choose desktop and mobile devices without changing platform',
   const canvas = page.getByRole('region', { name: '测试画板' });
 
   await openSettings(canvas);
+  const ua = canvas.getByRole('textbox', { name: 'User-Agent', exact: true });
+
+  await expect(ua).toHaveValue('');
+  await ua.fill('Caseforge-Test/1.0');
   const device = canvas.getByRole('combobox', { name: '浏览器与设备' });
 
   await expect(device).toContainText('桌面');
@@ -834,6 +842,15 @@ test('web settings choose desktop and mobile devices without changing platform',
   await page.getByRole('option', { name: '桌面 · Chromium', exact: true }).click();
   await expect(device).toContainText('桌面');
   await expect(canvas.getByRole('combobox', { name: '平台', exact: true })).toContainText('Web');
+  await expect(ua).toHaveValue('Caseforge-Test/1.0');
+  await canvas.getByRole('button', { name: '收起面板', exact: true }).click();
+  await page.reload();
+  await openSettings(canvas);
+  await expect(ua).toHaveValue('Caseforge-Test/1.0');
+  await ua.clear();
+  await canvas.getByRole('button', { name: '收起面板', exact: true }).click();
+  await openSettings(canvas);
+  await expect(ua).toHaveValue('');
 });
 
 test('replay contains portrait landscape square and ultrawide media within the panel', async ({

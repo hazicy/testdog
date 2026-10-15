@@ -4,13 +4,18 @@ import { WebTargetSchema, type WebTarget } from '@testdog/contracts/automation/p
 export function resolveWebProfile(input: WebTarget): BrowserContextOptions {
   const target = WebTargetSchema.parse(input);
 
-  if (target.deviceProfile === 'legacy-desktop') return { viewport: { width: 1280, height: 800 } };
+  if (target.deviceProfile === 'legacy-desktop')
+    return {
+      viewport: { width: 1280, height: 800 },
+      ...(target.userAgent ? { userAgent: target.userAgent } : {}),
+    };
   const { defaultBrowserType: _browser, ...descriptor } = devices[target.deviceProfile];
 
   void _browser;
 
   return {
     ...descriptor,
+    ...(target.userAgent ? { userAgent: target.userAgent } : {}),
     ...(target.locale ? { locale: target.locale } : {}),
     ...(target.timezoneId ? { timezoneId: target.timezoneId } : {}),
   };
