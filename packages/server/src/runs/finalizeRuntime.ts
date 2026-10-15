@@ -1,4 +1,4 @@
-import type { PlatformRuntime } from '@testdog/server/runs/runtime';
+import type { PlatformRuntime } from '@testdog/server/runs/runtimeTypes';
 
 async function within<T>(operation: Promise<T>, timeoutMs: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;

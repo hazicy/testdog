@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 import type { RunSummary } from '@testdog/contracts/runs/types';
-import type { WorkspaceStats } from '@testdog/server/workspace/queries';
+import { emptyRunCounts, type WorkspaceStats } from '@testdog/contracts/workspace/types';
 import { fetchJson } from '@/client/api';
 import { useRealtime } from '@/client/useRealtime';
 import { retryVisibleRequest } from '@/client/swr';
@@ -16,15 +16,7 @@ type ListPage = {
   nextCursor?: string | null;
 };
 
-const emptyCounts: WorkspaceStats['counts'] = {
-  queued: 0,
-  preparing: 0,
-  running: 0,
-  finalizing: 0,
-  passed: 0,
-  failed: 0,
-  cancelled: 0,
-};
+const emptyCounts = emptyRunCounts();
 
 export function useWorkspaceData(isTests: boolean) {
   const [error, setError] = useState('');

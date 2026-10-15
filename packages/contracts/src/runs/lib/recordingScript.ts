@@ -225,6 +225,124 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
     };
   };
 
+  // Helper calls, assertions and page actions have separate validation rules.
+  const readHelper = (step: RecordingOperation, call: Ast) => {
+    const args = call.arguments || [];
+    const name = call.callee?.name;
+
+    step.pageId = pageId(args[0]);
+    if (name === 'expectPage' && args.length === 2) {
+      step.kind = 'assertion';
+      step.assertion = { description: str(args[1]) };
+      step.title = step.assertion.description;
+      if (!step.title.trim()) fail('预期不能为空');
+    } else if (name === 'expectBranch' && args.length === 3) {
+      step.kind = 'branch';
+      step.condition = str(args[1]);
+      const expected = literal(args[2]);
+
+      if (typeof expected !== 'boolean') fail('分支预期须为布尔值');
+      step.decision = expected as boolean;
+      step.title = `判断条件：${step.condition}`;
+      if (!step.condition.trim()) fail('分支条件不能为空');
+    } else if (name === 'waitFor' && args.length === 4) {
+      step.kind = 'wait';
+      step.action = action({
+        type: 'wait',
+        condition: str(args[1]),
+        value: str(args[2]),
+        timeoutMs: literal(args[3]),
+      });
+    } else
+      fail(
+        '支持 expectPage(page, description)、expectBranch(page, condition, boolean)、waitFor(page, condition, value, timeoutMs)',
+      );
+  };
+
+  const readAssertion = (step: RecordingOperation, object: Ast, method: string, args: Ast[]) => {
+    let expected = object;
+    let negate = false;
+
+    if (expected.type === 'MemberExpression') {
+      const m = member(expected);
+
+      if (m.method !== 'not') fail('断言仅支持 .not');
+      expected = m.object;
+      negate = true;
+    }
+
+    if (
+      expected.type !== 'CallExpression' ||
+      expected.callee?.type !== 'Identifier' ||
+      expected.callee.name !== 'expect' ||
+      expected.arguments?.length !== 1
+    )
+      fail('断言写法：await expect(locator).toBeVisible()');
+    if (args.length !== (method === 'toBeVisible' ? 0 : 1)) fail('断言参数数量错误');
+    const subject = expected.arguments![0];
+    const target = method === 'toHaveURL' ? undefined : readLocator(subject);
+
+    step.pageId = target ? target.page : pageId(subject);
+    step.kind = 'assertion';
+    step.platformAssertion = PlatformAssertionSchema.parse({
+      platform: 'web',
+      type: assertionTypes[method],
+      target: target?.target,
+      negate,
+      ...(method !== 'toBeVisible' ? { value: str(args[0]) } : {}),
+    });
+    step.title = `${negate ? 'not.' : ''}${method} ${step.platformAssertion.value || target?.target.value || ''}`;
+  };
+
+  const readAction = (step: RecordingOperation, object: Ast, method: string, args: Ast[]) => {
+    if (method === 'goto' && args.length === 1) {
+      const url = str(args[0]);
+
+      try {
+        if (!['http:', 'https:'].includes(new URL(url).protocol)) fail('导航地址须为 HTTP(S)');
+      } catch {
+        fail('导航地址须为完整 HTTP(S) URL');
+      }
+
+      step.pageId = pageId(object);
+      step.kind = 'navigate';
+      step.action = action({
+        type: 'navigate',
+        target: { kind: 'css', value: '', name: '' },
+        value: url,
+      });
+    } else if (method === 'screenshot' && args.length === 0) {
+      step.pageId = pageId(object);
+      step.kind = 'action';
+      step.action = action({
+        type: 'screenshot',
+        target: { kind: 'css', value: '', name: '' },
+        value: '',
+      });
+    } else if (method === 'waitForTimeout' && args.length === 1) {
+      step.pageId = pageId(object);
+      step.kind = 'wait';
+      step.action = action({
+        type: 'wait',
+        condition: 'observe',
+        value: '',
+        timeoutMs: literal(args[0]),
+      });
+    } else if (
+      ['click', 'fill', 'press'].includes(method) &&
+      args.length === (method === 'click' ? 0 : 1)
+    ) {
+      const result = readLocator(object);
+
+      step.pageId = result.page;
+      step.action = action({
+        type: method,
+        target: result.target,
+        value: method === 'click' ? '' : str(args[0]),
+      });
+    } else fail('支持 goto、click、fill、press、waitForTimeout');
+  };
+
   let previousEnd = 0;
 
   for (const statement of program.body || []) {
@@ -250,118 +368,12 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
       ...(nodeMatch ? { planNodeId: nodeMatch[1].trim() } : {}),
     };
 
-    if (call.callee?.type === 'Identifier') {
-      const name = call.callee.name;
-
-      step.pageId = pageId(args[0]);
-      if (name === 'expectPage' && args.length === 2) {
-        step.kind = 'assertion';
-        step.assertion = { description: str(args[1]) };
-        step.title = step.assertion.description;
-        if (!step.title.trim()) fail('预期不能为空');
-      } else if (name === 'expectBranch' && args.length === 3) {
-        step.kind = 'branch';
-        step.condition = str(args[1]);
-        const expected = literal(args[2]);
-
-        if (typeof expected !== 'boolean') fail('分支预期须为布尔值');
-        step.decision = expected as boolean;
-        step.title = `判断条件：${step.condition}`;
-        if (!step.condition.trim()) fail('分支条件不能为空');
-      } else if (name === 'waitFor' && args.length === 4) {
-        step.kind = 'wait';
-        step.action = action({
-          type: 'wait',
-          condition: str(args[1]),
-          value: str(args[2]),
-          timeoutMs: literal(args[3]),
-        });
-      } else
-        fail(
-          '支持 expectPage(page, description)、expectBranch(page, condition, boolean)、waitFor(page, condition, value, timeoutMs)',
-        );
-    } else {
+    if (call.callee?.type === 'Identifier') readHelper(step, call);
+    else {
       const { object, method } = member(call.callee);
 
-      if (Object.hasOwn(assertionTypes, method)) {
-        let expected = object;
-        let negate = false;
-
-        if (expected.type === 'MemberExpression') {
-          const m = member(expected);
-
-          if (m.method !== 'not') fail('断言仅支持 .not');
-          expected = m.object;
-          negate = true;
-        }
-
-        if (
-          expected.type !== 'CallExpression' ||
-          expected.callee?.type !== 'Identifier' ||
-          expected.callee.name !== 'expect' ||
-          expected.arguments?.length !== 1
-        )
-          fail('断言写法：await expect(locator).toBeVisible()');
-        if (args.length !== (method === 'toBeVisible' ? 0 : 1)) fail('断言参数数量错误');
-        const subject = expected.arguments![0];
-        const target = method === 'toHaveURL' ? undefined : readLocator(subject);
-
-        step.pageId = target ? target.page : pageId(subject);
-        step.kind = 'assertion';
-        step.platformAssertion = PlatformAssertionSchema.parse({
-          platform: 'web',
-          type: assertionTypes[method],
-          target: target?.target,
-          negate,
-          ...(method !== 'toBeVisible' ? { value: str(args[0]) } : {}),
-        });
-        step.title = `${negate ? 'not.' : ''}${method} ${step.platformAssertion.value || target?.target.value || ''}`;
-      } else if (method === 'goto' && args.length === 1) {
-        const url = str(args[0]);
-
-        try {
-          if (!['http:', 'https:'].includes(new URL(url).protocol)) fail('导航地址须为 HTTP(S)');
-        } catch {
-          fail('导航地址须为完整 HTTP(S) URL');
-        }
-
-        step.pageId = pageId(object);
-        step.kind = 'navigate';
-        step.action = action({
-          type: 'navigate',
-          target: { kind: 'css', value: '', name: '' },
-          value: url,
-        });
-      } else if (method === 'screenshot' && args.length === 0) {
-        step.pageId = pageId(object);
-        step.kind = 'action';
-        step.action = action({
-          type: 'screenshot',
-          target: { kind: 'css', value: '', name: '' },
-          value: '',
-        });
-      } else if (method === 'waitForTimeout' && args.length === 1) {
-        step.pageId = pageId(object);
-        step.kind = 'wait';
-        step.action = action({
-          type: 'wait',
-          condition: 'observe',
-          value: '',
-          timeoutMs: literal(args[0]),
-        });
-      } else if (
-        ['click', 'fill', 'press'].includes(method) &&
-        args.length === (method === 'click' ? 0 : 1)
-      ) {
-        const result = readLocator(object);
-
-        step.pageId = result.page;
-        step.action = action({
-          type: method,
-          target: result.target,
-          value: method === 'click' ? '' : str(args[0]),
-        });
-      } else fail('支持 goto、click、fill、press、waitForTimeout');
+      if (Object.hasOwn(assertionTypes, method)) readAssertion(step, object, method, args);
+      else readAction(step, object, method, args);
     }
 
     if (step.action?.platform === 'web') {

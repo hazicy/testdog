@@ -8,8 +8,7 @@ import { fetchJson } from '@/client/api';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@iconify/react/offline';
 import xIcon from '@iconify-icons/lucide/x';
-import type { readModelUsage } from '@testdog/server/runs/modelUsage';
-import type { ModelCallSummary } from '@testdog/contracts/runs/modelCalls';
+import type { ModelCallSummary, ModelUsage } from '@testdog/contracts/runs/modelCalls';
 import { ModelCallTrajectory } from './ModelCallTrajectory';
 
 const statuses = { passed: '完成', failed: '失败', cancelled: '已取消', timeout: '超时' };
@@ -24,7 +23,7 @@ export function ModelUsagePanel({
   onStep: (id: string) => void;
 }) {
   const data = useSWR<{
-    usage: Awaited<ReturnType<typeof readModelUsage>>;
+    usage: ModelUsage;
     calls: ModelCallSummary[];
   }>(`/api/runs/${id}/model-usage`, fetchJson, { refreshInterval: active ? 5000 : 0 });
   const [query, setQuery] = useState('');
@@ -71,8 +70,24 @@ export function ModelUsagePanel({
   }, [active, mutate]);
 
   useEffect(() => {
-    if (following.current && scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
-  }, [data.data]);
+    const element = scroll.current;
+
+    if (!element) return;
+    const follow = () => {
+      if (following.current) element.scrollTop = element.scrollHeight;
+    };
+
+    const observer = new ResizeObserver(follow);
+
+    // Follow changes to both the dock size and the list, without a parent timer.
+    observer.observe(element);
+    const list = element.querySelector('ol');
+
+    if (list) observer.observe(list);
+    follow();
+
+    return () => observer.disconnect();
+  }, [data.data, search]);
 
   return (
     <section

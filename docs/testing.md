@@ -19,7 +19,7 @@ pnpm build
 pnpm test:ui
 ```
 
-类型检查由各应用和包覆盖自己的源码与同目录测试，Web 同时生成 Next.js 路由类型；根 `typecheck:repo` 只检查 `tests/` 和根配置。被导入的源码仍按需读取。automation 的跨包集成测试通过开发依赖使用 server；类型检查不依赖其他包构建产物，因此使用 `--no-sort`。
+类型检查由各应用和包覆盖自己的源码与同目录测试，Web 同时生成 Next.js 路由类型；根 `typecheck:repo` 只检查 `tests/` 和根配置。被导入的源码仍按需读取。涉及证据归档、数据库和构建登记的跨包集成测试位于 server；automation 的测试只依赖执行引擎和共享协议。类型检查不依赖其他包构建产物，因此使用 `--no-sort`。
 
 默认测试使用隔离 PGlite 与真实 Chromium，不连接 `.env` 的远程数据库，不调用真实模型。Vitest 最多并发四个进程。`pnpm test:ui` 使用生产构建与 API mock，要求本机 3100 端口可用。浏览器组件的导入边界由 ESLint 和 `tests/architecture.test.ts` 检查。
 
@@ -49,7 +49,7 @@ CASEFORGE_TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/caseforge_test_sche
 真实设备验证使用自建测试 app。Android 需指定已启动的专用 emulator、SDK 36 和 build-tools 36.0.0，Java 路径可用 `CASEFORGE_JAVA_HOME` 指定；iOS 会创建并删除独立 simulator，需要 macOS/Xcode：
 
 ```bash
-RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/android-sdk pnpm exec vitest run packages/automation/src/platform/native/agentDevice.live.test.ts
+RUN_DEVICE_LIVE_TESTS=true CASEFORGE_ANDROID_SERIAL=emulator-5580 ANDROID_SDK_ROOT=/path/to/android-sdk pnpm exec vitest run packages/server/src/runs/agentDevice.live.test.ts
 ```
 
 浏览器工作台的 live 验收需要先启动本地服务，仍使用隔离 API fixtures：

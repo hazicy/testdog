@@ -1,4 +1,4 @@
-import { normalizeReplaySteps } from '@testdog/server/runs/replay';
+import { normalizeReplaySteps } from '@testdog/contracts/runs/lib/replay';
 import { beforeEach, expect, it, vi } from 'vitest';
 import type {
   ActionPlanner,

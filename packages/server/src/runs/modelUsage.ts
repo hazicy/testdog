@@ -1,7 +1,11 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { modelCalls, runSteps } from '@testdog/server/db/schema';
-import type { ModelCallSummary, ModelCallDetail } from '@testdog/contracts/runs/modelCalls';
+import type {
+  ModelCallSummary,
+  ModelCallDetail,
+  ModelUsage,
+} from '@testdog/contracts/runs/modelCalls';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import type { ModelCallMetric } from '@testdog/automation/llm/budget';
 import { runWrite } from '@testdog/server/scheduling/lease';
@@ -77,7 +81,7 @@ export async function readModelCall(runId: string, callId: string): Promise<Mode
   };
 }
 
-export async function readModelUsage(runId: string) {
+export async function readModelUsage(runId: string): Promise<ModelUsage> {
   const [usage] = await db
     .select({
       calls: sql<number>`coalesce(sum(1 + ${modelCalls.retryCount}), 0)::int`,

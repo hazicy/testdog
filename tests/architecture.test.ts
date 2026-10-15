@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { ESLint } from 'eslint';
 import { beforeAll, expect, it } from 'vitest';
 
@@ -158,3 +159,21 @@ it.each([
 ])('blocks reverse package dependencies in %s: %s', async (filePath, dependency) => {
   expect(await violations(`import '${dependency}';`, filePath)).toHaveLength(1);
 });
+
+it.each([
+  ['contracts', []],
+  ['automation', ['@testdog/contracts']],
+  ['server', ['@testdog/contracts', '@testdog/automation']],
+] as const)(
+  'keeps %s package dependencies in the intended direction, including tests',
+  (name, allowed) => {
+    const manifest = JSON.parse(readFileSync(`packages/${name}/package.json`, 'utf8'));
+    const internal = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }).filter(
+      (dependency) => dependency.startsWith('@testdog/'),
+    );
+
+    expect(
+      internal.filter((dependency) => !(allowed as readonly string[]).includes(dependency)),
+    ).toEqual([]);
+  },
+);

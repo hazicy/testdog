@@ -34,7 +34,8 @@ vi.mock('@testdog/server/runs/deviceRecorder', () => ({
   },
 }));
 import { browserConnection } from '@testdog/automation/platform/web/providers/contracts';
-import { openPlatformRuntime, RuntimeOpenError } from '@testdog/server/runs/runtime';
+import { openPlatformRuntime } from '@testdog/server/runs/runtime';
+import { RuntimeOpenError } from '@testdog/server/runs/runtimeTypes';
 import { finalizeRuntime } from '@testdog/server/runs/finalizeRuntime';
 
 beforeEach(() => {

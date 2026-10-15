@@ -19,8 +19,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "catalog:",
-    "@testdog/server": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

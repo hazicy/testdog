@@ -1,15 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 
 // One connection per page. React state changes do not recreate its event handlers.
 export function useRealtime(url: string | null, onEvent: (event: string, data: unknown) => void) {
-  const handler = useRef(onEvent);
+  const handleEvent = useEffectEvent(onEvent);
   const [connected, setConnected] = useState(false);
 
-  useEffect(() => {
-    handler.current = onEvent;
-  }, [onEvent]);
   useEffect(() => {
     let source: EventSource | undefined;
     let active = true;
@@ -38,7 +35,7 @@ export function useRealtime(url: string | null, onEvent: (event: string, data: u
       for (const name of ['snapshot', 'updates', 'preview', 'changed'])
         source.addEventListener(name, (event) => {
           try {
-            handler.current(name, JSON.parse((event as MessageEvent).data));
+            handleEvent(name, JSON.parse((event as MessageEvent).data));
           } catch {
             disconnect();
           }

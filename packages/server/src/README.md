@@ -8,7 +8,7 @@
 - `runs/repository.ts`：执行详情、步骤、事件、日志和附件的数据库读写。
 - `runs/records.ts`：数据库行到公开执行数据的纯映射，供查询、提交和实时增量共用。
 - `runs/run.ts`、`runtime.ts`：执行生命周期、平台运行时装配和取消控制。
-- `runs/replay.ts`：将统一录制操作组装为引擎使用的重放步骤。
+- `runs/webRuntime.ts`、`nativeRuntime.ts`：分别管理 Web 与原生环境的初始化、证据归档和清理；重放协议的纯转换位于 contracts 的 `runs/lib/replay.ts`。
 - `runs/recordings.ts`：录制版本查询、解析校验和保存；其他录制与附件模块负责证据采集和归档。
 - `issues/repository.ts`：问题查询、事务写入、执行证据快照与回归关联。
 - `scheduling`：资源登记、任务领取、租约校验、续约和恢复。

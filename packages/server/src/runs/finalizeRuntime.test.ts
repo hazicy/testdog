@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import type { PlatformRuntime } from '@testdog/server/runs/runtime';
+import type { PlatformRuntime } from '@testdog/server/runs/runtimeTypes';
 import { finalizeRuntime } from '@testdog/server/runs/finalizeRuntime';
 
 afterEach(() => vi.useRealTimers());

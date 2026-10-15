@@ -42,3 +42,13 @@ export type ModelCallDetail = {
     | 'action'
   >[];
 };
+
+export type ModelUsage = {
+  calls: number;
+  failures: number;
+  retries: number;
+  durationMs: number;
+  inputTokens: number;
+  outputTokens: number;
+  unknownUsage: number;
+};

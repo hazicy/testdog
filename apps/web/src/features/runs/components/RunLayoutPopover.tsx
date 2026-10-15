@@ -12,7 +12,7 @@ import focusIcon from '@iconify-icons/lucide/maximize';
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
 
-export type RunLayout = 'default' | 'review' | 'notes' | 'debug' | 'focus';
+import type { RunLayout } from '@/features/runs/lib/runLayout';
 
 const presets = [
   {

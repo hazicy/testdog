@@ -2,7 +2,7 @@ import { chromium, type Browser, type Page } from 'playwright';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { PlaywrightSession } from '@testdog/automation/platform/web/playwrightSession';
 import { PlanRunner } from '@testdog/automation/planRunner';
-import { normalizeReplaySteps } from '@testdog/server/runs/replay';
+import { normalizeReplaySteps } from '@testdog/contracts/runs/lib/replay';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
 
 let browser: Browser;

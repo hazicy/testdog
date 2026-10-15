@@ -1,3 +1,4 @@
+import { emptyRunCounts, type WorkspaceStats } from '@testdog/contracts/workspace/types';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { and, desc, eq, inArray, sql, type SQLWrapper } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
@@ -7,21 +8,6 @@ import type { RunSummary } from '@testdog/contracts/runs/types';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
 
-const emptyCounts = () => ({
-  queued: 0,
-  preparing: 0,
-  running: 0,
-  finalizing: 0,
-  passed: 0,
-  failed: 0,
-  cancelled: 0,
-});
-
-export type WorkspaceStats = {
-  testCount: number;
-  runCount: number;
-  counts: ReturnType<typeof emptyCounts>;
-};
 const summaryColumns = {
   id: testRuns.id,
   testId: testRuns.testId,
@@ -48,7 +34,7 @@ const summary = (row: typeof testRuns.$inferSelect | Record<string, unknown>) =>
   ) as RunSummary;
 
 function validateStatus(status: string, tests = false) {
-  if (status !== 'all' && !(tests && status === 'none') && !Object.hasOwn(emptyCounts(), status))
+  if (status !== 'all' && !(tests && status === 'none') && !Object.hasOwn(emptyRunCounts(), status))
     throw new WorkspaceError('状态筛选参数无效。');
 }
 
@@ -144,7 +130,7 @@ export async function workspaceStats(userId: UserScope): Promise<WorkspaceStats>
           .where(ownedBy(testRuns.userId, userId))
           .groupBy(testRuns.status),
       ]);
-      const counts = emptyCounts();
+      const counts = emptyRunCounts();
 
       for (const row of runs) counts[row.status] = row.count;
 

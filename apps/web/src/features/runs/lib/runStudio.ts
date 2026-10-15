@@ -1,7 +1,5 @@
-import type { RunLayout } from '@/features/runs/components/RunLayoutPopover';
+import type { RunLayout, PanelId } from '@/features/runs/lib/runLayout';
 
-export type PanelId =
-  'steps' | 'issues' | 'plan' | 'execution' | 'recording' | 'logs' | 'console' | 'network';
 type View = Extract<PanelId, 'plan' | 'execution' | 'recording'>;
 export type EvidenceSource = Extract<PanelId, 'steps' | 'issues' | 'plan'>;
 type Cursor =

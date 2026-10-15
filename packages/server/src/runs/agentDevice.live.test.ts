@@ -1,4 +1,4 @@
-import { normalizeReplaySteps } from '@testdog/server/runs/replay';
+import { normalizeReplaySteps } from '@testdog/contracts/runs/lib/replay';
 import { SemanticEvaluator } from '@testdog/automation/evaluator';
 import { deepseekClient } from '@testdog/automation/llm/deepseek';
 import { PlanRunner } from '@testdog/automation/planRunner';

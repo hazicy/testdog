@@ -16,7 +16,6 @@ import {
 export function useRunData(id: string, previewEnabled: boolean) {
   const [preview, setPreview] = useState<Preview>();
   const [error, setError] = useState('');
-  const [now, setNow] = useState(0);
   const { cache } = useSWRConfig();
   const url = `/api/runs/${id}`;
   const connection = useRef({ url, connected: false });
@@ -25,8 +24,6 @@ export function useRunData(id: string, previewEnabled: boolean) {
     const { run: incoming } = await read();
     // HTTP reads and SSE share a cache; a delayed response must not roll it back.
     const current = cache.get(url)?.data as TestRun | undefined;
-
-    setNow(Date.now());
 
     return newestRun(current, incoming);
   }, [read, cache, url]);
@@ -56,7 +53,6 @@ export function useRunData(id: string, previewEnabled: boolean) {
   const unavailable = isUnavailable(loadError);
   const refresh = useCallback(async () => {
     await mutate();
-    setNow(Date.now());
     setError('');
   }, [mutate]);
   const wantsPreview = !!run && isActiveRun(run.status) && previewEnabled;
@@ -81,17 +77,9 @@ export function useRunData(id: string, previewEnabled: boolean) {
     },
   );
 
-  const active = !!run && isActiveRun(run.status);
-
   useEffect(() => {
     connection.current = { url, connected };
   }, [url, connected]);
-  useEffect(() => {
-    if (!active) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-
-    return () => clearInterval(timer);
-  }, [active]);
   const previewUrl =
     wantsPreview &&
     connected &&
@@ -108,7 +96,6 @@ export function useRunData(id: string, previewEnabled: boolean) {
       (loadError instanceof Error ? loadError.message : loadError ? '无法读取执行记录' : ''),
     setError,
     unavailable,
-    now,
     previewUrl,
     clearPreview: () => setPreview(undefined),
     refresh,

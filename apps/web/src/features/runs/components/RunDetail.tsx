@@ -9,7 +9,7 @@ import studioStyles from '@/features/runs/components/run-studio.module.css';
 
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
-import { DockTabs, type DockTab } from '@/components/ui/DockTabs';
+import { DockTabs } from '@/components/ui/DockTabs';
 import { isActiveRun } from '@testdog/contracts/runs/types';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -25,7 +25,8 @@ import { stepAtTime } from '@/features/runs/lib/boardResults';
 import { indexRun } from '@/features/runs/lib/runIndex';
 import { useRunData } from '@/features/runs/hooks/useRunData';
 import { useRunStudio } from '@/features/runs/hooks/useRunStudio';
-import type { EvidenceSource, PanelId } from '@/features/runs/lib/runStudio';
+import type { EvidenceSource } from '@/features/runs/lib/runStudio';
+import { runWorkspaceTabs, type PanelId } from '@/features/runs/lib/runLayout';
 import { RunHeader } from '@/features/runs/components/RunHeader';
 import { RunPlayer } from '@/features/runs/components/RunPlayer';
 import { BrowserLogPanel } from '@/features/runs/components/BrowserLogPanel';
@@ -38,30 +39,6 @@ import {
 } from '@/features/issues/components/RunIssues';
 import { time } from '@/features/runs/presentation';
 import { IssueEditor } from '@/features/issues/components/IssueEditor';
-
-const workspaceTabs = [
-  { id: 'steps', label: '执行步骤', initiallyVisible: true, initialWidthRatio: 0.382 },
-  { id: 'issues', label: '问题', reference: 'steps' },
-  { id: 'plan', label: '计划画板', reference: 'steps' },
-  {
-    id: 'execution',
-    label: '执行回放',
-    reference: 'steps',
-    direction: 'right',
-    initiallyVisible: true,
-  },
-  { id: 'recording', label: '编辑录制', reference: 'execution' },
-  { id: 'logs', label: '轨迹', reference: 'execution' },
-  {
-    id: 'console',
-    label: '控制台',
-    reference: 'execution',
-    direction: 'below',
-    initialHeight: 260,
-    initiallyCollapsed: true,
-  },
-  { id: 'network', label: '网络', reference: 'console' },
-] as const satisfies readonly DockTab[];
 
 const emptySteps: ExecutionStep[] = [];
 
@@ -443,69 +420,7 @@ export function RunDetail({
         key={`${id}:${layoutVersion}`}
         label="执行工作台"
         className={studioStyles.runStudioDock}
-        tabs={workspaceTabs
-          .map((tab): DockTab & { id: PanelId } => {
-            const configured: DockTab & { id: PanelId } = {
-              ...tab,
-              ...(tab.id === 'issues' ? { badge: runIssues.length } : {}),
-            };
-
-            if (layout === 'focus') {
-              return {
-                ...configured,
-                reference: tab.id === 'steps' ? undefined : 'steps',
-                direction: 'within',
-                initiallyVisible: tab.id === 'execution',
-                initiallyCollapsed: false,
-                initialWidthRatio: undefined,
-                initialHeight: undefined,
-              };
-            }
-
-            if (layout === 'default') return configured;
-            if (tab.id === 'steps') configured.initialWidthRatio = 0.28;
-            if (tab.id === 'console') configured.initiallyCollapsed = false;
-            if (layout === 'review' && tab.id === 'issues') {
-              configured.reference = 'execution';
-              configured.direction = 'right';
-              configured.initiallyVisible = true;
-              configured.initialWidthRatio = 0.28;
-            }
-
-            if (layout === 'notes' || layout === 'debug') {
-              if (tab.id === 'console') {
-                configured.direction = 'right';
-                configured.initialWidthRatio = 0.28;
-                configured.initiallyVisible = layout === 'debug';
-              }
-
-              if (tab.id === 'issues') {
-                configured.reference = 'console';
-                configured.direction = 'below';
-                configured.initiallyVisible = true;
-                configured.initialHeight = 260;
-              }
-
-              if (tab.id === 'console') configured.initiallyVisible = layout === 'notes';
-            }
-
-            return configured;
-          })
-          .sort((a, b) => {
-            // Create referenced panels before the panels positioned relative to them.
-            const order: PanelId[] = [
-              'steps',
-              'execution',
-              'logs',
-              'console',
-              'issues',
-              'plan',
-              'recording',
-              'network',
-            ];
-
-            return order.indexOf(a.id) - order.indexOf(b.id);
-          })}
+        tabs={runWorkspaceTabs(layout, runIssues.length)}
         revealPanels={revealPanels}
         value={view}
         onChange={(panel) => act({ type: 'panel', panel })}

@@ -13,7 +13,8 @@ import resultsIcon from '@iconify-icons/lucide/play';
 import backIcon from '@iconify-icons/lucide/chevron-left';
 import stopIcon from '@iconify-icons/lucide/square';
 import recordIcon from '@iconify-icons/lucide/rotate-cw';
-import { RunLayoutPopover, type RunLayout } from '@/features/runs/components/RunLayoutPopover';
+import { RunLayoutPopover } from '@/features/runs/components/RunLayoutPopover';
+import type { RunLayout } from '@/features/runs/lib/runLayout';
 import { isActiveRun, type TestRun } from '@testdog/contracts/runs/types';
 import { statuses } from '@/features/runs/presentation';
 

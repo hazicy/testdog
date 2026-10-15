@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { normalizeReplaySteps } from '@testdog/server/runs/replay';
+import { normalizeReplaySteps } from '@testdog/contracts/runs/lib/replay';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
 import type { PlatformAssertion } from '@testdog/contracts/automation/platform/contracts';
 

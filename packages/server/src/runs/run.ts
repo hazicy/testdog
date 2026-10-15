@@ -5,15 +5,12 @@ import { leaseScope, LostLeaseError, setRunPhase } from '@testdog/server/schedul
 import { releaseLease, renewLease } from '@testdog/server/scheduling/scheduler';
 import { appendEvent, savePlan } from '@testdog/server/runs/repository';
 import { finishRun } from '@testdog/server/runs/lifecycle';
-import { normalizeReplaySteps } from '@testdog/server/runs/replay';
+import { normalizeReplaySteps } from '@testdog/contracts/runs/lib/replay';
 import { TextCompiler } from '@testdog/automation/compiler/textCompiler';
 import { modelClient } from '@testdog/server/shared/model';
 import { PlanRunner } from '@testdog/automation/planRunner';
-import {
-  openPlatformRuntime,
-  RuntimeOpenError,
-  type PlatformRuntime,
-} from '@testdog/server/runs/runtime';
+import { openPlatformRuntime } from '@testdog/server/runs/runtime';
+import { RuntimeOpenError, type PlatformRuntime } from '@testdog/server/runs/runtimeTypes';
 import type { TestRun } from '@testdog/contracts/runs/types';
 import { RunAbortError } from '@testdog/server/runs/runAbort';
 import { finalizeRuntime } from '@testdog/server/runs/finalizeRuntime';
