@@ -3,6 +3,7 @@
 import boardStyles from '@/features/runs/components/plan-board.module.css';
 
 import { Icon } from '@iconify/react/offline';
+import navigate from '@iconify-icons/lucide/globe';
 import act from '@iconify-icons/lucide/zap';
 import assert from '@iconify-icons/lucide/eye';
 import login from '@iconify-icons/lucide/key-round';
@@ -13,6 +14,7 @@ import branch from '@iconify-icons/lucide/git-branch';
 import type { StepType } from '@testdog/contracts/automation/compiler/schema';
 
 export const stepTypes = [
+  { value: 'navigate', label: 'Navigate', description: '打开网站地址' },
   { value: 'act', label: 'Act', description: '操作页面或应用' },
   { value: 'assert', label: 'Assert', description: '验证预期结果' },
   { value: 'login', label: 'Login', description: '执行登录步骤' },
@@ -22,7 +24,7 @@ export const stepTypes = [
   { value: 'branch', label: 'Branch', description: '根据条件选择路径' },
 ] as const;
 export type BoardStepType = StepType | 'group' | 'branch';
-const icons = { act, assert, login, files, screenshot, group, branch };
+const icons = { navigate, act, assert, login, files, screenshot, group, branch };
 
 export function StepBadge({ type }: { type: BoardStepType }) {
   return (

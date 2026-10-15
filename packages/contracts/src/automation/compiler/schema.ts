@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { HttpUrlSchema } from '@testdog/contracts/automation/platform/target';
 
 export const TargetSchema = z.object({
   kind: z.enum(['role', 'label', 'placeholder', 'testId', 'css', 'text', 'ariaRef']),
@@ -25,7 +26,7 @@ export type WaitStep = z.infer<typeof WaitStepSchema>;
 const id = z.string().trim().min(1);
 const ids = z.array(id);
 
-const StepTypeSchema = z.enum(['act', 'assert', 'login', 'files', 'screenshot']);
+const StepTypeSchema = z.enum(['navigate', 'act', 'assert', 'login', 'files', 'screenshot']);
 
 export type StepType = z.infer<typeof StepTypeSchema>;
 
@@ -124,6 +125,16 @@ export const ExecutablePlanSchema = PlanSchema.superRefine((plan, ctx) => {
   for (const id of reachable) {
     const node = plan.nodes[id];
 
+    if (
+      node.kind === 'task' &&
+      node.actionType === 'navigate' &&
+      !HttpUrlSchema.safeParse(node.goal).success
+    )
+      ctx.addIssue({
+        code: 'custom',
+        message: '请在 Navigate 步骤中填写有效的 http 或 https 地址',
+        path: ['nodes', id, 'goal'],
+      });
     if (node.kind === 'task' && node.actionType === 'assert' && !node.assertions.length)
       ctx.addIssue({ code: 'custom', message: `验证步骤缺少预期结果：${id}` });
   }

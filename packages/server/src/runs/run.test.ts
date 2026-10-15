@@ -102,7 +102,7 @@ beforeEach(async () => {
     if (input.responseFormat?.name === 'plan')
       return {
         structuredContent: {
-          rootId: 'task',
+          rootId: 'root',
           nodes: [
             {
               id: 'task',
@@ -111,6 +111,22 @@ beforeEach(async () => {
               dependsOn: [],
               requirementIds: [],
               assertions: [{ description: 'Welcome Ada is visible' }],
+            },
+            {
+              id: 'open',
+              kind: 'task',
+              actionType: 'navigate',
+              goal: url,
+              dependsOn: [],
+              requirementIds: [],
+              assertions: [],
+            },
+            {
+              id: 'root',
+              kind: 'group',
+              goal: '页面测试',
+              children: ['open', 'task'],
+              dependsOn: [],
             },
           ],
         },
@@ -210,24 +226,42 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       url,
       context: { platform: 'web' },
     });
+    expect(recorded.plan?.nodes.open).toMatchObject({
+      actionType: 'navigate',
+      goal: url,
+    });
   });
   it('executes an authored tree without compiling its text again', async () => {
     const saved = await saveTest(
       {
         name: 'Board case',
-        url,
         goal: 'Original text',
         tags: [],
         target: {
           schemaVersion: 1,
           platform: 'web',
-          url,
           browser: 'chromium',
           deviceProfile: 'Pixel 7',
         },
         plan: {
-          rootId: 'authored',
+          rootId: 'root',
           nodes: {
+            root: {
+              id: 'root',
+              kind: 'group',
+              goal: 'Board case',
+              children: ['open', 'authored'],
+              dependsOn: [],
+            },
+            open: {
+              id: 'open',
+              kind: 'task',
+              actionType: 'navigate',
+              goal: url,
+              dependsOn: [],
+              requirementIds: [],
+              assertions: [],
+            },
             authored: {
               id: 'authored',
               kind: 'task',
@@ -248,6 +282,8 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     const recorded = await getRun(run.id, { userId: null });
 
     expect(recorded.status, recorded.error).toBe('passed');
+    expect(recorded.steps.filter((step) => step.kind === 'navigate')).toHaveLength(1);
+    expect(recorded.steps[0].planNodeId).toBe('open');
     expect(recorded.plan?.nodes.authored).toMatchObject({
       goal: 'Fill Ada and submit',
       assertions: [{ description: 'Welcome Ada is visible' }],
@@ -431,7 +467,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       if (input.responseFormat?.name === 'plan')
         return {
           structuredContent: {
-            rootId: 'popup',
+            rootId: 'root',
             nodes: [
               {
                 id: 'popup',
@@ -440,6 +476,22 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
                 dependsOn: [],
                 requirementIds: [],
                 assertions: [{ description: 'Popup ready is visible' }],
+              },
+              {
+                id: 'open',
+                kind: 'task',
+                actionType: 'navigate',
+                goal: url,
+                dependsOn: [],
+                requirementIds: [],
+                assertions: [],
+              },
+              {
+                id: 'root',
+                kind: 'group',
+                goal: '弹窗测试',
+                children: ['open', 'popup'],
+                dependsOn: [],
               },
             ],
           },

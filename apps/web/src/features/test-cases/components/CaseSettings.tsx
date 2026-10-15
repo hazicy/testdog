@@ -30,7 +30,6 @@ export function CaseSettings({
   busy: boolean;
 }) {
   const {
-    url,
     platform,
     webProfile,
     appId,
@@ -80,18 +79,6 @@ export function CaseSettings({
       </Label>
       {platform === 'web' ? (
         <>
-          <Label>
-            网站地址
-            <Input
-              required
-              type="url"
-              aria-label="网站地址"
-              value={url}
-              disabled={busy}
-              onChange={(event) => onChange({ url: event.target.value })}
-              placeholder="https://your-app.com"
-            />
-          </Label>
           <div className={styles.mobileProfile}>
             <label className={styles.field}>
               <Checkbox

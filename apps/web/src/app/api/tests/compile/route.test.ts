@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ compile: vi.fn(), auth: vi.fn() }));
@@ -112,7 +113,10 @@ it('authenticates, validates input and compiles text without saving a case', asy
   );
 
   expect(invalid.status).toBe(400);
-  mocks.compile.mockRejectedValueOnce(new Error('Provider unavailable'));
+  const failure = new Error('Provider unavailable');
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+  mocks.compile.mockRejectedValueOnce(failure);
   const failed = await POST(
     new Request('http://localhost/api/tests/compile', {
       method: 'POST',
@@ -122,6 +126,8 @@ it('authenticates, validates input and compiles text without saving a case', asy
 
   expect(failed.status).toBe(502);
   expect((await failed.json()).message).toContain('步骤生成失败');
+  expect(log).toHaveBeenCalledWith('步骤生成失败', failure);
+  log.mockRestore();
 });
 
 it('rejects removed input configuration before calling the compiler', async () => {
@@ -135,4 +141,28 @@ it('rejects removed input configuration before calling the compiler', async () =
 
   expect(response.status).toBe(400);
   expect(mocks.compile).not.toHaveBeenCalled();
+});
+
+it('reports invalid generated navigation URLs instead of hiding the validation failure', async () => {
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+  mocks.compile.mockRejectedValueOnce(
+    new z.ZodError([
+      {
+        code: 'custom',
+        message: '请在 Navigate 步骤中填写有效的 http 或 https 地址',
+        path: ['nodes', 'open', 'goal'],
+      },
+    ]),
+  );
+  const response = await POST(
+    new Request('http://localhost/api/tests/compile', {
+      method: 'POST',
+      body: JSON.stringify({ goal: '打开网站' }),
+    }),
+  );
+
+  expect(response.status).toBe(422);
+  expect((await response.json()).message).toContain('请在描述中提供完整的 http 或 https 地址');
+  log.mockRestore();
 });

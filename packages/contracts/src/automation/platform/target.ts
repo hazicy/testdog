@@ -10,7 +10,7 @@ export const WebTargetSchema = z
   .strictObject({
     schemaVersion: z.literal(1).default(1),
     platform: z.literal('web'),
-    url: HttpUrlSchema,
+    url: z.union([HttpUrlSchema, z.literal('')]).default(''),
     browser: z.enum(['chromium', 'webkit']).default('chromium'),
     deviceProfile: z.enum(['Pixel 7', 'iPhone 13', 'legacy-desktop']).default('Pixel 7'),
     locale: z.string().min(1).optional(),

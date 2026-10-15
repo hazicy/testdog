@@ -6,6 +6,7 @@ import {
   CapabilitySetSchema,
   PlatformAssertionSchema,
   type PlatformAction,
+  type CheckResult,
   type RunnerOptions,
   type SessionEvent,
   type ReplayStep,
@@ -61,10 +62,7 @@ export class PlanRunner {
         await this.traced(event, async () => {
           const result = await session.check(assertion, signal);
 
-          if (!result.passed)
-            throw Object.assign(new Error(result.evidence), { modelCallId: result.modelCallId });
-
-          return result;
+          return this.verify(result, true);
         });
       } else if (event.assertion || event.condition) {
         await this.traced(event, async () => {
@@ -73,10 +71,7 @@ export class PlanRunner {
             event.assertion ? 'assertion_result' : 'branch_result',
           );
 
-          if (event.assertion ? !result.passed : result.passed !== event.decision)
-            throw Object.assign(new Error(result.evidence), { modelCallId: result.modelCallId });
-
-          return result;
+          return this.verify(result, event.assertion ? true : event.decision);
         });
       } else throw new Error(`Missing replay content: ${event.title}`);
     }
@@ -113,7 +108,17 @@ export class PlanRunner {
 
   private async executeTask(node: Extract<PlanNode, { kind: 'task' }>) {
     await this.options.report?.(`执行任务：${node.goal}`);
-    if (node.actionType === 'screenshot') {
+    if (node.actionType === 'navigate') {
+      if (this.options.session.platform !== 'web') throw new Error('Navigate 步骤仅支持 Web 测试');
+      await this.action({
+        platform: 'web',
+        action: {
+          type: 'navigate',
+          target: { kind: 'css', value: '', name: '' },
+          value: node.goal.trim(),
+        },
+      });
+    } else if (node.actionType === 'screenshot') {
       await this.observe();
       const platform = this.options.session.platform;
 
@@ -137,10 +142,7 @@ export class PlanRunner {
         async () => {
           const result = await this.evaluate({ assertion }, 'assertion_result');
 
-          if (!result.passed)
-            throw Object.assign(new Error(result.evidence), { modelCallId: result.modelCallId });
-
-          return result;
+          return this.verify(result, true);
         },
       );
     }
@@ -216,6 +218,13 @@ export class PlanRunner {
       },
       () => session.perform(action, signal),
     );
+  }
+
+  private verify(result: CheckResult, expected: boolean | undefined): CheckResult {
+    if (result.passed !== expected)
+      throw Object.assign(new Error(result.evidence), { modelCallId: result.modelCallId });
+
+    return result;
   }
 
   private async evaluate(subject: Record<string, unknown>, name: string) {

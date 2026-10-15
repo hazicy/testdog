@@ -12,6 +12,13 @@ test.skipIf(process.env.RUN_LIVE_TESTS !== 'true')(
     );
 
     expect(PlanSchema.safeParse(plan).success).toBe(true);
+    expect(Object.values(plan.nodes)).toContainEqual(
+      expect.objectContaining({
+        kind: 'task',
+        actionType: 'navigate',
+        goal: 'https://example.com',
+      }),
+    );
     const assertions = Object.values(plan.nodes).flatMap((node) =>
       node.kind === 'task' ? node.assertions : [],
     );

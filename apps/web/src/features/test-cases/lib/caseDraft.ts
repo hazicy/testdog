@@ -7,7 +7,6 @@ export type CaseDraft = {
   test?: TestCase;
   duplicate?: boolean;
   name: string;
-  url: string;
   goal: string;
   plan: Plan;
   settings?: CaseSettingsValue;
@@ -23,13 +22,7 @@ export function readCaseDraft(id: string): CaseDraft | undefined {
     const raw = sessionStorage.getItem(key(id));
     const draft = raw ? JSON.parse(raw) : undefined;
 
-    if (
-      !draft ||
-      typeof draft.name !== 'string' ||
-      typeof draft.url !== 'string' ||
-      typeof draft.goal !== 'string'
-    )
-      return;
+    if (!draft || typeof draft.name !== 'string' || typeof draft.goal !== 'string') return;
     draft.plan = PlanSchema.parse(draft.plan);
 
     return draft;

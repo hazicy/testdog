@@ -101,6 +101,13 @@ describe('TextCompiler flat plan', () => {
       },
     ]);
   });
+  it.each(['constructor', 'toString'])('accepts the node ID %s as an own property', async (id) => {
+    respond({ rootId: id, nodes: [{ ...task, id }] });
+    const result = await new TextCompiler(model).compile({ goal: '登录' });
+
+    expect(Object.hasOwn(result.nodes, id)).toBe(true);
+    expect(result.nodes[id]).toEqual({ ...task, id });
+  });
   it('preserves an explicit otherwise reference', async () => {
     const content = compiled();
 
@@ -116,6 +123,28 @@ describe('TextCompiler flat plan', () => {
   });
   it.each([
     ['duplicate IDs', () => ({ ...compiled(), nodes: [...compiled().nodes, task] })],
+    [
+      'IDs that collide after trimming',
+      () => ({ ...compiled(), nodes: [...compiled().nodes, { ...task, id: ' login ' }] }),
+    ],
+    [
+      'unknown fields on nullable groups',
+      () => ({
+        ...compiled(),
+        nodes: compiled().nodes.map((node) =>
+          node.kind === 'group' ? { ...node, presentation: null, extra: true } : node,
+        ),
+      }),
+    ],
+    [
+      'unknown fields on nullable branches',
+      () => ({
+        ...compiled(),
+        nodes: compiled().nodes.map((node) =>
+          node.kind === 'branch' ? { ...node, extra: true } : node,
+        ),
+      }),
+    ],
     ['missing root', () => ({ ...compiled(), rootId: 'missing' })],
     [
       'dangling references',
@@ -166,4 +195,36 @@ it('regenerates a plan after validation feedback, without accepting an ancestor 
   expect(result.nodes.login.dependsOn).toEqual([]);
   expect(generate).toHaveBeenCalledTimes(2);
   expect(JSON.stringify(generate.mock.calls[1][0].messages)).toContain('Cycle detected');
+});
+
+it('regenerates navigation with a bare URL when the model returns an instruction as its goal', async () => {
+  const navigation = {
+    ...task,
+    id: 'open',
+    actionType: 'navigate',
+    goal: 'https://example.com/login',
+    assertions: [],
+  };
+
+  respond({ rootId: 'open', nodes: [navigation] });
+  generate.mockResolvedValueOnce({
+    role: 'assistant',
+    content: { type: 'text', text: '' },
+    toolCalls: [],
+    outputFormat: 'json_schema',
+    structuredContent: {
+      rootId: 'open',
+      nodes: [{ ...navigation, goal: '打开 https://example.com/login' }],
+    },
+  } as Awaited<ReturnType<ModelClient['generate']>>);
+  const result = await new TextCompiler(model).compile({ goal: '打开 https://example.com/login' });
+
+  expect(result.nodes.open).toMatchObject({
+    actionType: 'navigate',
+    goal: 'https://example.com/login',
+  });
+  expect(generate).toHaveBeenCalledTimes(2);
+  expect(JSON.stringify(generate.mock.calls[1][0].messages)).toContain(
+    '请在 Navigate 步骤中填写有效的 http 或 https 地址',
+  );
 });

@@ -19,13 +19,7 @@ import {
 } from '@/features/test-cases/lib/planReview';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import { testSchema } from '@testdog/contracts/test-cases/schemas';
-import {
-  caseName,
-  goalUrl,
-  editablePlan,
-  emptyPlan,
-  planText,
-} from '@/features/test-cases/lib/authoring';
+import { caseName, editablePlan, emptyPlan, planText } from '@/features/test-cases/lib/authoring';
 import { writeCaseDraft, type CaseDraft } from '@/features/test-cases/lib/caseDraft';
 import { CaseSettings } from '@/features/test-cases/components/CaseSettings';
 import { CasePrompt } from '@/features/test-cases/components/CasePrompt';
@@ -68,10 +62,9 @@ export function TestEditor({
     return {
       ...settings,
       ...initialDraft?.settings,
-      url: initialDraft?.url ?? settings.url,
     };
   });
-  const { url, platform, webProfile, appId, deviceProfileId, tags } = configuration;
+  const { platform, webProfile, appId, deviceProfileId, tags } = configuration;
 
   function changeSettings(patch: Partial<CaseSettingsValue>) {
     setConfiguration((current) => ({ ...current, ...patch }));
@@ -79,20 +72,19 @@ export function TestEditor({
 
   const [goal, setGoal] = useState(initialDraft?.goal ?? test?.goal ?? '');
   const [plan, setPlan] = useState<Plan>(() => {
-    if (initialDraft) return initialDraft.plan;
+    const source = initialDraft?.plan ?? test?.plan ?? emptyPlan(name);
 
-    return test?.plan ? editablePlan(test.plan, name) : emptyPlan(name);
+    return editablePlan(source, name);
   });
   const hasSteps = Object.values(plan.nodes).some((node) => node.kind === 'task');
   const [composerOpen, setComposerOpen] = useState(false);
   const canvasRef = useRef<HTMLElement>(null);
   const generateRef = useRef<HTMLButtonElement>(null);
   const [candidate, setCandidate] = useState<{
-    url: string;
     review: PlanReview;
     decisions: ReviewDecisions;
   }>();
-  const [previous, setPrevious] = useState<{ plan: Plan; name: string; url: string }>();
+  const [previous, setPrevious] = useState<{ plan: Plan; name: string }>();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const compilation = usePlanCompilation();
   const compiling = compilation.busy;
@@ -110,12 +102,11 @@ export function TestEditor({
         test: savedCase ?? test,
         duplicate: savedCase ? false : duplicate,
         name,
-        url,
         goal,
         plan,
         settings: configuration,
       });
-  }, [draftId, plan, name, url, goal, configuration, test, duplicate, savedCase]);
+  }, [draftId, plan, name, goal, configuration, test, duplicate, savedCase]);
 
   function changeName(value: string) {
     nameChanged.current = true;
@@ -134,10 +125,8 @@ export function TestEditor({
     if (editingLocked || !goal.trim()) return;
     setFormError('');
     try {
-      const startUrl = platform === 'web' ? url.trim() || goalUrl(goal) : undefined;
       const source = await compilation.compile({
         goal,
-        url: startUrl,
         currentPlan: hasSteps ? plan : undefined,
         context: {
           platform,
@@ -162,7 +151,6 @@ export function TestEditor({
       const review = reviewPlan(plan, next);
 
       setCandidate({
-        url: startUrl || url,
         review,
         decisions: {},
       });
@@ -190,12 +178,11 @@ export function TestEditor({
       const accepted = Object.values(decisions).some(Boolean);
 
       if (accepted || !candidate.review.changes.length) {
-        setPrevious({ plan, name, url });
+        setPrevious({ plan, name });
         setPlan(next);
         const root = next.nodes[next.rootId];
 
         if (root.kind === 'group') setName(root.goal);
-        changeSettings({ url: candidate.url });
       }
 
       setCandidate(undefined);
@@ -237,7 +224,6 @@ export function TestEditor({
     if (!previous) return;
     setPlan(previous.plan);
     setName(previous.name);
-    changeSettings({ url: previous.url });
     setPrevious(undefined);
   }
 
@@ -258,7 +244,6 @@ export function TestEditor({
 
     const payload = {
       name,
-      ...(platform === 'web' ? { url: url.trim() } : {}),
       target: caseTarget(configuration),
       goal: planText(plan),
       plan,
@@ -272,19 +257,17 @@ export function TestEditor({
     if (!parsed.success) {
       const missing = !name.trim()
         ? '测试名称'
-        : platform === 'web' && !url.trim()
-          ? '网站地址'
-          : platform !== 'web' && !appId.trim()
-            ? '应用标识'
-            : platform !== 'web' && !deviceProfileId
-              ? '设备配置'
-              : '测试目标和标签';
+        : platform !== 'web' && !appId.trim()
+          ? '应用标识'
+          : platform !== 'web' && !deviceProfileId
+            ? '设备配置'
+            : '测试目标和标签';
 
       setFormError(
         parsed.error.issues.find((issue) => issue.code === 'custom')?.message ??
           `请在测试设置中检查${missing}。`,
       );
-      setSettingsOpen(true);
+      if (!parsed.error.issues.some((issue) => issue.path[0] === 'plan')) setSettingsOpen(true);
       setComposerOpen(false);
 
       return;

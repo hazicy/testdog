@@ -135,6 +135,7 @@ export function insertStep(
   if (createdIds.some((ref) => Object.hasOwn(plan.nodes, ref))) throw new Error('节点 ID 已存在');
   const nodes = { ...plan.nodes };
   const labels = {
+    navigate: 'https://',
     act: '填写操作步骤',
     assert: '填写预期结果',
     login: '填写登录步骤',
@@ -218,15 +219,4 @@ export function caseName(text: string): string {
   if (first) return first.slice(0, 80);
 
   return `新测试 ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`;
-}
-
-export function goalUrl(text: string): string | undefined {
-  const match = /https?:\/\/[^\s<>"'，。；）]+/.exec(text);
-
-  if (!match) return;
-  try {
-    return new URL(match[0]).href;
-  } catch {
-    return;
-  }
 }

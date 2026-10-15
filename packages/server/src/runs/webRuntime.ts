@@ -8,7 +8,7 @@ import type { BrowserContext, BrowserContextOptions } from 'playwright';
 import { PlaywrightSession } from '@testdog/automation/platform/web/playwrightSession';
 import { WebActionPlanner } from '@testdog/automation/platform/web/webPlanner';
 import { resolveWebProfile } from '@testdog/automation/platform/web/mobile';
-import { targetUrl, type WebTarget } from '@testdog/contracts/automation/platform/target';
+import type { WebTarget } from '@testdog/contracts/automation/platform/target';
 import { RunRecorder } from '@testdog/server/runs/recorder';
 import { PersistenceQueue } from '@testdog/server/runs/persistenceQueue';
 import { cleanupRuntime } from '@testdog/server/runs/finalizeRuntime';
@@ -75,16 +75,6 @@ export async function openWebRuntime(
         profile,
         driverVersion: '1.63.0',
       },
-      initial: targetUrl(target)
-        ? {
-            platform: 'web',
-            action: {
-              type: 'navigate',
-              target: { kind: 'css', value: '', name: '' },
-              value: targetUrl(target),
-            },
-          }
-        : undefined,
       healthy: false,
       cleanup() {
         return (browserCleanup ??= connection!.close().then(() => {

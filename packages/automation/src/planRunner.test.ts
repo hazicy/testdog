@@ -454,3 +454,143 @@ it('executes standalone assertions and screenshot steps without asking the actio
   expect(planner.plan).not.toHaveBeenCalled();
   expect(driver.perform).toHaveBeenCalledTimes(2);
 });
+
+it('executes Navigate directly once, associates it with the node, and keeps subsequent tasks in order', async () => {
+  const driver = session();
+  const webSession = {
+    ...driver,
+    platform: 'web' as const,
+    get revision() {
+      return driver.revision;
+    },
+    observe: async () => {
+      const observation = await driver.observe();
+
+      return { ...observation, surface: { platform: 'web' as const, id: 'page' } };
+    },
+    capabilities: { actions: ['navigate'], artifacts: [], assertions: [] },
+  };
+  const planner = { plan: vi.fn().mockResolvedValue({ done: true, steps: [] }) };
+  const navigationPlan = {
+    rootId: 'root',
+    nodes: {
+      ...plan.nodes,
+      root: {
+        id: 'root',
+        kind: 'group' as const,
+        goal: '测试导航',
+        children: ['open', 'task'],
+        dependsOn: [],
+      },
+      open: {
+        ...plan.nodes.task,
+        id: 'open',
+        actionType: 'navigate' as const,
+        goal: 'https://example.com/path',
+      },
+    },
+  };
+
+  await new PlanRunner({
+    evaluator,
+    session: webSession,
+    planner,
+    signal,
+    plan: navigationPlan,
+  }).record();
+
+  expect(driver.perform).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      platform: 'web',
+      action: expect.objectContaining({ type: 'navigate', value: 'https://example.com/path' }),
+    }),
+    signal,
+  );
+  expect(planner.plan).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ goal: 'Submit' }));
+  expect(driver.perform.mock.invocationCallOrder[0]).toBeLessThan(
+    planner.plan.mock.invocationCallOrder[0],
+  );
+  expect(driver.emit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      kind: 'navigate',
+      phase: 'finish',
+      planNodeId: 'open',
+    }),
+  );
+});
+
+it('rejects Navigate in a native plan before dispatching browser actions', async () => {
+  const driver = session();
+
+  await expect(
+    new PlanRunner({
+      evaluator,
+      session: driver,
+      planner: { plan: vi.fn() },
+      signal,
+      plan: {
+        ...plan,
+        nodes: {
+          task: { ...plan.nodes.task, actionType: 'navigate', goal: 'https://example.com' },
+        },
+      },
+    }).record(),
+  ).rejects.toThrow('Navigate 步骤仅支持 Web 测试');
+  expect(driver.perform).not.toHaveBeenCalled();
+});
+
+it.each([true, false])(
+  'rejects branch replay without a recorded decision when evaluation is %s',
+  async (passed) => {
+    const driver = session();
+    const injected = {
+      evaluate: vi.fn(async () => ({
+        passed,
+        evidence: 'Missing recorded decision',
+        modelCallId: 'branch-check',
+      })),
+    };
+    const runner = new PlanRunner({
+      evaluator: injected,
+      session: driver,
+      planner: { plan: vi.fn() },
+      signal,
+      plan,
+    });
+
+    await expect(
+      runner.replay([
+        { event: { kind: 'branch', title: 'Account exists', condition: 'Account exists' } },
+      ]),
+    ).rejects.toThrow('Missing recorded decision');
+    expect(driver.emit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: 'error', modelCallId: 'branch-check' }),
+    );
+  },
+);
+
+it('accepts a replayed branch when both recorded and current decisions are false', async () => {
+  const driver = session();
+  const injected = { evaluate: vi.fn(async () => ({ passed: false, evidence: 'No account' })) };
+  const runner = new PlanRunner({
+    evaluator: injected,
+    session: driver,
+    planner: { plan: vi.fn() },
+    signal,
+    plan,
+  });
+
+  await runner.replay([
+    {
+      event: {
+        kind: 'branch',
+        title: 'Account exists',
+        condition: 'Account exists',
+        decision: false,
+      },
+    },
+  ]);
+  expect(driver.emit).toHaveBeenLastCalledWith(
+    expect.objectContaining({ phase: 'finish', decision: false }),
+  );
+});

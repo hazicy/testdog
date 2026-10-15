@@ -531,8 +531,24 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
         : {
             json: {
               plan: {
-                rootId: 'login',
+                rootId: 'root',
                 nodes: {
+                  root: {
+                    id: 'root',
+                    kind: 'group',
+                    goal: '登录',
+                    children: ['navigate', 'login'],
+                    dependsOn: [],
+                  },
+                  navigate: {
+                    id: 'navigate',
+                    kind: 'task',
+                    actionType: 'navigate',
+                    goal: 'https://example.com',
+                    dependsOn: [],
+                    requirementIds: [],
+                    assertions: [],
+                  },
                   login: {
                     id: 'login',
                     kind: 'task',
@@ -588,8 +604,9 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   await expect(canvas.locator('[data-step-type=assert]')).toContainText('显示邮箱表单');
   await expect(page.getByText('项变更待审阅')).toHaveCount(0);
   await openSettings(canvas);
-  await expect(canvas.getByLabel('网站地址', { exact: true })).toHaveValue('https://example.com/');
-  expect(payload).toEqual({ goal, url: 'https://example.com/' });
+  await expect(canvas.getByLabel('网站地址', { exact: true })).toHaveCount(0);
+  await expect(canvas.locator('[data-step-type=navigate]')).toContainText('https://example.com');
+  expect(payload).toEqual({ goal });
 });
 
 for (const mode of ['quick', 'canvas'] as const) {
@@ -717,7 +734,7 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
         plan,
         target: {
           platform: 'web',
-          url: draft.url,
+          url: '',
           deviceProfile: 'legacy-desktop',
         },
       },
@@ -792,40 +809,6 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
       ),
     )
     .toBe('未保存修改');
-});
-
-test('editing a historical case uses its target URL for settings and compilation', async ({
-  page,
-}) => {
-  const historical: TestCase = makeCase({
-    url: 'https://stale.example.com',
-    target: {
-      schemaVersion: 1,
-      platform: 'web',
-      url: 'https://actual.example.com',
-      browser: 'chromium',
-      deviceProfile: 'Pixel 7',
-    },
-  });
-
-  await mockLists(page, { tests: [historical] });
-  await page.route('**/api/tests/compile', (route) =>
-    route.fulfill({ status: 502, json: { message: '保留编辑' } }),
-  );
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '更多操作：验证登录', exact: true }).click();
-  await page.getByRole('menuitem', { name: '编辑 验证登录', exact: true }).click();
-  const canvas = page.getByRole('region', { name: '测试画板' });
-
-  await openSettings(canvas);
-  await expect(canvas.getByLabel('网站地址', { exact: true })).toHaveValue(
-    historical.target!.platform === 'web' ? historical.target!.url : '',
-  );
-  await canvas.getByRole('button', { name: '描述生成', exact: true }).click();
-  const request = page.waitForRequest('**/api/tests/compile');
-
-  await page.getByRole('dialog').getByRole('button', { name: '生成', exact: true }).click();
-  expect((await request).postDataJSON().url).toBe('https://actual.example.com');
 });
 
 test('web settings toggle mobile emulation without changing platform', async ({ page }) => {
@@ -990,7 +973,6 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await dialog.getByRole('button', { name: '全部接受' }).click();
   await openSettings(dialog);
   await dialog.getByLabel('测试名称').fill('新用例');
-  await dialog.getByLabel('网站地址').fill('https://example.com');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog.getByRole('alert')).toHaveText('保存暂时失败');
   await expect(dialog.getByLabel('测试名称')).toHaveValue('新用例');
@@ -1741,7 +1723,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await dialog.screenshot({ path: 'artifacts/ui/case-text-entry.png' });
   await openSettings(dialog);
   await dialog.getByLabel('测试名称', { exact: true }).fill('GitHub repository smoke test');
-  await dialog.getByLabel('网站地址', { exact: true }).fill('https://github.com/tester-army/e2e');
+  await expect(dialog.getByLabel('网站地址', { exact: true })).toHaveCount(0);
   await dialog.getByRole('button', { name: '收起面板' }).click();
   await expect(dialog.getByLabel('网站地址', { exact: true })).toBeHidden();
   const canvas = await dialog.locator('[data-ui~="plan-viewport"]').boundingBox();
@@ -1764,6 +1746,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
     ['Login', '使用 tester@example.com 和 测试密码 登录'],
     ['Files', '打开 README 文件'],
     ['Screenshot', '截取当前页面'],
+    ['Navigate', 'https://github.com/tester-army/e2e'],
   ];
 
   for (const [index, [type, text]] of content.entries()) {
@@ -1819,7 +1802,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await first.hover();
   await first
     .getByRole('button', { name: `拖拽节点 ${firstId}`, exact: true })
-    .dragTo(dialog.getByRole('button', { name: '在 root 的第 7 个位置添加节点', exact: true }));
+    .dragTo(dialog.getByRole('button', { name: '在 root 的第 8 个位置添加节点', exact: true }));
   await expect(dialog.locator('[data-step-type=act]').last()).toContainText('检查前置环境');
   const moved = dialog.locator(`[data-plan-node="${firstId}"]`);
 
@@ -1831,7 +1814,8 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await page.reload();
   await expect(dialog.locator('[data-step-type=screenshot]')).toContainText('截取当前页面');
   await openSettings(dialog);
-  await expect(dialog.getByLabel('网站地址', { exact: true })).toHaveValue(
+  await expect(dialog.getByLabel('网站地址', { exact: true })).toHaveCount(0);
+  await expect(dialog.locator('[data-step-type=navigate]')).toContainText(
     'https://github.com/tester-army/e2e',
   );
   await page.screenshot({ path: 'artifacts/ui/case-canvas-settings.png' });
@@ -1861,7 +1845,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
           ).actionType
         : '',
     ),
-  ).toEqual(['act', 'act', 'assert', 'login', 'files', 'screenshot']);
+  ).toEqual(['act', 'act', 'assert', 'login', 'files', 'screenshot', 'navigate']);
   await page.getByRole('button', { name: 'GitHub repository smoke test', exact: true }).click();
   await dialog.getByRole('button', { name: `编辑节点 ${root.children[2]}`, exact: true }).click();
   await expect(dialog.getByRole('textbox', { name: /^节点内容/ })).toHaveValue(content[1][1]);

@@ -4,7 +4,7 @@ import { useState, type RefObject } from 'react';
 import { CasePrompt } from '@/features/test-cases/components/CasePrompt';
 import { useRouter } from 'next/navigation';
 import { usePlanCompilation } from '@/features/test-cases/hooks/usePlanCompilation';
-import { caseName, editablePlan, goalUrl } from '@/features/test-cases/lib/authoring';
+import { caseName, editablePlan } from '@/features/test-cases/lib/authoring';
 import { writeCaseDraft } from '@/features/test-cases/lib/caseDraft';
 
 export function QuickCreateDialog({
@@ -24,8 +24,7 @@ export function QuickCreateDialog({
     if (busy || !goal.trim()) return;
     setError('');
     try {
-      const url = goalUrl(goal);
-      const source = await compilation.compile({ goal: goal.trim(), url });
+      const source = await compilation.compile({ goal: goal.trim() });
 
       if (!source) return;
       const root = source.nodes[source.rootId];
@@ -33,7 +32,7 @@ export function QuickCreateDialog({
       const plan = editablePlan(source, name);
       const id = crypto.randomUUID();
 
-      writeCaseDraft(id, { name, url: url ?? '', goal, plan });
+      writeCaseDraft(id, { name, goal, plan });
       router.push(`/cases/editor/${id}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '生成失败，请重试');
