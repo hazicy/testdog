@@ -4,7 +4,7 @@
 
 ## 快速开始
 
-使用 Node.js 22.13+ 和 pnpm 12.10.1。在仓库根目录运行：
+使用 Node.js 24+ 和 pnpm 12.10.1。在仓库根目录运行：
 
 ```bash
 pnpm install

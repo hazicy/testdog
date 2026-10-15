@@ -17,7 +17,7 @@ await build({
   outExtension: { '.js': '.mjs' },
   bundle: true,
   platform: 'node',
-  target: 'node22',
+  target: 'node24',
   format: 'esm',
   sourcemap: true,
   external: Object.keys(manifest.dependencies).filter((name) => !name.startsWith('@testdog/')),

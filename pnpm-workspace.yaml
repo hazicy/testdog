@@ -19,7 +19,7 @@ catalog:
   '@iconify/react': '^6.0.2'
   '@playwright/test': '1.63.0'
   '@stylistic/eslint-plugin': '^5.10.0'
-  '@types/node': '^22'
+  '@types/node': '^24'
   '@types/nodemailer': '^8.0.2'
   '@types/pg': '^8.23.1'
   '@types/react': '^19'
