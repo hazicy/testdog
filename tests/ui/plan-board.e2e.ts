@@ -131,3 +131,45 @@ test('canvas insertion visibility, editing history and Chinese composition work 
   expect(controls!.x).toBeGreaterThanOrEqual(0);
   expect(controls!.x + controls!.width).toBeLessThanOrEqual(390);
 });
+
+test('canvas settings make room on phones and preserve edits when dismissed', async ({
+  page,
+}, testInfo) => {
+  await page.route('**/api/tests*', (route) =>
+    route.fulfill({ json: { tests: [], nextCursor: null } }),
+  );
+  await page.route('**/api/workspace/stats', (route) =>
+    route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  const canvas = page.getByRole('region', { name: '测试画板' });
+  const name = canvas.getByRole('textbox', { name: '测试名称', exact: true });
+  const viewport = canvas.locator('[data-ui="plan-viewport"]');
+
+  await name.fill('验证登录');
+  const closedBounds = (await viewport.boundingBox())!;
+
+  await canvas.getByRole('button', { name: '展开面板', exact: true }).click();
+  const settings = canvas.getByRole('complementary', { name: '测试设置', exact: true });
+  const openBounds = (await viewport.boundingBox())!;
+  const settingsBounds = (await settings.boundingBox())!;
+
+  expect(openBounds.y + openBounds.height).toBeLessThanOrEqual(settingsBounds.y);
+  expect(settingsBounds.x).toBeGreaterThanOrEqual(0);
+  expect(settingsBounds.x + settingsBounds.width).toBeLessThanOrEqual(390);
+  await settings.getByRole('combobox', { name: '浏览器与设备' }).click();
+  await page.getByRole('option', { name: 'Pixel 7 · Chromium', exact: true }).click();
+  await page.screenshot({ path: testInfo.outputPath('canvas-settings-phone.png') });
+  await settings.getByRole('button', { name: '关闭设置' }).click();
+  await expect(settings).toBeHidden();
+  await expect(canvas.getByRole('button', { name: '展开面板' })).toBeFocused();
+  await expect(canvas.getByRole('button', { name: '展开面板' })).toContainText('Web · Pixel 7');
+  await expect(name).toHaveValue('验证登录');
+  expect(await viewport.boundingBox()).toEqual(closedBounds);
+  await canvas.getByRole('button', { name: '展开面板' }).click();
+  await settings.getByRole('combobox', { name: '浏览器与设备' }).focus();
+  await page.keyboard.press('Escape');
+  await expect(settings).toBeHidden();
+});

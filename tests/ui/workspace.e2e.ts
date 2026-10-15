@@ -811,25 +811,29 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
     .toBe('未保存修改');
 });
 
-test('web settings toggle mobile emulation without changing platform', async ({ page }) => {
+test('web settings choose desktop and mobile devices without changing platform', async ({
+  page,
+}) => {
   await mockLists(page, { tests: [] });
   await page.goto('/cases');
   await page.getByRole('button', { name: '新建测试', exact: true }).click();
   const canvas = page.getByRole('region', { name: '测试画板' });
 
   await openSettings(canvas);
-  const mobile = canvas.getByRole('checkbox', { name: '移动模拟' });
+  const device = canvas.getByRole('combobox', { name: '浏览器与设备' });
 
-  await expect(mobile).not.toBeChecked();
-  await expect(canvas.getByText('桌面 Chromium · 1280 × 800', { exact: true })).toBeVisible();
-  await expect(canvas.getByRole('combobox', { name: '浏览器与设备' })).toBeHidden();
+  await expect(device).toContainText('桌面');
+  await device.click();
+  await page.getByRole('option', { name: 'Pixel 7 · Chromium', exact: true }).click();
+  await expect(device).toContainText('Pixel 7');
+  await expect(canvas.getByRole('button', { name: '收起面板' })).toContainText('Web · Pixel 7');
+  await device.click();
+  await page.getByRole('option', { name: 'iPhone 13 · WebKit', exact: true }).click();
+  await expect(device).toContainText('iPhone 13');
+  await device.click();
+  await page.getByRole('option', { name: '桌面 · Chromium', exact: true }).click();
+  await expect(device).toContainText('桌面');
   await expect(canvas.getByRole('combobox', { name: '平台', exact: true })).toContainText('Web');
-  await mobile.click();
-  await expect(mobile).toBeChecked();
-  await expect(canvas.getByRole('combobox', { name: '浏览器与设备' })).toContainText('Pixel 7');
-  await mobile.click();
-  await expect(mobile).not.toBeChecked();
-  await expect(canvas.getByRole('combobox', { name: '浏览器与设备' })).toBeHidden();
 });
 
 test('replay contains portrait landscape square and ultrawide media within the panel', async ({

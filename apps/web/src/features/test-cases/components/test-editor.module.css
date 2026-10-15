@@ -1,36 +1,73 @@
-.caseFloatingPanel {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  bottom: 1.5rem;
-  width: 24.5rem;
+.caseToolbar {
   display: flex;
-  flex-direction: column;
-  align-self: start;
-  max-height: calc(100% - 3rem);
-  height: fit-content;
-  z-index: 10;
-  border: var(--border-width) solid var(--page-line);
-  border-radius: var(--radius-2xl);
-  background: var(--surface-raised);
-  box-shadow:
-    0 0.5rem 2rem var(--canvas-panel-shadow),
-    0 0.125rem 0.375rem var(--canvas-panel-shadow-soft);
-  overflow: hidden;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5) var(--space-2);
+}
+
+.caseName {
+  width: 24rem;
+  min-width: 0;
+  padding: var(--space-2) var(--space-2-5);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  text-overflow: ellipsis;
+
+  @media (pointer: coarse) {
+    font-size: var(--text-xl);
+  }
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--brand-line);
+    background: var(--surface);
+    box-shadow: 0 0 0 var(--focus-width) var(--brand-soft);
+  }
 }
 
 .casePanelActions {
   display: flex;
-  flex-wrap: wrap;
+  flex-shrink: 0;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-1-5);
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-2xl);
+  background: var(--surface-raised);
+  box-shadow: 0 var(--space-1) var(--space-5) var(--canvas-panel-shadow);
 }
 
+.caseEnvironment {
+  max-width: 16rem;
+  color: var(--text-secondary);
+
+  & span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &[aria-expanded='true'] {
+    background: var(--brand-soft);
+    color: var(--brand);
+  }
+}
+
+.casePanelSecondaryActions,
 .casePanelPrimaryActions {
   display: flex;
-  gap: var(--space-1-5);
-  margin-left: auto;
+  align-items: center;
+  gap: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: var(--border-width) solid var(--page-line);
 }
 
 .casePanelGenerate[aria-expanded='true'],
@@ -39,46 +76,51 @@
   border-color: var(--brand-line);
 }
 
-.casePanelPlatform {
-  padding: var(--space-1) var(--space-2);
-  border-radius: 0.3125rem;
-  background: var(--surface-muted);
+.caseFormError {
+  margin: var(--space-2) var(--space-6);
+  color: var(--error-ink);
   font-size: var(--text-sm);
-  font-weight: 600;
 }
 
-.casePanelCount {
-  color: var(--page-muted);
-  font-size: var(--text-sm);
-  white-space: nowrap;
-}
-
-.casePanelHeading {
-  padding: 0 var(--space-5) var(--space-4);
-
-  & h2 {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    overflow-wrap: anywhere;
+@media (max-width: 56.25rem) {
+  .caseToolbar {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-3);
   }
 
-  & p {
-    margin-top: 0.3125rem;
-    color: var(--page-muted);
-    font-size: var(--text-sm);
+  .caseName {
+    flex: 1 1 100%;
+  }
+
+  .casePanelActions {
+    margin-left: auto;
+    max-width: 100%;
+    gap: var(--space-1);
+  }
+
+  .caseEnvironment {
+    min-width: 0;
+    max-width: 14rem;
+    flex: 1;
   }
 }
 
-.casePanelBody {
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: var(--space-5);
+@media (max-width: 40rem) {
+  .caseSaveLabel,
+  .caseEnvironment > svg:first-child {
+    display: none;
+  }
 }
 
-.caseFloatingPanel {
-  &[data-collapsed='true'] {
-    bottom: auto;
+@media (max-width: 25rem) {
+  .casePanelActions {
+    width: 100%;
+  }
+
+  .casePanelSecondaryActions,
+  .casePanelPrimaryActions {
+    padding-left: var(--space-1);
   }
 }
 
@@ -133,21 +175,6 @@
   position: absolute;
   bottom: 1.5rem;
   right: 1.5rem;
-}
-
-@media (max-width: 56.25rem) {
-  .caseFloatingPanel {
-    width: 21rem;
-    right: 0.75rem;
-    top: 0.75rem;
-    max-height: calc(100% - 1.5rem);
-  }
-}
-
-@media (max-width: 37.5rem) {
-  .caseFloatingPanel {
-    width: min(21rem, calc(100% - 1.5rem));
-  }
 }
 
 .caseCanvasPage {

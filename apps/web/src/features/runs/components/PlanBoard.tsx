@@ -86,6 +86,23 @@ function PlanBoardContent({
   const viewportWidth = useStore((state) => state.width);
   const viewportHeight = useStore((state) => state.height);
   const zoom = useStore((state) => state.transform[2]);
+  const previousSize = useRef<{ width: number; height: number } | undefined>(undefined);
+
+  useEffect(() => {
+    if (!viewportWidth || !viewportHeight) return;
+    const previous = previousSize.current;
+
+    previousSize.current = { width: viewportWidth, height: viewportHeight };
+    if (!previous) return;
+    const viewport = flow.getViewport();
+
+    // Keep the same canvas point centered when the settings pane changes the available space.
+    void flow.setViewport({
+      ...viewport,
+      x: viewport.x + (viewportWidth - previous.width) / 2,
+      y: viewport.y + (viewportHeight - previous.height) / 2,
+    });
+  }, [flow, viewportWidth, viewportHeight]);
   const hasViewportOverlay = !!viewportOverlay || !!floatingPanel;
   // React Flow fitView padding accepts pixel strings or percentages, not CSS lengths.
   const viewPadding = useMemo(
@@ -300,7 +317,17 @@ function PlanBoardContent({
         </div>
         {floatingPanel}
         {settingsOpen && (
-          <aside className={boardStyles.planInspector} aria-label="画板设置">
+          <aside
+            id="case-panel-settings"
+            className={boardStyles.planInspector}
+            aria-label="测试设置"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && !event.defaultPrevented) {
+                event.stopPropagation();
+                onSettingsClose?.();
+              }
+            }}
+          >
             <div className={styles.container}>
               <h3 className={styles.subheading}>测试设置</h3>
               <Button

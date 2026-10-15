@@ -88,7 +88,7 @@
 
 .planBoardBody {
   &.hasInspector {
-    grid-template-columns: minmax(0, 1fr) 18.75rem;
+    grid-template-columns: minmax(0, 1fr) 21rem;
   }
 }
 
@@ -169,10 +169,15 @@
 }
 
 .planInspector {
+  min-height: 0;
+  align-self: stretch;
+  margin: var(--space-3) var(--space-5) var(--space-5) 0;
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 var(--space-1) var(--space-5) var(--canvas-panel-shadow);
   min-width: 0;
   overflow-y: auto;
   padding: var(--space-5);
-  border-left: var(--border-width) solid var(--canvas-divider);
   background: var(--surface-raised);
   color: var(--canvas-ink);
 }
@@ -509,9 +514,8 @@
     }
   }
   .planInspector {
-    border-left: none;
-    border-top: var(--border-width) solid var(--canvas-divider);
-    padding: var(--space-3);
+    margin: 0 var(--space-3) var(--space-3);
+    padding: var(--space-4);
   }
 }
 

@@ -70,11 +70,10 @@ test('field overrides and focus styles survive the shared CSS Module controls', 
   await openSettings(editor);
   const name = editor.getByRole('textbox', { name: '测试名称', exact: true });
 
-  await expect(name).toHaveCSS('min-height', '38px');
-  await expect(name).toHaveCSS('margin-top', '8px');
+  await expect(name).toHaveCSS('margin-top', '0px');
   await name.focus();
-  await expect(name).toHaveCSS('outline-style', 'solid');
-  await expect(name).toHaveCSS('outline-offset', '0px');
+  await expect(name).toHaveCSS('border-top-color', 'rgb(216, 184, 168)');
+  await expect(name).not.toHaveCSS('box-shadow', 'none');
   await expect(editor.getByRole('combobox', { name: '平台', exact: true })).toHaveCSS(
     'display',
     'inline-flex',
@@ -278,7 +277,7 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await page.route(/\/api\/runs(?:\?.*)?$/, (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { runs: [] } });
     expect(route.request().postDataJSON()).toMatchObject({
-      draft: { name: '验证首页', target: { platform: 'web', url: 'https://example.com/' } },
+      draft: { name: '验证首页', target: { platform: 'web', deviceProfile: 'legacy-desktop' } },
     });
     expect(route.request().headers()['idempotency-key']).toBeTruthy();
     attempts++;
@@ -314,8 +313,16 @@ test('compact panel defaults closed and Run retries the draft without saving the
 
   await panel.getByRole('button', { name: '展开面板' }).click();
   await expect(panel.getByLabel('测试名称', { exact: true })).toBeVisible();
-  await expect(viewport).toHaveAttribute('style', transform!);
-  expect(await canvas.boundingBox()).toEqual(bounds);
+  const settings = page.getByRole('complementary', { name: '测试设置', exact: true });
+
+  await expect(settings).toBeVisible();
+  await expect(page.getByRole('button', { name: '画板恢复原始比例' })).toHaveText('120%');
+  const reducedBounds = (await canvas.boundingBox())!;
+  const settingsBounds = (await settings.boundingBox())!;
+
+  expect(reducedBounds.width).toBeLessThan(bounds!.width);
+  expect(reducedBounds.x + reducedBounds.width).toBeLessThanOrEqual(settingsBounds.x);
+  await page.screenshot({ path: test.info().outputPath('canvas-settings-desktop.png') });
   await panel.getByRole('button', { name: '收起面板' }).click();
   await expect(panel).toHaveAttribute('data-collapsed', 'true');
   await expect(viewport).toHaveAttribute('style', transform!);
@@ -344,7 +351,9 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await page.getByRole('button', { name: '生成', exact: true }).click();
   await page.getByRole('button', { name: '全部接受' }).click();
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
-  await expect(panel.getByRole('alert')).toHaveText('运行暂时失败');
+  await expect(page.getByRole('region', { name: '测试画板' }).getByRole('alert')).toHaveText(
+    '运行暂时失败',
+  );
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(page.getByRole('dialog', { name: /草稿试跑/ })).toBeVisible();
   expect(attempts).toBe(2);

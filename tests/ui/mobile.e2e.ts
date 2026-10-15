@@ -219,7 +219,7 @@ test('canvas settings and embedded trial work on portrait and landscape phones',
     await panel.getByRole('button', { name: '展开面板', exact: true }).click();
     await panel.getByLabel('测试名称', { exact: true }).fill('手机测试');
     for (const platform of ['Android · 原生应用', 'iOS · 原生应用', 'Web · 浏览器']) {
-      await panel.getByRole('combobox', { name: '平台', exact: true }).click();
+      await canvas.getByRole('combobox', { name: '平台', exact: true }).click();
       await page.getByRole('option', { name: platform, exact: true }).click();
       await fitsRegion(panel);
     }

@@ -33,8 +33,9 @@ import playIcon from '@iconify-icons/lucide/play';
 import saveIcon from '@iconify-icons/lucide/save';
 import { useRunSubmission } from '@/client/useRunSubmission';
 import undoIcon from '@iconify-icons/lucide/undo-2';
-import collapseIcon from '@iconify-icons/lucide/chevron-up';
-import expandIcon from '@iconify-icons/lucide/chevron-down';
+import settingsIcon from '@iconify-icons/lucide/settings-2';
+import monitorIcon from '@iconify-icons/lucide/monitor';
+import smartphoneIcon from '@iconify-icons/lucide/smartphone';
 import sparklesIcon from '@iconify-icons/lucide/sparkles';
 
 export function TestEditor({
@@ -80,6 +81,8 @@ export function TestEditor({
   const [composerOpen, setComposerOpen] = useState(false);
   const canvasRef = useRef<HTMLElement>(null);
   const generateRef = useRef<HTMLButtonElement>(null);
+  const settingsRef = useRef<HTMLButtonElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
   const [candidate, setCandidate] = useState<{
     review: PlanReview;
     decisions: ReviewDecisions;
@@ -267,7 +270,13 @@ export function TestEditor({
         parsed.error.issues.find((issue) => issue.code === 'custom')?.message ??
           `请在测试设置中检查${missing}。`,
       );
-      if (!parsed.error.issues.some((issue) => issue.path[0] === 'plan')) setSettingsOpen(true);
+      if (!name.trim()) {
+        setFormError('请填写测试名称。');
+        nameRef.current?.focus();
+      } else if (!parsed.error.issues.some((issue) => issue.path[0] === 'plan')) {
+        setSettingsOpen(true);
+      }
+
       setComposerOpen(false);
 
       return;
@@ -313,6 +322,121 @@ export function TestEditor({
         void save();
       }}
     >
+      <aside
+        className={editorStyles.caseToolbar}
+        data-collapsed={!settingsOpen}
+        aria-label="测试面板"
+      >
+        <input
+          ref={nameRef}
+          className={editorStyles.caseName}
+          name="testName"
+          aria-label="测试名称"
+          required
+          maxLength={120}
+          value={name}
+          disabled={editingLocked}
+          onChange={(event) => changeName(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              event.currentTarget.blur();
+            }
+          }}
+          placeholder="未命名测试"
+        />
+        <div className={editorStyles.casePanelActions}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={editorStyles.caseEnvironment}
+            ref={settingsRef}
+            aria-label={settingsOpen ? '收起面板' : '展开面板'}
+            title="测试设置"
+            aria-expanded={settingsOpen}
+            aria-controls="case-panel-settings"
+            onClick={() => setSettingsOpen(!settingsOpen)}
+          >
+            <Icon
+              icon={
+                platform === 'web' && webProfile === 'legacy-desktop' ? monitorIcon : smartphoneIcon
+              }
+              width="16"
+              aria-hidden="true"
+            />
+            <span>
+              {platform === 'web' ? 'Web' : platform === 'ios' ? 'iOS' : 'Android'} ·{' '}
+              {platform === 'web'
+                ? webProfile === 'legacy-desktop'
+                  ? '桌面'
+                  : webProfile
+                : deviceProfileId || '选择设备'}
+            </span>
+            <Icon icon={settingsIcon} width="14" aria-hidden="true" />
+          </Button>
+          <div className={editorStyles.casePanelSecondaryActions}>
+            <Button
+              type="button"
+              ref={generateRef}
+              variant="ghost"
+              size="icon-sm"
+              className={editorStyles.casePanelGenerate}
+              aria-label={hasSteps ? '描述调整' : '描述生成'}
+              title={hasSteps ? '描述调整' : '描述生成'}
+              aria-expanded={composerOpen}
+              aria-controls="case-prompt-section"
+              data-pending={!!candidate || compiling}
+              disabled={saving || !!candidate}
+              onClick={() => setComposerOpen(true)}
+            >
+              <Icon icon={sparklesIcon} width="16" aria-hidden="true" />
+            </Button>
+            {previous && !candidate && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="撤销生成"
+                title="撤销生成"
+                disabled={busy}
+                onClick={undoGeneration}
+              >
+                <Icon icon={undoIcon} width="16" aria-hidden="true" />
+              </Button>
+            )}
+          </div>
+          <div className={editorStyles.casePanelPrimaryActions}>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              aria-label="Save"
+              title="保存"
+              disabled={editingLocked}
+            >
+              <Icon icon={saveIcon} width="15" aria-hidden="true" />
+              <span className={editorStyles.caseSaveLabel}>保存</span>
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              aria-label="Run"
+              title={trialActive ? '查看正在进行的试跑' : '试跑当前草稿，不保存用例'}
+              disabled={editingLocked}
+              onClick={() => void save(true)}
+            >
+              <Icon icon={playIcon} width="15" aria-hidden="true" /> 试跑
+            </Button>
+          </div>
+        </div>
+      </aside>
+      {formError && !composerOpen && (
+        <p role="alert" className={editorStyles.caseFormError}>
+          {formError}
+        </p>
+      )}
       <div className={styles.container}>
         <PlanBoard
           fullHeight
@@ -332,104 +456,13 @@ export function TestEditor({
                   if (root.kind === 'group') setName(root.goal);
                 }
           }
-          floatingPanel={
-            <aside
-              className={editorStyles.caseFloatingPanel}
-              data-collapsed={!settingsOpen}
-              aria-label="测试面板"
-            >
-              <div className={editorStyles.casePanelActions}>
-                <span className={editorStyles.casePanelPlatform}>
-                  {platform === 'web' ? 'Web' : platform === 'ios' ? 'iOS' : 'Android'}
-                </span>
-                <span className={editorStyles.casePanelCount}>
-                  {Object.values(reviewPreview.nodes).filter((node) => node.kind === 'task').length}{' '}
-                  个步骤
-                </span>
-                <div className={editorStyles.casePanelPrimaryActions}>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="xs"
-                    aria-label="Run"
-                    title={trialActive ? '查看正在进行的试跑' : '试跑当前草稿，不保存用例'}
-                    disabled={editingLocked}
-                    onClick={() => void save(true)}
-                  >
-                    <Icon icon={playIcon} width="13" aria-hidden="true" /> Run
-                  </Button>
-                  <Button type="submit" size="xs" aria-label="Save" disabled={editingLocked}>
-                    <Icon icon={saveIcon} width="13" aria-hidden="true" /> Save
-                  </Button>
-                </div>
-                <Button
-                  type="button"
-                  ref={generateRef}
-                  variant="ghost"
-                  size="icon-xs"
-                  className={editorStyles.casePanelGenerate}
-                  aria-label={hasSteps ? '描述调整' : '描述生成'}
-                  title={hasSteps ? '描述调整' : '描述生成'}
-                  aria-expanded={composerOpen}
-                  aria-controls="case-prompt-section"
-                  data-pending={!!candidate || compiling}
-                  disabled={saving || !!candidate}
-                  onClick={() => setComposerOpen(true)}
-                >
-                  <Icon icon={sparklesIcon} width="14" aria-hidden="true" />
-                </Button>
-                {previous && !candidate && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label="撤销生成"
-                    title="撤销生成"
-                    disabled={busy}
-                    onClick={undoGeneration}
-                  >
-                    <Icon icon={undoIcon} width="14" aria-hidden="true" />
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={settingsOpen ? '收起面板' : '展开面板'}
-                  aria-expanded={settingsOpen}
-                  aria-controls="case-panel-settings"
-                  onClick={() => setSettingsOpen(!settingsOpen)}
-                >
-                  <Icon
-                    icon={settingsOpen ? collapseIcon : expandIcon}
-                    width="16"
-                    aria-hidden="true"
-                  />
-                </Button>
-              </div>
-              {settingsOpen && (
-                <div className={editorStyles.casePanelHeading}>
-                  <h2 id="editor-title">{name || '未命名测试'}</h2>
-                  <p>{platform === 'web' ? webProfile : deviceProfileId || '未设置设备'}</p>
-                </div>
-              )}
-              {formError && !composerOpen && (
-                <p role="alert" className={styles.error}>
-                  {formError}
-                </p>
-              )}
-              {settingsOpen && (
-                <div id="case-panel-settings" className={editorStyles.casePanelBody}>
-                  <CaseSettings
-                    name={name}
-                    onNameChange={changeName}
-                    value={configuration}
-                    onChange={changeSettings}
-                    busy={editingLocked}
-                  />
-                </div>
-              )}
-            </aside>
+          settingsOpen={settingsOpen}
+          onSettingsClose={() => {
+            setSettingsOpen(false);
+            settingsRef.current?.focus();
+          }}
+          settings={
+            <CaseSettings value={configuration} onChange={changeSettings} busy={editingLocked} />
           }
         />
       </div>

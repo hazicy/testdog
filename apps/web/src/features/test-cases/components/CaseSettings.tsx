@@ -17,14 +17,10 @@ const catalogOptions = {
 };
 
 export function CaseSettings({
-  name,
-  onNameChange,
   value,
   onChange,
   busy,
 }: {
-  name: string;
-  onNameChange: (name: string) => void;
   value: CaseSettingsValue;
   onChange: (patch: Partial<CaseSettingsValue>) => void;
   busy: boolean;
@@ -51,19 +47,6 @@ export function CaseSettings({
   return (
     <div className={styles.container}>
       <Label>
-        测试名称
-        <Input
-          name="testName"
-          aria-label="测试名称"
-          required
-          maxLength={120}
-          value={name}
-          disabled={busy}
-          onChange={(event) => onNameChange(event.target.value)}
-          placeholder="例如：验证登录页面"
-        />
-      </Label>
-      <Label>
         平台
         <Select
           aria-label="平台"
@@ -78,43 +61,22 @@ export function CaseSettings({
         />
       </Label>
       {platform === 'web' ? (
-        <>
-          <div className={styles.mobileProfile}>
-            <label className={styles.field}>
-              <Checkbox
-                aria-label="移动模拟"
-                checked={webProfile !== 'legacy-desktop'}
-                disabled={busy}
-                onCheckedChange={(checked) =>
-                  onChange({ webProfile: checked ? 'Pixel 7' : 'legacy-desktop' })
-                }
-              />
-              移动模拟
-            </label>
-            <p className={styles.description}>
-              {webProfile === 'legacy-desktop'
-                ? '桌面 Chromium · 1280 × 800'
-                : '模拟移动设备的视口、触摸操作和浏览器标识。'}
-            </p>
-          </div>
-          {webProfile !== 'legacy-desktop' && (
-            <Label>
-              浏览器与设备
-              <Select
-                aria-label="浏览器与设备"
-                value={webProfile}
-                disabled={busy}
-                onValueChange={(value) =>
-                  onChange({ webProfile: value as CaseSettingsValue['webProfile'] })
-                }
-                items={[
-                  { value: 'Pixel 7', label: 'Pixel 7 · Chromium' },
-                  { value: 'iPhone 13', label: 'iPhone 13 · WebKit' },
-                ]}
-              />
-            </Label>
-          )}
-        </>
+        <Label>
+          浏览器与设备
+          <Select
+            aria-label="浏览器与设备"
+            value={webProfile}
+            disabled={busy}
+            onValueChange={(value) =>
+              onChange({ webProfile: value as CaseSettingsValue['webProfile'] })
+            }
+            items={[
+              { value: 'legacy-desktop', label: '桌面 · Chromium' },
+              { value: 'Pixel 7', label: 'Pixel 7 · Chromium' },
+              { value: 'iPhone 13', label: 'iPhone 13 · WebKit' },
+            ]}
+          />
+        </Label>
       ) : (
         <>
           <Label>
