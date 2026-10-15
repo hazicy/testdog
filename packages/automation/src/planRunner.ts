@@ -17,6 +17,7 @@ export class PlanRunner {
   constructor(private options: RunnerOptions) {
     CapabilitySetSchema.parse(options.session.capabilities);
   }
+
   private async observe() {
     const { session, signal } = this.options;
     const observation = ObservationSchema.parse(await session.observe(signal));
@@ -30,11 +31,13 @@ export class PlanRunner {
 
     return observation;
   }
+
   async record(initial?: PlatformAction) {
     this.options.plan = ExecutablePlanSchema.parse(this.options.plan);
     if (initial) await this.action(initial);
     await this.visit(this.options.plan.rootId, new Set(), new Set());
   }
+
   async replay(steps: ReplayStep[]) {
     const { session, signal } = this.options;
 
@@ -78,6 +81,7 @@ export class PlanRunner {
       } else throw new Error(`Missing replay content: ${event.title}`);
     }
   }
+
   private async visit(id: string, completed: Set<string>, visiting: Set<string>): Promise<void> {
     this.options.signal.throwIfAborted();
     if (completed.has(id)) return;
@@ -106,6 +110,7 @@ export class PlanRunner {
       visiting.delete(id);
     }
   }
+
   private async executeTask(node: Extract<PlanNode, { kind: 'task' }>) {
     await this.options.report?.(`执行任务：${node.goal}`);
     if (node.actionType === 'screenshot') {
@@ -140,6 +145,7 @@ export class PlanRunner {
       );
     }
   }
+
   private async task(node: Extract<PlanNode, { kind: 'task' }>) {
     const { session, planner, signal } = this.options;
     const completedSteps: PlatformAction[] = [];
@@ -182,6 +188,7 @@ export class PlanRunner {
       }
     }
   }
+
   private action(
     action: PlatformAction,
     source: Pick<SessionEvent, 'modelCallId' | 'toolCallId'> = {},
@@ -210,6 +217,7 @@ export class PlanRunner {
       () => session.perform(action, signal),
     );
   }
+
   private async evaluate(subject: Record<string, unknown>, name: string) {
     const observation = await this.observe();
 
@@ -220,6 +228,7 @@ export class PlanRunner {
       signal: this.options.signal,
     });
   }
+
   private async traced<T>(
     entry: Omit<SessionEvent, 'id' | 'phase'>,
     operation: () => Promise<T>,
