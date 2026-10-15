@@ -4,7 +4,7 @@
 .paw{opacity:.2;animation:step 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 .second{animation-delay:.6s}.third{animation-delay:1.2s}.fourth{animation-delay:1.8s}
 .nose{animation:sniff 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-0.125rem)}}
 @keyframes tilt{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 @keyframes step{0%,65%,100%{opacity:.2;transform:scale(.94)}20%,40%{opacity:1;transform:scale(1)}}
 @keyframes sniff{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}

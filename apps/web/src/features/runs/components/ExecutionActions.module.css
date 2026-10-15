@@ -1,12 +1,12 @@
 .action {
   display: flex;
   width: 100%;
-  min-height: 32px;
+  min-height: 2rem;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   border: 0;
-  border-radius: 4px;
-  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1-5) var(--space-2);
   text-align: left;
   white-space: normal;
   transition: background-color 150ms ease;
@@ -22,8 +22,8 @@
 }
 .sequence {
   display: grid;
-  width: 16px;
-  height: 16px;
+  width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
   place-items: center;
 }
@@ -42,19 +42,19 @@
   flex: 1;
   flex-wrap: wrap;
   align-items: baseline;
-  column-gap: 8px;
-  row-gap: 2px;
+  column-gap: var(--space-2);
+  row-gap: var(--space-0-5);
 }
 .title {
   min-width: 0;
-  font-size: 11px;
-  line-height: 16px;
+  font-size: var(--text-xs);
+  line-height: 1rem;
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .metadata {
-  font-size: 10px;
-  line-height: 16px;
+  font-size: var(--text-2xs);
+  line-height: 1rem;
   color: var(--page-muted);
 }
 .expandIndicator {
@@ -65,7 +65,7 @@
   rotate: 90deg;
 }
 .details {
-  padding: 10px 8px 12px 30px;
+  padding: var(--space-2-5) var(--space-2) var(--space-3) 1.875rem;
 }
 
 .selected .title {

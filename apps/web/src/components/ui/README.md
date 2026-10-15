@@ -20,13 +20,13 @@ import styles from './Search.module.css';
 
 ```css
 .searchInput {
-  padding-left: 36px;
+  padding-left: 2.25rem;
 
   &:focus {
     border-color: var(--brand);
   }
 
-  @media (max-width: 640px) {
+  @media (max-width: 40rem) {
     width: 100%;
   }
 }

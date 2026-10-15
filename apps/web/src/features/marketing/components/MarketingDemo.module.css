@@ -1,7 +1,7 @@
 .root {
   overflow: hidden;
-  border-radius: 0.5rem;
-  border: 1px solid var(--page-line);
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--page-line);
   background-color: var(--surface);
 }
 .container {
@@ -9,23 +9,23 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  column-gap: 1rem;
+  column-gap: var(--space-4);
   border-bottom-style: solid;
-  border-bottom-width: 1px;
+  border-bottom-width: var(--border-width);
   border-color: var(--page-line);
-  padding-inline: 1.25rem;
+  padding-inline: var(--space-5);
 }
 .list {
   display: flex;
-  gap: 1.5rem;
+  gap: var(--space-6);
 }
 .tab {
   cursor: pointer;
   border-bottom-style: solid;
-  border-bottom-width: 2px;
+  border-bottom-width: var(--focus-width);
   border-color: transparent;
-  padding-block: 1rem;
-  font-size: 0.875rem;
+  padding-block: var(--space-4);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--text-secondary);
   @media (hover: hover) {
@@ -39,8 +39,8 @@
   }
 }
 .label {
-  padding-block: 0.75rem;
-  font-size: 0.75rem;
+  padding-block: var(--space-3);
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--text-subtle);
 }
@@ -52,46 +52,46 @@
 }
 .section {
   border-bottom-style: solid;
-  border-bottom-width: 1px;
+  border-bottom-width: var(--border-width);
   border-color: var(--page-line);
-  padding: 1.5rem;
+  padding: var(--space-6);
   @media (width >= 40rem) {
-    padding: 2rem;
+    padding: var(--space-8);
   }
   @media (width >= 48rem) {
     border-bottom-style: solid;
-    border-bottom-width: 0px;
+    border-bottom-width: 0;
     border-right-style: solid;
-    border-right-width: 1px;
+    border-right-width: var(--border-width);
   }
 }
 .subheading {
-  margin-bottom: 1.25rem;
-  font-size: 0.875rem;
+  margin-bottom: var(--space-5);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   font-weight: 600;
 }
 .description {
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--space-5);
   word-break: break-all;
-  border-radius: 0.375rem;
+  border-radius: var(--radius-md);
   background-color: var(--code-surface);
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-2) var(--space-3);
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--text-secondary);
 }
 .ol {
   & > :not(:last-child) {
     margin-block-start: 0;
-    margin-block-end: 1rem;
+    margin-block-end: var(--space-4);
   }
 }
 .item {
   display: flex;
-  gap: 0.75rem;
-  font-size: 0.875rem;
+  gap: var(--space-3);
+  font-size: var(--text-lg);
   line-height: 1.5rem;
 }
 .stepNumber {
@@ -101,20 +101,20 @@
   color: var(--text-subtle);
 }
 .result {
-  padding: 1.5rem;
+  padding: var(--space-6);
   @media (width >= 40rem) {
-    padding: 2rem;
+    padding: var(--space-8);
   }
 }
 .resultHeading {
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--space-5);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 .resultTitle {
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   font-weight: 600;
 }
@@ -122,14 +122,14 @@
   color: var(--success);
 }
 .evidence {
-  margin-top: 1.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid var(--success-line);
+  margin-top: var(--space-6);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--success-line);
   background-color: var(--success-soft);
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 .evidenceCaption {
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   font-weight: 500;
   color: var(--success-strong);

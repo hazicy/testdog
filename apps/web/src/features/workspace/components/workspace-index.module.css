@@ -1,7 +1,7 @@
 /* Quiet surfaces and a single toolbar keep the records in focus. */
 .workspaceIndexMain {
   position: relative;
-  padding: 18px 28px 28px;
+  padding: 1.125rem var(--space-7) var(--space-7);
   background: var(--surface);
 }
 .workspaceIndex,
@@ -18,24 +18,24 @@
 .workspaceIndexToolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 0 16px;
+  gap: var(--space-3);
+  padding: 0 0 var(--space-4);
 }
 .workspaceIndexSearch {
-  flex: 0 1 260px;
-  min-width: 120px;
+  flex: 0 1 16.25rem;
+  min-width: 7.5rem;
 }
 .workspaceIndex {
   & [data-slot='input'] {
-    min-height: 34px;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    border-radius: 5px;
+    min-height: 2.125rem;
+    padding-top: var(--space-1-5);
+    padding-bottom: var(--space-1-5);
+    border-radius: 0.3125rem;
     background: transparent;
-    font-size: 14px;
+    font-size: var(--text-lg);
     @media (pointer: coarse) {
-      min-height: 44px;
-      font-size: 16px;
+      min-height: 2.75rem;
+      font-size: var(--text-xl);
     }
     transition:
       background-color 160ms ease,
@@ -55,8 +55,8 @@
 
   & [data-slot='input']:focus {
     border-color: var(--control-line);
-    outline: 2px solid var(--brand-line);
-    outline-offset: 2px;
+    outline: var(--focus-width) solid var(--brand-line);
+    outline-offset: var(--focus-width);
     background: var(--surface);
   }
 }
@@ -73,15 +73,15 @@
 .workspaceIndexToolbarActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin-left: auto;
 }
 
 .caseCreateButton {
   &.isCanvas {
     box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--brand-foreground) 14%, transparent),
-      0 1px 2px var(--canvas-panel-shadow);
+      inset 0 0.0625rem 0 color-mix(in srgb, var(--brand-foreground) 14%, transparent),
+      0 0.0625rem 0.125rem var(--canvas-panel-shadow);
   }
   & svg {
     transition: transform 180ms ease;
@@ -92,7 +92,7 @@
   }
 
   &.isQuick:hover svg {
-    transform: translateY(-2px) rotate(8deg);
+    transform: translateY(-0.125rem) rotate(8deg);
   }
 
   &:active svg {
@@ -111,24 +111,24 @@
 
 .workspaceIndexTable {
   table-layout: fixed;
-  min-width: 740px;
-  border-top: 1px solid var(--page-line);
+  min-width: 46.25rem;
+  border-top: var(--border-width) solid var(--page-line);
 
   & th {
-    padding: 11px 12px;
+    padding: 0.6875rem var(--space-3);
     background: var(--surface-hover);
     color: var(--page-muted);
-    font-size: 12px;
+    font-size: var(--text-sm);
     font-weight: 500;
   }
 
   & th:first-child {
     width: 52%;
-    border-top-left-radius: 5px;
+    border-top-left-radius: 0.3125rem;
   }
 
   & td:first-child {
-    max-width: 420px;
+    max-width: 26.25rem;
   }
 
   & td:first-child button {
@@ -137,7 +137,7 @@
   }
 
   & td:first-child > p {
-    max-width: 360px;
+    max-width: 22.5rem;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -152,7 +152,7 @@
 
   & th:last-child {
     width: 14%;
-    border-top-right-radius: 5px;
+    border-top-right-radius: 0.3125rem;
   }
 
   &.isResults th:first-child {
@@ -168,7 +168,7 @@
   }
 
   &.isIssues {
-    min-width: 900px;
+    min-width: 56.25rem;
   }
 
   &.isIssues th:nth-child(1) {
@@ -201,17 +201,17 @@
 }
 .workspaceIndexTable {
   & td {
-    font-size: 13px;
-    height: 62px;
-    padding: 11px 12px;
-    border-bottom: 1px solid var(--line-subtle);
+    font-size: var(--text-md);
+    height: 3.875rem;
+    padding: 0.6875rem var(--space-3);
+    border-bottom: var(--border-width) solid var(--line-subtle);
     transition:
       background-color 160ms ease,
       box-shadow 160ms ease;
   }
 
   & tbody tr:last-child td {
-    border-bottom: 1px solid var(--page-line);
+    border-bottom: var(--border-width) solid var(--page-line);
   }
 
   & tbody tr:hover,
@@ -220,63 +220,63 @@
   }
   & tbody tr:hover td:first-child,
   & tbody tr:focus-within td:first-child {
-    box-shadow: inset 2px 0 var(--control-line);
+    box-shadow: inset 0.125rem 0 var(--control-line);
   }
 }
 .workspaceIndexTitle {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: var(--space-1-5) var(--space-2-5);
 }
 .workspaceIndexName {
   display: inline-block;
   max-width: 100%;
   white-space: normal;
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: var(--text-md);
   line-height: 1.5;
   letter-spacing: -0.01em;
 }
 .workspaceIndexDescription {
   max-width: 100%;
-  margin-top: 3px;
+  margin-top: 0.1875rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--page-muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .workspaceIndexId {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .workspaceIndexMetaSeparator {
-  padding: 0 7px;
+  padding: 0 0.4375rem;
   color: var(--text-faint);
 }
 .workspaceIndexTime {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }
 .workspaceIndexTags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .workspaceIndexTag {
-  padding: 1px 5px;
+  padding: 0.0625rem 0.3125rem;
   background: var(--surface-muted);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text-subtle);
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.5;
-  box-shadow: inset 0 0 0 1px var(--line-subtle);
+  box-shadow: inset 0 0 0 0.0625rem var(--line-subtle);
 }
 .workspaceIndexTable {
   & [data-slot='status'] {
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 
   & [data-slot='status'][data-status='none'] {
@@ -296,23 +296,23 @@
   z-index: 60;
 }
 .workspaceRowMenu {
-  min-width: 164px;
-  padding: 5px;
-  border: 1px solid var(--page-line);
-  border-radius: 7px;
+  min-width: 10.25rem;
+  padding: 0.3125rem;
+  border: var(--border-width) solid var(--page-line);
+  border-radius: 0.4375rem;
   background: var(--surface-raised);
   box-shadow:
-    0 8px 28px var(--plan-shadow),
-    0 2px 6px var(--shadow);
+    0 0.5rem 1.75rem var(--plan-shadow),
+    0 0.125rem 0.375rem var(--shadow);
   color: var(--ink);
 }
 .workspaceRowMenuItem {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 9px;
-  border-radius: 4px;
-  font-size: 12px;
+  gap: 0.5625rem;
+  padding: var(--space-2) 0.5625rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
   cursor: pointer;
   outline: none;
 
@@ -326,9 +326,9 @@
   }
 
   &.isDanger {
-    margin-top: 5px;
-    border-top: 1px solid var(--page-line);
-    border-radius: 0 0 4px 4px;
+    margin-top: 0.3125rem;
+    border-top: var(--border-width) solid var(--page-line);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     color: var(--danger);
   }
 }
@@ -338,34 +338,34 @@
   color: var(--warning);
 }
 .workspaceIndexEmpty {
-  border-top: 1px solid var(--page-line);
-  border-bottom: 1px solid var(--page-line);
+  border-top: var(--border-width) solid var(--page-line);
+  border-bottom: var(--border-width) solid var(--page-line);
 }
-@media (max-width: 1023px) {
+@media (max-width: 63.9375rem) {
   .workspaceIndexMain {
-    padding: 20px 24px 32px;
+    padding: var(--space-5) var(--space-6) var(--space-8);
   }
 }
-@media (max-width: 640px) {
+@media (max-width: 40rem) {
   .workspaceIndexMain {
-    padding: 16px;
+    padding: var(--space-4);
   }
   .workspaceIndexToolbar {
     flex-wrap: wrap;
-    gap: 12px 8px;
+    gap: var(--space-3) var(--space-2);
   }
   .workspaceIndexSearch {
     flex: 1 0 100%;
   }
   .workspaceIndex {
     & [data-slot='input'] {
-      min-height: 36px;
+      min-height: 2.25rem;
       @media (pointer: coarse) {
-        min-height: 44px;
+        min-height: 2.75rem;
       }
     }
   }
   .workspaceIndexTable {
-    min-width: 700px;
+    min-width: 43.75rem;
   }
 }

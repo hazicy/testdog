@@ -7,13 +7,13 @@
       color: var(--brand-link);
     }
   }
-  min-height: 0px;
+  min-height: 0;
   border-radius: 0;
-  padding: 0px;
+  padding: 0;
   white-space: normal;
 }
 .link {
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--page-muted);
   font-variant-numeric: tabular-nums;
@@ -29,7 +29,7 @@
 .container {
   display: flex;
   justify-content: flex-end;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 .runLink {
   font-weight: 500;
@@ -41,12 +41,12 @@
 }
 .tableCell {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--page-muted);
 }
 .runActions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }

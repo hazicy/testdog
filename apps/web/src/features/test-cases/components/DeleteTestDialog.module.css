@@ -2,22 +2,22 @@
   max-width: 28rem;
 }
 .container {
-  padding: 1.5rem;
+  padding: var(--space-6);
 }
 .deleteTitle {
-  font-size: 1.125rem;
+  font-size: var(--text-2xl);
   line-height: calc(1.75 / 1.125);
   font-weight: 600;
 }
 .description {
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
+  margin-top: var(--space-3);
+  font-size: var(--text-lg);
   line-height: 1.5rem;
   color: var(--page-muted);
 }
 .error {
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
+  margin-top: var(--space-3);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--error-ink);
 }

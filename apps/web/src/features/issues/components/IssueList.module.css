@@ -1,13 +1,13 @@
 .section {
   margin-inline: auto;
-  max-width: 1500px;
+  max-width: 93.75rem;
 }
 .accessibleLabel {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: 0.0625rem;
+  height: 0.0625rem;
   padding: 0;
-  margin: -1px;
+  margin: -0.0625rem;
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
@@ -29,13 +29,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 .select {
   width: auto;
 }
 .error {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   color: var(--error-ink);
 }
 .link {
@@ -51,9 +51,9 @@
   color: var(--error-ink);
 }
 .label {
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--page-muted);
 }

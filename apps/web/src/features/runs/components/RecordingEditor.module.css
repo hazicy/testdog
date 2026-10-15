@@ -1,7 +1,7 @@
 .description {
-  border: 1px solid var(--page-line);
-  padding: 1.5rem;
-  font-size: 0.875rem;
+  border: var(--border-width) solid var(--page-line);
+  padding: var(--space-6);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--page-muted);
 }

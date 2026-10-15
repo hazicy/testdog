@@ -1,57 +1,57 @@
 .page {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 .select {
   width: auto;
 }
 .error {
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--error-ink);
 }
 .article {
   width: 100%;
-  padding: 1.5rem;
+  padding: var(--space-6);
   @media (width >= 48rem) {
-    padding-inline: 2.5rem;
-    padding-block: 1.5rem;
+    padding-inline: var(--space-10);
+    padding-block: var(--space-6);
   }
 }
 .link {
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--brand);
 }
 .header {
-  margin-top: 1.25rem;
+  margin-top: var(--space-5);
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .headingGroup {
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 .category {
   background-color: var(--danger);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
   line-height: 1rem;
   font-weight: 600;
   color: #fff;
 }
 .title {
   min-width: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-3xl);
   line-height: 1.75rem;
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -59,41 +59,41 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 .action {
   flex-shrink: 0;
 }
 .metadata {
-  margin-block: 1rem;
+  margin-block: var(--space-4);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
-  font-size: 0.75rem;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--page-muted);
 }
 .environment {
-  border: 1px solid var(--page-line);
+  border: var(--border-width) solid var(--page-line);
   background-color: var(--surface-raised);
-  padding: 0.25rem 0.5rem;
+  padding: var(--space-1) var(--space-2);
 }
 .loadError {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   color: var(--error-ink);
 }
 .section {
-  margin-top: 1.5rem;
+  margin-top: var(--space-6);
 }
 .heading {
-  margin-bottom: 0.75rem;
-  font-size: 0.875rem;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   font-weight: 600;
 }
 .latestOccurrence {
-  border: 1px solid var(--page-line);
+  border: var(--border-width) solid var(--page-line);
   background-color: var(--surface-raised);
 }
 .comparison {
@@ -106,39 +106,39 @@
     & > :not(:last-child) {
       border-inline-style: solid;
       border-inline-start-width: 0;
-      border-inline-end-width: 1px;
+      border-inline-end-width: var(--border-width);
     }
   }
 }
 .expectedHeading {
   background-color: var(--surface-muted);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
   line-height: 1rem;
   font-weight: 600;
   color: var(--page-muted);
 }
 .description {
   overflow-wrap: anywhere;
-  padding: 0.75rem;
-  font-size: 0.875rem;
+  padding: var(--space-3);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   white-space: pre-wrap;
 }
 .actualHeading {
   background-color: var(--surface-muted);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
   line-height: 1rem;
   font-weight: 600;
   color: var(--error-ink);
 }
 .reproduction {
   border-top-style: solid;
-  border-top-width: 1px;
+  border-top-width: var(--border-width);
   border-color: var(--page-line);
-  padding: 1rem;
-  font-size: 0.875rem;
+  padding: var(--space-4);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
 }
 .targetLink {
@@ -150,60 +150,60 @@
   }
 }
 .reproductionHeading {
-  margin-top: 1rem;
-  font-size: 0.75rem;
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
   line-height: 1rem;
   font-weight: 600;
   color: var(--page-muted);
 }
 .ol {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
   & > :not(:last-child) {
     margin-block-start: 0;
-    margin-block-end: 0.5rem;
+    margin-block-end: var(--space-2);
   }
 }
 .item {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .stepNumber {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--page-muted);
 }
 .issueDescription {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  border: 1px solid var(--page-line);
+  border: var(--border-width) solid var(--page-line);
   background-color: var(--surface-raised);
-  padding: 1rem;
-  font-size: 0.875rem;
+  padding: var(--space-4);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
 }
 .historySection {
-  margin-top: 2rem;
+  margin-top: var(--space-8);
 }
 .historyHeading {
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3);
   display: flex;
   justify-content: space-between;
 }
 .historyTitle {
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   font-weight: 600;
 }
 .historySummary {
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--page-muted);
 }
 .occurrenceTable {
   overflow-x: auto;
-  border: 1px solid var(--page-line);
+  border: var(--border-width) solid var(--page-line);
   background-color: var(--surface-raised);
 }
 .tableHeader {
@@ -211,21 +211,21 @@
   color: var(--page-muted);
 }
 .tableHead {
-  padding: 0.75rem 0.75rem;
+  padding: var(--space-3) var(--space-3);
   font-weight: 500;
 }
 .tableRow {
   border-top-style: solid;
-  border-top-width: 1px;
+  border-top-width: var(--border-width);
   border-color: var(--page-line);
 }
 .tableCell {
-  padding: 1rem 0.75rem;
+  padding: var(--space-4) var(--space-3);
 }
 .runStatus {
-  border: 1px solid var(--page-line);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+  border: var(--border-width) solid var(--page-line);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
   line-height: 1rem;
 }
 .runLink {
@@ -237,122 +237,122 @@
   }
 }
 .timestampCell {
-  padding: 1rem 0.75rem;
+  padding: var(--space-4) var(--space-3);
   white-space: nowrap;
 }
 .emptyMessage {
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--page-muted);
 }
 .occurrence {
-  margin-top: 1rem;
-  border: 1px solid var(--page-line);
+  margin-top: var(--space-4);
+  border: var(--border-width) solid var(--page-line);
   background-color: var(--surface-raised);
-  padding: 1rem;
+  padding: var(--space-4);
 }
 .occurrenceHeading {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 .detailsLink {
   color: var(--brand);
 }
 .occurrenceMetadata {
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--page-muted);
 }
 .assertion {
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
+  margin-top: var(--space-3);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
 }
 .evidence {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
+  margin-top: var(--space-2);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
 }
 .occurrenceError {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--error-ink);
 }
 .screenshots {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 .image {
   height: 7rem;
   width: 12rem;
-  border-radius: 0.25rem;
-  border: 1px solid var(--page-line);
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--page-line);
   object-fit: contain;
 }
 .verificationHeading {
-  margin-bottom: 1rem;
-  font-size: 1.125rem;
+  margin-bottom: var(--space-4);
+  font-size: var(--text-2xl);
   line-height: calc(1.75 / 1.125);
   font-weight: 600;
 }
 .verification {
-  margin-bottom: 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--page-line);
-  padding: 1rem;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--page-line);
+  padding: var(--space-4);
 }
 .verificationSummary {
   display: flex;
   justify-content: space-between;
 }
 .verificationExplanation {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
+  margin-top: var(--space-2);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--page-muted);
 }
 .form {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-6);
 }
 .field {
   display: block;
 }
 .input {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
   min-height: 6rem;
 }
 .commentSubmit {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 .events {
   & > :not(:last-child) {
     margin-block-start: 0;
-    margin-block-end: 1rem;
+    margin-block-end: var(--space-4);
   }
 }
 .event {
   border-left-style: solid;
-  border-left-width: 2px;
+  border-left-width: var(--focus-width);
   border-color: var(--page-line);
-  padding-left: 1rem;
+  padding-left: var(--space-4);
 }
 .eventMessage {
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
 }
 .eventTime {
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--page-muted);
 }

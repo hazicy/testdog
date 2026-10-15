@@ -3,11 +3,11 @@
   align-items: center;
   flex-shrink: 0;
   margin-left: auto;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .label {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--page-muted);
 }
@@ -17,15 +17,15 @@
   object-fit: contain;
 }
 .description {
-  padding: 2rem;
-  font-size: 0.875rem;
+  padding: var(--space-8);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--preview-ink);
 }
 .playbackTime {
   white-space: nowrap;
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
   font-variant-numeric: tabular-nums;
 }
@@ -56,12 +56,12 @@
   position: relative;
   height: 0.25rem;
   width: 100%;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background-color: var(--page-line);
 }
 .indicator {
   height: 100%;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background-color: var(--brand);
 }
 .issueMarker {
@@ -76,31 +76,31 @@
 .thumb {
   height: 0.75rem;
   width: 0.75rem;
-  border-radius: 9999px;
+  border-radius: 624.9375rem;
   background-color: var(--brand);
-  outline-offset: 4px;
+  outline-offset: 0.25rem;
   &:focus-visible {
-    outline: 2px solid var(--brand);
+    outline: var(--focus-width) solid var(--brand);
   }
 }
 .actionMarkers {
   position: absolute;
-  inset-inline: 0px;
+  inset-inline: 0;
   top: calc(1 / 2 * 100%);
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
   height: 1.25rem;
 }
 .action {
-  min-height: 0px;
-  padding: 0px;
+  min-height: 0;
+  padding: 0;
   position: absolute;
-  top: 0px;
+  top: 0;
   display: grid;
   height: 1.25rem;
   width: 1.25rem;
   translate: calc(calc(1 / 2 * 100%) * -1) 0;
   place-items: center;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background-color: var(--surface);
   @media (hover: hover) {
     &:hover {
@@ -108,7 +108,7 @@
     }
   }
   &:focus-visible {
-    outline: 2px solid var(--brand);
+    outline: var(--focus-width) solid var(--brand);
   }
 }
 .error {
@@ -125,16 +125,16 @@
 .speedSelect {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: var(--space-1-5);
   flex-shrink: 0;
   width: 4.5rem;
   height: 2rem;
   min-height: 2rem;
-  border: 1px solid var(--page-line);
+  border: var(--border-width) solid var(--page-line);
   background-color: transparent;
-  padding: 0 0.625rem;
+  padding: 0 var(--space-2-5);
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
 }
 .videoSelector {

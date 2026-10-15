@@ -7,16 +7,16 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
-  padding: 48px 20px;
+  padding: var(--space-12) var(--space-5);
   text-align: center;
 }
 .container[role='status'] {
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--page-muted);
 }
 .message {
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   font-weight: 400;
   line-height: 1.25rem;
   color: var(--page-muted);

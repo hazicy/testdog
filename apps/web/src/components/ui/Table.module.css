@@ -3,7 +3,7 @@
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    font-size: 13px;
+    font-size: var(--text-md);
     white-space: nowrap;
   }
   .header {
@@ -12,7 +12,7 @@
   .body {
     & > tr:last-child {
       border-bottom-style: solid;
-      border-bottom-width: 0px;
+      border-bottom-width: 0;
     }
     & > tr:hover {
       background-color: var(--surface-hover);
@@ -20,20 +20,20 @@
   }
   .row {
     border-bottom-style: solid;
-    border-bottom-width: 1px;
+    border-bottom-width: var(--border-width);
     border-color: var(--line-subtle);
   }
   .heading {
     border-bottom-style: solid;
-    border-bottom-width: 1px;
+    border-bottom-width: var(--border-width);
     border-color: var(--page-line);
-    padding: 0.75rem 1.125rem;
-    font-size: 0.75rem;
+    padding: var(--space-3) 1.125rem;
+    font-size: var(--text-sm);
     line-height: 1rem;
     font-weight: 400;
     color: var(--table-heading);
   }
   .cell {
-    padding: 1rem 1.125rem;
+    padding: var(--space-4) 1.125rem;
   }
 }

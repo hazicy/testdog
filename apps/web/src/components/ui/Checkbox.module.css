@@ -7,8 +7,8 @@
     cursor: pointer;
     align-items: center;
     justify-content: center;
-    border-radius: 3px;
-    border: 1px solid var(--control-line);
+    border-radius: 0.1875rem;
+    border: var(--border-width) solid var(--control-line);
     background-color: var(--surface);
     &[data-checked] {
       border-color: var(--brand);
@@ -21,7 +21,7 @@
     }
   }
   .indicator {
-    font-size: 0.75rem;
+    font-size: var(--text-sm);
     line-height: 1;
   }
 }

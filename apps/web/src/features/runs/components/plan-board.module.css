@@ -1,6 +1,6 @@
 .planViewport {
   position: relative;
-  height: 600px;
+  height: 37.5rem;
   overflow: hidden;
   background-color: var(--surface-muted);
   --xy-background-color: var(--surface-muted);
@@ -13,10 +13,10 @@
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
-  border: 1px solid var(--plan-line);
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--plan-line);
   background: var(--surface);
-  box-shadow: 0 4px 12px var(--plan-shadow);
+  box-shadow: 0 0.25rem 0.75rem var(--plan-shadow);
 
   &[data-step-type='group'] {
     background: var(--plan-group);
@@ -32,25 +32,25 @@
   }
 
   &[data-editing='true'] {
-    outline: 2px solid var(--brand);
-    outline-offset: 2px;
+    outline: var(--focus-width) solid var(--brand);
+    outline-offset: var(--focus-width);
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 40rem) {
   .planCanvasHint {
     display: none;
   }
 
   .planViewport {
-    height: 440px;
+    height: 27.5rem;
   }
 }
 
 .planNode {
   &[data-step-type='task'] {
     border-color: var(--canvas-task-line);
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
   }
 }
 
@@ -58,7 +58,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  border: 1px solid var(--canvas-line);
+  border: var(--border-width) solid var(--canvas-line);
   background: var(--surface-raised);
 }
 
@@ -88,7 +88,7 @@
 
 .planBoardBody {
   &.hasInspector {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-columns: minmax(0, 1fr) 18.75rem;
   }
 }
 
@@ -103,35 +103,35 @@
 
 .planCanvasTools {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  right: 1.25rem;
   z-index: 5;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
   pointer-events: none;
 }
 
 .planCanvasHint {
   margin-right: auto;
-  border: 1px solid var(--page-line);
-  border-radius: 8px;
-  padding: 9px 12px;
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-lg);
+  padding: 0.5625rem var(--space-3);
   background: var(--surface);
   color: var(--page-muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .planViewportControls {
   display: flex;
   align-items: center;
-  padding: 3px;
-  border: 1px solid var(--page-line);
-  border-radius: 10px;
+  padding: 0.1875rem;
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-xl);
   background: var(--surface-raised);
-  box-shadow: 0 3px 12px var(--canvas-shadow);
+  box-shadow: 0 0.1875rem 0.75rem var(--canvas-shadow);
   pointer-events: auto;
   @media (pointer: coarse) {
     flex-wrap: wrap;
@@ -139,15 +139,15 @@
   }
 
   & button {
-    min-width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    min-width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-sm);
     cursor: pointer;
     @media (pointer: coarse) {
-      min-width: 44px;
-      height: 44px;
+      min-width: 2.75rem;
+      height: 2.75rem;
       flex: 1;
     }
   }
@@ -157,7 +157,7 @@
   }
 
   & button:focus-visible {
-    outline: 2px solid var(--brand-line);
+    outline: var(--focus-width) solid var(--brand-line);
   }
 }
 
@@ -171,8 +171,8 @@
 .planInspector {
   min-width: 0;
   overflow-y: auto;
-  padding: 20px;
-  border-left: 1px solid var(--canvas-divider);
+  padding: var(--space-5);
+  border-left: var(--border-width) solid var(--canvas-divider);
   background: var(--surface-raised);
   color: var(--canvas-ink);
 }
@@ -180,10 +180,10 @@
 .planBoard {
   & .planNode {
     pointer-events: auto;
-    border: 1px solid var(--canvas-node-line);
-    border-radius: 10px;
+    border: var(--border-width) solid var(--canvas-node-line);
+    border-radius: var(--radius-xl);
     background: var(--surface-raised);
-    box-shadow: 0 2px 6px var(--canvas-shadow);
+    box-shadow: 0 0.125rem 0.375rem var(--canvas-shadow);
   }
 
   & .planNode[data-step-type='assert'] {
@@ -216,14 +216,14 @@
   }
 
   & :global(.react-flow__node):global(.selected) .planNode {
-    outline: 2px solid var(--plan-edge);
-    outline-offset: 3px;
-    box-shadow: 0 0 0 4px var(--canvas-selected-ring);
+    outline: var(--focus-width) solid var(--plan-edge);
+    outline-offset: 0.1875rem;
+    box-shadow: 0 0 0 0.25rem var(--canvas-selected-ring);
   }
 
   & .planNode[data-editing='true'] {
-    outline: 2px solid var(--canvas-active-line);
-    outline-offset: 3px;
+    outline: var(--focus-width) solid var(--canvas-active-line);
+    outline-offset: 0.1875rem;
   }
 }
 
@@ -233,8 +233,8 @@
   width: 100%;
   height: 100%;
   align-items: center;
-  gap: 24px;
-  padding: 16px 20px;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-5);
   text-align: left;
   cursor: pointer;
   color: var(--canvas-node-ink);
@@ -243,28 +243,28 @@
 .planReviewActions {
   position: absolute;
   right: 0;
-  top: -32px;
+  top: -2rem;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 5px 3px 10px;
-  border: 1px solid var(--page-line);
-  border-radius: 8px;
+  gap: 0.3125rem;
+  padding: 0.1875rem 0.3125rem 0.1875rem var(--space-2-5);
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-lg);
   background: var(--surface-raised);
-  box-shadow: 0 2px 6px var(--canvas-shadow);
-  font-size: 11px;
+  box-shadow: 0 0.125rem 0.375rem var(--canvas-shadow);
+  font-size: var(--text-xs);
 
   & > span {
-    margin-right: 4px;
+    margin-right: var(--space-1);
     color: var(--page-muted);
   }
 
   & > button {
-    width: 24px;
-    height: 24px;
-    border-radius: 5px;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.3125rem;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 0.9375rem;
   }
 
   & > button:first-of-type {
@@ -278,7 +278,7 @@
   }
 
   & > button:focus-visible {
-    outline: 2px solid var(--brand-line);
+    outline: var(--focus-width) solid var(--brand-line);
   }
 }
 
@@ -307,9 +307,9 @@
 
 .planReviewBefore {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-xs);
   line-height: 1.5;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .planNode {
@@ -328,7 +328,7 @@
 .planNodeContent {
   flex: 1;
   min-width: 0;
-  font-size: 20px;
+  font-size: var(--text-3xl);
   line-height: 1.4;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -342,9 +342,9 @@
 
 .planPathLabel {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--canvas-path-ink);
-  margin-bottom: 3px;
+  margin-bottom: 0.1875rem;
 }
 
 .stepBadge {
@@ -352,12 +352,12 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  gap: 6px;
-  padding: 5px 10px;
-  font-size: 17px;
+  gap: var(--space-1-5);
+  padding: 0.3125rem var(--space-2-5);
+  font-size: 1.0625rem;
   font-weight: 600;
   line-height: 1.3;
-  border: 1px solid;
+  border: var(--border-width) solid;
   color: var(--step-task-ink);
   border-color: var(--step-task-line);
   background: var(--step-task-soft);
@@ -401,26 +401,26 @@
 
 .stepInsertTrigger {
   pointer-events: auto;
-  width: 36px;
-  height: 36px;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50%;
-  border: 1px solid var(--canvas-group-line);
+  border: var(--border-width) solid var(--canvas-group-line);
   background: var(--surface-raised);
   color: var(--control-ink);
-  box-shadow: 0 2px 5px var(--canvas-insert-shadow);
+  box-shadow: 0 0.125rem 0.3125rem var(--canvas-insert-shadow);
   cursor: pointer;
   display: grid;
   place-items: center;
-  font-size: 24px;
+  font-size: var(--text-4xl);
   line-height: 1;
 }
 
 .stepInsertArea {
   display: grid;
   place-items: center;
-  width: 160px;
-  height: 56px;
-  margin: -10px -62px;
+  width: 10rem;
+  height: 3.5rem;
+  margin: -0.625rem -3.875rem;
 
   & .stepInsertTrigger {
     opacity: 0;
@@ -463,22 +463,22 @@
 
 .stepTypeMenu {
   background: var(--surface-raised);
-  padding: 8px;
-  border: 1px solid var(--canvas-group-line);
-  border-radius: 8px;
-  box-shadow: 0 8px 32px var(--canvas-menu-shadow);
-  min-width: 300px;
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--canvas-group-line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0.5rem 2rem var(--canvas-menu-shadow);
+  min-width: 18.75rem;
   color: var(--canvas-menu-ink);
 }
 
 .stepTypeOption {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px;
+  gap: var(--space-4);
+  padding: var(--space-2);
   cursor: pointer;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
   outline: none;
 
   &[data-highlighted] {
@@ -486,46 +486,46 @@
   }
 
   & .stepBadge {
-    font-size: 13px;
-    min-width: 116px;
+    font-size: var(--text-md);
+    min-width: 7.25rem;
     justify-content: flex-start;
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 47.5rem) {
   .planCanvasTools {
-    bottom: 12px;
-    left: 12px;
-    right: 12px;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
   }
   .planCanvasHint {
-    max-width: 180px;
-    font-size: 11px;
+    max-width: 11.25rem;
+    font-size: var(--text-xs);
   }
   .planBoardBody {
     &.hasInspector {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: minmax(180px, 1fr) minmax(180px, 40%);
+      grid-template-rows: minmax(11.25rem, 1fr) minmax(11.25rem, 40%);
     }
   }
   .planInspector {
     border-left: none;
-    border-top: 1px solid var(--canvas-divider);
-    padding: 12px;
+    border-top: var(--border-width) solid var(--canvas-divider);
+    padding: var(--space-3);
   }
 }
 
 .planNodeActions {
   position: absolute;
   right: 0;
-  top: -34px;
+  top: -2.125rem;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
+  gap: var(--space-1);
+  padding: var(--space-1);
   background: var(--surface-raised);
-  border: 1px solid var(--canvas-line);
-  border-radius: 6px;
+  border: var(--border-width) solid var(--canvas-line);
+  border-radius: var(--radius-md);
   opacity: 0;
   pointer-events: none;
   transition: opacity 120ms;
@@ -536,7 +536,7 @@
     top: 100%;
     left: 0;
     right: 0;
-    height: 8px;
+    height: 0.5rem;
   }
 }
 
@@ -548,9 +548,9 @@
 
 .planNodeActions {
   & button {
-    font-size: 12px;
-    padding: 2px 8px;
-    border-radius: 3px;
+    font-size: var(--text-sm);
+    padding: var(--space-0-5) var(--space-2);
+    border-radius: 0.1875rem;
   }
 
   & button:hover {
@@ -571,7 +571,7 @@
 
 .planInlineInput {
   width: 100%;
-  min-height: 42px;
+  min-height: 2.625rem;
   resize: none;
   outline: none;
   background: transparent;
@@ -579,7 +579,7 @@
 }
 
 .planInlineEvidence {
-  max-height: 320px;
+  max-height: 20rem;
   overflow: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
@@ -588,13 +588,13 @@
   top: 100%;
   left: 0;
   right: 0;
-  padding: 12px;
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border: 1px solid var(--canvas-line);
+  gap: var(--space-2);
+  border: var(--border-width) solid var(--canvas-line);
   background: var(--surface-raised);
-  box-shadow: 0 4px 12px var(--canvas-evidence-shadow);
+  box-shadow: 0 0.25rem 0.75rem var(--canvas-evidence-shadow);
 }
 
 @media (hover: none) {
@@ -612,14 +612,14 @@
 
   &[data-result] .planNodeRow {
     height: auto;
-    min-height: 72px;
+    min-height: 4.5rem;
   }
 }
 
 .planBoard {
   & .planNode[data-current='true'] {
-    outline: 2px solid var(--brand);
-    outline-offset: 3px;
+    outline: var(--focus-width) solid var(--brand);
+    outline-offset: 0.1875rem;
   }
 }
 
@@ -627,9 +627,9 @@
   display: flex;
   flex: 1;
   min-height: 0;
-  gap: 20px;
-  padding: 0 20px 16px;
-  font-size: 12px;
+  gap: var(--space-5);
+  padding: 0 var(--space-5) var(--space-4);
+  font-size: var(--text-sm);
   line-height: 1.6;
   color: var(--page-muted);
 }
@@ -642,7 +642,7 @@
   & p {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
   }
 }
 
@@ -652,34 +652,34 @@
 
 .planPlaybackMarker {
   display: inline-block;
-  margin-right: 12px;
+  margin-right: var(--space-3);
   color: var(--brand);
 }
 
 .planResultThumbnail {
   display: flex;
   flex-direction: column;
-  width: 240px;
+  width: 15rem;
   flex-shrink: 0;
   text-align: center;
-  border: 1px solid var(--page-line);
-  border-radius: 6px;
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--page);
   cursor: pointer;
 
   & img {
     width: 100%;
-    height: 140px;
+    height: 8.75rem;
     object-fit: contain;
   }
 
   & span {
-    padding: 4px;
+    padding: var(--space-1);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--brand);
-    outline-offset: 2px;
+    outline: var(--focus-width) solid var(--brand);
+    outline-offset: var(--focus-width);
   }
 }

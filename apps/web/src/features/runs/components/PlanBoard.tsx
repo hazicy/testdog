@@ -87,6 +87,7 @@ function PlanBoardContent({
   const viewportHeight = useStore((state) => state.height);
   const zoom = useStore((state) => state.transform[2]);
   const hasViewportOverlay = !!viewportOverlay || !!floatingPanel;
+  // React Flow fitView padding accepts pixel strings or percentages, not CSS lengths.
   const viewPadding = useMemo(
     () =>
       hasViewportOverlay

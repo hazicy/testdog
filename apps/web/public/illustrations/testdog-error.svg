@@ -2,7 +2,7 @@
 .float{animation:float 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 .tag{animation:sway 4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
 .signal{animation:signal 3.6s ease-in-out infinite}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-0.125rem)}}
 @keyframes sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
 @keyframes signal{0%,100%{opacity:.35}50%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.float,.tag,.signal{animation:none}}

@@ -1,12 +1,12 @@
 .icon {
   display: flex;
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--space-5);
   color: var(--page-muted);
 }
 .actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 }

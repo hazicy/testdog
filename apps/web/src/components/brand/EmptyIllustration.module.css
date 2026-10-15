@@ -1,11 +1,11 @@
 .image {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   height: auto;
   width: 7.5rem;
   max-width: 100%;
 }
 .loading {
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
   height: auto;
   width: 8rem;
   max-width: 100%;

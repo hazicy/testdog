@@ -1,20 +1,20 @@
 .accessibleLabel {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: 0.0625rem;
+  height: 0.0625rem;
   padding: 0;
-  margin: -1px;
+  margin: -0.0625rem;
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
   border-width: 0;
 }
 .close {
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   color: var(--ink);
 }
 .action {
-  gap: 0.5rem;
-  border-radius: 0.5rem;
+  gap: var(--space-2);
+  border-radius: var(--radius-lg);
   color: var(--ink);
 }

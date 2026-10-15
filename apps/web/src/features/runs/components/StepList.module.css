@@ -2,16 +2,16 @@
   min-width: 0;
 }
 .description {
-  padding: 16px;
+  padding: var(--space-4);
   color: var(--page-muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .groups {
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
 }
 .nestedGroups {
-  margin-left: 12px;
-  padding-left: 8px;
+  margin-left: var(--space-3);
+  padding-left: var(--space-2);
 }
 .plannedStep[data-kind='group'] > [data-slot='collapsible'] > .planSummary .stepNumber {
   background: transparent;
@@ -20,11 +20,11 @@
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 4px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2-5);
+  border-radius: var(--radius-sm);
   color: var(--page-muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   text-align: left;
   cursor: pointer;
 }
@@ -39,8 +39,8 @@
   overflow-wrap: anywhere;
 }
 .plannedStep {
-  padding-block: 4px;
-  border-bottom: 1px solid var(--line-subtle);
+  padding-block: var(--space-1);
+  border-bottom: var(--border-width) solid var(--line-subtle);
 }
 .plannedStep:last-child {
   border-bottom: 0;
@@ -48,11 +48,11 @@
 .planSummary {
   display: flex;
   width: 100%;
-  min-height: 42px;
+  min-height: 2.625rem;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 6px;
+  gap: var(--space-2-5);
+  padding: var(--space-2) var(--space-2-5);
+  border-radius: var(--radius-md);
   text-align: left;
   cursor: pointer;
   transition: background-color 150ms ease;
@@ -61,24 +61,24 @@
   background: var(--surface-hover);
 }
 .planSummary:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: -2px;
+  outline: var(--focus-width) solid var(--brand);
+  outline-offset: -0.125rem;
 }
 .planSummary [data-slot='status'] {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 .stepNumber {
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   flex-shrink: 0;
   align-self: flex-start;
   place-items: center;
-  border-radius: 5px;
+  border-radius: 0.3125rem;
   background: var(--surface-muted);
   color: var(--page-muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -87,16 +87,16 @@
   flex: 1;
 }
 .planTitle {
-  font-size: 13px;
+  font-size: var(--text-md);
   font-weight: 600;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 .pathLabel {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: var(--space-0-5);
   color: var(--page-muted);
-  font-size: 10px;
+  font-size: var(--text-2xs);
 }
 .chevron {
   flex-shrink: 0;
@@ -108,20 +108,20 @@
 }
 .plannedStep[data-current='true'] > [data-slot='collapsible'] > .planSummary {
   background: var(--brand-soft);
-  box-shadow: inset 2px 0 var(--brand);
+  box-shadow: inset 0.125rem 0 var(--brand);
 }
 .plannedStep[data-current='true'] .stepNumber {
   background: var(--surface);
   color: var(--brand);
 }
 .planActions {
-  margin: 4px 0 0 36px;
-  padding-bottom: 6px;
+  margin: var(--space-1) 0 0 2.25rem;
+  padding-bottom: var(--space-1-5);
 }
 .ungroupedHeading {
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   color: var(--page-muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 500;
 }
 @media (prefers-reduced-motion: reduce) {

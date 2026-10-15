@@ -1,15 +1,15 @@
 .skipLink {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
+  width: 0.0625rem;
+  height: 0.0625rem;
+  margin: -0.0625rem;
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
   border-width: 0;
   z-index: 50;
   background-color: var(--page);
-  padding: 0.75rem;
+  padding: var(--space-3);
   &:focus {
     position: static;
     width: auto;
@@ -38,7 +38,7 @@
 .navigationItems {
   & > :not(:last-child) {
     margin-block-start: 0;
-    margin-block-end: 0.25rem;
+    margin-block-end: var(--space-1);
   }
 }
 .navigationLink {
@@ -46,20 +46,20 @@
   display: flex;
   height: 2.5rem;
   align-items: center;
-  gap: 0.75rem;
-  border-radius: 0.375rem;
-  padding-inline: 0.75rem;
-  font-size: 0.875rem;
+  gap: var(--space-3);
+  border-radius: var(--radius-md);
+  padding-inline: var(--space-3);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   transition:
     background-color 160ms ease,
     color 160ms ease;
   &::before {
     position: absolute;
-    inset-block: 12px;
+    inset-block: 0.75rem;
     left: 0;
-    width: 2px;
-    border-radius: 2px;
+    width: 0.125rem;
+    border-radius: var(--radius-xs);
     background: var(--brand);
     content: '';
     opacity: 0;
@@ -99,10 +99,10 @@
 }
 .breadcrumbs {
   display: flex;
-  min-width: 0px;
+  min-width: 0;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.875rem;
+  gap: var(--space-3);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
 }
 .breadcrumbLink {

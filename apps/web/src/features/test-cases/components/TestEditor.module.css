@@ -1,21 +1,21 @@
 .form {
   display: flex;
   height: 100%;
-  min-height: 0px;
+  min-height: 0;
   flex: 1;
   flex-direction: column;
 }
 .container {
   display: flex;
-  min-height: 0px;
+  min-height: 0;
   flex: 1;
 }
 .error {
   flex-shrink: 0;
   border-top-style: solid;
-  border-top-width: 1px;
+  border-top-width: var(--border-width);
   border-color: var(--page-line);
-  padding: 0.625rem 1.5rem;
-  font-size: 13px;
+  padding: var(--space-2-5) var(--space-6);
+  font-size: var(--text-md);
   color: var(--error-ink);
 }

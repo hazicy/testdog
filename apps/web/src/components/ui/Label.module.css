@@ -1,13 +1,13 @@
 @layer controls {
   .field {
     display: block;
-    font-size: 13px;
+    font-size: var(--text-md);
     font-weight: 500;
     & > [data-slot='input'] {
-      margin-top: 0.5rem;
+      margin-top: var(--space-2);
     }
     & > [data-slot='select'] {
-      margin-top: 0.5rem;
+      margin-top: var(--space-2);
     }
   }
 }

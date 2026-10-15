@@ -229,7 +229,7 @@ export function usePlanBoard({
           strokeDasharray:
             edge.kind === 'dependency' || edge.kind === 'reference' ? '5 4' : undefined,
         },
-        labelStyle: { fill: 'var(--page-muted)', fontSize: 11 },
+        labelStyle: { fill: 'var(--page-muted)', fontSize: 'var(--text-xs)' },
         labelBgStyle: { fill: 'var(--surface)' },
         ariaLabel:
           edge.kind === 'dependency'

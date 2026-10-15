@@ -58,19 +58,19 @@ export function CodeEditor({
             if (update.docChanged) changed.current(update.state.doc.toString());
           }),
           EditorView.theme({
-            '&': { backgroundColor: 'var(--surface)', fontSize: '13px', height: '100%' },
+            '&': { backgroundColor: 'var(--surface)', fontSize: 'var(--text-md)', height: '100%' },
             '.cm-scroller': {
               fontFamily: 'var(--font-geist-mono), monospace',
               lineHeight: '1.8',
               overflow: 'auto',
             },
-            '.cm-content': { padding: '16px 0' },
-            '.cm-line': { padding: '0 16px' },
+            '.cm-content': { padding: 'var(--space-4) 0' },
+            '.cm-line': { padding: '0 var(--space-4)' },
             '.cm-gutters': {
               backgroundColor: 'var(--surface)',
               color: 'var(--editor-gutter)',
               borderRight: 'none',
-              paddingRight: '8px',
+              paddingRight: 'var(--space-2)',
             },
             '.cm-activeLine': { backgroundColor: 'var(--editor-active-line)' },
             '&.cm-focused': { outline: 'none' },

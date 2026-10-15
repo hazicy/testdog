@@ -1,46 +1,46 @@
 .container {
   border-bottom-style: solid;
-  border-bottom-width: 1px;
+  border-bottom-width: var(--border-width);
   border-color: var(--page-line);
-  padding: 0.5rem 1.25rem;
+  padding: var(--space-2) var(--space-5);
 }
 .action {
   display: flex;
   width: 100%;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: var(--space-2);
   text-align: left;
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1rem;
-  min-height: 0px;
+  min-height: 0;
   border-radius: 0;
-  padding: 0px;
+  padding: 0;
   white-space: normal;
 }
 .issueBadge {
   flex-shrink: 0;
-  border: 1px solid var(--error-line);
+  border: var(--border-width) solid var(--error-line);
   background-color: var(--error-soft);
-  padding: 0.25rem 0.5rem;
+  padding: var(--space-1) var(--space-2);
   color: var(--error-ink);
 }
 .issueTitle {
-  min-width: 0px;
+  min-width: 0;
   flex: 1;
-  padding-top: 0.25rem;
+  padding-top: var(--space-1);
   font-weight: 500;
   overflow-wrap: break-word;
 }
 .issueTime {
   flex-shrink: 0;
-  padding-top: 0.25rem;
+  padding-top: var(--space-1);
   font-family: var(--font-geist-mono), monospace;
   color: var(--page-muted);
 }
 .error {
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 .refresh {
   text-decoration-line: underline;

@@ -1,27 +1,27 @@
 .description {
-  padding: 1.5rem;
-  font-size: 0.875rem;
+  padding: var(--space-6);
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   color: var(--page-muted);
 }
 .error {
   flex-shrink: 0;
   border-top-style: solid;
-  border-top-width: 1px;
+  border-top-width: var(--border-width);
   border-color: var(--page-line);
-  padding: 0.625rem 1.5rem;
-  font-size: 13px;
+  padding: var(--space-2-5) var(--space-6);
+  font-size: var(--text-md);
   color: var(--error-ink);
 }
 .container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
 }
 .subheading {
-  font-size: 0.875rem;
+  font-size: var(--text-lg);
   line-height: 1.25rem;
   font-weight: 600;
 }

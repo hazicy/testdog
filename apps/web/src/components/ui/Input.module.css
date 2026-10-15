@@ -4,25 +4,25 @@
     width: 100%;
     min-width: 0;
     min-height: 2.375rem;
-    border-radius: 0.375rem;
-    border: 1px solid var(--control-line);
+    border-radius: var(--radius-md);
+    border: var(--border-width) solid var(--control-line);
     background-color: var(--surface);
-    padding: 9px 11px;
-    font-size: 13px;
+    padding: 0.5625rem 0.6875rem;
+    font-size: var(--text-md);
     line-height: 1.5;
     font-weight: 400;
     color: var(--control-ink);
     @media (pointer: coarse) {
-      min-height: 44px;
-      font-size: 16px;
+      min-height: 2.75rem;
+      font-size: var(--text-xl);
     }
     &::placeholder {
       color: var(--control-placeholder);
     }
     &:focus {
       border-color: var(--brand);
-      outline: 2px solid var(--brand);
-      outline-offset: 0px;
+      outline: var(--focus-width) solid var(--brand);
+      outline-offset: 0;
     }
     &:disabled {
       background-color: var(--surface-disabled);

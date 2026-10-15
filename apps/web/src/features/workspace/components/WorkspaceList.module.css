@@ -20,10 +20,10 @@
 }
 .scrollHint {
   border-bottom-style: solid;
-  border-bottom-width: 1px;
+  border-bottom-width: var(--border-width);
   border-color: var(--page-line);
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
   line-height: 1rem;
   color: var(--text-subtle);
   @media (width >= 40rem) {
