@@ -1,15 +1,20 @@
-FROM node:24-bookworm
+FROM mcr.microsoft.com/playwright:v1.63.0-noble
 
 WORKDIR /app
 
 RUN npm install --global pnpm@12.10.1
 
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/package.json
+COPY apps/worker/package.json ./apps/worker/package.json
+COPY packages/automation/package.json ./packages/automation/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/server/package.json ./packages/server/package.json
+
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN pnpm install --frozen-lockfile
-RUN pnpm exec playwright install --with-deps chromium webkit
 RUN pnpm build
 
 ENV NODE_ENV=production \

@@ -77,7 +77,7 @@ Web 和 worker 可以分别构建、发布和扩容，共享数据库结构与�
 
 ### Docker 单机部署
 
-服务器安装 Docker Engine 和 Docker Compose v2，在仓库根目录运行。此配置包含 Web、Web 测试 worker、PostgreSQL 和 Redis；镜像内安装 Chromium、WebKit 及 Linux 系统依赖，不需要宿主机安装 Node.js 或 pnpm。iOS 执行仍需要独立的 macOS/Xcode 节点。
+服务器安装 Docker Engine 和 Docker Compose v2，在仓库根目录运行。此配置包含 Web、Web 测试 worker、PostgreSQL 和 Redis；使用官方 `mcr.microsoft.com/playwright:v1.63.0-noble` 基础镜像，内置 Node.js 24、浏览器及系统依赖，不需要宿主机安装 Node.js 或 pnpm。iOS 执行仍需要独立的 macOS/Xcode 节点。
 
 ```bash
 cp .env.production.example .env.production
@@ -93,7 +93,9 @@ docker compose --env-file .env.production -f compose.prod.yml ps -a
 docker compose --env-file .env.production -f compose.prod.yml logs -f web worker
 ```
 
-首次构建会下载依赖和浏览器。PostgreSQL 就绪后，`migrate` 执行数据库迁移，成功退出后才启动 Web 和 worker；`migrate` 显示 `Exited (0)` 是正常状态。worker 默认包含维护、通知和 outbox，无需额外启动后台服务。
+首次构建会拉取官方 Playwright 镜像并安装项目依赖，不再运行 APT 或单独下载浏览器。PostgreSQL 就绪后，`migrate` 执行数据库迁移，成功退出后才启动 Web 和 worker；`migrate` 显示 `Exited (0)` 是正常状态。worker 默认包含维护、通知和 outbox，无需额外启动后台服务。
+
+项目的 `playwright`、`@playwright/test` 和 Docker 基础镜像统一固定为 `1.63.0`；升级时同步更新版本及锁文件，避免浏览器版本不匹配。仅修改源码会复用基础镜像和项目依赖层。官方镜像的内容及版本要求见 [Playwright Docker 文档](https://playwright.dev/docs/docker)。
 
 Web 绑定宿主机 `127.0.0.1:3000`，使用服务器上的反向代理将 HTTPS 域名转发到此端口，并按上文关闭 SSE 缓冲和缓存。访问 `/register` 创建账号。本地试用时将 `BETTER_AUTH_URL` 改为 `http://localhost:3000`，通过本机浏览器或 SSH 端口转发访问。
 

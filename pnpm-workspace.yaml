@@ -42,7 +42,7 @@ catalog:
   'nodemailer': '^10.1.0'
   'openai': '^7.10.0'
   'pg': '^8.23.0'
-  'playwright': '^1.63.0'
+  'playwright': '1.63.0'
   'prettier': '^3.9.8'
   'react': '19.2.8'
   'react-dom': '19.2.8'
