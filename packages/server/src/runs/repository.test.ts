@@ -503,7 +503,7 @@ describe('PostgreSQL workspace repository', () => {
     await finishRun(run.id, 'cancelled');
     await expect(
       createRun({ mode: 'replay', sourceRunId: run.id }, undefined, null),
-    ).rejects.toThrow('不能重放');
+    ).rejects.toThrow('请重新录制');
   });
 });
 

@@ -45,14 +45,14 @@ const emptySteps: ExecutionStep[] = [];
 const PlanBoard = dynamic(
   () => import('@/features/runs/components/PlanBoard').then((module) => module.PlanBoard),
   {
-    loading: () => <LoadingState message="正在加载计划画板…" />,
+    loading: () => <LoadingState message="正在加载计划…" />,
   },
 );
 const RecordingEditor = dynamic(
   () =>
     import('@/features/runs/components/RecordingEditor').then((module) => module.RecordingEditor),
   {
-    loading: () => <LoadingState message="正在加载录制编辑器…" />,
+    loading: () => <LoadingState message="正在加载录制脚本…" />,
   },
 );
 

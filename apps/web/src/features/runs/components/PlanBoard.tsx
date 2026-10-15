@@ -162,7 +162,7 @@ function PlanBoardContent({
         <div
           data-ui="plan-viewport"
           className={clsx(boardStyles.planViewport, { [boardStyles.hasComposer]: viewportOverlay })}
-          aria-label="计划画板"
+          aria-label="计划"
           tabIndex={0}
           onMouseLeave={() => setHoveredId(undefined)}
           onMouseMove={(event) => {

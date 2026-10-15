@@ -206,7 +206,7 @@ test('creates an issue from a failed board node and starts a regression without 
     return route.fulfill({ json: { run } });
   });
   await page.goto(`/runs/${runId}`);
-  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await page.getByRole('button', { name: '计划', exact: true }).click();
   await page
     .locator('[data-plan-node="amount"]')
     .getByRole('button', { name: '创建或关联问题' })
@@ -253,7 +253,7 @@ test('links a failed step to an existing issue and filters the issue list', asyn
   );
   await page.goto(`/runs/${runId}`);
   await page
-    .getByRole('region', { name: '执行步骤' })
+    .getByRole('region', { name: '步骤' })
     .getByRole('button', { name: '创建或关联问题' })
     .click();
   await page.getByRole('button', { name: '关联已有问题', exact: true }).click();
@@ -443,7 +443,7 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
     }),
   );
   await page.goto(`/runs/${runId}`);
-  const transcript = page.locator('section[aria-label="执行步骤"]');
+  const transcript = page.locator('section[aria-label="步骤"]');
   const panel = page.getByRole('region', { name: '执行关联问题', exact: true });
 
   await expect(transcript.getByRole('button', { name: '查看问题：订单金额错误' })).toBeVisible();
@@ -478,7 +478,7 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   });
   await expect(panel.getByRole('button', { name: '已复制修复提示词', exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('run-issues.png'), fullPage: true });
-  await page.getByRole('button', { name: '执行步骤', exact: true }).click();
+  await page.getByRole('button', { name: '步骤', exact: true }).click();
   await expect(transcript).toBeVisible();
   await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:26 / 00:32');
 });
@@ -509,7 +509,7 @@ test('selects among issues in the issue tab and shows a clear empty state', asyn
   await expect(panel.getByRole('heading', { name: '优惠金额错误', exact: true })).toBeVisible();
   await expect(panel.getByText('优惠金额为10', { exact: true })).toBeVisible();
   await expect(panel.getByText('实际为120', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '执行回放', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: '回放', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );

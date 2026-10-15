@@ -24,14 +24,17 @@ const entrySchema = z
     if (step.condition && step.decision === undefined)
       ctx.addIssue({ code: 'custom', message: '分支需要原始 decision' });
     if (step.action && 'target' in step.action && step.action.target.kind === 'ref')
-      ctx.addIssue({ code: 'custom', message: '重放不能保存临时 ref，请使用稳定标识或唯一标签' });
+      ctx.addIssue({
+        code: 'custom',
+        message: '重新运行不能使用临时 ref，请使用稳定标识或唯一标签',
+      });
     if (
       step.check?.platform === 'web' ||
       (step.check?.target && 'kind' in step.check.target && step.check.target.kind === 'ref')
     )
       ctx.addIssue({ code: 'custom', message: '原生检查必须使用稳定设备定位' });
     if (step.action?.type === 'swipe')
-      ctx.addIssue({ code: 'custom', message: '坐标手势不支持稳定重放' });
+      ctx.addIssue({ code: 'custom', message: '坐标手势无法可靠地重复执行' });
   });
 
 const schema = z.strictObject({

@@ -83,7 +83,7 @@ export async function executeRun(
     const replaySteps = run.recordingSteps;
 
     if (run.mode === 'replay' && !replaySteps?.length)
-      throw new Error('重放缺少操作快照，请重新录制');
+      throw new Error('录制缺少操作快照，请重新录制');
     const report = (message: string) => appendEvent(run.id, message);
     const plan =
       run.plan ||
@@ -116,11 +116,7 @@ export async function executeRun(
           ));
 
     await savePlan(run.id, plan);
-    await report(
-      run.mode === 'replay'
-        ? '开始重放已记录的操作，不重新规划动作'
-        : '计划已生成，正在准备执行环境',
-    );
+    await report(run.mode === 'replay' ? '正在按录制步骤重新运行' : '计划已生成，正在准备执行环境');
     resourceHealthy = false;
     runtime = await openPlatformRuntime({
       model,

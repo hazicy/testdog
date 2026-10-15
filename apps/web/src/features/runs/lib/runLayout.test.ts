@@ -22,7 +22,7 @@ it('keeps subsequent layouts independent of an earlier dock instance', () => {
   const modified = runWorkspaceTabs('default', 10);
 
   modified[0].label = 'changed';
-  expect(runWorkspaceTabs('default', 0)[0].label).toBe('执行步骤');
+  expect(runWorkspaceTabs('default', 0)[0].label).toBe('步骤');
   expect(
     runWorkspaceTabs('focus', 0)
       .filter((tab) => tab.initiallyVisible)

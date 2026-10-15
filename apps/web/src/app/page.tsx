@@ -162,12 +162,12 @@ export default function Home() {
                   <div>
                     <span>截图证据</span>
                     <span>执行日志</span>
-                    <span>操作重放</span>
+                    <span>画面回放</span>
                   </div>
                 </div>
               </div>
               <h3>结果可信，也有迹可循。</h3>
-              <p>截图、日志与重放，让每一步有据可循。</p>
+              <p>截图、日志与回放，让每一步有据可循。</p>
             </article>
           </div>
         </section>

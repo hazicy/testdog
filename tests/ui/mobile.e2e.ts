@@ -109,14 +109,14 @@ for (const viewport of [
     await expect(dock).toHaveAttribute('data-compact', 'true');
     await expect(dock.locator('.dv-groupview')).toHaveCount(1);
     for (const [name, content] of [
-      ['执行步骤', page.locator('section[aria-label="执行步骤"]')],
-      ['执行回放', page.getByRole('region', { name: '浏览器画面', exact: true })],
-      ['编辑录制', page.locator('.cm-editor')],
-      ['轨迹', page.getByRole('region', { name: 'AI 调用记录', exact: true })],
+      ['步骤', page.locator('section[aria-label="步骤"]')],
+      ['回放', page.getByRole('region', { name: '浏览器画面', exact: true })],
+      ['录制脚本', page.locator('.cm-editor')],
+      ['AI 调用', page.getByRole('region', { name: 'AI 调用记录', exact: true })],
       ['问题', page.getByText('本次执行暂无关联问题', { exact: true })],
       ['控制台', page.getByRole('region', { name: 'Console 记录', exact: true })],
       ['网络', page.getByRole('region', { name: 'Network 记录', exact: true })],
-      ['计划画板', page.locator('[data-ui~="plan-viewport"]')],
+      ['计划', page.locator('[data-ui~="plan-viewport"]')],
     ] as const) {
       await dock.getByRole('tab', { name, exact: true }).click();
       await expect(content).toBeVisible();
@@ -139,7 +139,7 @@ test('resizing restores desktop groups and preserves recording edits', async ({ 
   const dock = page.getByLabel('执行工作台', { exact: true });
 
   await expect(dock.locator('.dv-groupview')).toHaveCount(3);
-  await page.getByRole('button', { name: '编辑录制', exact: true }).click();
+  await page.getByRole('button', { name: '录制脚本', exact: true }).click();
   const editor = page.locator('.cm-content');
 
   await editor.fill('await page.goto("https://example.com/mobile");');
@@ -149,8 +149,8 @@ test('resizing restores desktop groups and preserves recording edits', async ({ 
   await expect(dock).toHaveAttribute('data-compact', 'true');
   await expect(dock.locator('.dv-groupview')).toHaveCount(1);
   await expect(editor).toHaveText(draft);
-  await dock.getByRole('tab', { name: '执行回放', exact: true }).click();
-  await dock.getByRole('tab', { name: '编辑录制', exact: true }).click();
+  await dock.getByRole('tab', { name: '回放', exact: true }).click();
+  await dock.getByRole('tab', { name: '录制脚本', exact: true }).click();
   await expect(editor).toHaveText(draft);
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(dock).toHaveAttribute('data-compact', 'false');
@@ -165,11 +165,11 @@ test('phone tabs support keyboard navigation and every layout preset', async ({ 
   const dock = page.getByLabel('执行工作台', { exact: true });
 
   await expect(dock).toHaveAttribute('data-compact', 'true');
-  await dock.getByRole('tab', { name: '执行步骤', exact: true }).focus();
+  await dock.getByRole('tab', { name: '步骤', exact: true }).focus();
   await page.keyboard.press('End');
   await expect(dock.getByRole('tab', { name: '网络', exact: true })).toBeFocused();
   await page.keyboard.press('Home');
-  await expect(dock.getByRole('tab', { name: '执行步骤', exact: true })).toHaveAttribute(
+  await expect(dock.getByRole('tab', { name: '步骤', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   );
@@ -178,7 +178,7 @@ test('phone tabs support keyboard navigation and every layout preset', async ({ 
     await page.getByRole('button', { name, exact: true }).click();
     await expect(dock).toHaveAttribute('data-compact', 'true');
     await expect(dock.locator('.dv-groupview')).toHaveCount(1);
-    await dock.getByRole('tab', { name: '执行回放', exact: true }).click();
+    await dock.getByRole('tab', { name: '回放', exact: true }).click();
     await fitsPage(page);
   }
 });
@@ -232,7 +232,7 @@ test('canvas settings and embedded trial work on portrait and landscape phones',
     await fitsRegion(dialog);
     await expect(dock).toHaveAttribute('data-compact', 'true');
     await expect(dock.locator('.dv-groupview')).toHaveCount(1);
-    await dock.getByRole('tab', { name: '执行回放', exact: true }).click();
+    await dock.getByRole('tab', { name: '回放', exact: true }).click();
     await expect(dialog.getByRole('region', { name: '浏览器画面', exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: '关闭试跑', exact: true })).toBeInViewport();
     const preview = (await dialog.locator('[data-ui~="run-replay-surface"]').boundingBox())!;
@@ -324,7 +324,7 @@ test('plan canvas pans with a finger on a phone', async ({ page, browserName }) 
   const dock = page.getByLabel('执行工作台', { exact: true });
 
   await expect(dock).toHaveAttribute('data-compact', 'true');
-  await dock.getByRole('tab', { name: '计划画板', exact: true }).click();
+  await dock.getByRole('tab', { name: '计划', exact: true }).click();
   const canvas = page.locator('[data-ui~="plan-viewport"]');
   const viewport = canvas.locator('.react-flow__viewport');
 

@@ -54,8 +54,8 @@ test('AI logs show calls directly without repeating execution steps', async ({
   );
   await page.goto(`/runs/${run.id}`);
   await expect(page.getByRole('button', { name: '执行日志', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: '轨迹', exact: true }).click();
-  const panel = page.getByLabel('AI 日志内容', { exact: true });
+  await page.getByRole('button', { name: 'AI 调用', exact: true }).click();
+  const panel = page.getByLabel('AI 调用内容', { exact: true });
   const calls = panel.getByRole('listitem');
 
   await expect(panel.locator('details')).toHaveCount(0);
@@ -151,7 +151,7 @@ test('AI log updates follow the bottom and preserve historical scroll positions'
     }),
   );
   await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '轨迹', exact: true }).click();
+  await page.getByRole('button', { name: 'AI 调用', exact: true }).click();
   const panel = page.getByRole('region', { name: 'AI 调用记录' });
   const scroll = panel.locator('ol').locator('..');
 
@@ -284,8 +284,8 @@ test('AI trajectories load lazily and connect replies and tool results to execut
     });
   });
   await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '轨迹', exact: true }).click();
-  const panel = page.getByLabel('AI 日志内容', { exact: true });
+  await page.getByRole('button', { name: 'AI 调用', exact: true }).click();
+  const panel = page.getByLabel('AI 调用内容', { exact: true });
 
   await expect(panel.getByRole('listitem')).toHaveCount(1);
   await expect(panel.locator('details')).toHaveCount(0);
@@ -401,7 +401,7 @@ test('AI trajectories load lazily and connect replies and tool results to execut
   await expect(drawer).toHaveCount(0);
   await expect(
     page
-      .getByRole('region', { name: '执行步骤' })
+      .getByRole('region', { name: '步骤' })
       .getByRole('heading', { name: '输入搜索内容', exact: true }),
   ).toBeVisible();
 });

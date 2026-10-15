@@ -6,15 +6,15 @@ export type PanelId =
 type WorkspaceTab = DockTab & { id: PanelId };
 
 const workspaceTabs: readonly WorkspaceTab[] = [
-  { id: 'steps', label: '执行步骤', initiallyVisible: true, initialWidthRatio: 0.382 },
+  { id: 'steps', label: '步骤', initiallyVisible: true, initialWidthRatio: 0.382 },
   {
     id: 'execution',
-    label: '执行回放',
+    label: '回放',
     reference: 'steps',
     direction: 'right',
     initiallyVisible: true,
   },
-  { id: 'logs', label: '轨迹', reference: 'execution' },
+  { id: 'logs', label: 'AI 调用', reference: 'execution' },
   {
     id: 'console',
     label: '控制台',
@@ -24,8 +24,8 @@ const workspaceTabs: readonly WorkspaceTab[] = [
     initiallyCollapsed: true,
   },
   { id: 'issues', label: '问题', reference: 'steps' },
-  { id: 'plan', label: '计划画板', reference: 'steps' },
-  { id: 'recording', label: '编辑录制', reference: 'execution' },
+  { id: 'plan', label: '计划', reference: 'steps' },
+  { id: 'recording', label: '录制脚本', reference: 'execution' },
   { id: 'network', label: '网络', reference: 'console' },
 ];
 const sideIssues = {

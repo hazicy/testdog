@@ -139,7 +139,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   return (
     <section
       className={clsx(studioStyles.studioPanel, studioStyles.recordingEditor)}
-      aria-label="录制编辑器"
+      aria-label="录制脚本编辑器"
     >
       <div className={studioStyles.recordingEditorToolbar}>
         <div className={studioStyles.recordingEditorSource}>
@@ -201,8 +201,8 @@ export function RecordingEditor({ run }: { run: TestRun }) {
           <Button
             variant="primary"
             size="icon-sm"
-            aria-label="重放"
-            title="重放"
+            aria-label="保存并重新运行"
+            title="保存修改后，按录制步骤重新运行"
             disabled={!canSave}
             onClick={() => void save(true)}
           >

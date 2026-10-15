@@ -49,13 +49,13 @@ test('frame playback and step selection keep the matching evidence visible', asy
   await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
 
   await page
-    .getByRole('region', { name: '执行步骤' })
+    .getByRole('region', { name: '步骤' })
     .getByRole('button', { name: /打开网站/ })
     .click();
   await expect(image).toHaveAttribute('src', /frame-0-after$/);
   await expect(
     page
-      .locator('section[aria-label="执行步骤"]')
+      .locator('section[aria-label="步骤"]')
       .getByRole('heading', { name: '打开网站', exact: true }),
   ).toBeVisible();
   await page.getByRole('slider', { name: '画面时间轴' }).fill('0');
@@ -228,9 +228,9 @@ test('uses one replay player and pauses video when leaving execution', async ({
       element.dataset.pausedByView = 'true';
     };
   });
-  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await page.getByRole('button', { name: '计划', exact: true }).click();
   await expect(video).toHaveAttribute('data-paused-by-view', 'true');
-  await page.getByRole('button', { name: '执行回放', exact: true }).click();
+  await page.getByRole('button', { name: '回放', exact: true }).click();
 
   await expect(page.getByRole('slider', { name: '画面时间轴' })).toHaveValue('0');
   await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
@@ -266,7 +266,7 @@ test('fallback polling keeps unchanged details and receives the completed execut
   ).toBeVisible();
   completed = true;
   await page.clock.fastForward(5000);
-  await expect(page.getByRole('button', { name: '重放操作', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '重新运行', exact: true })).toBeVisible();
 });
 
 test('missing execution stops polling and can recover through explicit retry', async ({ page }) => {
@@ -755,12 +755,12 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel('执行工作台', { exact: true })).toBeVisible();
   for (const name of [
-    '执行步骤',
-    '执行回放',
+    '步骤',
+    '回放',
     '问题',
-    '计划画板',
-    '编辑录制',
-    '轨迹',
+    '计划',
+    '录制脚本',
+    'AI 调用',
     '控制台',
     '网络',
     '布局',
@@ -1063,7 +1063,7 @@ test('nested plans keep node evidence and dependency navigation through zoom and
 
   await mockRun(page, makeRun({ plan, steps: [{ ...run.steps[0], planNodeId: 'open' }] }));
   await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await page.getByRole('button', { name: '计划', exact: true }).click();
   const dependency = page.locator('.react-flow__edge[aria-label="依赖：open → check"]');
 
   // A straight vertical SVG path has zero bounding-box width. Verify the drawn
@@ -1081,10 +1081,10 @@ test('nested plans keep node evidence and dependency navigation through zoom and
 
   await expectDependency();
   for (let attempt = 0; attempt < 2; attempt++) {
-    await page.getByRole('button', { name: '执行步骤', exact: true }).click();
+    await page.getByRole('button', { name: '步骤', exact: true }).click();
     await expect(page.locator('.react-flow__node').first()).toBeHidden();
     await expect(page.locator('[data-ui~="plan-viewport"]')).toBeHidden();
-    await page.getByRole('button', { name: '计划画板', exact: true }).click();
+    await page.getByRole('button', { name: '计划', exact: true }).click();
     await expectDependency();
   }
 
@@ -1097,13 +1097,13 @@ test('nested plans keep node evidence and dependency navigation through zoom and
   await viewport.press('ArrowRight');
   await expect(detail.getByRole('button', { name: /打开网站/ })).toBeVisible();
   await detail.getByRole('button', { name: /打开网站/ }).click();
-  await page.getByRole('button', { name: '执行步骤', exact: true }).click();
+  await page.getByRole('button', { name: '步骤', exact: true }).click();
   await expect(
     page
-      .locator('section[aria-label="执行步骤"]')
+      .locator('section[aria-label="步骤"]')
       .getByRole('heading', { name: '打开网站', exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('button', { name: '执行回放', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: '回放', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
@@ -1134,7 +1134,7 @@ test('validates the current draft and locks editing while saving a version', asy
   });
   await page.clock.install();
   await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '编辑录制', exact: true }).click();
+  await page.getByRole('button', { name: '录制脚本', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'Playwright 录制脚本' });
   const save = page.getByRole('button', { name: '保存版本', exact: true });
 
@@ -1143,7 +1143,7 @@ test('validates the current draft and locks editing while saving a version', asy
   await editor.fill('invalid script');
   await expect(save).toBeDisabled();
   await page.clock.fastForward(300);
-  const editorRegion = page.getByRole('region', { name: '录制编辑器' });
+  const editorRegion = page.getByRole('region', { name: '录制脚本编辑器' });
 
   await expect(editorRegion.getByRole('alert')).toBeVisible();
   const draft = 'await page1.goto("https://example.com/changed");';
@@ -1180,16 +1180,16 @@ test('loads recording versions only when opened and keeps the draft across view 
     page.getByRole('heading', { name: saved.name, exact: true, level: 1 }),
   ).toBeVisible();
   expect(versionReads).toBe(0);
-  await page.getByRole('button', { name: '编辑录制', exact: true }).click();
+  await page.getByRole('button', { name: '录制脚本', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'Playwright 录制脚本' });
 
   await expect(editor).toBeVisible();
   const draft = 'await page1.goto("https://example.com/changed");';
 
   await editor.fill(draft);
-  await page.getByRole('button', { name: '执行回放', exact: true }).click();
+  await page.getByRole('button', { name: '回放', exact: true }).click();
   await expect(editor).toBeHidden();
-  await page.getByRole('button', { name: '编辑录制', exact: true }).click();
+  await page.getByRole('button', { name: '录制脚本', exact: true }).click();
   await expect(editor).toHaveText(draft);
   expect(versionReads).toBe(1);
 });
@@ -1243,7 +1243,7 @@ test('plan subflows retain both branch paths, shared references and external dep
     makeRun({ plan, steps: [{ ...run.steps[0], planNodeId: 'shared', status: 'failed' }] }),
   );
   await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await page.getByRole('button', { name: '计划', exact: true }).click();
   await expect(page.getByText('YES / 条件成立', { exact: true })).toBeVisible();
   await expect(page.getByText('NO / 条件不成立', { exact: true })).toBeVisible();
   await expect(page.locator('.react-flow__edge[aria-label="依赖：external → root"]')).toBeVisible();
@@ -1358,19 +1358,19 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
     );
   }, run.steps[0]);
   await expect(
-    page.getByRole('region', { name: '执行步骤' }).getByRole('button', { name: /推送新增步骤/ }),
+    page.getByRole('region', { name: '步骤' }).getByRole('button', { name: /推送新增步骤/ }),
   ).toBeVisible();
   release();
   await expect(page.getByRole('button', { name: '停止执行', exact: true })).toBeEnabled();
   await expect(
-    page.getByRole('region', { name: '执行步骤' }).getByRole('button', { name: /推送新增步骤/ }),
+    page.getByRole('region', { name: '步骤' }).getByRole('button', { name: /推送新增步骤/ }),
   ).toBeVisible();
   // A subsequent HTTP request is also older than the version already in the cache.
   await page.getByRole('button', { name: '停止执行', exact: true }).click();
   await expect.poll(() => reads).toBe(3);
   await expect(page.getByRole('button', { name: '停止执行', exact: true })).toBeEnabled();
   await expect(
-    page.getByRole('region', { name: '执行步骤' }).getByRole('button', { name: /推送新增步骤/ }),
+    page.getByRole('region', { name: '步骤' }).getByRole('button', { name: /推送新增步骤/ }),
   ).toBeVisible();
   await page.evaluate(() => {
     const streams = (
@@ -1382,7 +1382,7 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
   await page.clock.runFor(5500);
   await expect.poll(() => reads).toBe(4);
   await expect(
-    page.getByRole('region', { name: '执行步骤' }).getByRole('button', { name: /推送新增步骤/ }),
+    page.getByRole('region', { name: '步骤' }).getByRole('button', { name: /推送新增步骤/ }),
   ).toBeVisible();
 });
 
@@ -1403,12 +1403,12 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
   await expect(dock.locator('.dv-tabs-container').first().locator('.dv-tab')).toHaveCount(3);
   expect(logReads).toEqual([]);
   const tabs = dock.locator('.dv-tabs-container').first();
-  const plan = tabs.locator('.dv-tab').filter({ hasText: '计划画板' });
-  const execution = tabs.locator('.dv-tab').filter({ hasText: '执行步骤' });
+  const plan = tabs.locator('.dv-tab').filter({ hasText: '计划' });
+  const execution = tabs.locator('.dv-tab').filter({ hasText: '步骤' });
 
   await plan.dragTo(execution, { targetPosition: { x: 2, y: 20 } });
-  await expect(tabs.locator('.dv-tab').first()).toContainText('计划画板');
-  await page.getByRole('button', { name: '执行回放', exact: true }).click();
+  await expect(tabs.locator('.dv-tab').first()).toContainText('计划');
+  await page.getByRole('button', { name: '回放', exact: true }).click();
   await page.getByRole('button', { name: '控制台', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeVisible();
   expect(logReads).toContain('console');
@@ -1416,7 +1416,7 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
   await page.getByRole('button', { name: '网络', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeVisible();
   expect(logReads).toContain('network');
-  await page.getByRole('button', { name: '轨迹', exact: true }).click();
+  await page.getByRole('button', { name: 'AI 调用', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeHidden();
   await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeVisible();
   await expect(dock.locator('[data-ui~="caseforge-dock"]')).toHaveCount(0);
@@ -1461,10 +1461,10 @@ test('execution studio opens a full height three pane layout', async ({ page }) 
   const studio = page.getByLabel('执行工作台', { exact: true });
 
   await expect(studio).toBeVisible();
-  await expect(page.locator('section[aria-label="执行步骤"]')).toBeVisible();
-  const left = await page.getByRole('button', { name: '执行步骤', exact: true }).boundingBox();
-  const right = await page.getByRole('button', { name: '执行回放', exact: true }).boundingBox();
-  const trace = page.getByRole('button', { name: '轨迹', exact: true });
+  await expect(page.locator('section[aria-label="步骤"]')).toBeVisible();
+  const left = await page.getByRole('button', { name: '步骤', exact: true }).boundingBox();
+  const right = await page.getByRole('button', { name: '回放', exact: true }).boundingBox();
+  const trace = page.getByRole('button', { name: 'AI 调用', exact: true });
   const bottom = await page.getByRole('button', { name: '控制台', exact: true }).boundingBox();
 
   const consoleTab = await page.getByRole('button', { name: '控制台', exact: true }).boundingBox();
@@ -1473,10 +1473,10 @@ test('execution studio opens a full height three pane layout', async ({ page }) 
   const bounds = await studio.boundingBox();
   const replayGroup = studio
     .locator('.dv-groupview')
-    .filter({ has: page.getByRole('button', { name: '执行回放', exact: true }) });
+    .filter({ has: page.getByRole('button', { name: '回放', exact: true }) });
   const groupBounds = await replayGroup.boundingBox();
 
-  await expect(replayGroup.getByRole('button', { name: '轨迹', exact: true })).toBeVisible();
+  await expect(replayGroup.getByRole('button', { name: 'AI 调用', exact: true })).toBeVisible();
   expect((await trace.boundingBox())!.x).toBeGreaterThan(right!.x);
   expect((groupBounds!.x - bounds!.x) / bounds!.width).toBeCloseTo(0.382, 2);
   expect(consoleTab!.y).toBe(bottom!.y);
@@ -1535,7 +1535,7 @@ test('planned steps contain execution actions and preserve details across views'
     }),
   );
   await page.goto(`/runs/${run.id}`);
-  const steps = page.locator('section[aria-label="执行步骤"]');
+  const steps = page.locator('section[aria-label="步骤"]');
 
   await expect(steps.getByText('用例快照', { exact: true })).toHaveCount(0);
   const plannedTrigger = steps.getByRole('button', { name: /访问目标页面/ });
@@ -1552,12 +1552,12 @@ test('planned steps contain execution actions and preserve details across views'
   await expect(action).toHaveAttribute('aria-expanded', 'false');
   await action.click();
   await expect(planned.getByText('action: navigate', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await page.getByRole('button', { name: '计划', exact: true }).click();
   const node = page.locator('[data-plan-node="open"]');
 
   await node.getByRole('button', { name: '展开动作', exact: true }).click();
   await expect(node.getByRole('button', { name: /打开网站/ })).toBeVisible();
-  await page.getByRole('button', { name: '执行步骤', exact: true }).click();
+  await page.getByRole('button', { name: '步骤', exact: true }).click();
   await expect(plannedTrigger).toHaveAttribute('aria-expanded', 'true');
   await expect(action).toHaveAttribute('aria-expanded', 'true');
 });
@@ -1609,7 +1609,7 @@ test('nested execution groups preserve action state and references reveal collap
 
   await mockRun(page, makeRun({ plan, steps: [{ ...run.steps[0], planNodeId: 'open' }] }));
   await page.goto(`/runs/${run.id}`);
-  const steps = page.locator('section[aria-label="执行步骤"]');
+  const steps = page.locator('section[aria-label="步骤"]');
   const triggers = steps.locator('[data-slot="collapsible-trigger"]');
   const outer = triggers.filter({ hasText: '一级分组' });
   const inner = triggers.filter({ hasText: '二级分组' });
@@ -1643,7 +1643,7 @@ test('bottom browser logs start collapsed and expand on tab selection', async ({
   const group = page.locator('.dv-groupview').filter({ has: logs });
 
   await expect(logs).toHaveAttribute('aria-expanded', 'false');
-  await expect(page.getByLabel('AI 日志内容', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('AI 调用内容', { exact: true })).toHaveCount(0);
   expect((await group.boundingBox())!.height).toBeLessThanOrEqual(41);
   await logs.click();
   await expect(logs).toHaveAttribute('aria-expanded', 'true');
@@ -1676,7 +1676,7 @@ test('group header actions maximize restore and collapse each group', async ({ p
     route.fulfill({ json: { logs: [], nextCursor: null } }),
   );
   await page.goto(`/runs/${run.id}`);
-  for (const name of ['执行步骤', '执行回放', '控制台']) {
+  for (const name of ['步骤', '回放', '控制台']) {
     const tab = page.locator('[data-ui~="dock-tab-button"]').filter({ hasText: name });
     const group = page.locator('.dv-groupview').filter({ has: tab });
 
@@ -1702,7 +1702,7 @@ test('group header actions maximize restore and collapse each group', async ({ p
     await expect(group.getByRole('button', { name: '展开分组' })).toBeVisible();
     const folded = (await group.boundingBox())!;
 
-    expect(name === '执行步骤' ? folded.width : folded.height).toBeLessThanOrEqual(41);
+    expect(name === '步骤' ? folded.width : folded.height).toBeLessThanOrEqual(41);
     await group.getByRole('button', { name: '展开分组' }).click();
     const after = (await group.boundingBox())!;
 
@@ -2092,7 +2092,7 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
 
   await mockRun(page, makeRun({ plan }));
   await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await page.getByRole('button', { name: '计划', exact: true }).click();
   const board = page.locator('[data-ui~="plan-viewport"]');
   const flowViewport = board.locator('.react-flow__viewport');
   const a = board.locator('[data-testid="rf__node-plan:a"]');
@@ -2227,7 +2227,7 @@ test('result board shows assertion evidence and links screenshots to the existin
   );
   await mockScreenshots(page, run.id);
   await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '计划画板', exact: true }).click();
+  await page.getByRole('button', { name: '计划', exact: true }).click();
   const assertion = page.locator('[data-plan-node="check"]');
   const capture = page.locator('[data-plan-node="capture"]');
 

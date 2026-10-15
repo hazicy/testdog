@@ -96,17 +96,17 @@ export function RunHeader({
                 disabled={busy || !run.replayable}
                 title={
                   run.replayable
-                    ? '按记录的动作顺序重新执行，重新验证断言'
-                    : '需要成功执行且每个操作都有稳定定位器'
+                    ? '按已录制的步骤重新运行并验证结果'
+                    : '需先完成录制，并确保每个操作目标都能准确定位'
                 }
                 variant="soft"
                 size="sm"
                 className={styles.executionButton}
-                aria-label="重放操作"
+                aria-label="重新运行"
                 onClick={() => void start('replay')}
               >
                 <Icon icon={resultsIcon} width="16" aria-hidden="true" />
-                重放
+                重新运行
               </Button>
               {run.testId && (
                 <Button

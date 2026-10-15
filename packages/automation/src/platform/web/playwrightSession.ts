@@ -57,7 +57,7 @@ export class PlaywrightSession implements AutomationSession {
     signal.throwIfAborted();
     const page = this.pages.get(id);
 
-    if (!page || page.isClosed()) throw new Error(`重放页面 ${id} 不存在`);
+    if (!page || page.isClosed()) throw new Error(`录制中的页面 ${id} 已不存在`);
     this.session.activate(page);
   }
 
@@ -70,7 +70,7 @@ export class PlaywrightSession implements AutomationSession {
 
     // A popup wait belongs to the preceding action's page, even if the popup is already open.
     if (!(browserAction?.type === 'wait' && browserAction.condition === 'newPage')) {
-      if (!step.surfaceId) throw new Error('重放步骤缺少页面 ID');
+      if (!step.surfaceId) throw new Error('录制步骤缺少页面信息');
       await this.selectSurface(step.surfaceId, signal);
     }
 

@@ -19,7 +19,7 @@ type RunOptions = { batchId?: string; goalOverride?: string };
 function parseRunRequest(raw: unknown) {
   const parsed = runRequestSchema.safeParse(raw);
 
-  if (!parsed.success) throw new WorkspaceError('执行参数无效，请指定用例、测试描述或重放来源。');
+  if (!parsed.success) throw new WorkspaceError('执行参数无效，请指定用例、测试描述或来源记录。');
 
   return parsed.data;
 }
@@ -83,7 +83,7 @@ async function persistRun(
       if (!source) throw new WorkspaceError('原执行不存在。', 404);
 
       if (input.target && !isDeepStrictEqual(input.target, source.targetSnapshot))
-        throw new WorkspaceError('重放目标与原录制不兼容。', 409);
+        throw new WorkspaceError('运行目标与原录制不兼容。', 409);
       const [version] = input.recordingVersionId
         ? await tx
             .select()
@@ -98,9 +98,9 @@ async function persistRun(
 
       if (input.recordingVersionId && !version)
         throw new WorkspaceError('录制版本不存在或不属于此执行。', 404);
-      if (isActiveRun(source.status)) throw new WorkspaceError('请等待录制结束后重放。', 409);
+      if (isActiveRun(source.status)) throw new WorkspaceError('请等待录制结束后再重新运行。', 409);
       if (!version && (source.status !== 'passed' || !source.replayable))
-        throw new WorkspaceError('该记录包含失败或无法稳定定位的步骤，不能重放操作。');
+        throw new WorkspaceError('录制包含失败或无法准确定位的步骤，请重新录制。');
       snapshot = {
         targetSnapshot: source.targetSnapshot,
         testId: source.testId ?? undefined,

@@ -158,7 +158,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     const result = await getRun(run.id, { userId: null });
 
     expect(result.status).toBe('failed');
-    expect(result.error).toContain('重放缺少操作快照');
+    expect(result.error).toContain('录制缺少操作快照');
     expect(result.artifacts).toHaveLength(0);
     expect(result.steps).toHaveLength(0);
     expect(mocks.generate).not.toHaveBeenCalled();

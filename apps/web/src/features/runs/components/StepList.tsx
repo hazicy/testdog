@@ -139,7 +139,7 @@ export const StepList = memo(function StepList({
   );
 
   return (
-    <section aria-label="执行步骤" className={styles.section}>
+    <section aria-label="步骤" className={styles.section}>
       {groups.length > 0 && (
         <ol className={styles.groups}>
           {groups.map((entry, index) => (
@@ -160,7 +160,7 @@ export const StepList = memo(function StepList({
         </>
       )}
       {!groups.length && !actions.steps.length && (
-        <p className={styles.description}>{running ? '正在生成计划…' : '暂无执行步骤'}</p>
+        <p className={styles.description}>{running ? '正在生成计划…' : '暂无步骤'}</p>
       )}
     </section>
   );

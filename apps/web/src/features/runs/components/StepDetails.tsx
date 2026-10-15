@@ -40,7 +40,7 @@ export function StepDetails({ step, runError }: { step: ExecutionStep; runError?
       )}
       {step.evidence && <p className={styles.evidence}>验证证据：{step.evidence}</p>}
       {error && <pre className={styles.errorDetails}>{error}</pre>}
-      {!step.replayable && <p className={styles.label}>本步骤缺少稳定定位器，无法重放操作。</p>}
+      {!step.replayable && <p className={styles.label}>无法准确定位操作目标，请重新录制。</p>}
     </div>
   );
 }

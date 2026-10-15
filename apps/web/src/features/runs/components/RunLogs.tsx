@@ -13,7 +13,7 @@ type Props = {
 
 export function RunLogs({ id, run, onStep }: Props) {
   return (
-    <div className={studioStyles.studioPanel} aria-label="AI 日志内容">
+    <div className={studioStyles.studioPanel} aria-label="AI 调用内容">
       <ModelUsagePanel
         id={id}
         active={!!run && ['queued', 'preparing', 'running', 'finalizing'].includes(run.status)}
