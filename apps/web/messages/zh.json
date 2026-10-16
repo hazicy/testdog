@@ -51,7 +51,8 @@
     "could_not_load_sign_in_methods_please_try_again": "登录方式加载失败，请重试。",
     "reload_sign_in_methods": "重新加载登录方式",
     "loading_sign_in_methods": "加载登录方式…",
-    "manage_your_password_through_the_google_or_github_account_you_use_to_sign_in": "此账户使用第三方登录，请前往对应的 Google 或 GitHub 账户管理密码。"
+    "manage_your_password_through_the_google_or_github_account_you_use_to_sign_in": "此账户使用第三方登录，请前往对应的 Google 或 GitHub 账户管理密码。",
+    "plugins": "插件"
   },
   "preferences": {
     "title": "通用",
@@ -912,5 +913,22 @@
     "network": "无法连接服务，请检查网络后重试。",
     "signInRequired": "请先登录",
     "databaseUnavailable": "无法访问数据，请确认数据库已启动并完成迁移。"
+  },
+  "plugins": {
+    "title": "插件",
+    "plugin": "插件",
+    "run": "执行",
+    "chooseRun": "选择执行",
+    "more": "加载更多",
+    "loading": "加载中…",
+    "empty": "没有截图节点",
+    "unavailable": "截图不可用",
+    "groupName": "分组名称",
+    "addGroup": "创建分组",
+    "removeGroup": "删除分组 {name}",
+    "export": "导出 Excel",
+    "exporting": "导出中…",
+    "failed": "导出失败",
+    "excel-ui-acceptance": "Excel UI 验收导出"
   }
 }

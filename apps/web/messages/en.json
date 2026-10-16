@@ -51,7 +51,8 @@
     "could_not_load_sign_in_methods_please_try_again": "Could not load sign-in methods. Please try again.",
     "reload_sign_in_methods": "Reload sign-in methods",
     "loading_sign_in_methods": "Loading sign-in methods…",
-    "manage_your_password_through_the_google_or_github_account_you_use_to_sign_in": "Manage your password through the Google or GitHub account you use to sign in."
+    "manage_your_password_through_the_google_or_github_account_you_use_to_sign_in": "Manage your password through the Google or GitHub account you use to sign in.",
+    "plugins": "Plugins"
   },
   "preferences": {
     "title": "General",
@@ -912,5 +913,22 @@
     "network": "Unable to connect. Check your network and try again.",
     "signInRequired": "Please sign in first",
     "databaseUnavailable": "Unable to access data. Check that the database is running and migrations have been applied."
+  },
+  "plugins": {
+    "title": "Plugins",
+    "plugin": "Plugin",
+    "run": "Run",
+    "chooseRun": "Choose run",
+    "more": "Load more",
+    "loading": "Loading…",
+    "empty": "No screenshot nodes",
+    "unavailable": "Screenshot unavailable",
+    "groupName": "Group name",
+    "addGroup": "Create group",
+    "removeGroup": "Remove group {name}",
+    "export": "Export Excel",
+    "exporting": "Exporting…",
+    "failed": "Export failed",
+    "excel-ui-acceptance": "Excel UI acceptance export"
   }
 }

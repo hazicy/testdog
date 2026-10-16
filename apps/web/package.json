@@ -33,6 +33,7 @@
     "dockview-react": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
+    "exceljs": "^4.4.0",
     "ky": "catalog:",
     "next": "catalog:",
     "next-intl": "^4.14.9",

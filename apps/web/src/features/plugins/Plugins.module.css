@@ -1,0 +1,38 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-7);
+  max-width: 80rem;
+}
+.panel h1 {
+  font-size: var(--text-3xl);
+  margin: 0;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.toolbar input {
+  max-width: 20rem;
+}
+.nodes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.node {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.group {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-lg);
+}
