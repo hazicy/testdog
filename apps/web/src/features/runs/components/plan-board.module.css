@@ -152,8 +152,19 @@
     }
   }
 
-  & button:hover {
+  & button:hover:not(:disabled) {
     background: var(--surface-muted);
+  }
+
+  & button[aria-pressed='true'] {
+    background: var(--canvas-selected-ring);
+    color: var(--brand);
+  }
+
+  & svg {
+    width: 1rem;
+    height: 1rem;
+    margin: auto;
   }
 
   & button:focus-visible {
@@ -686,4 +697,12 @@
     outline: var(--focus-width) solid var(--brand);
     outline-offset: var(--focus-width);
   }
+}
+
+.planToolDivider {
+  width: var(--border-width);
+  height: 1rem;
+  margin: 0 var(--space-1);
+  background: var(--page-line);
+  flex-shrink: 0;
 }

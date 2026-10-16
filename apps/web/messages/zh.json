@@ -500,6 +500,8 @@
   "runs": {
     "planEmpty": "计划生成后会在此展示。",
     "plan": "计划",
+    "selectCanvas": "选择节点",
+    "panCanvas": "平移画板",
     "canvasView": "画板视图",
     "undoCanvas": "撤销画板操作",
     "undoShortcut": "撤销（Ctrl / ⌘ Z）",

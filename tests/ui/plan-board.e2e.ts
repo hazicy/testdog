@@ -120,6 +120,19 @@ test('canvas insertion visibility, editing history and Chinese composition work 
   await expect(canvas.getByRole('button', { name: '画板恢复原始比例', exact: true })).toHaveText(
     '100%',
   );
+  const zoomIn = canvas.getByRole('button', { name: '放大画板', exact: true });
+  const zoomOut = canvas.getByRole('button', { name: '缩小画板', exact: true });
+
+  for (let index = 0; index < 3; index++) await zoomIn.click();
+  await expect(zoomIn).toBeDisabled();
+  await expect(canvas.getByRole('button', { name: '画板恢复原始比例', exact: true })).toHaveText(
+    '150%',
+  );
+  for (let index = 0; index < 20 && (await zoomOut.isEnabled()); index++) await zoomOut.click();
+  await expect(zoomOut).toBeDisabled();
+  await expect(canvas.getByRole('button', { name: '画板恢复原始比例', exact: true })).toHaveText(
+    '8%',
+  );
   await canvas.getByRole('button', { name: '全览画板', exact: true }).click();
   await page.mouse.move(0, 0);
   await expect(middleInsert).toHaveCSS('opacity', '0');

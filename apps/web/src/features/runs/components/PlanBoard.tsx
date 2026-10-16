@@ -8,6 +8,9 @@ import styles from './PlanBoard.module.css';
 import boardStyles from '@/features/runs/components/plan-board.module.css';
 
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@iconify/react/offline';
+import pointerIcon from '@iconify-icons/lucide/mouse-pointer-2';
+import handIcon from '@iconify-icons/lucide/hand';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -17,6 +20,9 @@ import { InsertStepMenu } from '@/features/test-cases/components/InsertStepMenu'
 import { usePlanBoard, type BoardNode } from '@/features/runs/hooks/usePlanBoard';
 import { PlanNodes, type NodeReview } from '@/features/runs/components/PlanNodes';
 import { usePlanHistory } from '@/features/runs/hooks/usePlanHistory';
+
+const MIN_ZOOM = 0.08;
+const MAX_ZOOM = 1.5;
 
 const nodeTypes = { plan: PlanNodes, insert: InsertStepMenu };
 
@@ -73,6 +79,7 @@ function PlanBoardContent({
 }: BoardProps & { plan: Plan }) {
   const t = useTranslations('runs');
   const [hoveredId, setHoveredId] = useState<string>();
+  const [tool, setTool] = useState<'select' | 'pan'>('select');
   const history = usePlanHistory(plan, onChange);
   const { nodes, edges, error, onNodesChange } = usePlanBoard({
     plan,
@@ -247,10 +254,10 @@ function PlanBoardContent({
             nodesDraggable={false}
             nodesConnectable={false}
             elementsSelectable
-            selectionOnDrag
+            selectionOnDrag={tool === 'select'}
             autoPanOnSelection={false}
             selectionKeyCode={null}
-            panOnDrag={[1]}
+            panOnDrag={tool === 'pan' ? [0, 1] : [1]}
             panActivationKeyCode="Space"
             nodesFocusable
             edgesFocusable={false}
@@ -258,8 +265,8 @@ function PlanBoardContent({
             panOnScroll
             zoomOnScroll={false}
             zoomActivationKeyCode={['Meta', 'Control']}
-            minZoom={0.08}
-            maxZoom={1.5}
+            minZoom={MIN_ZOOM}
+            maxZoom={MAX_ZOOM}
             fitView
             fitViewOptions={{ padding: viewPadding, maxZoom: 1 }}
             proOptions={{ hideAttribution: true }}
@@ -274,6 +281,25 @@ function PlanBoardContent({
               role="group"
               aria-label={t('canvasView')}
             >
+              <button
+                type="button"
+                aria-label={t('selectCanvas')}
+                title={t('selectCanvas')}
+                aria-pressed={tool === 'select'}
+                onClick={() => setTool('select')}
+              >
+                <Icon icon={pointerIcon} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label={t('panCanvas')}
+                title={t('panCanvas')}
+                aria-pressed={tool === 'pan'}
+                onClick={() => setTool('pan')}
+              >
+                <Icon icon={handIcon} aria-hidden="true" />
+              </button>
+              <span className={boardStyles.planToolDivider} aria-hidden="true" />
               {onChange && (
                 <>
                   <button
@@ -296,7 +322,13 @@ function PlanBoardContent({
                   </button>
                 </>
               )}
-              <button type="button" aria-label={t('zoomOut')} onClick={() => void flow.zoomOut()}>
+              <button
+                type="button"
+                aria-label={t('zoomOut')}
+                title={t('zoomOut')}
+                disabled={zoom <= MIN_ZOOM}
+                onClick={() => void flow.zoomOut()}
+              >
                 −
               </button>
               <button
@@ -314,7 +346,13 @@ function PlanBoardContent({
               >
                 {t('fit')}
               </button>
-              <button type="button" aria-label={t('zoomIn')} onClick={() => void flow.zoomIn()}>
+              <button
+                type="button"
+                aria-label={t('zoomIn')}
+                title={t('zoomIn')}
+                disabled={zoom >= MAX_ZOOM}
+                onClick={() => void flow.zoomIn()}
+              >
                 ＋
               </button>
             </div>

@@ -2151,6 +2151,24 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
   await page.mouse.up({ button: 'middle' });
   await expect.poll(() => flowViewport.getAttribute('style')).not.toBe(panned);
 
+  const selectTool = board.getByRole('button', { name: '选择节点', exact: true });
+  const panTool = board.getByRole('button', { name: '平移画板', exact: true });
+
+  await expect(selectTool).toHaveAttribute('aria-pressed', 'true');
+  await panTool.click();
+  await expect(panTool).toHaveAttribute('aria-pressed', 'true');
+  await expect(selectTool).toHaveAttribute('aria-pressed', 'false');
+  const beforePanTool = await flowViewport.getAttribute('style');
+
+  await page.mouse.move(bounds.x + 20, bounds.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + 60, bounds.y + 60, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(() => flowViewport.getAttribute('style')).not.toBe(beforePanTool);
+  await expect(board.locator('.react-flow__selection')).toHaveCount(0);
+  await selectTool.click();
+  await expect(selectTool).toHaveAttribute('aria-pressed', 'true');
+
   const beforeSpace = await flowViewport.getAttribute('style');
 
   await board.focus();

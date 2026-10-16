@@ -500,6 +500,8 @@
   "runs": {
     "planEmpty": "The plan will appear here once generated.",
     "plan": "Plan",
+    "selectCanvas": "Select nodes",
+    "panCanvas": "Pan canvas",
     "canvasView": "Canvas view",
     "undoCanvas": "Undo canvas action",
     "undoShortcut": "Undo (Ctrl / ⌘ Z)",
