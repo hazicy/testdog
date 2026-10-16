@@ -11,10 +11,10 @@ const LocatorSchema = z.object({
 export const TargetSchema = LocatorSchema.extend({
   scope: LocatorSchema.omit({ index: true }).optional(),
 }).superRefine((target, context) => {
-  if (target.scope && (target.kind === 'ariaRef' || target.index !== undefined))
+  if (target.scope && target.index !== undefined)
     context.addIssue({
       code: 'custom',
-      message: '区域内定位必须使用唯一的相对定位器，不能使用 ariaRef 或 index',
+      message: '区域内定位必须唯一，不能使用 index',
     });
 });
 

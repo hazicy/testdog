@@ -254,55 +254,89 @@ it('rejects an observation batched with browser input', async () => {
   );
 });
 
-it('plans a relative locator directly inside an observed region without an extra observation', async () => {
+it('exposes only ref-based element actions to the model', async () => {
+  generate.mockResolvedValue({ content: { text: 'DONE' }, toolCalls: [] });
+
+  await new WebActionPlanner(model).plan(input);
+  const request = generate.mock.calls[0][0];
+
+  expect(request.tools.map((tool: { name: string }) => tool.name)).toEqual([
+    'done',
+    'observe',
+    'navigate',
+    'click',
+    'fill',
+    'press',
+    'act_in',
+    'wait',
+  ]);
+  for (const name of ['click', 'fill', 'press']) {
+    const tool = request.tools.find((tool: { name: string }) => tool.name === name);
+
+    expect(Object.keys(tool.parameters.properties)).toEqual(
+      name === 'click' ? ['ref'] : ['ref', 'value'],
+    );
+    expect(tool.parameters.additionalProperties).toBe(false);
+  }
+
+  const scoped = request.tools.find((tool: { name: string }) => tool.name === 'act_in');
+
+  expect(Object.keys(scoped.parameters.properties)).toEqual(['type', 'scopeRef', 'ref', 'value']);
+  expect(scoped.parameters.additionalProperties).toBe(false);
+  expect(JSON.stringify(request.tools)).not.toContain('locator');
+});
+
+it.each(['e2', 'e3'])('validates that control ref %s belongs to scopeRef', async (ref) => {
   generate.mockResolvedValue({
     content: { text: '' },
     toolCalls: [
       {
         name: 'act_in',
-        arguments: JSON.stringify({
-          type: 'fill',
-          scopeRef: 'e1',
-          locator: { kind: 'label', value: 'Dimension', name: '' },
-          value: 'test',
-        }),
+        arguments: JSON.stringify({ type: 'fill', scopeRef: 'e1', ref, value: 'test' }),
       },
     ],
   });
+  const result = new WebActionPlanner(model).plan({
+    ...input,
+    observation: {
+      ...input.observation,
+      tree: [
+        {
+          role: 'generic',
+          ref: 'e1',
+          children: [{ role: 'textbox', ref: 'e2', name: 'Dimension' }],
+        },
+        { role: 'textbox', ref: 'e3', name: 'Dimension' },
+      ],
+    },
+  });
 
-  await expect(new WebActionPlanner(model).plan(input)).resolves.toMatchObject({
-    done: false,
-    steps: [
-      {
-        platform: 'web',
-        action: {
-          type: 'fill',
-          value: 'test',
-          target: {
-            kind: 'label',
-            value: 'Dimension',
-            scope: { kind: 'ariaRef', value: 'e1' },
+  if (ref === 'e3') {
+    await expect(result).rejects.toBeInstanceOf(ReplanRequiredError);
+  } else {
+    await expect(result).resolves.toMatchObject({
+      steps: [
+        {
+          action: {
+            type: 'fill',
+            target: { kind: 'ariaRef', value: 'e2', scope: { kind: 'ariaRef', value: 'e1' } },
           },
         },
+      ],
+    });
+  }
+});
+
+it('rejects locator arguments on ref-based actions', async () => {
+  generate.mockResolvedValue({
+    content: { text: '' },
+    toolCalls: [
+      {
+        name: 'click',
+        arguments: JSON.stringify({ ref: 'e1', locator: { kind: 'role', value: 'button' } }),
       },
     ],
   });
+
+  await expect(new WebActionPlanner(model).plan(input)).rejects.toThrow();
 });
-
-it.each([
-  { scopeRef: 'e99', locator: { kind: 'label', value: 'Dimension', name: '' } },
-  { scopeRef: 'e1', locator: { kind: 'css', value: 'input', name: '' } },
-  { scopeRef: 'e1', locator: { kind: 'role', value: 'textbox', name: '', index: 0 } },
-])(
-  'rejects unknown regions and unrestricted or positional relative locators: %j',
-  async (target) => {
-    generate.mockResolvedValue({
-      content: { text: '' },
-      toolCalls: [
-        { name: 'act_in', arguments: JSON.stringify({ type: 'fill', value: 'test', ...target }) },
-      ],
-    });
-
-    await expect(new WebActionPlanner(model).plan(input)).rejects.toThrow();
-  },
-);

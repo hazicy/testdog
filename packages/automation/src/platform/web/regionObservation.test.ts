@@ -131,89 +131,78 @@ it('falls back to a fresh overview when the selected region disappears', async (
   expect(JSON.stringify(changed.view.tree)).toContain('New page');
 });
 
-it.each(['observe', 'act_in'])(
-  'executes the model %s path before filling the selected plain div',
-  async (mode) => {
-    await page.setContent(
-      '<label>Dimension<input></label><div id="import"><h2>Import</h2><label>Dimension<input></label><button>Confirm</button></div>',
-    );
-    const events = vi.fn();
-    const session = new PlaywrightSession('regions', page, { onStep: events });
-    let calls = 0;
-    const generate = vi.fn<ModelClient['generate']>(async (params) => {
-      const block = params.messages[0].content;
+it('inspects the selected region before filling its control by ref', async () => {
+  await page.setContent(
+    '<label>Dimension<input></label><div id="import"><h2>Import</h2><label>Dimension<input></label><button>Confirm</button></div>',
+  );
+  const events = vi.fn();
+  const session = new PlaywrightSession('regions', page, { onStep: events });
+  let calls = 0;
+  const generate = vi.fn<ModelClient['generate']>(async (params) => {
+    const block = params.messages[0].content;
 
-      if (Array.isArray(block) || block.type !== 'text')
-        throw new Error('Expected planning observation');
-      const observation = JSON.parse(block.text).observation;
-      let name = 'done';
-      let args: Record<string, unknown> = {};
+    if (Array.isArray(block) || block.type !== 'text')
+      throw new Error('Expected planning observation');
+    const observation = JSON.parse(block.text).observation;
+    let name = 'done';
+    let args: Record<string, unknown> = {};
 
-      if (calls === 0) {
-        const region = nodes(observation.tree).find(
-          (node) =>
-            node.ref &&
-            node.children?.some((child) => child.role === 'heading' && child.name === 'Import'),
-        )!;
+    if (calls === 0) {
+      const region = nodes(observation.tree).find(
+        (node) =>
+          node.ref &&
+          node.children?.some((child) => child.role === 'heading' && child.name === 'Import'),
+      )!;
 
-        name = mode;
-        args =
-          mode === 'observe'
-            ? { ref: region.ref! }
-            : {
-                type: 'fill',
-                scopeRef: region.ref!,
-                locator: { kind: 'label', value: 'Dimension', name: '' },
-                value: 'region-value',
-              };
-      } else if (calls === 1 && mode === 'observe') {
-        expect(observation.region).toBeDefined();
-        const fields = nodes(observation.tree).filter((node) => node.role === 'textbox');
+      name = 'observe';
+      args = { ref: region.ref! };
+    } else if (calls === 1) {
+      expect(observation.region).toBeDefined();
+      const fields = nodes(observation.tree).filter((node) => node.role === 'textbox');
 
-        expect(fields).toHaveLength(1);
-        name = 'fill';
-        args = { ref: fields[0].ref!, value: 'region-value' };
-      }
+      expect(fields).toHaveLength(1);
+      name = 'fill';
+      args = { ref: fields[0].ref!, value: 'region-value' };
+    }
 
-      calls++;
+    calls++;
 
-      return {
-        role: 'assistant',
-        content: { type: 'text', text: '' },
-        outputFormat: 'text',
-        toolCalls: [{ id: `tool-${calls}`, name, arguments: JSON.stringify(args) }],
-      };
-    });
+    return {
+      role: 'assistant',
+      content: { type: 'text', text: '' },
+      outputFormat: 'text',
+      toolCalls: [{ id: `tool-${calls}`, name, arguments: JSON.stringify(args) }],
+    };
+  });
 
-    try {
-      await new PlanRunner({
-        session,
-        planner: new WebActionPlanner({ generate }),
-        evaluator: { evaluate: vi.fn() },
-        signal: new AbortController().signal,
-        plan: {
-          rootId: 'task',
-          nodes: {
-            task: {
-              id: 'task',
-              kind: 'task',
-              goal: 'Fill Dimension in Import',
-              dependsOn: [],
-              requirementIds: [],
-              assertions: [],
-            },
+  try {
+    await new PlanRunner({
+      session,
+      planner: new WebActionPlanner({ generate }),
+      evaluator: { evaluate: vi.fn() },
+      signal: new AbortController().signal,
+      plan: {
+        rootId: 'task',
+        nodes: {
+          task: {
+            id: 'task',
+            kind: 'task',
+            goal: 'Fill Dimension in Import',
+            dependsOn: [],
+            requirementIds: [],
+            assertions: [],
           },
         },
-      }).record();
-      expect(await page.locator('#import input').inputValue()).toBe('region-value');
-      expect(await page.locator('body > label input').inputValue()).toBe('');
-      expect(calls).toBe(mode === 'observe' ? 3 : 2);
-      expect(events.mock.calls.map(([event]) => [event.phase, event.action.action.type])).toEqual([
-        ['start', 'fill'],
-        ['finish', 'fill'],
-      ]);
-    } finally {
-      await session.close();
-    }
-  },
-);
+      },
+    }).record();
+    expect(await page.locator('#import input').inputValue()).toBe('region-value');
+    expect(await page.locator('body > label input').inputValue()).toBe('');
+    expect(calls).toBe(3);
+    expect(events.mock.calls.map(([event]) => [event.phase, event.action.action.type])).toEqual([
+      ['start', 'fill'],
+      ['finish', 'fill'],
+    ]);
+  } finally {
+    await session.close();
+  }
+});

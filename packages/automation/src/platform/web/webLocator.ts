@@ -31,6 +31,8 @@ export function locateWebElement(page: Page, target: Target): Locator {
       break;
     case 'ariaRef':
       result = page.locator(`aria-ref=${target.value}`);
+      // The aria-ref engine ignores its query root; intersect with the region descendants.
+      if (target.scope) result = result.and(root.locator('*'));
       break;
   }
 

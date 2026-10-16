@@ -18,11 +18,6 @@ import {
 } from '@testdog/automation/platform/web/observationView';
 
 const RefSchema = z.string().regex(/^(?:f\d+)?e\d+$/, 'Expected an ARIA ref token');
-const RelativeLocatorSchema = z.strictObject({
-  kind: z.enum(['role', 'label', 'placeholder', 'testId', 'text']),
-  value: z.string().min(1),
-  name: z.string(),
-});
 
 function describeCompletedAction(step: PlatformAction, observation?: Observation) {
   if (step.platform !== 'web') return [];
@@ -59,14 +54,14 @@ const ActionArguments = {
   act_in: z.strictObject({
     type: z.enum(['click', 'fill', 'press']),
     scopeRef: RefSchema,
-    locator: RelativeLocatorSchema,
+    ref: RefSchema,
     value: z.string(),
   }),
   wait: WaitStepSchema.omit({ type: true }).strict(),
 };
 const ToolDescriptions: Record<keyof typeof ActionArguments, string> = {
   act_in:
-    'Click, fill or press using a locator inside an observed region scopeRef. Use when the region and target are clear, without an extra observe call. locator uses role, label, placeholder, testId or text; name is the exact accessible name for role, otherwise empty. value is empty for click, input text for fill, or a key for press. The region and target must each match exactly one element; inspect the region if missing or ambiguous.',
+    'Click, fill or press the control ref inside region scopeRef from the current observation. Both refs must be observed and the control must belong to the region. value is empty for click, input text for fill, or a key for press. If the control ref is omitted, use observe to inspect the region first.',
   done: 'Finish only when the observed result confirms every requested action in the current goal is complete. A link transition completes that navigation, not any explicitly requested actions on the destination page.',
   observe:
     'Inspect a region using a ref from the current observation. Returns its full subtree and a fresh page overview without browser input. Use an empty ref to return to the page overview. This must be the only tool call in the response.',
@@ -157,9 +152,9 @@ export class WebActionPlanner implements ActionPlanner {
       A wait must be the only call in its response, so subsequent actions use fresh refs.
       The page tree can be a compact overview: omittedChildren and truncated mark summarized content.
       Use a control's ref directly when clear. When ownership distinguishes similar controls,
-      use act_in with an observed region scopeRef and a relative semantic locator.
-      No extra observe call is needed if the region and locator are clear. If information is
-      insufficient or a locator was missing or ambiguous, use observe to inspect the region.
+      use act_in with the region scopeRef and the control ref from the current observation.
+      If the control ref is omitted from the compact overview, use observe to inspect its region
+      first, then use the fresh control ref. Never generate a semantic locator.
       Observe expands that subtree; it never clicks or fills.
       A focused observation also includes a fresh page overview so you can discover new content
       outside the selected region and inspect another region. An empty ref returns to the overview.
@@ -245,14 +240,29 @@ export class WebActionPlanner implements ActionPlanner {
         return StepSchema.parse({ type: 'wait', ...args });
       }
 
-      if ('scopeRef' in args) {
-        validateRef(args.scopeRef);
-        if (args.type === 'press' && !args.value.trim()) throw new Error('Press requires a key');
+      if (call.name === 'act_in') {
+        const scoped = ActionArguments.act_in.parse(args);
+
+        validateRef(scoped.scopeRef);
+        validateRef(scoped.ref);
+        const region = findAriaNode(observation.tree, scoped.scopeRef);
+
+        if (!findAriaNode(region?.children, scoped.ref))
+          throw Object.assign(
+            new ReplanRequiredError('目标不属于所选区域，请根据最新观察重新选择目标'),
+            { modelCallId: response.callId },
+          );
+        if (scoped.type === 'press' && !scoped.value.trim())
+          throw new Error('Press requires a key');
 
         return StepSchema.parse({
-          type: args.type,
-          value: args.value,
-          target: { ...args.locator, scope: { kind: 'ariaRef', value: args.scopeRef } },
+          type: scoped.type,
+          value: scoped.value,
+          target: {
+            kind: 'ariaRef',
+            value: scoped.ref,
+            scope: { kind: 'ariaRef', value: scoped.scopeRef },
+          },
         });
       }
 
