@@ -41,41 +41,54 @@ export class PlanRunner {
   }
 
   async replay(steps: ReplayStep[]) {
+    for (const step of steps) await this.replayStep(step);
+  }
+
+  private async replayStep(step: ReplayStep) {
     const { session, signal } = this.options;
+    const { event } = step;
 
-    for (const step of steps) {
-      const { event } = step;
+    this.nodeId = event.planNodeId;
+    signal.throwIfAborted();
+    await session.prepareReplayStep(step, signal);
+    if (event.action) {
+      await this.observe();
+      await this.action(event.action);
 
-      this.nodeId = event.planNodeId;
-      signal.throwIfAborted();
-      await session.prepareReplayStep(step, signal);
-      if (event.action) {
-        await this.observe();
-        await this.action(event.action);
-      } else if (event.platformAssertion) {
-        const assertion = PlatformAssertionSchema.parse(event.platformAssertion);
-
-        if (
-          assertion.platform !== session.platform ||
-          !session.capabilities.assertions.includes(assertion.type)
-        )
-          throw new Error('Unsupported platform assertion');
-        await this.traced(event, async () => {
-          const result = await session.check(assertion, signal);
-
-          return this.verify(result, true);
-        });
-      } else if (event.assertion || event.condition) {
-        await this.traced(event, async () => {
-          const result = await this.evaluate(
-            event.assertion ? { assertion: event.assertion } : { condition: event.condition },
-            event.assertion ? 'assertion_result' : 'branch_result',
-          );
-
-          return this.verify(result, event.assertion ? true : event.decision);
-        });
-      } else throw new Error(`Missing replay content: ${event.title}`);
+      return;
     }
+
+    if (event.platformAssertion) {
+      const assertion = PlatformAssertionSchema.parse(event.platformAssertion);
+
+      if (
+        assertion.platform !== session.platform ||
+        !session.capabilities.assertions.includes(assertion.type)
+      )
+        throw new Error('Unsupported platform assertion');
+      await this.traced(event, async () => {
+        const result = await session.check(assertion, signal);
+
+        return this.verify(result, true);
+      });
+
+      return;
+    }
+
+    if (event.assertion || event.condition) {
+      await this.traced(event, async () => {
+        const result = await this.evaluate(
+          event.assertion ? { assertion: event.assertion } : { condition: event.condition },
+          event.assertion ? 'assertion_result' : 'branch_result',
+        );
+
+        return this.verify(result, event.assertion ? true : event.decision);
+      });
+
+      return;
+    }
+
+    throw new Error(`Missing replay content: ${event.title}`);
   }
 
   private async visit(id: string, completed: Set<string>, visiting: Set<string>): Promise<void> {

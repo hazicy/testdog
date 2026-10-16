@@ -59,6 +59,41 @@ function locator(page: string, target: Target) {
   return `${page}.${methods[target.kind]}(${quote(value)}${options})${target.index === undefined ? '' : `.nth(${target.index})`}`;
 }
 
+function operationScript(step: RecordingOperation) {
+  const page = pageName(step.pageId);
+
+  if (step.platformAssertion?.platform === 'web') {
+    const assertion = step.platformAssertion;
+    const subject = assertion.target ? locator(page, assertion.target) : page;
+    const method = assertionMethods[assertion.type];
+    const value = assertion.type === 'visible' ? '' : quote(assertion.value);
+
+    return `await expect(${subject}).${assertion.negate ? 'not.' : ''}${method}(${value});`;
+  }
+
+  if (step.kind === 'assertion' && step.assertion)
+    return `await expectPage(${page}, ${quote(step.assertion.description)});`;
+  if (step.kind === 'branch' && step.condition)
+    return `await expectBranch(${page}, ${quote(step.condition)}, ${step.decision ?? false});`;
+
+  const action = step.action?.platform === 'web' ? step.action.action : undefined;
+
+  if (!action) return '// 本步骤没有录制内容，请补充操作后保存。';
+
+  switch (action.type) {
+    case 'navigate':
+      return `await ${page}.goto(${quote(action.value)});`;
+    case 'screenshot':
+      return `await ${page}.screenshot();`;
+    case 'wait':
+      return action.condition === 'observe'
+        ? `await ${page}.waitForTimeout(${action.timeoutMs});`
+        : `await waitFor(${page}, ${quote(action.condition)}, ${quote(action.value)}, ${action.timeoutMs});`;
+    default:
+      return `await ${locator(page, action.target)}.${action.type}(${action.type === 'click' ? '' : quote(action.value)});`;
+  }
+}
+
 export function recordingScript(steps: RecordingOperation[]) {
   const lines = [
     '// page1 = 初始页面；page2、page3 = 按打开顺序编号的新标签页',
@@ -67,40 +102,9 @@ export function recordingScript(steps: RecordingOperation[]) {
   ];
 
   for (const step of steps) {
-    const page = pageName(step.pageId);
-
     lines.push(`// ${step.title.replace(/[\r\n]/g, ' ')}`);
     if (step.planNodeId) lines.push(`// @node ${step.planNodeId}`);
-    const action = step.action?.platform === 'web' ? step.action.action : undefined;
-
-    if (step.platformAssertion?.platform === 'web') {
-      const a = step.platformAssertion;
-      const method = assertionMethods[a.type];
-
-      lines.push(
-        `await expect(${a.target ? locator(page, a.target) : page}).${a.negate ? 'not.' : ''}${method}(${a.type === 'visible' ? '' : quote(a.value)});`,
-      );
-    } else if (step.kind === 'assertion' && step.assertion)
-      lines.push(`await expectPage(${page}, ${quote(step.assertion.description)});`);
-    else if (step.kind === 'branch' && step.condition)
-      lines.push(
-        `await expectBranch(${page}, ${quote(step.condition)}, ${step.decision ?? false});`,
-      );
-    else if (action?.type === 'navigate') lines.push(`await ${page}.goto(${quote(action.value)});`);
-    else if (action?.type === 'screenshot') lines.push(`await ${page}.screenshot();`);
-    else if (action?.type === 'wait') {
-      if (action.condition === 'observe')
-        lines.push(`await ${page}.waitForTimeout(${action.timeoutMs});`);
-      else
-        lines.push(
-          `await waitFor(${page}, ${quote(action.condition)}, ${quote(action.value)}, ${action.timeoutMs});`,
-        );
-    } else if (action)
-      lines.push(
-        `await ${locator(page, action.target)}.${action.type}(${action.type === 'click' ? '' : quote(action.value)});`,
-      );
-    else lines.push('// 本步骤没有录制内容，请补充操作后保存。');
-    lines.push('');
+    lines.push(operationScript(step), '');
   }
 
   return lines.join('\n');
