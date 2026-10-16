@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PluginInvocationSchema, validatePlugin } from '@testdog/contracts/plugins/execution';
 import { HttpUrlSchema } from '@testdog/contracts/automation/platform/target';
 
 const LocatorSchema = z.object({
@@ -36,7 +37,15 @@ export type WaitStep = z.infer<typeof WaitStepSchema>;
 const id = z.string().trim().min(1);
 const ids = z.array(id);
 
-const StepTypeSchema = z.enum(['navigate', 'act', 'assert', 'login', 'files', 'screenshot']);
+const StepTypeSchema = z.enum([
+  'navigate',
+  'act',
+  'assert',
+  'login',
+  'files',
+  'screenshot',
+  'plugin',
+]);
 
 export type StepType = z.infer<typeof StepTypeSchema>;
 
@@ -55,6 +64,7 @@ export const NodeSchema = z.discriminatedUnion('kind', [
     .object({
       kind: z.literal('task'),
       actionType: StepTypeSchema.optional(),
+      plugin: PluginInvocationSchema.optional(),
       id,
       goal: id,
       dependsOn: ids,
@@ -145,6 +155,21 @@ export const ExecutablePlanSchema = PlanSchema.superRefine((plan, ctx) => {
         message: '请在 Navigate 步骤中填写有效的 http 或 https 地址',
         path: ['nodes', id, 'goal'],
       });
+    if (node.kind === 'task' && node.actionType === 'plugin') {
+      try {
+        if (!node.plugin) throw new Error('请配置插件');
+        validatePlugin(node.plugin);
+      } catch (error) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `插件配置无效：${id} · ${error instanceof Error ? error.message : String(error)}`,
+          path: ['nodes', id, 'plugin'],
+        });
+      }
+    }
+
+    if (node.kind === 'task' && node.plugin && node.actionType !== 'plugin')
+      ctx.addIssue({ code: 'custom', message: `非插件步骤不能包含插件配置：${id}` });
     if (node.kind === 'task' && node.actionType === 'assert' && !node.assertions.length)
       ctx.addIssue({ code: 'custom', message: `验证步骤缺少预期结果：${id}` });
   }

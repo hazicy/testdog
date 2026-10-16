@@ -38,6 +38,7 @@ import { GET as serveArtifact } from '../../../../apps/web/src/app/api/runs/[id]
 let server: Server;
 let url: string;
 let directory: string;
+let experimentRequests = 0;
 
 async function logs(id: string) {
   return (
@@ -66,6 +67,27 @@ beforeAll(async () => {
   vi.stubEnv('TESTDOG_DATA_DIR', directory);
   vi.stubEnv('AUTOMATION_HEADLESS', 'true');
   server = createServer((request, response) => {
+    if (request.url === '/abtest_config') {
+      experimentRequests++;
+      response.setHeader('Content-Type', 'application/json');
+      response.end(
+        JSON.stringify({
+          data: { checkout: { val: 'A', vid: '100' }, untouched: { val: 'original' } },
+        }),
+      );
+
+      return;
+    }
+
+    if (request.url === '/experiment') {
+      response.setHeader('Content-Type', 'text/html');
+      response.end(
+        `<h1 id="group">Loading</h1><script>const r = new XMLHttpRequest(); r.open('POST', '/abtest_config', false); r.send('probe'); document.querySelector('#group').textContent = JSON.parse(r.responseText).data.checkout.val;</script>`,
+      );
+
+      return;
+    }
+
     if (request.url === '/api/check') {
       response.setHeader('Authorization', 'secret');
       response.end('ok');
@@ -298,6 +320,89 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     ).toBe(true);
   });
 
+  it('persists real experiment overrides and replays them through the recorder without a model', async () => {
+    experimentRequests = 0;
+    const experimentUrl = `${url}/experiment`;
+    const run = await createRun(
+      {
+        draft: {
+          name: 'Experiment override',
+          goal: 'Use checkout group B',
+          target: { platform: 'web', url: experimentUrl },
+          plan: {
+            rootId: 'root',
+            nodes: {
+              root: {
+                id: 'root',
+                kind: 'group',
+                goal: 'Experiment',
+                children: ['override', 'open'],
+                dependsOn: [],
+              },
+              override: {
+                id: 'override',
+                kind: 'task',
+                actionType: 'plugin',
+                goal: 'Checkout group B',
+                dependsOn: [],
+                requirementIds: [],
+                assertions: [],
+                plugin: {
+                  id: 'volcengine-abtest',
+                  config: {
+                    experimentName: 'Checkout',
+                    key: 'checkout',
+                    value: 'B',
+                    variantId: '200',
+                    urlIncludes: '/abtest_config',
+                  },
+                },
+              },
+              open: {
+                id: 'open',
+                kind: 'task',
+                actionType: 'navigate',
+                goal: experimentUrl,
+                dependsOn: [],
+                requirementIds: [],
+                assertions: [],
+              },
+            },
+          },
+        },
+      },
+      undefined,
+      null,
+    );
+
+    await executeRun(run);
+    const recorded = await getRun(run.id, { userId: null });
+
+    expect(recorded.status, recorded.error).toBe('passed');
+    expect(recorded.replayable).toBe(true);
+    const pluginStep = recorded.steps.find((step) => step.planNodeId === 'override')!;
+
+    expect(pluginStep.action?.action.type).toBe('plugin');
+    expect(JSON.parse(pluginStep.evidence!)).toMatchObject({
+      key: 'checkout',
+      before: { val: 'A', vid: '100' },
+      after: { val: 'B', vid: '200' },
+      hits: 1,
+    });
+    expect(recorded.artifacts.some((artifact) => artifact.kind === 'screenshot')).toBe(true);
+    const replay = await createRun({ mode: 'replay', sourceRunId: recorded.id }, undefined, null);
+
+    await executeRun(replay);
+    const replayed = await getRun(replay.id, { userId: null });
+
+    expect(replayed.status, replayed.error).toBe('passed');
+    expect(
+      JSON.parse(replayed.steps.find((step) => step.planNodeId === 'override')!.evidence!),
+    ).toMatchObject({ after: { val: 'B' } });
+    expect(experimentRequests).toBe(2);
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
+
   it('records each action, screenshots, video and trace, then replays without calling the planner', async () => {
     const run = await createRun(
       { case: 'Enter Ada, submit and verify welcome', url },
@@ -340,7 +445,7 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     ]);
     expect(recorded.steps[1].action?.action).toMatchObject({
       type: 'fill',
-      target: { kind: 'testId', value: 'name' },
+      target: { kind: 'css', value: 'internal:testid=[data-testid="name"s]' },
       value: 'Ada',
     });
     expect(recorded.steps.every((step) => step.status === 'passed')).toBe(true);

@@ -577,3 +577,21 @@ export const browserProviderIntegrations = pgTable(
       .where(sql`${table.userId} is null`),
   ],
 );
+
+export const pluginSettings = pgTable(
+  'plugin_settings',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: text().references(() => authUsers.id),
+    pluginId: text().notNull(),
+    config: jsonb().$type<Record<string, unknown>>().notNull(),
+    version: integer().notNull().default(1),
+    updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('plugin_settings_owner_idx').on(table.userId, table.pluginId),
+    uniqueIndex('plugin_settings_legacy_idx')
+      .on(table.pluginId)
+      .where(sql`${table.userId} is null`),
+  ],
+);

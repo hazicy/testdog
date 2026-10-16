@@ -42,7 +42,7 @@ const schema = objectSchema({
           kind: { type: 'string', enum: ['task'] },
           actionType: {
             type: 'string',
-            enum: ['act', 'assert', 'login', 'files', 'screenshot'],
+            enum: ['act', 'assert', 'login', 'files', 'screenshot', 'plugin'],
           },
           id: stringSchema,
           goal: stringSchema,
@@ -128,6 +128,7 @@ children、then、otherwise 已经表达父节点到子节点的执行关系，�
 不要让分支后的任务直接依赖两条互斥分支，应依赖 branch 节点。不要在分支之外重复列出分支子节点。
 前置环境仅作为上下文保留在 goal 中，不要编造建立环境的操作。
 Web 导航必须显式生成 navigate 任务，不能省略用户要求的初始导航或中途跳转。提供 url 且没有 currentPlan 时，将它作为首个 navigate 任务；不要重复已有导航。context.platform 指定平台：原生测试使用应用界面，不得编造浏览器导航或 DOM 操作；appId 是应用上下文，执行器负责启动。不要编造选择器、URL、重试或额外操作。
+plugin 是已在画板配置的执行插件步骤：保留已有插件节点的 ID 和 actionType，不改为 act；配置由系统按 ID 保留，不生成或猜测插件配置。
 提供 currentPlan 时，goal 是修改要求；保留未要求修改的步骤、分支、节点 ID 和依赖关系，修改节点保留其 ID，新增节点使用唯一 ID，返回完整计划。`,
         messages: [
           { role: 'user', content: { type: 'text', text: JSON.stringify(input) } },
@@ -148,7 +149,20 @@ Web 导航必须显式生成 navigate 任务，不能省略用户要求的初始
           seen.add(node.id);
         }
 
-        const nodes = Object.fromEntries(compiled.nodes.map((node) => [node.id, node]));
+        const nodes = Object.fromEntries(
+          compiled.nodes.map((node) => {
+            if (node.kind === 'task' && node.actionType === 'plugin') {
+              const original = input.currentPlan?.nodes[node.id];
+
+              if (original?.kind !== 'task' || !original.plugin)
+                throw new Error('请在画板配置插件节点后再调整计划');
+
+              return [node.id, { ...node, plugin: original.plugin }];
+            }
+
+            return [node.id, node];
+          }),
+        );
 
         return ExecutablePlanSchema.parse({ rootId: compiled.rootId, nodes });
       } catch (error) {

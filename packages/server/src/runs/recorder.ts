@@ -141,7 +141,7 @@ export class RunRecorder {
         error: event.error,
       });
       await this.capture(page, 'after', event.id);
-      this.activeSteps.delete(page);
+      if (this.activeSteps.get(page) === event.id) this.activeSteps.delete(page);
     }
   };
   capture(page: Page, stage: RunArtifact['stage'], stepId?: string) {

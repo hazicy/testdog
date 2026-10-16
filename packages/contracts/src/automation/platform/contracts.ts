@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PluginActionSchema } from '@testdog/contracts/plugins/execution';
 import { StepSchema, TargetSchema } from '@testdog/contracts/automation/compiler/schema';
 import type { Assertion, Plan } from '@testdog/contracts/automation/compiler/schema';
 import type { TestTarget } from '@testdog/contracts/automation/platform/target';
@@ -28,11 +29,13 @@ export const NativeActionSchema = z.discriminatedUnion('type', [
     timeoutMs: z.number().int().min(1000).max(5000),
   }),
 ]);
+export const WebActionSchema = z.union([StepSchema, PluginActionSchema]);
+export type WebAction = z.infer<typeof WebActionSchema>;
 export const PlatformActionSchema = z.discriminatedUnion('platform', [
   z.strictObject({
     schemaVersion: z.literal(1).optional(),
     platform: z.literal('web'),
-    action: StepSchema.and(z.object({ sensitive: z.boolean().optional() })),
+    action: WebActionSchema.and(z.object({ sensitive: z.boolean().optional() })),
   }),
   z.strictObject({
     schemaVersion: z.literal(1).optional(),
@@ -152,9 +155,10 @@ export interface AutomationSession {
   readonly executionPolicy: { reobserveAfterAction: boolean };
 
   selectSurface?(id: string, signal: AbortSignal): Promise<void>;
+  verifyPlugins?(signal: AbortSignal): Promise<void>;
   prepareReplayStep(step: ReplayStep, signal: AbortSignal): Promise<void>;
   observe(signal: AbortSignal, request?: ObservationRequest): Promise<Observation>;
-  perform(action: PlatformAction, signal: AbortSignal): Promise<void>;
+  perform(action: PlatformAction, signal: AbortSignal): Promise<void | { evidence: string }>;
   wait(action: PlatformAction, signal: AbortSignal): Promise<Observation>;
   check(assertion: PlatformAssertion, signal: AbortSignal): Promise<CheckResult>;
   resolveForRecording(action: PlatformAction, observation: Observation): Promise<ReplayBinding>;

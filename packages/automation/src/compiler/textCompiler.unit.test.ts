@@ -228,3 +228,27 @@ it('regenerates navigation with a bare URL when the model returns an instruction
     '请在 Navigate 步骤中填写有效的 http 或 https 地址',
   );
 });
+
+it('preserves an existing execution plugin configuration when AI edits its surrounding plan', async () => {
+  const plugin = {
+    id: 'volcengine-abtest',
+    config: { experimentName: 'Checkout', key: 'checkout', value: 'B' },
+  };
+  const node = { ...task, id: 'plugin', actionType: 'plugin' as const, plugin, assertions: [] };
+  const root = {
+    id: 'root',
+    kind: 'group' as const,
+    goal: 'Experiment',
+    children: ['plugin'],
+    dependsOn: [],
+  };
+  const providerNode = { ...task, id: node.id, actionType: node.actionType, assertions: [] };
+
+  respond({ rootId: 'root', nodes: [root, providerNode] });
+  const plan = await new TextCompiler(model).compile({
+    goal: '保留实验覆盖步骤',
+    currentPlan: { rootId: 'root', nodes: { root, plugin: node } },
+  });
+
+  expect(plan.nodes.plugin).toMatchObject({ plugin });
+});

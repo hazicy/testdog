@@ -1,13 +1,28 @@
 import type { Page } from 'playwright';
 import type { Target, Step } from '@testdog/contracts/automation/compiler/schema';
+import type { WebAction } from '@testdog/contracts/automation/platform/contracts';
 import type { RecordedAction } from '@testdog/contracts/automation/platform/web/types';
 import { locateWebElement } from '@testdog/automation/platform/web/webLocator';
 
-export async function recordAction(
+export function recordAction(
   page: Page,
   action: Step,
-): Promise<{ action: RecordedAction; replayable: boolean }> {
-  if (action.type === 'wait' || action.type === 'navigate' || action.type === 'screenshot')
+): Promise<{ action: RecordedAction; replayable: boolean }>;
+export function recordAction(
+  page: Page,
+  action: WebAction,
+): Promise<{ action: WebAction & { sensitive?: boolean }; replayable: boolean }>;
+
+export async function recordAction(
+  page: Page,
+  action: WebAction,
+): Promise<{ action: WebAction & { sensitive?: boolean }; replayable: boolean }> {
+  if (
+    action.type === 'plugin' ||
+    action.type === 'wait' ||
+    action.type === 'navigate' ||
+    action.type === 'screenshot'
+  )
     return { action, replayable: true };
   const original = locateWebElement(page, action.target);
   const handle = await original.elementHandle({ timeout: 3000 });

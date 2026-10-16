@@ -48,6 +48,7 @@ export async function openWebRuntime(
 
     context = await browser.newContext({
       ...profile,
+      serviceWorkers: 'block',
       ...(!connection.artifacts.includes('video')
         ? {}
         : { recordVideo: { dir: recorder.directory, size: profile.viewport ?? undefined } }),

@@ -258,7 +258,8 @@
     "files": "Open or download page files",
     "screenshot": "Save a screenshot",
     "group": "Arrange groups side by side; run steps in order",
-    "branch": "Choose a path based on a condition"
+    "branch": "Choose a path based on a condition",
+    "plugin": "Configure an execution plugin"
   },
   "integrations": {
     "saved": "Configuration saved.",
@@ -903,7 +904,8 @@
     "elsePrefix": "Otherwise:",
     "newTest": "New test",
     "emptyBranch": "Empty branch",
-    "invalidAssertion": "Invalid assertion position"
+    "invalidAssertion": "Invalid assertion position",
+    "plugin": "Experiment override"
   },
   "errors": {
     "invalidResponse": "Invalid server response. Please try again.",
@@ -929,6 +931,55 @@
     "export": "Export Excel",
     "exporting": "Exporting…",
     "failed": "Export failed",
-    "excel-ui-acceptance": "Excel UI acceptance export"
+    "excel-ui-acceptance": "Excel acceptance export",
+    "volcengine-abtest": "Volcengine A/B testing",
+    "results": "Result processing",
+    "execution": "Execution node",
+    "experimentSummary": "Choose an experiment group before execution and override its response configuration.",
+    "excelSummary": "Group screenshot nodes into an Excel acceptance workbook.",
+    "screenshots": "Screenshots",
+    "groups": "Acceptance groups",
+    "noGroups": "No groups yet"
+  },
+  "executionPlugins": {
+    "configure": "Configure plugin",
+    "close": "Close",
+    "plugin": "Plugin",
+    "volcengine-abtest": "Volcengine A/B testing",
+    "override": "Experiment override",
+    "experimentName": "Experiment name",
+    "key": "Experiment key",
+    "urlIncludes": "Response URL contains",
+    "dataPath": "Response path",
+    "value": "Experiment value (JSON)",
+    "variantId": "Variant vid",
+    "save": "Save",
+    "cancel": "Cancel",
+    "invalidJson": "Experiment value must be valid JSON",
+    "invalidConfig": "Complete the configuration; use a data path such as /data",
+    "interface": "Endpoint",
+    "experiments": "Experiments and groups",
+    "addExperiment": "Add experiment",
+    "removeExperiment": "Remove experiment",
+    "groupName": "Group name",
+    "removeGroup": "Remove group",
+    "addGroup": "Add group",
+    "saveSettings": "Save settings",
+    "saved": "Saved",
+    "saving": "Saving…",
+    "saveFailed": "Save failed",
+    "invalidSettings": "Complete the experiments and groups with valid JSON values and unique keys and names",
+    "retry": "Retry",
+    "group": "Group",
+    "chooseKey": "Choose key",
+    "chooseGroup": "Choose group",
+    "configureFirst": "Add experiments and groups in plugin settings first",
+    "pluginSettings": "Plugin settings",
+    "pluginNode": "Plugin node",
+    "responseValue": "Response value (JSON)",
+    "actions": "Actions",
+    "groupPlaceholder": "e.g. Group B",
+    "optional": "Optional",
+    "discard": "Discard changes"
   }
 }

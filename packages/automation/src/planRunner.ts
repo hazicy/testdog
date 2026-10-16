@@ -41,10 +41,12 @@ export class PlanRunner {
     this.options.plan = ExecutablePlanSchema.parse(this.options.plan);
     if (initial) await this.action(initial);
     await this.visit(this.options.plan.rootId, new Set(), new Set());
+    await this.options.session.verifyPlugins?.(this.options.signal);
   }
 
   async replay(steps: ReplayStep[]) {
     for (const step of steps) await this.replayStep(step);
+    await this.options.session.verifyPlugins?.(this.options.signal);
   }
 
   private async replayStep(step: ReplayStep) {
@@ -55,8 +57,11 @@ export class PlanRunner {
     signal.throwIfAborted();
     await session.prepareReplayStep(step, signal);
     if (event.action) {
-      await this.observe();
-      await this.action(event.action);
+      if (event.action.action.type !== 'plugin') await this.observe();
+      await this.action(
+        event.action,
+        event.action.action.type === 'plugin' ? { title: event.title } : {},
+      );
 
       return;
     }
@@ -125,7 +130,13 @@ export class PlanRunner {
 
   private async executeTask(node: Extract<PlanNode, { kind: 'task' }>) {
     await this.options.report?.(`执行任务：${node.goal}`);
-    if (node.actionType === 'navigate') {
+    if (node.actionType === 'plugin') {
+      if (!node.plugin) throw new Error('请配置插件');
+      await this.action(
+        { platform: 'web', action: { type: 'plugin', plugin: node.plugin } },
+        { title: node.goal },
+      );
+    } else if (node.actionType === 'navigate') {
       if (this.options.session.platform !== 'web') throw new Error('Navigate 步骤仅支持 Web 测试');
       await this.action({
         platform: 'web',
@@ -249,7 +260,7 @@ export class PlanRunner {
 
   private action(
     action: PlatformAction,
-    source: Pick<SessionEvent, 'modelCallId' | 'toolCallId'> = {},
+    source: Pick<SessionEvent, 'modelCallId' | 'toolCallId'> & { title?: string } = {},
   ) {
     action = PlatformActionSchema.parse(action);
     const { session, signal } = this.options;

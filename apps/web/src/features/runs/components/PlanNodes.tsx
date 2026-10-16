@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
 import { asset } from '@/features/runs/presentation';
 import { type boardResult, planNodeTitle, stepResult } from '@/features/runs/lib/boardResults';
+import { ExecutionPluginEditor } from '@/features/plugins/ExecutionPluginEditor';
+import type { PluginInvocation } from '@testdog/contracts/plugins/execution';
 import { memo, useEffect, useId, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
@@ -39,6 +41,7 @@ export type PlanFlowNode = Node<
     editable: boolean;
     mutable: boolean;
     onContent: (value: string) => void;
+    onPlugin?: (plugin: PluginInvocation, title: string) => boolean;
     onDuplicate: () => void;
     onRemove: () => void;
     onDrop: (id: string) => void;
@@ -180,7 +183,18 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             <span className={boardStyles.planReviewBefore}>{beforeContent}</span>
           )}
           {data.pathLabel && <span className={boardStyles.planPathLabel}>{data.pathLabel}</span>}
-          {editing ? (
+          {editing && node.kind === 'task' && node.actionType === 'plugin' ? (
+            <>
+              <span>{content}</span>
+              <ExecutionPluginEditor
+                invocation={node.plugin}
+                onDismiss={() => setEditing(false)}
+                onSave={(plugin, title) => {
+                  if (data.onPlugin?.(plugin, title)) setEditing(false);
+                }}
+              />
+            </>
+          ) : editing ? (
             <textarea
               autoFocus
               onFocus={(event) => event.currentTarget.select()}

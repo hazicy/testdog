@@ -15,6 +15,7 @@ import {
   moveNode,
   removeNode,
   updateNodeContent,
+  updateNodePlugin,
 } from '@/features/test-cases/lib/planEditing';
 import type { PlanFlowNode, NodeReview } from '@/features/runs/components/PlanNodes';
 
@@ -142,6 +143,7 @@ export function usePlanBoard({
         editable: !!onChange && !item.reference,
         mutable:
           item.assertionIndex === undefined && node.id !== plan.rootId && positions.has(node.id),
+        onPlugin: (plugin, title) => commit(() => updateNodePlugin(plan, node.id, plugin, title)),
         onContent: (value: string) =>
           commit(() => updateNodeContent(plan, node.id, value, item.assertionIndex, labels)),
         onDuplicate: () => commit(() => duplicateNode(plan, node.id)),

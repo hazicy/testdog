@@ -1,38 +1,425 @@
 .panel {
+  width: 100%;
+  max-width: 93.75rem;
+  margin-inline: auto;
+}
+.pageHeader {
+  margin-bottom: var(--space-6);
+}
+.pageHeader h1,
+.detailHeader h1 {
+  margin: 0;
+  font-size: var(--text-xl);
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+.catalog {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  max-width: 52rem;
+}
+.catalogItem {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding: var(--space-7);
-  max-width: 80rem;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: start;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    border-color 140ms,
+    background 140ms;
 }
-.panel h1 {
-  font-size: var(--text-3xl);
-  margin: 0;
+.catalogItem:hover {
+  border-color: var(--control-line);
+  background: var(--surface-hover);
 }
-.toolbar {
+.catalogItem:focus-visible,
+.back:focus-visible {
+  outline: var(--focus-width) solid var(--brand-line);
+  outline-offset: var(--space-1);
+}
+.cardTop {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.appIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 1.375rem;
+  width: 1.375rem;
+  height: 1.375rem;
+  color: var(--ink);
+  font-size: 1.375rem;
+}
+.kind {
+  color: var(--text-subtle);
+  font-size: var(--text-sm);
+}
+.cardArrow {
+  margin-inline-start: auto;
+  color: var(--text-faint);
+  font-size: var(--text-2xl);
+}
+.catalogItem strong {
+  font-size: var(--text-lg);
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+.summary {
+  font-size: var(--text-sm);
+  color: var(--page-muted);
+  line-height: 1.25rem;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: transparent;
+  padding: 0;
+  border: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-6);
+}
+.back:hover {
+  color: var(--ink);
+}
+.detailHeader {
+  display: flex;
   align-items: center;
   gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-width) solid var(--page-line);
 }
-.toolbar input {
-  max-width: 20rem;
+.detailHeader p {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.25rem;
+  color: var(--page-muted);
 }
-.nodes {
+.detail {
+  min-width: 0;
+}
+.settings,
+.exportPanel {
   display: flex;
   flex-direction: column;
+  gap: var(--space-6);
+  padding-top: var(--space-6);
+}
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.settingsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.settingsSection h3,
+.screenshotSection h3,
+.exportGroups h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+.connectionFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 45rem;
+}
+.connectionFields > label {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-5);
+}
+.monospace,
+.jsonInput {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: var(--text-md);
+}
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+}
+.experiment {
+  overflow: hidden;
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-lg);
+}
+.experimentHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+.experimentHeader > label {
+  display: flex;
+  align-items: center;
+  flex: 1;
   gap: var(--space-3);
+  margin: 0;
+  white-space: nowrap;
+}
+.experimentHeader input {
+  max-width: 22rem;
+  background: transparent;
+}
+.experimentHeader > button {
+  color: var(--text-subtle);
+}
+.groupTableWrap {
+  overflow-x: auto;
+}
+.groupTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.groupTable th {
+  padding: var(--space-2-5) var(--space-4);
+  text-align: start;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--table-heading);
+  background: var(--surface-muted);
+  border-block: var(--border-width) solid var(--page-line);
+}
+.groupTable th:nth-child(1) {
+  width: 25%;
+}
+.groupTable th:nth-child(2) {
+  width: 43%;
+}
+.groupTable th:nth-child(3) {
+  width: 25%;
+}
+.groupTable th:nth-child(4) {
+  width: 3rem;
+  padding-inline: 0;
+}
+.groupTable td {
+  padding: var(--space-2) var(--space-2-5);
+  vertical-align: top;
+  border-bottom: var(--border-width) solid var(--line-subtle);
+}
+.groupTable td:last-child {
+  padding-inline: var(--space-1);
+}
+.groupTable textarea {
+  field-sizing: content;
+  max-height: 12rem;
+  resize: vertical;
+}
+.experiment > button {
+  margin: var(--space-2) var(--space-2-5);
+}
+.settingsFooter {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-block: var(--space-4);
+  background: var(--surface);
+  border-top: var(--border-width) solid var(--page-line);
+}
+.settingsFooter > span {
+  margin-inline-end: auto;
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+}
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--text-lg);
+}
+.runPicker {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  max-width: 36rem;
+}
+.runPicker > :first-child {
+  width: 100%;
+}
+.exportColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(16rem, 1fr);
+  gap: var(--space-7);
+}
+.screenshotSection,
+.exportGroups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.nodes {
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 .node {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  padding: var(--space-3);
+  border-bottom: var(--border-width) solid var(--line-subtle);
+  cursor: pointer;
+  font-size: var(--text-lg);
+}
+.node:last-child {
+  border-bottom: 0;
+}
+.node:has([aria-checked='true']) {
+  background: var(--surface-hover);
+}
+.thumbnail {
+  width: 4.5rem;
+  height: 3rem;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: top;
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-sm);
+}
+.groupComposer {
+  display: flex;
+  gap: var(--space-2);
+}
+.groupComposer > input {
+  min-width: 0;
 }
 .group {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border: var(--border-width) solid var(--page-line);
   border-radius: var(--radius-lg);
+  font-size: var(--text-lg);
+}
+.group strong {
+  font-weight: 500;
+}
+.group ul {
+  margin: var(--space-2) 0 0;
+  padding-inline-start: var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--text-md);
+}
+.exportGroups > button {
+  align-self: flex-end;
+  margin-top: var(--space-2);
+}
+.emptyGroups {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: var(--text-lg);
+}
+@media (width <= 48rem) {
+  .connectionFields > label {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+  .exportColumns {
+    grid-template-columns: 1fr;
+  }
+}
+@media (width <= 36rem) {
+  .catalog {
+    grid-template-columns: 1fr;
+  }
+  .catalogItem {
+    padding: var(--space-5);
+  }
+  .detailHeader {
+    align-items: flex-start;
+  }
+  .groupTable,
+  .groupTable tbody {
+    display: block;
+    width: 100%;
+  }
+  .groupTable thead {
+    display: none;
+  }
+  .groupTable tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3) var(--space-2);
+    padding: var(--space-4) var(--space-3);
+    border-top: var(--border-width) solid var(--page-line);
+  }
+  .groupTable td {
+    display: block;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .groupTable td::before {
+    display: block;
+    content: attr(data-label);
+    color: var(--text-subtle);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-2);
+  }
+  .groupTable td:nth-child(1),
+  .groupTable td:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+  .groupTable td:nth-child(4) {
+    align-self: end;
+    padding: 0;
+  }
+  .groupTable td:last-child::before {
+    display: none;
+  }
+  .groupTable input,
+  .groupTable textarea {
+    border-color: var(--control-line);
+  }
+  .groupTable th {
+    width: auto;
+  }
+  .experimentHeader {
+    padding-inline: var(--space-3);
+  }
+  .experimentHeader > label {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+  .experimentHeader > button {
+    align-self: flex-end;
+  }
+  .settingsFooter {
+    padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  }
 }

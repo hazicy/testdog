@@ -47,6 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     pathname === '/runs' ||
     pathname === '/issues' ||
     pathname === '/integrations' ||
+    pathname === '/plugins' ||
     pathname === '/settings';
 
   return (

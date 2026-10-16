@@ -12,6 +12,7 @@ import login from '@iconify-icons/lucide/key-round';
 import files from '@iconify-icons/lucide/paperclip';
 import screenshot from '@iconify-icons/lucide/camera';
 import group from '@iconify-icons/lucide/list-tree';
+import plugin from '@iconify-icons/lucide/puzzle';
 import branch from '@iconify-icons/lucide/git-branch';
 import type { StepType } from '@testdog/contracts/automation/compiler/schema';
 
@@ -22,6 +23,7 @@ const stepTypes = [
   { value: 'login', label: 'Login' },
   { value: 'files', label: 'Files' },
   { value: 'screenshot', label: 'Screenshot' },
+  { value: 'plugin', label: 'Plugin' },
   { value: 'group', label: 'Group' },
   { value: 'branch', label: 'Branch' },
 ] as const;
@@ -33,7 +35,7 @@ export function useStepTypes() {
 }
 
 export type BoardStepType = StepType | 'group' | 'branch';
-const icons = { navigate, act, assert, login, files, screenshot, group, branch };
+const icons = { navigate, act, assert, login, files, screenshot, plugin, group, branch };
 
 export function StepBadge({ type }: { type: BoardStepType }) {
   return (

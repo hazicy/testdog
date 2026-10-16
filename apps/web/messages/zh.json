@@ -258,7 +258,8 @@
     "files": "打开或下载页面文件",
     "screenshot": "保存当前画面截图",
     "group": "分组并排展示，组内顺序执行",
-    "branch": "根据条件选择路径"
+    "branch": "根据条件选择路径",
+    "plugin": "配置执行插件"
   },
   "integrations": {
     "saved": "配置已保存。",
@@ -903,7 +904,8 @@
     "elsePrefix": "否则：",
     "newTest": "新测试",
     "emptyBranch": "空分支",
-    "invalidAssertion": "无效的断言位置"
+    "invalidAssertion": "无效的断言位置",
+    "plugin": "实验配置覆盖"
   },
   "errors": {
     "invalidResponse": "服务响应异常，请稍后重试。",
@@ -929,6 +931,55 @@
     "export": "导出 Excel",
     "exporting": "导出中…",
     "failed": "导出失败",
-    "excel-ui-acceptance": "Excel UI 验收导出"
+    "excel-ui-acceptance": "Excel 验收导出",
+    "volcengine-abtest": "火山引擎 A/B 测试",
+    "results": "结果处理",
+    "execution": "执行节点",
+    "experimentSummary": "在执行前指定实验组，覆盖接口返回的实验配置。",
+    "excelSummary": "将截图节点分组，导出可填写的 Excel 验收表。",
+    "screenshots": "截图",
+    "groups": "验收分组",
+    "noGroups": "尚未创建分组"
+  },
+  "executionPlugins": {
+    "configure": "配置插件",
+    "close": "关闭",
+    "plugin": "插件",
+    "volcengine-abtest": "火山引擎 A/B 测试",
+    "override": "实验配置覆盖",
+    "experimentName": "实验名",
+    "key": "实验 key",
+    "urlIncludes": "接口地址包含",
+    "dataPath": "响应路径",
+    "value": "实验值（JSON）",
+    "variantId": "版本 vid",
+    "save": "保存",
+    "cancel": "取消",
+    "invalidJson": "实验值必须是有效的 JSON",
+    "invalidConfig": "请填写完整配置，数据路径使用 /data 这样的格式",
+    "interface": "接口",
+    "experiments": "实验与分组",
+    "addExperiment": "添加实验",
+    "removeExperiment": "删除实验",
+    "groupName": "组名",
+    "removeGroup": "删除组",
+    "addGroup": "添加组",
+    "saveSettings": "保存配置",
+    "saved": "已保存",
+    "saving": "保存中…",
+    "saveFailed": "保存失败",
+    "invalidSettings": "请填写完整的实验和组，返回值需为有效 JSON，key 和组名不能重复",
+    "retry": "重试",
+    "group": "组",
+    "chooseKey": "选择 key",
+    "chooseGroup": "选择组",
+    "configureFirst": "先在插件设置中添加实验和组",
+    "pluginSettings": "插件设置",
+    "pluginNode": "插件节点",
+    "responseValue": "返回值（JSON）",
+    "actions": "操作",
+    "groupPlaceholder": "例如 B 组",
+    "optional": "可选",
+    "discard": "放弃修改"
   }
 }

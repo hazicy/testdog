@@ -1,3 +1,4 @@
+import { WebExecutionPlugins } from '@testdog/automation/platform/web/executionPlugins';
 import { expect as playwrightExpect } from '@playwright/test';
 import { recordAction } from '@testdog/automation/platform/web/recordingLocator';
 import type { Page } from 'playwright';
@@ -23,12 +24,14 @@ export class PlaywrightSession implements AutomationSession {
   readonly platform = 'web' as const;
   readonly executionPolicy = { reobserveAfterAction: false };
   readonly capabilities = {
-    actions: ['navigate', 'click', 'fill', 'press', 'wait', 'screenshot'],
+    actions: ['navigate', 'click', 'fill', 'press', 'wait', 'screenshot', 'plugin'],
     artifacts: ['screenshot', 'video', 'trace', 'console', 'network'],
     assertions: ['semantic', 'visible', 'text', 'containsText', 'value', 'url'],
     observations: ['aria-tree', 'url', 'focused-element', 'regions'],
   };
   private session: BrowserSession;
+  private plugins: WebExecutionPlugins;
+  private pluginEvent?: SessionEvent;
   private observer = new Observer();
   private disposed = false;
   private observation?: Observation;
@@ -44,6 +47,7 @@ export class PlaywrightSession implements AutomationSession {
     private useTouch = false,
   ) {
     this.session = new BrowserSession(page);
+    this.plugins = new WebExecutionPlugins(page.context());
     page.context().pages().forEach(this.registerPage);
     page.context().on('page', this.registerPage);
   }
@@ -80,6 +84,7 @@ export class PlaywrightSession implements AutomationSession {
       browserAction &&
       browserAction.type !== 'navigate' &&
       browserAction.type !== 'wait' &&
+      browserAction.type !== 'plugin' &&
       (browserAction.target.kind === 'ariaRef' || browserAction.target.scope?.kind === 'ariaRef')
     )
       throw new Error('该步骤没有稳定定位器，请重新录制');
@@ -95,6 +100,7 @@ export class PlaywrightSession implements AutomationSession {
 
   async observe(signal: AbortSignal, request?: ObservationRequest): Promise<Observation> {
     signal.throwIfAborted();
+    this.plugins.assertHealthy();
     const observation = await this.session.observe(this.observer, request);
 
     signal.throwIfAborted();
@@ -117,6 +123,20 @@ export class PlaywrightSession implements AutomationSession {
     signal.throwIfAborted();
     if (step.platform !== 'web') throw new Error('Expected Web action');
     const action = step.action;
+
+    this.plugins.assertHealthy();
+    if (action.type === 'plugin') {
+      const event = this.pluginEvent;
+
+      if (!event) throw new Error('插件步骤缺少执行事件');
+
+      return this.plugins.install(action.plugin, async (evidence, error) => {
+        await this.hooks.onStep?.(
+          { ...event, phase: error ? 'error' : 'finish', evidence, error },
+          this.session.page,
+        );
+      });
+    }
 
     if (action.type === 'wait') await this.session.wait(action);
     else await this.session.perform((page) => executeWebAction(page, action, this.useTouch));
@@ -193,7 +213,12 @@ export class PlaywrightSession implements AutomationSession {
       },
     ];
   }
+  async verifyPlugins(signal: AbortSignal) {
+    await this.plugins.verify(signal);
+  }
+
   async emit(event: SessionEvent) {
+    if (event.phase === 'start' && event.action?.action.type === 'plugin') this.pluginEvent = event;
     const page = this.session.page;
 
     this.hooks.onPage?.(page);
@@ -203,6 +228,7 @@ export class PlaywrightSession implements AutomationSession {
   async close() {
     if (!this.disposed) {
       this.disposed = true;
+      await this.plugins.close();
       this.session.page.context().off('page', this.registerPage);
       this.session.dispose();
     }

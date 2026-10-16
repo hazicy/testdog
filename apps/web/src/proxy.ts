@@ -38,6 +38,7 @@ export const config = {
     '/runs/:path*',
     '/issues/:path*',
     '/integrations/:path*',
+    '/plugins/:path*',
     '/settings/:path*',
     '/api/:path*',
   ],

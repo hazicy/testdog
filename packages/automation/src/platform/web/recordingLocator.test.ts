@@ -64,7 +64,7 @@ it('normalizes a ref with an accessible name and round trips through script pers
   expect(sensitive).toBe(false);
   expect(action).toEqual(replayAction);
   await page.setContent(markup);
-  if (action.type === 'wait') throw new Error('Expected click');
+  if (action.type === 'wait' || action.type === 'plugin') throw new Error('Expected click');
   expect(await locateWebElement(page, action.target).getAttribute('aria-labelledby')).toBe(
     'dimension',
   );

@@ -1,3 +1,4 @@
+import { executionPlugins } from '@testdog/contracts/plugins/execution';
 import zh from '../../../../messages/zh.json';
 
 export type AuthoringLabels = typeof zh.authoring;
@@ -153,6 +154,7 @@ export function insertStep(
     login: labels.login,
     files: labels.files,
     screenshot: labels.screenshot,
+    plugin: labels.plugin,
   };
 
   if (type === 'group')
@@ -178,7 +180,15 @@ export function insertStep(
       children: [],
       dependsOn: [],
     };
-  } else nodes[id] = task(id, type, stepLabels[type]);
+  } else {
+    nodes[id] = task(id, type, stepLabels[type]);
+    if (type === 'plugin')
+      nodes[id].plugin = {
+        id: executionPlugins[0].id,
+        config: structuredClone(executionPlugins[0].defaultConfig),
+      };
+  }
+
   const children = [...group.children];
 
   children.splice(insertion.index, 0, id);

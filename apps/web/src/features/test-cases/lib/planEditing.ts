@@ -1,3 +1,4 @@
+import { validatePlugin, type PluginInvocation } from '@testdog/contracts/plugins/execution';
 import {
   PlanSchema,
   nodeChildren,
@@ -136,4 +137,21 @@ export function removeNode(plan: Plan, id: string, labels = defaultAuthoringLabe
   for (const ref of candidates) if (!retained.has(ref)) delete nodes[ref];
 
   return PlanSchema.parse({ ...plan, nodes });
+}
+
+export function updateNodePlugin(
+  plan: Plan,
+  id: string,
+  plugin: PluginInvocation,
+  title: string,
+): Plan {
+  const node = plan.nodes[id];
+
+  if (node.kind !== 'task' || node.actionType !== 'plugin') throw new Error('Not a plugin node');
+  validatePlugin(plugin);
+
+  return PlanSchema.parse({
+    ...plan,
+    nodes: { ...plan.nodes, [id]: { ...node, plugin, goal: title } },
+  });
 }

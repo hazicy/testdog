@@ -1,6 +1,9 @@
 import { parse, type Node } from 'acorn';
-import { StepSchema, type Target } from '@testdog/contracts/automation/compiler/schema';
-import { PlatformAssertionSchema } from '@testdog/contracts/automation/platform/contracts';
+import { type Target } from '@testdog/contracts/automation/compiler/schema';
+import {
+  WebActionSchema,
+  PlatformAssertionSchema,
+} from '@testdog/contracts/automation/platform/contracts';
 import type { RecordingOperation } from '@testdog/contracts/runs/types';
 
 // A validated Playwright call dialect. Parsed into operations, never evaluated as JavaScript.
@@ -83,6 +86,8 @@ function operationScript(step: RecordingOperation) {
   if (!action) return '// 本步骤没有录制内容，请补充操作后保存。';
 
   switch (action.type) {
+    case 'plugin':
+      return `await runPlugin(${page}, ${quote(JSON.stringify(action.plugin))});`;
     case 'navigate':
       return `await ${page}.goto(${quote(action.value)});`;
     case 'screenshot':
@@ -152,7 +157,7 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
   };
 
   const action = (value: unknown) => {
-    const result = StepSchema.safeParse(value);
+    const result = WebActionSchema.safeParse(value);
 
     if (!result.success)
       return fail('操作参数无效；等待条件支持 observe/newPage/url/text，时间为 1000–5000 毫秒');
@@ -245,7 +250,19 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
     const name = call.callee?.name;
 
     step.pageId = pageId(args[0]);
-    if (name === 'expectPage' && args.length === 2) {
+    if (name === 'runPlugin' && args.length === 2) {
+      let plugin: unknown;
+
+      try {
+        plugin = JSON.parse(str(args[1]));
+      } catch {
+        fail('插件配置须为有效 JSON');
+      }
+
+      step.kind = 'action';
+      step.action = action({ type: 'plugin', plugin });
+      step.title = 'plugin';
+    } else if (name === 'expectPage' && args.length === 2) {
       step.kind = 'assertion';
       step.assertion = { description: str(args[1]) };
       step.title = step.assertion.description;
@@ -394,9 +411,11 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
       const recorded = step.action.action;
 
       step.title =
-        recorded.type === 'wait'
-          ? `等待 ${recorded.condition}`
-          : `${recorded.type} ${recorded.type === 'navigate' ? recorded.value : recorded.target.name || recorded.target.value}`;
+        recorded.type === 'plugin'
+          ? `plugin ${recorded.plugin.id}`
+          : recorded.type === 'wait'
+            ? `等待 ${recorded.condition}`
+            : `${recorded.type} ${recorded.type === 'navigate' ? recorded.value : recorded.target.name || recorded.target.value}`;
     }
 
     steps.push(step);

@@ -1,3 +1,4 @@
+import { resolvePlanPlugins, resolvePluginInvocations } from '@testdog/server/plugins/repository';
 import { and, asc, eq } from 'drizzle-orm';
 import { isDeepStrictEqual } from 'node:util';
 import { db } from '@testdog/server/db';
@@ -147,6 +148,32 @@ async function persistRun(
         goal: input.case,
         mode: 'record',
       };
+    }
+
+    if (snapshot.mode === 'record' && snapshot.plan)
+      snapshot.plan = await resolvePlanPlugins(snapshot.plan, userId, tx);
+    if (snapshot.recordingSteps) {
+      const pluginSteps = snapshot.recordingSteps.filter(
+        (step) => step.action?.platform === 'web' && step.action.action.type === 'plugin',
+      );
+      const resolved = await resolvePluginInvocations(
+        pluginSteps.map((step) => {
+          if (step.action?.platform !== 'web' || step.action.action.type !== 'plugin')
+            throw new Error('Invalid plugin step');
+
+          return step.action.action.plugin;
+        }),
+        userId,
+        tx,
+      );
+
+      pluginSteps.forEach((step, index) => {
+        if (step.action?.platform === 'web' && step.action.action.type === 'plugin')
+          step.action = {
+            ...step.action,
+            action: { ...step.action.action, plugin: resolved[index] },
+          };
+      });
     }
 
     const [run] = await tx
