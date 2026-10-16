@@ -6,20 +6,15 @@ import styles from './TestEditor.module.css';
 import editorStyles from '@/features/test-cases/components/test-editor.module.css';
 
 import { Button } from '@/components/ui/Button';
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 import { api } from '@/client/api';
 import { usePlanCompilation } from '@/features/test-cases/hooks/usePlanCompilation';
 import { Icon } from '@iconify/react/offline';
 import { PlanBoard } from '@/features/runs/components/PlanBoard';
 import type { NodeReview } from '@/features/runs/components/PlanNodes';
-import {
-  reviewPlan,
-  resolveReview,
-  type PlanReview,
-  type ReviewDecisions,
-} from '@/features/test-cases/lib/planReview';
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import type { ReviewDecisions } from '@/features/test-cases/lib/planReview';
+import { usePlanReview } from '@/features/test-cases/hooks/usePlanReview';
 import { testSchema } from '@testdog/contracts/test-cases/schemas';
 import { useAuthoring } from '@/features/test-cases/hooks/useAuthoring';
 import { writeCaseDraft, type CaseDraft } from '@/features/test-cases/lib/caseDraft';
@@ -57,9 +52,7 @@ export function TestEditor({
   const { caseName, editablePlan, emptyPlan, planText } = useAuthoring();
   const submitRun = useRunSubmission();
   const [savedCase] = useState<TestCase | undefined>(duplicate ? undefined : test);
-  const [name, setName] = useState(
-    initialDraft?.name ?? (test ? `${test.name}${duplicate ? t('copySuffix') : ''}` : caseName('')),
-  );
+
   const nameChanged = useRef(!!test || (!!initialDraft && initialDraft.name !== caseName('')));
   const [configuration, setConfiguration] = useState<CaseSettingsValue>(() => {
     const settings = initialCaseSettings(test);
@@ -76,22 +69,21 @@ export function TestEditor({
   }
 
   const [goal, setGoal] = useState(initialDraft?.goal ?? test?.goal ?? '');
-  const [plan, setPlan] = useState<Plan>(() => {
+  const review = usePlanReview(() => {
+    const name =
+      initialDraft?.name ??
+      (test ? `${test.name}${duplicate ? t('copySuffix') : ''}` : caseName(''));
     const source = initialDraft?.plan ?? test?.plan ?? emptyPlan(name);
 
-    return editablePlan(source, name);
+    return { name, plan: editablePlan(source, name) };
   });
+  const { name, plan, candidate, previous, preview: reviewPreview, pendingChanges } = review;
   const hasSteps = Object.values(plan.nodes).some((node) => node.kind === 'task');
   const [composerOpen, setComposerOpen] = useState(false);
   const canvasRef = useRef<HTMLElement>(null);
   const generateRef = useRef<HTMLButtonElement>(null);
   const settingsRef = useRef<HTMLButtonElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
-  const [candidate, setCandidate] = useState<{
-    review: PlanReview;
-    decisions: ReviewDecisions;
-  }>();
-  const [previous, setPrevious] = useState<{ plan: Plan; name: string }>();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const compilation = usePlanCompilation();
   const compiling = compilation.busy;
@@ -117,15 +109,7 @@ export function TestEditor({
 
   function changeName(value: string) {
     nameChanged.current = true;
-    setPrevious(undefined);
-    setName(value);
-    const root = plan.nodes[plan.rootId];
-
-    if (root.kind === 'group')
-      setPlan({
-        ...plan,
-        nodes: { ...plan.nodes, [root.id]: { ...root, goal: value || t('untitled') } },
-      });
+    review.changeName(value, t('untitled'));
   }
 
   async function compile() {
@@ -155,67 +139,37 @@ export function TestEditor({
 
       // Preserve an explicitly cleared name; editablePlan only applies non-empty titles.
       if (nextRoot.kind === 'group') next.nodes[nextRoot.id] = { ...nextRoot, goal: title };
-      const review = reviewPlan(plan, next);
-
-      setCandidate({
-        review,
-        decisions: {},
-      });
+      review.startReview(next);
       setComposerOpen(false);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : t('conversionFailed'));
     }
   }
 
-  function decideChanges(decisions: ReviewDecisions) {
-    if (!candidate) return;
+  function applyReviewDecision(decide: () => ReturnType<typeof review.decide>) {
     try {
-      const next = resolveReview(candidate.review, decisions, true);
-      const complete = candidate.review.changes.every((change) =>
-        Object.hasOwn(decisions, change.id),
-      );
+      const result = decide();
 
-      if (!complete) {
-        setCandidate({ ...candidate, decisions });
-        setFormError('');
-
-        return;
+      if (!result) return;
+      if (result.complete) {
+        setComposerOpen(false);
+        if (result.accepted) setGoal('');
       }
 
-      const accepted = Object.values(decisions).some(Boolean);
-
-      if (accepted || !candidate.review.changes.length) {
-        setPrevious({ plan, name });
-        setPlan(next);
-        const root = next.nodes[next.rootId];
-
-        if (root.kind === 'group') setName(root.goal);
-      }
-
-      setCandidate(undefined);
-      setComposerOpen(false);
-      if (accepted) setGoal('');
       setFormError('');
     } catch {
       setFormError(t('relatedChanges'));
     }
   }
 
-  function decideAll(accept: boolean) {
-    if (!candidate) return;
-    const decisions = { ...candidate.decisions };
-
-    for (const change of candidate.review.changes) decisions[change.id] ??= accept;
-    decideChanges(decisions);
+  function decideChanges(decisions: ReviewDecisions) {
+    applyReviewDecision(() => review.decide(decisions));
   }
 
-  const reviewPreview = useMemo(
-    () => (candidate ? resolveReview(candidate.review, candidate.decisions, true) : plan),
-    [candidate, plan],
-  );
-  const pendingChanges =
-    candidate?.review.changes.filter((change) => !Object.hasOwn(candidate.decisions, change.id)) ??
-    [];
+  function decideAll(accept: boolean) {
+    applyReviewDecision(() => review.decideAll(accept));
+  }
+
   const nodeReviews: Record<string, NodeReview> = {};
 
   for (const change of pendingChanges)
@@ -226,13 +180,6 @@ export function TestEditor({
       onAccept: () => decideChanges({ ...candidate!.decisions, [change.id]: true }),
       onReject: () => decideChanges({ ...candidate!.decisions, [change.id]: false }),
     };
-
-  function undoGeneration() {
-    if (!previous) return;
-    setPlan(previous.plan);
-    setName(previous.name);
-    setPrevious(undefined);
-  }
 
   async function save(trial = false) {
     if (editingLocked) return;
@@ -406,7 +353,7 @@ export function TestEditor({
                 aria-label={t('undoGeneration')}
                 title={t('undoGeneration')}
                 disabled={busy}
-                onClick={undoGeneration}
+                onClick={review.undo}
               >
                 <Icon icon={undoIcon} width="16" aria-hidden="true" />
               </Button>
@@ -454,12 +401,8 @@ export function TestEditor({
             editingLocked
               ? undefined
               : (next) => {
-                  setPrevious(undefined);
                   setComposerOpen(false);
-                  setPlan(next);
-                  const root = next.nodes[next.rootId];
-
-                  if (root.kind === 'group') setName(root.goal);
+                  review.changePlan(next);
                 }
           }
           settingsOpen={settingsOpen}
