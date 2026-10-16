@@ -97,9 +97,19 @@ for (const list of [
     expect(requests.at(-1)?.has('cursor')).toBe(false);
     await expect(footer).toContainText('第 1 页');
 
+    await page.getByLabel(list.api === 'issues' ? '筛选问题状态' : '状态筛选').click();
+    await page.getByRole('option', { name: '全部状态', exact: true }).click();
+    await expect(footer).toContainText('第 1 页');
+    await expect(page.getByRole('table').getByText(saved.name, { exact: true })).toBeVisible();
+    await expect(page.getByRole('table').getByText(second.name, { exact: true })).toHaveCount(0);
+
     empty = true;
     await page.reload();
-    await expect(page.getByText(list.empty, { exact: true })).toBeVisible();
+    await expect(
+      page.getByText(list.api === 'issues' ? '没有匹配的问题' : '没有符合条件的记录', {
+        exact: true,
+      }),
+    ).toBeVisible();
     await expect(footer).toHaveCount(0);
   });
 }

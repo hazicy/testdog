@@ -1,3 +1,4 @@
+import { logger } from '@testdog/server/shared/logger';
 import { z } from 'zod';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 
@@ -15,7 +16,7 @@ export function apiError(error: unknown) {
       },
       { status: error.status },
     );
-  console.error('工作台请求失败', error instanceof Error ? error.message : error);
+  logger.error({ err: error, component: 'api' }, '工作台请求失败');
 
   return Response.json(
     { success: false, message: '无法访问数据，请确认数据库已启动并完成迁移。' },

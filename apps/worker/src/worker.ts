@@ -1,4 +1,5 @@
 import './environment';
+import { logger } from '@testdog/server/shared/logger';
 import { runServiceProcess } from './serviceRuntime';
 import { setTimeout as delay } from 'node:timers/promises';
 import { hostname } from 'node:os';
@@ -52,14 +53,19 @@ await runServiceProcess('worker', async ({ signal, stop }) => {
   );
   await registerResources(configs.map((config) => ({ ...config, hostId })));
   if (signal.aborted) return;
-  process.stdout.write(`Worker ${workerId} ready with ${configs.length} resources\n`);
+  const log = logger.child({ workerId, hostId });
+
+  log.info({ resourceCount: configs.length, concurrency }, 'Worker ready');
 
   async function consume() {
     while (!signal.aborted) {
       const claimed = await claimRun(workerId, hostId);
 
       if (claimed) {
+        const runLog = log.child({ runId: claimed.run.id, resourceId: claimed.resource.id });
+
         activeIds.add(claimed.run.id);
+        runLog.info('Run claimed');
         try {
           const execution = withLease(claimed.lease, () =>
             executeRun(claimed.run, claimed.resource),
@@ -69,7 +75,7 @@ await runServiceProcess('worker', async ({ signal, stop }) => {
           if (signal.aborted) cancelRun(claimed.run.id);
           await execution;
         } catch (error) {
-          process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+          runLog.error({ err: error }, 'Run processing failed');
         } finally {
           activeIds.delete(claimed.run.id);
         }

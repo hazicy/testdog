@@ -20,6 +20,8 @@ catalog:
   '@iconify/react': '^6.0.2'
   '@playwright/test': '1.63.0'
   '@stylistic/eslint-plugin': '^5.10.0'
+  '@tanstack/react-table': '^9.3.1'
+  '@tanstack/react-virtual': '^3.14.19'
   '@types/node': '^24'
   '@types/nodemailer': '^8.0.2'
   '@types/pg': '^8.23.1'
@@ -41,8 +43,10 @@ catalog:
   'ky': '^2.2.0'
   'next': '16.3.4'
   'nodemailer': '^10.1.0'
+  nuqs: ^2.10.2
   'openai': '^7.10.0'
   'pg': '^8.23.0'
+  pino: ^10.4.0
   'playwright': '1.63.0'
   'prettier': '^3.9.8'
   'react': '19.2.8'

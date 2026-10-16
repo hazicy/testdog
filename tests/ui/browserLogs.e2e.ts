@@ -138,3 +138,72 @@ test('console distinguishes levels, expands sources and searches across records'
   await panel.getByRole('button', { name: '清除搜索' }).click();
   await expect(panel.locator('details')).toHaveCount(3);
 });
+
+test('large log lists render a window and retain expanded details after scrolling', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.route(`**/api/runs/${run.id}/logs?*`, (route) => {
+    const kind = new URL(route.request().url()).searchParams.get('kind');
+    const logs = Array.from({ length: 300 }, (_, index): BrowserLog => ({
+      ...base,
+      id: `large-${index}`,
+      kind: kind === 'network' ? 'network' : 'console',
+      elapsedMs: index * 100,
+      level: 'log',
+      message: `Console entry ${index}`,
+      url: `https://api.example.com/request-${index}`,
+      method: 'GET',
+      status: 200,
+      durationMs: 300 - index,
+    }));
+
+    return route.fulfill({ json: { logs, nextCursor: null } });
+  });
+  await page.goto(`/runs/${run.id}`);
+  await page.getByRole('button', { name: '控制台', exact: true }).click();
+  const consolePanel = page.getByRole('region', { name: 'Console 记录', exact: true });
+
+  await expect(consolePanel.locator('details').first()).toBeVisible();
+  expect(await consolePanel.locator('details').count()).toBeLessThan(100);
+  await consolePanel.locator('summary').first().click();
+  await expect(consolePanel.locator('details').first()).toHaveAttribute('open', '');
+  // The closest scroll container owns the measured row wrappers and the spacers.
+  const scrollConsole = async (bottom: boolean) => {
+    await consolePanel
+      .locator('details')
+      .first()
+      .evaluate((element, toBottom) => {
+        const container = element.parentElement!.parentElement!;
+
+        container.scrollTop = toBottom ? container.scrollHeight : 0;
+      }, bottom);
+  };
+
+  await scrollConsole(true);
+  await expect(consolePanel.getByText('Console entry 299', { exact: true })).toBeVisible();
+  await scrollConsole(false);
+  await expect(consolePanel.locator('details').first()).toContainText('Console entry 0');
+  await expect(consolePanel.locator('details').first()).toHaveAttribute('open', '');
+  await expect(consolePanel.locator('pre').first()).toBeVisible();
+
+  await page.getByRole('button', { name: '网络', exact: true }).click();
+  const networkPanel = page.getByRole('region', { name: 'Network 记录', exact: true });
+  const table = networkPanel.getByRole('table', { name: '网络请求' });
+
+  await expect(table.getByRole('button', { name: /查看请求 GET .*request-0$/ })).toBeVisible();
+  expect(await table.locator('tbody tr[data-index]').count()).toBeLessThan(100);
+  await table.evaluate((element) => {
+    element.parentElement!.scrollTop = element.parentElement!.scrollHeight;
+  });
+  await expect(table.getByRole('button', { name: /查看请求 GET .*request-299$/ })).toBeVisible();
+  await table.evaluate((element) => {
+    element.parentElement!.scrollTop = 0;
+  });
+  await table.getByRole('button', { name: /^耗时/ }).click();
+  await expect(table.locator('tbody tr[data-index]').first()).toContainText('request-299');
+  await table.getByRole('button', { name: /查看请求 GET .*request-299$/ }).click();
+  await expect(networkPanel.getByRole('complementary', { name: '请求详情' })).toContainText(
+    'request-299',
+  );
+});

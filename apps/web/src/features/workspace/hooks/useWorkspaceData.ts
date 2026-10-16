@@ -4,10 +4,13 @@ import { useTranslations } from 'next-intl';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
+import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 import type { RunSummary } from '@testdog/contracts/runs/types';
 import { emptyRunCounts, type WorkspaceStats } from '@testdog/contracts/workspace/types';
 import { fetchJson } from '@/client/api';
+import { useDebouncedValue } from '@/client/useDebouncedValue';
+import { useCursorPagination } from '@/client/useCursorPagination';
 import { useRealtime } from '@/client/useRealtime';
 import { retryVisibleRequest } from '@/client/swr';
 
@@ -23,25 +26,30 @@ const emptyCounts = emptyRunCounts();
 export function useWorkspaceData(isTests: boolean) {
   const t = useTranslations('workspace');
   const [error, setError] = useState('');
-  const [query, setQuery] = useState('');
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [cursors, setCursors] = useState<string[]>([]);
+  const [{ q: query, status: filter }, setFilters] = useQueryStates({
+    q: parseAsString.withDefault(''),
+    status: parseAsStringLiteral([
+      'all',
+      'passed',
+      'failed',
+      'queued',
+      'preparing',
+      'finalizing',
+      'running',
+      'cancelled',
+      ...(isTests ? ['none'] : []),
+    ]).withDefault('all'),
+  });
+  const search = useDebouncedValue(query.trim());
+  const { cursors, previousPage, nextPage } = useCursorPagination(
+    JSON.stringify([isTests, search, filter]),
+  );
   const connection = useRef(false);
   const realtimeRefresh = useRef<() => Promise<void>>(async () => {});
   const connected = useRealtime('/api/events', () => {
     void realtimeRefresh.current();
   });
 
-  useEffect(() => {
-    if (query.trim() === search) return;
-    const timer = setTimeout(() => {
-      setSearch(query.trim());
-      setCursors([]);
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [query, search]);
   const isVisible = useCallback(
     () => document.visibilityState === 'visible' && !connection.current,
     [],
@@ -106,18 +114,17 @@ export function useWorkspaceData(isTests: boolean) {
     running,
     refresh,
     query,
-    setQuery,
+    setQuery: (q: string) => {
+      void setFilters({ q });
+    },
     filter,
     setFilter: (value: string) => {
-      setFilter(value);
-      setCursors([]);
+      void setFilters({ status: value as typeof filter }, { history: 'push' });
     },
     page: cursors.length + 1,
     hasPrevious: cursors.length > 0,
     hasNext: !!page?.nextCursor,
-    nextPage: () => {
-      if (page?.nextCursor) setCursors([...cursors, page.nextCursor]);
-    },
-    previousPage: () => setCursors(cursors.slice(0, -1)),
+    nextPage: () => nextPage(page?.nextCursor),
+    previousPage,
   };
 }

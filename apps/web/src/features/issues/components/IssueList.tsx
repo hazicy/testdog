@@ -22,11 +22,14 @@ import {
 } from '@/components/ui/Table';
 
 import { Input } from '@/components/ui/Input';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { fetchJson } from '@/client/api';
+import { useDebouncedValue } from '@/client/useDebouncedValue';
+import { useCursorPagination } from '@/client/useCursorPagination';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { type IssuePage } from '@testdog/contracts/issues/types';
@@ -41,24 +44,24 @@ export function IssueList() {
   const { issueStatuses, issueSeverities } = useIssueLabels();
   const { relativeTime, environmentLabel } = useIssuePresentation();
   const router = useRouter();
-  const [q, setQ] = useState('');
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
-  const [platform, setPlatform] = useState('all');
-  const [days, setDays] = useState('all');
-  const [sort, setSort] = useState('last_seen');
+  const [{ q, status, platform, days, sort }, setFilters] = useQueryStates({
+    q: parseAsString.withDefault(''),
+    status: parseAsStringLiteral([
+      'all',
+      'open',
+      'in_progress',
+      'pending_verification',
+      'closed',
+    ]).withDefault('all'),
+    platform: parseAsStringLiteral(['all', 'web', 'android', 'ios']).withDefault('all'),
+    days: parseAsStringLiteral(['all', '1', '7', '30']).withDefault('all'),
+    sort: parseAsStringLiteral(['last_seen', 'updated']).withDefault('last_seen'),
+  });
+  const search = useDebouncedValue(q.trim());
   const [creating, setCreating] = useState(false);
-  const [cursors, setCursors] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (q.trim() === search) return;
-    const timer = setTimeout(() => {
-      setSearch(q.trim());
-      setCursors([]);
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [q, search]);
+  const { cursors, previousPage, nextPage } = useCursorPagination(
+    JSON.stringify([search, status, platform, days, sort]),
+  );
   const params = new URLSearchParams({ q: search, status, platform, sort });
 
   if (days !== 'all') params.set('days', days);
@@ -67,6 +70,7 @@ export function IssueList() {
     refreshInterval: 30000,
   });
   const items = data?.issues ?? [];
+  const filtered = !!search || status !== 'all' || platform !== 'all' || days !== 'all';
 
   return (
     <section
@@ -85,7 +89,7 @@ export function IssueList() {
             placeholder={t('searchPlaceholder')}
             maxLength={200}
             value={q}
-            onChange={(event) => setQ(event.target.value)}
+            onChange={(event) => void setFilters({ q: event.target.value })}
           />
         </div>
         <div className={clsx(workspaceStyles.workspaceIndexFilter, styles.filters)}>
@@ -94,8 +98,7 @@ export function IssueList() {
             className={styles.select}
             value={status}
             onValueChange={(value) => {
-              setStatus(value);
-              setCursors([]);
+              void setFilters({ status: value as typeof status }, { history: 'push' });
             }}
             items={[{ value: 'all', label: t('allStatuses') }, ...options(issueStatuses)]}
           />
@@ -104,8 +107,7 @@ export function IssueList() {
             className={styles.select}
             value={platform}
             onValueChange={(value) => {
-              setPlatform(value);
-              setCursors([]);
+              void setFilters({ platform: value as typeof platform }, { history: 'push' });
             }}
             items={[
               { value: 'all', label: t('allEnvironments') },
@@ -119,8 +121,7 @@ export function IssueList() {
             className={styles.select}
             value={sort}
             onValueChange={(value) => {
-              setSort(value);
-              setCursors([]);
+              void setFilters({ sort: value as typeof sort }, { history: 'push' });
             }}
             items={[
               { value: 'last_seen', label: t('lastSeenSort') },
@@ -132,8 +133,7 @@ export function IssueList() {
             className={styles.select}
             value={days}
             onValueChange={(value) => {
-              setDays(value);
-              setCursors([]);
+              void setFilters({ days: value as typeof days }, { history: 'push' });
             }}
             items={[
               { value: 'all', label: t('allDates') },
@@ -161,8 +161,8 @@ export function IssueList() {
         <EmptyState
           data-ui="workspace-index-empty"
           className={workspaceStyles.workspaceIndexEmpty}
-          illustration={search || status !== 'all' ? 'search' : 'empty'}
-          message={search || status !== 'all' ? t('noMatches') : t('noIssues')}
+          illustration={filtered ? 'search' : 'empty'}
+          message={filtered ? t('noMatches') : t('noIssues')}
           actions={
             <Link href="/runs" className={styles.link}>
               {t('viewRuns')}
@@ -234,10 +234,8 @@ export function IssueList() {
         page={cursors.length + 1}
         hasPrevious={cursors.length > 0}
         hasNext={!!data?.nextCursor}
-        previousPage={() => setCursors(cursors.slice(0, -1))}
-        nextPage={() => {
-          if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);
-        }}
+        previousPage={previousPage}
+        nextPage={() => nextPage(data?.nextCursor)}
       />
       {creating && (
         <IssueEditor

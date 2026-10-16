@@ -1,3 +1,4 @@
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { cookies } from 'next/headers';
@@ -39,7 +40,9 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
         <div className={styles.container}>
           <NextIntlClientProvider>
             <AuthCacheBoundary>
-              <AppShell>{children}</AppShell>
+              <NuqsAdapter>
+                <AppShell>{children}</AppShell>
+              </NuqsAdapter>
             </AuthCacheBoundary>
           </NextIntlClientProvider>
         </div>

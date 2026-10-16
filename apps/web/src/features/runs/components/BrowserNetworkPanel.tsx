@@ -2,7 +2,17 @@
 
 import { useTranslations } from 'next-intl';
 
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import {
+  createColumnHelper,
+  createSortedRowModel,
+  rowSelectionFeature,
+  rowSortingFeature,
+  sortFn_basic,
+  tableFeatures,
+  useTable,
+} from '@tanstack/react-table';
+import { useLogVirtualizer } from '../hooks/useLogVirtualizer';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/Button';
 import { Tabs } from '@base-ui/react/tabs';
@@ -27,114 +37,207 @@ export function requestFailed(log: BrowserLog) {
   return !!log.failure || (log.status ?? 0) >= 400;
 }
 
+const networkFeatures = tableFeatures({
+  rowSortingFeature,
+  rowSelectionFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: { basic: sortFn_basic },
+});
+const column = createColumnHelper<typeof networkFeatures, BrowserLog>();
+
 export function NetworkEntries({ logs }: { logs: BrowserLog[] }) {
   const t = useTranslations('runs');
-  const [selectedId, setSelectedId] = useState<string>();
-  const [sort, setSort] = useState<{
-    key: 'elapsedMs' | 'status' | 'durationMs';
-    descending: boolean;
-  }>({ key: 'elapsedMs', descending: false });
-  const selected = logs.find((log) => log.id === selectedId);
-  const sorted = [...logs].sort(
-    (a, b) => ((a[sort.key] ?? -1) - (b[sort.key] ?? -1)) * (sort.descending ? -1 : 1),
-  );
-  const start = Math.min(...logs.map((log) => log.elapsedMs));
-  const end = Math.max(...logs.map((log) => log.elapsedMs + (log.durationMs ?? 0)));
+  const start = logs.reduce((min, log) => Math.min(min, log.elapsedMs), Infinity);
+  const end = logs.reduce((max, log) => Math.max(max, log.elapsedMs + (log.durationMs ?? 0)), 0);
   const span = Math.max(1, end - start);
+  const columns = useMemo(
+    () =>
+      column.columns([
+        column.display({
+          id: 'name',
+          header: t('nameLabel'),
+          cell: ({ row }) => {
+            const log = row.original;
+            const url = requestUrl(log, t('unknownRequest'));
 
-  function sortColumn(key: typeof sort.key) {
-    setSort({ key, descending: sort.key === key ? !sort.descending : false });
-  }
+            return (
+              <button
+                className={styles.requestName}
+                type="button"
+                aria-label={t('viewRequest', {
+                  method: log.method || '—',
+                  url: log.url || url.name,
+                })}
+                aria-pressed={row.getIsSelected()}
+                onClick={() => row.toggleSelected(true)}
+                title={log.url}
+              >
+                <span>{url.name}</span>
+                <small>{url.host}</small>
+              </button>
+            );
+          },
+        }),
+        column.display({
+          id: 'method',
+          header: t('methodLabel'),
+          cell: ({ row }) => <span className={styles.mono}>{row.original.method || '—'}</span>,
+        }),
+        column.accessor((log) => log.status ?? -1, {
+          id: 'status',
+          header: t('statusLabel'),
+          sortFn: 'basic',
+          cell: ({ row }) => (
+            <span className={styles.status} data-failed={requestFailed(row.original)}>
+              {row.original.failure ? 'FAILED' : (row.original.status ?? '—')}
+            </span>
+          ),
+        }),
+        column.display({
+          id: 'type',
+          header: t('typeLabel'),
+          cell: ({ row }) => (
+            <span className={styles.muted}>{row.original.resourceType || '—'}</span>
+          ),
+        }),
+        column.accessor((log) => log.durationMs ?? -1, {
+          id: 'durationMs',
+          header: t('timeLabel'),
+          sortFn: 'basic',
+          cell: ({ row }) => (
+            <span className={styles.numeric}>
+              {row.original.durationMs === undefined ? '—' : `${row.original.durationMs} ms`}
+            </span>
+          ),
+        }),
+        column.accessor('elapsedMs', {
+          header: t('waterfall'),
+          sortFn: 'basic',
+          cell: ({ row }) => {
+            const log = row.original;
 
-  function heading(label: string, key: typeof sort.key) {
-    return (
-      <th
-        scope="col"
-        aria-sort={sort.key === key ? (sort.descending ? 'descending' : 'ascending') : 'none'}
-      >
-        <button type="button" onClick={() => sortColumn(key)}>
-          {label}{' '}
-          <span aria-hidden="true">{sort.key === key ? (sort.descending ? '↓' : '↑') : '↕'}</span>
-        </button>
-      </th>
-    );
-  }
+            return (
+              <div
+                className={styles.waterfall}
+                title={t('requestTiming', {
+                  start: (log.elapsedMs / 1000).toFixed(2),
+                  duration:
+                    log.durationMs === undefined ? t('notCaptured') : `${log.durationMs} ms`,
+                })}
+              >
+                <span
+                  style={{
+                    left: `${((log.elapsedMs - start) / span) * 100}%`,
+                    width: `${((log.durationMs ?? 0) / span) * 100}%`,
+                  }}
+                />
+              </div>
+            );
+          },
+        }),
+      ]),
+    [t, start, span],
+  );
+  const table = useTable({
+    features: networkFeatures,
+    data: logs,
+    columns,
+    getRowId: (log) => log.id,
+    enableMultiRowSelection: false,
+    enableMultiSort: false,
+    enableSortingRemoval: false,
+    sortDescFirst: false,
+    initialState: { sorting: [{ id: 'elapsedMs', desc: false }] },
+  });
+  const rows = table.getRowModel().rows;
+  const selected = logs.find((log) => table.state.rowSelection[log.id]);
+  const { scrollRef, indexes, paddingStart, paddingEnd, measureElement } = useLogVirtualizer(rows);
 
   return (
     <div className={clsx(styles.networkWorkspace, selected && styles.hasSelection)}>
-      <div className={styles.requestList}>
-        <table className={styles.requestTable} aria-label={t('networkRequests')}>
+      <div ref={scrollRef} className={styles.requestList}>
+        <table
+          className={styles.requestTable}
+          aria-label={t('networkRequests')}
+          aria-rowcount={rows.length + 1}
+        >
           <thead>
-            <tr>
-              <th scope="col">{t('nameLabel')}</th>
-              <th scope="col">{t('methodLabel')}</th>
-              {heading(t('statusLabel'), 'status')}
-              <th scope="col">{t('typeLabel')}</th>
-              {heading(t('timeLabel'), 'durationMs')}
-              {heading(t('waterfall'), 'elapsedMs')}
-            </tr>
+            {table.getHeaderGroups().map((group) => (
+              <tr key={group.id}>
+                {group.headers.map((header) => {
+                  const sort = header.column.getIsSorted();
+                  const sortable = header.column.getCanSort();
+                  const direction = sort === 'desc' ? 'descending' : 'ascending';
+
+                  return (
+                    <th
+                      key={header.id}
+                      scope="col"
+                      aria-sort={sortable ? (sort ? direction : 'none') : undefined}
+                    >
+                      {sortable ? (
+                        <button type="button" onClick={header.column.getToggleSortingHandler()}>
+                          <table.FlexRender header={header} />{' '}
+                          <span aria-hidden="true">
+                            {sort === 'desc' ? '↓' : sort === 'asc' ? '↑' : '↕'}
+                          </span>
+                        </button>
+                      ) : (
+                        <table.FlexRender header={header} />
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
           </thead>
           <tbody>
-            {sorted.map((log) => {
-              const url = requestUrl(log, t('unknownRequest'));
+            {paddingStart > 0 && (
+              <tr aria-hidden="true">
+                <td
+                  colSpan={columns.length}
+                  className={styles.virtualSpacer}
+                  style={{ height: `${paddingStart}rem` }}
+                />
+              </tr>
+            )}
+            {indexes.map((index) => {
+              const row = rows[index];
 
               return (
                 <tr
-                  key={log.id}
-                  data-selected={selectedId === log.id}
-                  data-failed={requestFailed(log)}
+                  key={row.id}
+                  ref={measureElement}
+                  data-index={index}
+                  aria-rowindex={index + 2}
+                  data-selected={row.getIsSelected()}
+                  data-failed={requestFailed(row.original)}
                 >
-                  <td>
-                    <button
-                      className={styles.requestName}
-                      type="button"
-                      aria-label={t('viewRequest', {
-                        method: log.method || '—',
-                        url: log.url || url.name,
-                      })}
-                      aria-pressed={selectedId === log.id}
-                      onClick={() => setSelectedId(log.id)}
-                      title={log.url}
+                  {row.getAllCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className={cell.column.id === 'durationMs' ? styles.numeric : undefined}
                     >
-                      <span>{url.name}</span>
-                      <small>{url.host}</small>
-                    </button>
-                  </td>
-                  <td className={styles.mono}>{log.method || '—'}</td>
-                  <td>
-                    <span className={styles.status} data-failed={requestFailed(log)}>
-                      {log.failure ? 'FAILED' : (log.status ?? '—')}
-                    </span>
-                  </td>
-                  <td className={styles.muted}>{log.resourceType || '—'}</td>
-                  <td className={styles.numeric}>
-                    {log.durationMs === undefined ? '—' : `${log.durationMs} ms`}
-                  </td>
-                  <td>
-                    <div
-                      className={styles.waterfall}
-                      title={t('requestTiming', {
-                        start: (log.elapsedMs / 1000).toFixed(2),
-                        duration:
-                          log.durationMs === undefined ? t('notCaptured') : `${log.durationMs} ms`,
-                      })}
-                    >
-                      <span
-                        style={{
-                          left: `${((log.elapsedMs - start) / span) * 100}%`,
-                          width: `${((log.durationMs ?? 0) / span) * 100}%`,
-                        }}
-                      />
-                    </div>
-                  </td>
+                      <table.FlexRender cell={cell} />
+                    </td>
+                  ))}
                 </tr>
               );
             })}
+            {paddingEnd > 0 && (
+              <tr aria-hidden="true">
+                <td
+                  colSpan={columns.length}
+                  className={styles.virtualSpacer}
+                  style={{ height: `${paddingEnd}rem` }}
+                />
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
       {selected && (
-        <RequestDetails key={selected.id} log={selected} close={() => setSelectedId(undefined)} />
+        <RequestDetails key={selected.id} log={selected} close={() => table.resetRowSelection()} />
       )}
     </div>
   );

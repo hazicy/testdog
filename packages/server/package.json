@@ -19,6 +19,7 @@
     "drizzle-orm": "catalog:",
     "nodemailer": "catalog:",
     "pg": "catalog:",
+    "pino": "catalog:",
     "playwright": "catalog:",
     "redis": "catalog:",
     "zod": "catalog:"

@@ -1,3 +1,4 @@
+import { logger } from '@testdog/server/shared/logger';
 import { recoverLeases } from '@testdog/server/scheduling/scheduler';
 
 // One task per process, with a database advisory lock coordinating processes.
@@ -8,7 +9,7 @@ export function startLeaseMaintenance(intervalMs = 15000) {
     if (stopped || pending) return;
     pending = recoverLeases()
       .catch((error) => {
-        console.error('Lease maintenance failed', error);
+        logger.error({ err: error, component: 'maintenance' }, 'Lease maintenance failed');
       })
       .finally(() => {
         pending = undefined;

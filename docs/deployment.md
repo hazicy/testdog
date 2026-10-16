@@ -12,7 +12,7 @@
 | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`                                                                                                  | API、worker 与后台服务连接同一个 PostgreSQL；数据库必须持久化                                                                            |
 | `OPENAI_API_KEY`                                                                                                | 提供给需要编译或执行语义判断的服务，当前模型适配器连接 DeepSeek                                                                          |
-| `AUTOMATION_HEADLESS`                                                                                           | 默认无头运行，设置为 `false` 可显示浏览器界面                                                                                             |
+| `AUTOMATION_HEADLESS`                                                                                           | 默认无头运行，设置为 `false` 可显示浏览器界面                                                                                            |
 | `REDIS_URL`、`TESTDOG_REDIS_PREFIX`                                                                             | API、worker 与 outbox 发布进程使用相同值，按环境区分前缀                                                                                 |
 | `TESTDOG_DATA_DIR`                                                                                              | 本地附件持久目录，生产使用绝对路径；跨主机存储见下文                                                                                     |
 | `BETTER_AUTH_SECRET`、`BETTER_AUTH_URL`                                                                         | Web 必填；secret 至少 32 字符，URL 为实际访问 origin，生产使用 HTTPS                                                                     |
@@ -21,6 +21,8 @@
 | `TESTDOG_ALLOW_PRIVATE_SMTP`                                                                                    | 可信内网 SMTP 可显式设置 `true`，TLS 校验仍开启                                                                                          |
 | `TESTDOG_PREVIEW_INTERVAL_MS`                                                                                   | 实时画面默认 3000 ms，最低 1000 ms；不改变永久证据采集                                                                                   |
 | `TESTDOG_AI_*`                                                                                                  | 模型预算参数，示例值见环境变量清单，预算语义见 [工作台文档](workspace.md#租约维护与模型预算)                                             |
+
+API、worker 与后台服务使用 Pino 向标准输出写入 JSON 服务日志，默认级别为 `info`；通过 `TESTDOG_LOG_LEVEL` 调整为 `trace`、`debug`、`info`、`warn`、`error`、`fatal` 或 `silent`。执行日志包含 `runId`、`workerId` 和可用的 `resourceId`，便于关联同一次执行；运行步骤、浏览器日志和证据仍按原有方式存储。
 
 ### 认证
 

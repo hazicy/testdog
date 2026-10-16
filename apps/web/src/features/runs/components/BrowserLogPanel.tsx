@@ -8,10 +8,13 @@ import { Select } from '@/components/ui/Select';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { fetchJson } from '@/client/api';
+import { useDebouncedValue } from '@/client/useDebouncedValue';
+import { useCursorPagination } from '@/client/useCursorPagination';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@iconify/react/offline';
 import searchIcon from '@iconify-icons/lucide/search';
 import chevronRightIcon from '@iconify-icons/lucide/chevron-right';
+import { useLogVirtualizer } from '../hooks/useLogVirtualizer';
 import { NetworkEntries } from './BrowserNetworkPanel';
 import type { BrowserLog, BrowserLogPage } from '@testdog/contracts/runs/types';
 
@@ -74,29 +77,13 @@ export function BrowserLogPanel({
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState('all');
   const [filter, setFilter] = useState('all');
-  const [search, setSearch] = useState('');
-  const [pagination, setPagination] = useState<{ key: string; cursors: string[] }>({
-    key: '',
-    cursors: [],
-  });
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(query);
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [query]);
+  const search = useDebouncedValue(query);
   const params = new URLSearchParams({ kind, q: search });
 
   if (scope === 'step' && stepId) params.set('stepId', stepId);
   if (scope === 'time' && elapsedMs !== undefined) params.set('untilMs', String(elapsedMs));
   const paginationKey = `${runId}?${params}`;
-  const cursors = pagination.key === paginationKey ? pagination.cursors : [];
-
-  function setCursors(next: string[]) {
-    setPagination({ key: paginationKey, cursors: next });
-  }
+  const { cursors, previousPage, nextPage } = useCursorPagination(paginationKey);
 
   if (cursors.length) params.set('cursor', cursors.at(-1)!);
   const data = useSWR<BrowserLogPage>(
@@ -200,11 +187,10 @@ export function BrowserLogPanel({
         ) : kind === 'network' ? (
           <NetworkEntries logs={visible} />
         ) : (
-          <div className={styles.consoleEntries}>
-            {visible.map((log) => (
-              <LogRow key={log.id} log={log} />
-            ))}
-          </div>
+          <ConsoleEntries
+            key={`${paginationKey}:${cursors.at(-1) ?? ''}:${filter}`}
+            logs={visible}
+          />
         )}
       </div>
       {(cursors.length > 0 || data.data?.nextCursor) && (
@@ -215,7 +201,7 @@ export function BrowserLogPanel({
               size="icon-xs"
               aria-label={t('previousPage')}
               disabled={!cursors.length || data.isLoading}
-              onClick={() => setCursors(cursors.slice(0, -1))}
+              onClick={previousPage}
             >
               ‹
             </Button>
@@ -225,9 +211,7 @@ export function BrowserLogPanel({
               size="icon-xs"
               aria-label={t('nextPage')}
               disabled={!data.data?.nextCursor || data.isLoading}
-              onClick={() => {
-                if (data.data?.nextCursor) setCursors([...cursors, data.data.nextCursor]);
-              }}
+              onClick={() => nextPage(data.data?.nextCursor)}
             >
               ›
             </Button>
@@ -238,16 +222,58 @@ export function BrowserLogPanel({
   );
 }
 
-export function LogRow({ log }: { log: BrowserLog }) {
+function ConsoleEntries({ logs }: { logs: BrowserLog[] }) {
+  const { scrollRef, indexes, paddingStart, paddingEnd, measureElement } = useLogVirtualizer(logs);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+
+  return (
+    <div ref={scrollRef} className={styles.consoleEntries}>
+      <div style={{ height: `${paddingStart}rem` }} aria-hidden="true" />
+      {indexes.map((index) => (
+        <div key={logs[index].id} data-index={index} ref={measureElement}>
+          <LogRow
+            log={logs[index]}
+            open={expanded.has(logs[index].id)}
+            onOpenChange={(open) => {
+              setExpanded((current) => {
+                const next = new Set(current);
+
+                if (open) next.add(logs[index].id);
+                else next.delete(logs[index].id);
+
+                return next;
+              });
+            }}
+          />
+        </div>
+      ))}
+      <div style={{ height: `${paddingEnd}rem` }} aria-hidden="true" />
+    </div>
+  );
+}
+
+export function LogRow({
+  log,
+  open,
+  onOpenChange,
+}: {
+  log: BrowserLog;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const t = useTranslations('runs');
-  const [open, setOpen] = useState(false);
   const level = ['warn', 'warning'].includes(log.level || '') ? 'warning' : log.level || 'log';
 
   return (
     <details
       className={styles.consoleRow}
       data-level={level}
-      onToggle={(event) => setOpen(event.currentTarget.open)}
+      open={open}
+      onToggle={(event) => {
+        const next = event.currentTarget.open;
+
+        if (next !== open) onOpenChange(next);
+      }}
     >
       <summary className={styles.consoleSummary}>
         <Icon icon={chevronRightIcon} width="12" aria-hidden="true" className={styles.expandIcon} />

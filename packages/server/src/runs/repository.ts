@@ -1,3 +1,4 @@
+import { logger } from '@testdog/server/shared/logger';
 import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import {
@@ -113,7 +114,12 @@ export async function insertArtifact(artifact: RunArtifact, path: string) {
   } catch (error) {
     await stored
       .rollback()
-      .catch((cleanupError) => console.error('Artifact cleanup failed', cleanupError));
+      .catch((err) =>
+        logger.error(
+          { err, runId: artifact.runId, artifactId: artifact.id },
+          'Artifact cleanup failed',
+        ),
+      );
     throw error;
   }
 }

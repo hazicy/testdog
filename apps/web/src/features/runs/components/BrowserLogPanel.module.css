@@ -289,6 +289,10 @@
     color: var(--error-ink);
   }
 }
+.requestTable td.virtualSpacer {
+  padding: 0;
+  border: 0;
+}
 .requestName {
   display: flex;
   flex-direction: column;

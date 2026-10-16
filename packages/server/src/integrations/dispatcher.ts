@@ -1,3 +1,4 @@
+import { logger } from '@testdog/server/shared/logger';
 import type { NotificationConfig } from '@testdog/contracts/integrations/types';
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
@@ -139,7 +140,7 @@ export function startNotificationDispatcher(intervalMs = 2000) {
   const tick = () => {
     if (stopped || pending) return;
     pending = dispatchNotifications()
-      .catch(() => console.error('通知发送服务暂时无法访问队列。'))
+      .catch(() => logger.error({ component: 'notifications' }, '通知发送服务暂时无法访问队列。'))
       .finally(() => {
         pending = undefined;
       });

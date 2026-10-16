@@ -40,7 +40,9 @@ it('escapes console messages and renders failed requests without eagerly display
       failure: 'connection closed',
     },
   ];
-  const console = render(createElement(LogRow, { log: logs[0] }));
+  const console = render(
+    createElement(LogRow, { log: logs[0], open: false, onOpenChange: () => {} }),
+  );
 
   expect(console).toContain('Page crashed &lt;script&gt;');
   expect(console).toContain('page-2');

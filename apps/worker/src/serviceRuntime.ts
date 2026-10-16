@@ -1,3 +1,4 @@
+import { logger } from '@testdog/server/shared/logger';
 import { pool } from '@testdog/server/db';
 import { startNotificationDispatcher } from '@testdog/server/integrations/dispatcher';
 import { startOutboxPublisher, stopOutboxPublisher } from '@testdog/server/realtime/realtime';
@@ -52,7 +53,7 @@ export async function runServiceProcess(
   process.on('SIGTERM', stop);
   try {
     for (const service of services) stops.push(starters[service]());
-    process.stdout.write(`${role}: background services ${services.join(',') || 'none'}\n`);
+    logger.info({ role, services }, 'Background services started');
     if (work) await work({ signal: controller.signal, stop });
     else await stopped;
   } catch (error) {
@@ -76,6 +77,12 @@ export async function runServiceProcess(
     process.off('SIGTERM', stop);
   }
 
-  if (errors.length === 1) throw errors[0];
-  if (errors.length) throw new AggregateError(errors, `${role} failed`);
+  if (errors.length) {
+    const error = errors.length === 1 ? errors[0] : new AggregateError(errors, `${role} failed`);
+
+    logger.error({ err: error, role }, 'Service process failed');
+    throw error;
+  }
+
+  logger.info({ role }, 'Service process stopped');
 }

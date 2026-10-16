@@ -1,3 +1,4 @@
+import { logger } from '@testdog/server/shared/logger';
 import { budgetedModel, modelBudgetFromEnv } from '@testdog/automation/llm/budget';
 import { recordModelCall } from '@testdog/server/runs/modelUsage';
 import { targetUrl } from '@testdog/contracts/automation/platform/target';
@@ -38,6 +39,7 @@ export async function executeRun(
 
   if (!lease || lease.runId !== run.id) throw new LostLeaseError('执行器需要当前任务的执行租约');
 
+  const log = logger.child({ runId: run.id, workerId: lease.workerId, resourceId: run.resourceId });
   const controller = new AbortController();
 
   jobs.set(run.id, controller);
@@ -154,6 +156,8 @@ export async function executeRun(
       reason instanceof RunAbortError && reason.code === 'CANCELLED' ? 'cancelled' : 'failed';
     errorCode = reason instanceof RunAbortError ? reason.code : 'EXECUTION_FAILED';
     if (!runtime) evidenceComplete = false;
+    if (status === 'cancelled') log.info({ errorCode }, 'Run cancelled');
+    else log.error({ err: reason, errorCode }, 'Run execution failed');
     error = errorMessage(reason);
     if (controller.signal.aborted && cause !== reason) error += `\n${errorMessage(cause)}`;
   } finally {
@@ -163,6 +167,7 @@ export async function executeRun(
       try {
         await finalizeRuntime(runtime, controller.signal.aborted);
       } catch (cause) {
+        log.error({ err: cause }, 'Run finalization failed');
         evidenceComplete = false;
         if (status !== 'cancelled') status = 'failed';
         errorCode ??= 'FINALIZATION_FAILED';
@@ -176,6 +181,7 @@ export async function executeRun(
         evidenceComplete,
         errorCode,
       });
+      log.info({ status, errorCode, evidenceComplete }, 'Run finished');
     } finally {
       clearInterval(heartbeatTimer);
       await releaseLease(lease, runtime?.healthy ?? resourceHealthy);

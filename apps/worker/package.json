@@ -24,6 +24,7 @@
     "nodemailer": "catalog:",
     "openai": "catalog:",
     "pg": "catalog:",
+    "pino": "catalog:",
     "playwright": "catalog:",
     "redis": "catalog:",
     "zod": "catalog:"
