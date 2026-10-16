@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/Button';
-import { Tabs } from '@/components/ui/Tabs';
+import { Tabs } from '@base-ui/react/tabs';
 import type { BrowserLog } from '@testdog/contracts/runs/types';
 import styles from './BrowserLogPanel.module.css';
 

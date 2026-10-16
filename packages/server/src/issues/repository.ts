@@ -15,6 +15,7 @@ import { WorkspaceError } from '@testdog/server/shared/errors';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
 import { createRun } from '@testdog/server/runs/submission';
 import { getRun } from '@testdog/server/runs/repository';
+import { stepRecord } from '@testdog/server/runs/records';
 import {
   issueInput,
   issueUpdate,
@@ -89,11 +90,7 @@ async function sourceSnapshot(tx: Tx, input: z.infer<typeof occurrenceInput>, us
     testId: run.testId ?? undefined,
     target: run.targetSnapshot,
     environment: run.environmentSnapshot ?? undefined,
-    step: step
-      ? (Object.fromEntries(
-          Object.entries(step).map(([key, value]) => [key, value ?? undefined]),
-        ) as OccurrenceSnapshot['step'])
-      : undefined,
+    step: step ? stepRecord(step) : undefined,
     runStatus: run.status,
     startedAt: run.startedAt,
     finishedAt: run.finishedAt ?? undefined,

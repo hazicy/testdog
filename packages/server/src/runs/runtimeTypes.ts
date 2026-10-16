@@ -1,8 +1,8 @@
 import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 import type { TestRun } from '@testdog/contracts/runs/types';
-import type { Evaluator } from '@testdog/automation/evaluator';
 import type {
+  Evaluator,
   AutomationSession,
   ActionPlanner,
   PlatformAction,

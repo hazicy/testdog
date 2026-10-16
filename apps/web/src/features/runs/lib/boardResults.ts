@@ -35,18 +35,16 @@ export function stepResult(steps: ExecutionStep[]): {
   return { primary, status: primary?.status ?? 'none' };
 }
 
-/** Attached assertions share a node ID; distinguish repeated descriptions by occurrence. */
+/** Steps are indexed by node; distinguish repeated assertion descriptions by occurrence. */
 export function boardNodeSteps(node: PlanNode, steps: ExecutionStep[], assertionIndex?: number) {
-  const associated = steps.filter((step) => step.planNodeId === node.id);
-
-  if (node.kind !== 'task' || node.actionType === 'assert') return associated;
+  if (node.kind !== 'task' || node.actionType === 'assert') return steps;
   if (assertionIndex === undefined)
-    return associated.filter((step) => !node.assertions.length || step.kind !== 'assertion');
+    return steps.filter((step) => !node.assertions.length || step.kind !== 'assertion');
   const description = node.assertions[assertionIndex]?.description;
   const occurrence = node.assertions
     .slice(0, assertionIndex)
     .filter((assertion) => assertion.description === description).length;
-  const matching = associated.filter(
+  const matching = steps.filter(
     (step) => step.kind === 'assertion' && step.assertion?.description === description,
   );
 

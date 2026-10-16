@@ -154,7 +154,7 @@ export async function savedBrowserProvider(provider: string, userId: UserScope) 
   }
 }
 
-export async function browserProviderForRun(runId: string, browser?: WebTarget['browser']) {
+export async function browserProviderForRun(runId: string, browser: WebTarget['browser']) {
   const [run] = await db
     .select({ userId: testRuns.userId })
     .from(testRuns)
@@ -169,7 +169,7 @@ export async function browserProviderForRun(runId: string, browser?: WebTarget['
   if (!row) return undefined;
   const definition = browserProviderDefinition(row.provider);
 
-  if (browser && !definition.adapter.supportedBrowsers.includes(browser)) return undefined;
+  if (!definition.adapter.supportedBrowsers.includes(browser)) return undefined;
   try {
     return { definition, config: decode(row, definition) };
   } catch {

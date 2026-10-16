@@ -90,7 +90,6 @@ export function budgetedModel(
           Math.min(budget.timeoutMs, budget.maxDurationMs - duration),
         );
         let retryCount = 0;
-        let callsForRequest = 0;
         let failedAttempts = 0;
         let result: LLMGenerateResult | undefined;
         let failure: unknown;
@@ -98,8 +97,7 @@ export function budgetedModel(
         try {
           for (;;) {
             signal.throwIfAborted();
-            if (callsForRequest > 0) retryCount++;
-            callsForRequest++;
+            retryCount = failedAttempts;
             calls++;
             try {
               // Race also protects callers when a custom adapter ignores AbortSignal.
@@ -123,7 +121,6 @@ export function budgetedModel(
               if (result.usage) tokens += result.usage.inputTokens + result.usage.outputTokens;
               break;
             } catch (error) {
-              failure = error;
               failedAttempts++;
               const status =
                 error && typeof error === 'object' && 'status' in error
@@ -186,7 +183,7 @@ export function budgetedModel(
         }
       };
 
-      const next = previous.then(execute, execute);
+      const next = previous.then(execute);
 
       previous = next.catch(() => {});
 

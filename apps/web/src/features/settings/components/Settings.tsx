@@ -12,7 +12,7 @@ import { fetchJson } from '@/client/api';
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Input } from '@/components/ui/Input';
-import { Tabs } from '@/components/ui/Tabs';
+import { Tabs } from '@base-ui/react/tabs';
 import { Icon } from '@iconify/react/offline';
 import userIcon from '@iconify-icons/lucide/user-round';
 import shieldIcon from '@iconify-icons/lucide/shield-check';

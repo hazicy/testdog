@@ -98,16 +98,12 @@ export function useWorkspaceData(isTests: boolean) {
   return {
     tests: page?.tests ?? [],
     runs: page?.runs ?? [],
-    testCount: stats?.testCount ?? 0,
-    runCount: stats?.runCount ?? 0,
     loading: listLoading || statsLoading,
     error:
       error || (loadError instanceof Error ? loadError.message : loadError ? t('loadFailed') : ''),
     setError,
-    counts,
     latestRuns,
     running,
-    connected,
     refresh,
     query,
     setQuery,

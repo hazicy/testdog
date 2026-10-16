@@ -2,8 +2,6 @@ import { z, type JSONType } from 'zod';
 import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
 import type { Evaluator } from '@testdog/contracts/automation/platform/contracts';
 
-export type { Evaluator } from '@testdog/contracts/automation/platform/contracts';
-
 const decisionSchema = z.strictObject({ passed: z.boolean(), evidence: z.string().trim().min(1) });
 
 export class SemanticEvaluator implements Evaluator {

@@ -47,9 +47,9 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [validation, setValidation] = useState<{ code: string; count: number; error?: string }>();
+  const [validation, setValidation] = useState<{ code: string; error?: string }>();
   const validating = validation?.code !== code;
-  const canSave = !busy && !validating && !validation?.error && !!validation?.count;
+  const canSave = !busy && !validating && !validation?.error;
   const base = versions.find((v) => v.id === selected)?.code || original;
   const dirty = code !== base;
 
@@ -76,17 +76,12 @@ export function RecordingEditor({ run }: { run: TestRun }) {
     const timer = setTimeout(() => {
       try {
         if (!recordingCodeSchema.safeParse(code).success) throw new Error(t('recordingInput'));
-        setValidation({
-          code,
-          count: (platform === 'web'
-            ? parseRecordingScript(code)
-            : parseDeviceRecordingScript(code, platform)
-          ).length,
-        });
+        if (platform === 'web') parseRecordingScript(code);
+        else parseDeviceRecordingScript(code, platform);
+        setValidation({ code });
       } catch (e) {
         setValidation({
           code,
-          count: 0,
           error: e instanceof Error ? e.message : t('invalidScript'),
         });
       }

@@ -11,8 +11,23 @@ const persistence = vi.hoisted(() => ({ insert: vi.fn() }));
 vi.mock('@testdog/server/runs/repository', () => ({ insertArtifact: persistence.insert }));
 import { EvidenceSink } from '@testdog/server/runs/evidenceSink';
 import { PersistenceQueue } from '@testdog/server/runs/persistenceQueue';
+import { DeviceRecorder } from '@testdog/server/runs/deviceRecorder';
 
 beforeEach(() => vi.clearAllMocks());
+
+it.each(['before', 'live'] as const)(
+  'drains %s capture failures with the correct evidence status',
+  async (stage) => {
+    const recorder = new DeviceRecorder({ id: randomUUID() } as TestRun);
+    const session = {
+      capture: vi.fn().mockRejectedValue(new Error('capture failed')),
+    } as unknown as AutomationSession;
+
+    await expect(recorder.capture(session, stage)).rejects.toThrow('capture failed');
+    if (stage === 'live') await expect(recorder.drain()).resolves.toBeUndefined();
+    else await expect(recorder.drain()).rejects.toThrow('capture failed');
+  },
+);
 
 it('captures screenshot bytes and surface before queued storage while finalization waits', async () => {
   const root = await mkdtemp(join(tmpdir(), 'testdog-evidence-'));

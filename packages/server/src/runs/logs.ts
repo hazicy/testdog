@@ -1,9 +1,10 @@
 import type { BrowserLogPage } from '@testdog/contracts/runs/types';
-import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
+import type { UserScope } from '@testdog/server/shared/ownership';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@testdog/server/db';
-import { runBrowserLogs, testRuns } from '@testdog/server/db/schema';
+import { runBrowserLogs } from '@testdog/server/db/schema';
+import { assertRunAccess } from '@testdog/server/runs/repository';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { searchPattern } from '@testdog/server/shared/pagination';
 
@@ -26,12 +27,8 @@ export async function listBrowserLogs(
 
   if (!parsed.success) throw new WorkspaceError('日志筛选参数无效。');
   const query = parsed.data;
-  const [run] = await db
-    .select({ id: testRuns.id })
-    .from(testRuns)
-    .where(and(eq(testRuns.id, id), ownedBy(testRuns.userId, userId)));
 
-  if (!run) throw new WorkspaceError('执行记录不存在。', 404);
+  await assertRunAccess(id, userId);
   const rows = await db
     .select({ data: runBrowserLogs.data, sequence: runBrowserLogs.sequence })
     .from(runBrowserLogs)

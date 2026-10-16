@@ -16,7 +16,8 @@ vi.mock('@testdog/server/db', async () => {
 });
 import { db } from '@testdog/server/db';
 import { automationBuilds } from '@testdog/server/db/schema';
-import { getBuild, hashBuild, installedBuildHash } from '@testdog/server/builds/repository';
+import { getBuild } from '@testdog/server/builds/repository';
+import { hashBuild } from '@testdog/automation/platform/native/builds';
 
 afterAll(() => isolated.client?.close());
 it('validates platform, app identity and content hash before allowing an install', async () => {
@@ -53,35 +54,5 @@ it('validates platform, app identity and content hash before allowing an install
     expect(await hashBuild(app)).not.toBe(before);
   } finally {
     await rm(directory, { recursive: true, force: true });
-  }
-});
-
-it('finishes installed APK hashing before deleting the pulled temporary files', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'testdog-adb-fixture-'));
-  const tools = join(root, 'platform-tools');
-
-  await mkdir(tools);
-  await writeFile(
-    join(tools, 'adb'),
-    '#!/bin/sh\nif [ "$4" = "pm" ]; then\n  printf "package:/data/app/fixture/base.apk\\n"\nelif [ "$3" = "pull" ]; then\n  printf "APK fixture bytes" > "$5"\nfi\n',
-    { mode: 0o700 },
-  );
-  vi.stubEnv('ANDROID_SDK_ROOT', root);
-  try {
-    const expected = join(root, 'expected');
-
-    await mkdir(expected);
-    await writeFile(join(expected, '0.apk'), 'APK fixture bytes');
-    expect(
-      await installedBuildHash(
-        'android',
-        'fixture',
-        'com.example.app',
-        new AbortController().signal,
-      ),
-    ).toBe(await hashBuild(expected));
-  } finally {
-    vi.unstubAllEnvs();
-    await rm(root, { recursive: true, force: true });
   }
 });

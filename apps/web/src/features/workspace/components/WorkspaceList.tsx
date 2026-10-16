@@ -65,8 +65,6 @@ export function WorkspaceList({
   exportRun,
 }: Props) {
   const t = useTranslations('workspace');
-  const visibleTests = tests;
-  const visibleRuns = runs;
 
   return (
     <section
@@ -107,7 +105,7 @@ export function WorkspaceList({
       </div>
       {loading ? (
         <LoadingState className={workspaceStyles.workspaceIndexEmpty} message={t('loading')} />
-      ) : (isTests ? visibleTests.length === 0 : visibleRuns.length === 0) ? (
+      ) : (isTests ? tests.length === 0 : runs.length === 0) ? (
         <EmptyState
           data-ui="workspace-index-empty"
           className={workspaceStyles.workspaceIndexEmpty}
@@ -153,8 +151,8 @@ export function WorkspaceList({
               <TableBody>
                 <WorkspaceRows
                   isTests={isTests}
-                  visibleTests={visibleTests}
-                  visibleRuns={visibleRuns}
+                  visibleTests={tests}
+                  visibleRuns={runs}
                   latestRuns={latestRuns}
                   running={running}
                   starting={starting}
@@ -172,7 +170,7 @@ export function WorkspaceList({
       )}
       <ListFooter
         loading={loading}
-        count={isTests ? visibleTests.length : visibleRuns.length}
+        count={isTests ? tests.length : runs.length}
         page={page}
         hasPrevious={hasPrevious}
         hasNext={hasNext}

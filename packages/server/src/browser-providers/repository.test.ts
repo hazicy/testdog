@@ -111,13 +111,16 @@ describe('browser provider configuration', () => {
       })
       .returning();
 
-    expect((await browserProviderForRun(run.id))!.config).toMatchObject({ token: 'secret-token' });
+    expect((await browserProviderForRun(run.id, 'chromium'))!.config).toMatchObject({
+      token: 'secret-token',
+    });
+    expect(await browserProviderForRun(run.id, 'webkit')).toBeUndefined();
     await db.update(testRuns).set({ userId: 'bob' }).where(eq(testRuns.id, run.id));
-    expect(await browserProviderForRun(run.id)).toBeUndefined();
+    expect(await browserProviderForRun(run.id, 'chromium')).toBeUndefined();
     await expect(savedBrowserProvider('browserless', 'bob')).rejects.toThrow('请先保存');
-    await expect(browserProviderForRun('00000000-0000-4000-8000-000000000000')).rejects.toThrow(
-      '执行记录不存在',
-    );
+    await expect(
+      browserProviderForRun('00000000-0000-4000-8000-000000000000', 'chromium'),
+    ).rejects.toThrow('执行记录不存在');
   });
   it('rejects stale versions and invalid endpoints and handles unknown providers', async () => {
     await saveBrowserProvider('browserless', input, 'alice');

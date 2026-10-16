@@ -14,7 +14,6 @@
   --text-2xl: 1.125rem;
   --text-3xl: 1.25rem;
   --text-4xl: 1.5rem;
-  --text-5xl: 1.875rem;
   --text-6xl: 2.25rem;
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
@@ -39,7 +38,6 @@
   --space-12: 3rem;
   --space-16: 4rem;
   --space-20: 5rem;
-  --space-24: 6rem;
 
   /* White workspace, neutral supporting surfaces and the existing brand accent. */
   --page: #ffffff;
@@ -85,8 +83,6 @@
   --danger: #c55348;
   --warning: #cf7800;
   --cancelled: #6b6b6b;
-  --activity-running: #f16b43;
-  --activity-idle: #8da58c;
 
   /* Navigation and avatar */
   --sidebar: #f9f9f9;
@@ -107,16 +103,12 @@
   --plan-reference-ink: #6b6b6b;
   --plan-edge: #a6a6a6;
   --step-hover: #f9f9f9;
-  --step-selected: var(--badge-surface);
   --step-success: var(--success);
-  --step-success-line: var(--success-line);
 
   /* Canvas nodes, review states and composer overlays */
   --canvas-line: var(--page-line);
-  --canvas-divider: var(--line-subtle);
   --canvas-ink: var(--ink);
   --canvas-panel-shadow: #0000000d;
-  --canvas-panel-shadow-soft: #00000006;
   --canvas-shadow: #00000008;
   --canvas-preview-shadow: #00000012;
   --canvas-task-line: #a8c9ff;
@@ -176,23 +168,13 @@
 
   /* Run preview */
   --preview: #f2f2f2;
-  --preview-dark: #212121;
-  --preview-icon: #8c8c8c;
   --preview-ink: #6b6b6b;
-  --window-close: #e5ad98;
-  --window-minimize: #dfcf9a;
-  --window-expand: #b9c3a4;
 
-  /* Overlays and compatibility aliases */
+  /* Overlays and errors */
   --shadow: #0002;
   --backdrop: #0005;
   --plan-shadow: #00000008;
-  --background: var(--page);
-  --foreground: var(--ink);
-  --accent: var(--brand);
-  --accent-foreground: var(--brand-foreground);
   --error-ink: #b91c1c;
-  --error: #dc2626;
   --error-line: #fecaca;
   --error-soft: #fef2f2;
 }
@@ -220,8 +202,8 @@
   body {
     position: relative;
     min-height: 100dvh;
-    background: var(--background);
-    color: var(--foreground);
+    background: var(--page);
+    color: var(--ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -306,7 +288,7 @@
   }
 
   :focus-visible {
-    outline: var(--focus-width) solid var(--accent);
+    outline: var(--focus-width) solid var(--brand);
     outline-offset: 0.25rem;
   }
 }

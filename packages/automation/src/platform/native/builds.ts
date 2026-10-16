@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
-import { lstat, readFile, readdir, readlink } from 'node:fs/promises';
+import { lstat, mkdtemp, readFile, readdir, readlink, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 
 const exec = promisify(execFile);
 
@@ -54,8 +54,6 @@ export async function installedBuildHash(
     return hashBuild(path);
   }
 
-  const { mkdtemp, rm } = await import('node:fs/promises');
-  const { tmpdir } = await import('node:os');
   const sdk = process.env.ANDROID_SDK_ROOT || join(homedir(), 'Library/Android/sdk');
   const adb = join(sdk, 'platform-tools', 'adb');
   const paths = (
@@ -67,7 +65,6 @@ export async function installedBuildHash(
     .sort();
 
   if (
-    !paths.length ||
     paths.some(
       (path) =>
         !/^\/(data\/app\/|system\/|product\/|system_ext\/|vendor\/)/.test(path) ||

@@ -28,22 +28,20 @@ export async function saveTest(raw: unknown, id: string | undefined, userId: Use
     target: parsed.data.target ?? defaultWebTarget(url),
   };
 
-  return db.transaction(async (tx) => {
-    const [test] = id
-      ? await tx
-          .update(testCases)
-          .set({ ...input, updatedAt: new Date().toISOString() })
-          .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)))
-          .returning()
-      : await tx
-          .insert(testCases)
-          .values({ ...input, userId })
-          .returning();
+  const [test] = id
+    ? await db
+        .update(testCases)
+        .set({ ...input, updatedAt: new Date().toISOString() })
+        .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)))
+        .returning()
+    : await db
+        .insert(testCases)
+        .values({ ...input, userId })
+        .returning();
 
-    if (!test) throw new WorkspaceError('用例不存在。', 404);
+  if (!test) throw new WorkspaceError('用例不存在。', 404);
 
-    return { ...test, url: targetUrl(test.target) };
-  });
+  return { ...test, url: targetUrl(test.target) };
 }
 
 export async function deleteTest(id: string, userId: UserScope) {

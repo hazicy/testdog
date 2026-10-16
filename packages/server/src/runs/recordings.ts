@@ -7,6 +7,7 @@ import { isActiveRun } from '@testdog/contracts/runs/types';
 import { parseDeviceRecordingScript } from '@testdog/contracts/runs/lib/deviceRecording';
 import type { RecordingOperation } from '@testdog/contracts/runs/types';
 import { WorkspaceError } from '@testdog/server/shared/errors';
+import { assertRunAccess } from '@testdog/server/runs/repository';
 import { recordingCodeSchema, recordingInputMessage } from '@testdog/contracts/runs/schemas';
 
 const recordingVersionFields = {
@@ -20,12 +21,7 @@ const recordingVersionFields = {
 };
 
 export async function listRecordingVersions(runId: string, userId: UserScope) {
-  const [run] = await db
-    .select({ id: testRuns.id })
-    .from(testRuns)
-    .where(and(eq(testRuns.id, runId), ownedBy(testRuns.userId, userId)));
-
-  if (!run) throw new WorkspaceError('执行记录不存在。', 404);
+  await assertRunAccess(runId, userId);
 
   return db
     .select(recordingVersionFields)

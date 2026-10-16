@@ -531,9 +531,6 @@ importers:
       agent-device:
         specifier: 'catalog:'
         version: 0.21.24
-      dotenv:
-        specifier: 'catalog:'
-        version: 17.4.2
       openai:
         specifier: 'catalog:'
         version: 7.10.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(ws@8.21.3)(zod@4.4.3)

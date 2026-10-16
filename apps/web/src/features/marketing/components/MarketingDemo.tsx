@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import styles from './MarketingDemo.module.css';
 
 import { statusStyles } from '@/components/ui/statusStyles';
-import { Tabs } from '@/components/ui/Tabs';
+import { Tabs } from '@base-ui/react/tabs';
 
 export function MarketingDemo() {
   const t = useTranslations('marketing');

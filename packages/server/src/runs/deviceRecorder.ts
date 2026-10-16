@@ -1,11 +1,9 @@
 import { hasPreviewViewers, publishPreview } from '@testdog/server/realtime/preview';
-import { join } from 'node:path';
 import { EvidenceSink } from '@testdog/server/runs/evidenceSink';
 import type {
   AutomationSession,
   SessionEvent,
 } from '@testdog/contracts/automation/platform/contracts';
-import { artifactRoot } from '@testdog/server/runs/artifactStorage';
 import { insertStep, finishStep } from '@testdog/server/runs/repository';
 import type { TestRun } from '@testdog/contracts/runs/types';
 
@@ -14,12 +12,9 @@ export class DeviceRecorder {
   private started = new Map<string, number>();
   private samplePending = false;
   private stopping = false;
-  private captureFailure?: unknown;
   private captureQueue: Promise<unknown> = Promise.resolve();
-  readonly directory: string;
   private evidence: EvidenceSink;
   constructor(private run: TestRun) {
-    this.directory = join(artifactRoot(), run.id);
     this.evidence = new EvidenceSink(run);
   }
   onEvent = async (event: SessionEvent, session: AutomationSession) => {
@@ -89,7 +84,7 @@ export class DeviceRecorder {
   async drain() {
     this.stopping = true;
     await this.captureQueue;
-    if (this.captureFailure) throw this.captureFailure;
+    this.evidence.assertComplete();
   }
   capture(
     session: AutomationSession,
@@ -110,9 +105,7 @@ export class DeviceRecorder {
       await this.evidence.capture(session, { kind: 'screenshot' }, stage, stepId);
     });
 
-    this.captureQueue = job.catch((error) => {
-      if (stage !== 'live') this.captureFailure ??= error;
-    });
+    this.captureQueue = job.catch(() => {});
 
     return job;
   }

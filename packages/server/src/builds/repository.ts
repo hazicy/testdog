@@ -9,8 +9,6 @@ import { eq } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { automationBuilds } from '@testdog/server/db/schema';
 
-export { hashBuild, installedBuildHash } from '@testdog/automation/platform/native/builds';
-
 const exec = promisify(execFile);
 
 export async function registerBuild(platform: 'android' | 'ios', inputPath: string) {

@@ -116,3 +116,61 @@ it('persists the reply and tool calls under the same ID returned to the planner'
   );
   expect(record.mock.calls[0][0].trace.input).toEqual([{ role: 'user', content: 'PRIVATE INPUT' }]);
 });
+
+it.each([0, 1, 3])('records %i retries when the provider keeps failing', async (maxRetries) => {
+  const failure = Object.assign(new Error('rate limited'), { status: 429 });
+  const generate = vi.fn().mockRejectedValue(failure);
+  const record = vi.fn().mockResolvedValue(undefined);
+  const model = budgetedModel(
+    { generate },
+    { ...budget, maxCalls: 4, timeoutMs: 5000, maxRetries },
+    record,
+  );
+
+  await expect(model.generate(params)).rejects.toThrow('rate limited');
+  expect(generate).toHaveBeenCalledTimes(maxRetries + 1);
+  expect(record).toHaveBeenCalledWith(
+    expect.objectContaining({
+      status: 'failed',
+      retryCount: maxRetries,
+      failedAttempts: maxRetries + 1,
+    }),
+  );
+});
+
+it('does not count a retry cancelled during backoff', async () => {
+  vi.useFakeTimers();
+  try {
+    const controller = new AbortController();
+    const generate = vi.fn().mockRejectedValue(Object.assign(new Error('busy'), { status: 429 }));
+    const record = vi.fn().mockResolvedValue(undefined);
+    const model = budgetedModel({ generate }, budget, record);
+    const rejected = expect(
+      model.generate({ ...params, signal: controller.signal }),
+    ).rejects.toThrow();
+
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort();
+    await rejected;
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'cancelled', retryCount: 0, failedAttempts: 1 }),
+    );
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('continues queued calls after metric recording fails', async () => {
+  const generate = vi.fn().mockResolvedValue({ ...result, usage: undefined });
+  const record = vi
+    .fn()
+    .mockRejectedValueOnce(new Error('storage unavailable'))
+    .mockResolvedValue(undefined);
+  const model = budgetedModel({ generate }, budget, record);
+  const results = await Promise.allSettled([model.generate(params), model.generate(params)]);
+
+  expect(results.map((result) => result.status)).toEqual(['rejected', 'fulfilled']);
+  expect(generate).toHaveBeenCalledTimes(2);
+  expect(record).toHaveBeenCalledTimes(2);
+});

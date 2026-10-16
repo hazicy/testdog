@@ -15,7 +15,7 @@ export async function openRunBrowser(
   signal.throwIfAborted();
   const selected = await browserProviderForRun(runId, target.browser);
 
-  if (selected && selected.definition.adapter.supportedBrowsers.includes(target.browser)) {
+  if (selected) {
     return selected.definition.adapter.connect(target, selected.config, signal);
   }
 

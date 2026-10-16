@@ -24,7 +24,7 @@ export class RunRecorder {
   private logs: BrowserLogs;
   private activeSteps = new Map<Page, string>();
   private pages = new Map<Page, string>();
-  private steps = new Map<string, ExecutionStep>();
+  private started = new Map<string, string>();
   private sequence = 0;
   private queue: Promise<unknown> = Promise.resolve();
   private timer?: ReturnType<typeof setInterval>;
@@ -120,20 +120,20 @@ export class RunRecorder {
         condition: event.condition,
       };
 
-      this.steps.set(event.id, step);
+      this.started.set(event.id, step.startedAt);
       await insertStep(step);
       await this.capture(page, 'before', event.id);
     } else {
-      const step = this.steps.get(event.id);
+      const startedAt = this.started.get(event.id);
 
-      if (!step) return;
+      if (!startedAt) return;
       const finishedAt = new Date().toISOString();
 
-      await finishStep(step.id, {
+      await finishStep(event.id, {
         modelCallId: event.modelCallId,
         status: event.phase === 'error' ? 'failed' : 'passed',
         finishedAt,
-        durationMs: Date.parse(finishedAt) - Date.parse(step.startedAt),
+        durationMs: Date.parse(finishedAt) - Date.parse(startedAt),
         evidence: event.evidence,
         decision: event.decision,
         error: event.error,

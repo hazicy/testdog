@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useEffectEvent, useMemo, useRef } from 'react';
 import { Compartment, EditorState } from '@codemirror/state';
 import {
   EditorView,
@@ -32,13 +32,10 @@ export function CodeEditor({
   const editorLabel = label ?? t('playwrightScript');
   const parent = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView>(null);
-  const changed = useRef(onChange);
+  const changed = useEffectEvent(onChange);
   const editing = useMemo(() => new Compartment(), []);
   const accessibility = useMemo(() => new Compartment(), []);
 
-  useEffect(() => {
-    changed.current = onChange;
-  }, [onChange]);
   useEffect(() => {
     if (!parent.current) return;
     const view = new EditorView({
@@ -62,7 +59,7 @@ export function CodeEditor({
             }),
           ),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) changed.current(update.state.doc.toString());
+            if (update.docChanged) changed(update.state.doc.toString());
           }),
           EditorView.theme({
             '&': {

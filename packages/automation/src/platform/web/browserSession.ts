@@ -60,12 +60,8 @@ export class BrowserSession {
   };
 
   async perform(action: (page: Page) => Promise<unknown>) {
-    const revision = this.revision;
-
     this.actionPage = this.page;
     await action(this.page);
-
-    return revision !== this.revision;
   }
 
   async observe(observer: Observer) {

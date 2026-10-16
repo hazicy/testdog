@@ -46,6 +46,7 @@ describe('pluggable browser execution', () => {
     const signal = new AbortController().signal;
 
     expect(await openRunBrowser('run', target, signal)).toBe(connection);
+    expect(mocks.forRun).toHaveBeenCalledWith('run', 'chromium');
     expect(connect).toHaveBeenCalledWith(target, config, signal);
     expect(mocks.local).not.toHaveBeenCalled();
   });
@@ -53,14 +54,8 @@ describe('pluggable browser execution', () => {
     mocks.forRun.mockResolvedValue(undefined);
     await openRunBrowser('run', target, new AbortController().signal);
     expect(mocks.local).toHaveBeenCalledOnce();
-    const connect = vi.fn();
-
-    mocks.forRun.mockResolvedValue({
-      definition: { adapter: { supportedBrowsers: ['chromium'], connect } },
-      config: {},
-    });
     await openRunBrowser('run', { ...target, browser: 'webkit' }, new AbortController().signal);
-    expect(connect).not.toHaveBeenCalled();
+    expect(mocks.forRun).toHaveBeenLastCalledWith('run', 'webkit');
     expect(mocks.local).toHaveBeenCalledTimes(2);
   });
   it('does not fall back after a remote failure or ignore invalid stored credentials', async () => {
