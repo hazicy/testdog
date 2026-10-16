@@ -1,11 +1,21 @@
 import { z } from 'zod';
 import { HttpUrlSchema } from '@testdog/contracts/automation/platform/target';
 
-export const TargetSchema = z.object({
+const LocatorSchema = z.object({
   kind: z.enum(['role', 'label', 'placeholder', 'testId', 'css', 'text', 'ariaRef']),
   value: z.string(),
   name: z.string().default(''),
   index: z.number().int().nonnegative().optional(),
+});
+
+export const TargetSchema = LocatorSchema.extend({
+  scope: LocatorSchema.omit({ index: true }).optional(),
+}).superRefine((target, context) => {
+  if (target.scope && (target.kind === 'ariaRef' || target.index !== undefined))
+    context.addIssue({
+      code: 'custom',
+      message: '区域内定位必须使用唯一的相对定位器，不能使用 ariaRef 或 index',
+    });
 });
 
 const ActionStepSchema = z.object({

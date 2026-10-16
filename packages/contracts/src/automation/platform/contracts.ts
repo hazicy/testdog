@@ -141,6 +141,8 @@ export type ReplayStep = {
   event: Omit<SessionEvent, 'id' | 'phase'>;
 };
 
+export type ObservationRequest = { ref: string };
+
 export interface AutomationSession {
   readonly id: string;
   readonly platform: TestTarget['platform'];
@@ -151,7 +153,7 @@ export interface AutomationSession {
 
   selectSurface?(id: string, signal: AbortSignal): Promise<void>;
   prepareReplayStep(step: ReplayStep, signal: AbortSignal): Promise<void>;
-  observe(signal: AbortSignal): Promise<Observation>;
+  observe(signal: AbortSignal, request?: ObservationRequest): Promise<Observation>;
   perform(action: PlatformAction, signal: AbortSignal): Promise<void>;
   wait(action: PlatformAction, signal: AbortSignal): Promise<Observation>;
   check(assertion: PlatformAssertion, signal: AbortSignal): Promise<CheckResult>;
@@ -169,9 +171,11 @@ export interface ActionPlanner {
     /** Observation used to choose each dispatched step, in the same order. */
     completedObservations?: Observation[];
     remainingWaitMs: number;
+    previousFailure?: { reason: string; action?: PlatformAction };
   }): Promise<{
     done: boolean;
     steps: PlatformAction[];
+    observe?: ObservationRequest;
     modelCallId?: string;
     toolCallIds?: string[];
   }>;

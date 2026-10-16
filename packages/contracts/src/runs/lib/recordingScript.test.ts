@@ -68,4 +68,23 @@ await expect(page2).toHaveURL("https://example.com/welcome");`;
     expect(() => parseRecordingScript('// empty')).toThrow('至少');
     expect(() => parseRecordingScript('\nawait page1.goto(')).toThrow('第 2 行');
   });
+
+  it('round trips stable scoped actions and assertions', () => {
+    const steps = parseRecordingScript(
+      'await page1.getByTestId("import").getByLabel("Dimension", { exact: true }).fill("test");\nawait expect(page1.getByTestId("import").getByRole("textbox", { name: "Dimension", exact: true })).toHaveValue("test");',
+    );
+
+    expect(steps[0].action?.action).toMatchObject({
+      target: { kind: 'label', scope: { kind: 'testId', value: 'import' } },
+    });
+    expect(parseRecordingScript(recordingScript(steps))).toEqual(steps);
+  });
+
+  it.each([
+    'await page1.getByTestId("import").getByLabel("Dimension").nth(0).fill("test");',
+    'await page1.getByTestId("import").nth(0).getByLabel("Dimension").fill("test");',
+    'await page1.getByTestId("import").getByRole("group").getByLabel("Dimension").fill("test");',
+  ])('rejects positional or deeply nested scope chains: %s', (script) => {
+    expect(() => parseRecordingScript(script)).toThrow();
+  });
 });

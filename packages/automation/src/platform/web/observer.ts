@@ -1,15 +1,6 @@
 import { Page } from 'playwright';
-
-type AriaNode = {
-  role: string;
-  name?: string;
-  text?: string;
-  ref?: string;
-  children?: AriaNode[];
-  [key: string]: unknown;
-};
-
-type AriaTree = Record<string, AriaNode[]>;
+import type { AriaNode } from '@testdog/automation/platform/web/observationView';
+import type { ObservationRequest } from '@testdog/contracts/automation/platform/contracts';
 
 type FocusedElement = {
   ariaRef: string | null;
@@ -20,16 +11,14 @@ type FocusedElement = {
 };
 
 export class Observer {
-  constructor() {}
-
-  async observe(page: Page) {
+  async observe(page: Page, request?: ObservationRequest) {
     await page.waitForLoadState('domcontentloaded', {
       timeout: 5000,
     });
 
     const tree = (await page.locator('body').ariaSnapshotJSON({
       mode: 'ai',
-    })) as AriaTree;
+    })) as AriaNode[];
 
     const focused = await page.evaluate((): FocusedElement | null => {
       const active = document.activeElement;
@@ -52,6 +41,10 @@ export class Observer {
       };
     });
 
-    return { tree, page: { url: page.url(), focused } };
+    return {
+      tree,
+      ...(request?.ref ? { requestedRegion: request.ref } : {}),
+      page: { url: page.url(), focused },
+    };
   }
 }

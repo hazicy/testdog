@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ReplanRequiredError } from '@testdog/automation/replanning';
 import { ExecutablePlanSchema, type PlanNode } from '@testdog/contracts/automation/compiler/schema';
 import {
   PlatformActionSchema,
@@ -11,6 +12,8 @@ import {
   type SessionEvent,
   type ReplayStep,
   type Observation,
+  type ActionPlanner,
+  type ObservationRequest,
 } from '@testdog/contracts/automation/platform/contracts';
 
 // Owns business sequencing only. Driver objects and evidence capture belong to sessions.
@@ -20,9 +23,9 @@ export class PlanRunner {
     CapabilitySetSchema.parse(options.session.capabilities);
   }
 
-  private async observe() {
+  private async observe(request?: ObservationRequest) {
     const { session, signal } = this.options;
-    const observation = ObservationSchema.parse(await session.observe(signal));
+    const observation = ObservationSchema.parse(await session.observe(signal, request));
 
     if (
       observation.sessionId !== session.id ||
@@ -168,22 +171,51 @@ export class PlanRunner {
     const completedObservations: Observation[] = [];
     let remainingWaitMs = 15000;
     let count = 0;
+    let replans = 0;
+    let previousFailure: Parameters<ActionPlanner['plan']>[0]['previousFailure'];
+    let observationRequest: ObservationRequest | undefined;
+    const recover = (error: unknown, action?: PlatformAction) => {
+      signal.throwIfAborted();
+      if (!(error instanceof ReplanRequiredError) || replans >= 2) throw error;
+      replans++;
+      previousFailure = { reason: error.message, ...(action ? { action } : {}) };
+    };
 
     while (true) {
       signal.throwIfAborted();
-      const observation = await this.observe();
+      const observation = await this.observe(observationRequest);
+
+      observationRequest = undefined;
       const revision = session.revision;
-      const decision = await planner.plan({
-        goal: node.goal,
-        observation,
-        capabilities: session.capabilities,
-        completedSteps,
-        completedObservations,
-        remainingWaitMs,
-      });
+      let decision: Awaited<ReturnType<ActionPlanner['plan']>>;
+
+      try {
+        decision = await planner.plan({
+          goal: node.goal,
+          observation,
+          capabilities: session.capabilities,
+          completedSteps: [...completedSteps],
+          completedObservations: [...completedObservations],
+          remainingWaitMs,
+          ...(previousFailure ? { previousFailure } : {}),
+        });
+      } catch (error) {
+        recover(error);
+        continue;
+      }
 
       signal.throwIfAborted();
       if (revision !== session.revision) continue;
+      if (decision.observe) {
+        if (decision.done || decision.steps.length)
+          throw new Error('Region observation must not be combined with actions or completion');
+        if (!session.capabilities.observations?.includes('regions'))
+          throw new Error('Session does not support region observations');
+        if (++count > 20) throw new Error(`Exceeded 20 actions: ${node.goal}`);
+        observationRequest = decision.observe;
+        continue;
+      }
+
       if (decision.done) return;
       if (!decision.steps.length) throw new Error('Planner returned no actions');
       for (const [index, supplied] of decision.steps.entries()) {
@@ -196,10 +228,17 @@ export class PlanRunner {
           remainingWaitMs -= budget;
           step.action.timeoutMs = budget;
         } else if (++count > 20) throw new Error(`Exceeded 20 actions: ${node.goal}`);
-        await this.action(step, {
-          modelCallId: decision.modelCallId,
-          toolCallId: decision.toolCallIds?.[index],
-        });
+        try {
+          await this.action(step, {
+            modelCallId: decision.modelCallId,
+            toolCallId: decision.toolCallIds?.[index],
+          });
+        } catch (error) {
+          recover(error, step);
+          break;
+        }
+
+        previousFailure = undefined;
         completedSteps.push(step);
         completedObservations.push(observation);
         // The session owns whether dispatched actions require a fresh observation.

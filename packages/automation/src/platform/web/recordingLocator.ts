@@ -9,10 +9,22 @@ export async function recordAction(
 ): Promise<{ action: RecordedAction; replayable: boolean }> {
   if (action.type === 'wait' || action.type === 'navigate' || action.type === 'screenshot')
     return { action, replayable: true };
-  const original = locateWebElement(page, action.target);
+  const recorded = await recordTarget(page, action.target);
+
+  return {
+    action: { ...action, target: recorded.target, sensitive: recorded.sensitive },
+    replayable: recorded.stable,
+  };
+}
+
+async function recordTarget(
+  page: Page,
+  target: Target,
+): Promise<{ target: Target; stable: boolean; sensitive?: boolean }> {
+  const original = locateWebElement(page, target);
   const handle = await original.elementHandle({ timeout: 3000 });
 
-  if (!handle) return { action, replayable: false };
+  if (!handle) return { target, stable: false };
   try {
     const { candidates, sensitive } = await original.evaluate((element) => {
       const candidates: { kind: string; value: string; name?: string }[] = [];
@@ -61,23 +73,37 @@ export async function recordAction(
     });
 
     // A selector is usable only when it uniquely identifies the actual recorded element.
-    for (const candidate of candidates) {
-      const target = { ...candidate, name: candidate.name || '' } as Target;
+    const scopes: (Target['scope'] | undefined)[] = [undefined];
 
-      try {
-        const found = locateWebElement(page, target);
+    if (target.scope) {
+      const scope = await recordTarget(page, target.scope);
 
-        if (
-          (await found.count()) === 1 &&
-          (await found.evaluate((element, reference) => element === reference, handle))
-        )
-          return { action: { ...action, target, sensitive }, replayable: true };
-      } catch {
-        /* Try another stable descriptor. */
+      if (scope.stable) scopes.push(scope.target);
+    }
+
+    for (const scope of scopes) {
+      for (const candidate of candidates) {
+        const descriptor = {
+          ...candidate,
+          name: candidate.name || '',
+          ...(scope ? { scope } : {}),
+        } as Target;
+
+        try {
+          const found = locateWebElement(page, descriptor);
+
+          if (
+            (await found.count()) === 1 &&
+            (await found.evaluate((element, reference) => element === reference, handle))
+          )
+            return { target: descriptor, sensitive, stable: true };
+        } catch {
+          /* Try another stable descriptor. */
+        }
       }
     }
 
-    return { action: { ...action, sensitive }, replayable: false };
+    return { target, sensitive, stable: false };
   } finally {
     await handle.dispose();
   }

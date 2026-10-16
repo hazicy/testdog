@@ -2,7 +2,7 @@ import type { Locator, Page } from 'playwright';
 import type { Target } from '@testdog/contracts/automation/compiler/schema';
 
 export function locateWebElement(page: Page, target: Target): Locator {
-  const root = page.locator(':root');
+  const root = target.scope ? locateWebElement(page, target.scope) : page.locator(':root');
   let result: Locator;
 
   switch (target.kind) {

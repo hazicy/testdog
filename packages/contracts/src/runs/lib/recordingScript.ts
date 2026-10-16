@@ -38,7 +38,7 @@ const assertionTypes = Object.fromEntries(
 const quote = JSON.stringify;
 const pageName = (id: string) => `page${id.replace('page-', '')}`;
 
-function locator(page: string, target: Target) {
+function locator(page: string, target: Target): string {
   const methods = {
     role: 'getByRole',
     label: 'getByLabel',
@@ -56,7 +56,9 @@ function locator(page: string, target: Target) {
         ? ', { exact: true }'
         : '';
 
-  return `${page}.${methods[target.kind]}(${quote(value)}${options})${target.index === undefined ? '' : `.nth(${target.index})`}`;
+  const root = target.scope ? locator(page, target.scope) : page;
+
+  return `${root}.${methods[target.kind]}(${quote(value)}${options})${target.index === undefined ? '' : `.nth(${target.index})`}`;
 }
 
 function operationScript(step: RecordingOperation) {
@@ -223,10 +225,18 @@ export function parseRecordingScript(code: string): RecordingOperation[] {
     )
       fail('请使用稳定的语义定位器或 CSS；录制 aria-ref 需要替换');
 
-    return {
-      page: pageId(object),
-      target: { kind: kinds[method], value, name: String(options.name || '') },
-    };
+    const target = { kind: kinds[method], value, name: String(options.name || '') };
+
+    if (object.type === 'CallExpression') {
+      const parent = readLocator(object);
+
+      if (parent.target.scope || parent.target.index !== undefined)
+        return fail('只支持一层唯一的区域定位');
+
+      return { page: parent.page, target: { ...target, scope: parent.target } };
+    }
+
+    return { page: pageId(object), target };
   };
 
   // Helper calls, assertions and page actions have separate validation rules.

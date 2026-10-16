@@ -11,6 +11,7 @@ import type {
 import { insertArtifact, insertStep, finishStep } from '@testdog/server/runs/repository';
 import { BrowserLogs } from '@testdog/server/runs/browserLogs';
 import { recordAction } from '@testdog/automation/platform/web/recordingLocator';
+import { captureWebScreenshot } from '@testdog/automation/platform/web/screenshot';
 import { artifactRoot } from '@testdog/server/runs/artifactStorage';
 import { PersistenceQueue } from '@testdog/server/runs/persistenceQueue';
 import {
@@ -29,6 +30,7 @@ export class RunRecorder {
   private queue: Promise<unknown> = Promise.resolve();
   private timer?: ReturnType<typeof setInterval>;
   private captureError?: unknown;
+  private screenshotError?: unknown;
   private livePending = false;
   private lastCapturedAt = 0;
   private stopping?: Promise<void>;
@@ -158,14 +160,28 @@ export class RunRecorder {
       let bytes: Buffer;
 
       try {
-        bytes = await page.screenshot({
-          type: 'jpeg',
+        const options = {
+          type: 'jpeg' as const,
           quality: stage === 'live' ? 55 : 72,
           timeout: 3000,
-        });
+        };
+
+        bytes = await (stage === 'live'
+          ? page.screenshot(options)
+          : captureWebScreenshot(page, options));
       } catch (error) {
         if (page.isClosed() || /Target.*closed|navigation|Execution context/.test(String(error)))
           return;
+        if (stage === 'before' || stage === 'after') {
+          // Missing auxiliary evidence must not interrupt or replay business actions.
+          this.screenshotError ??= new Error(
+            `步骤${stage === 'before' ? '前' : '后'}截图失败：${page.url()}`,
+            { cause: error },
+          );
+
+          return;
+        }
+
         throw error;
       }
 
@@ -225,6 +241,7 @@ export class RunRecorder {
     void logsStopped.catch(() => {});
     await this.queue;
     if (this.captureError) errors.push(this.captureError);
+    if (this.screenshotError) errors.push(this.screenshotError);
     const page = this.activePage();
 
     if (!interrupted && page) await attempt(() => this.capture(page, 'final'));

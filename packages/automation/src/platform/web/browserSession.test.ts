@@ -114,9 +114,12 @@ describe('BrowserSession', () => {
       await page.evaluate(() => window.open('about:blank'));
       await popup;
 
-      return { tree: {}, page: { url: 'stale', focused: null } };
+      return { tree: [], page: { url: 'stale', focused: null } };
     });
-    read.mockResolvedValueOnce({ tree: {}, page: { url: 'fresh', focused: null } });
+    read.mockResolvedValueOnce({
+      tree: [],
+      page: { url: 'fresh', focused: null },
+    });
     expect((await session.observe(observer)).page.url).toBe('fresh');
     expect(read).toHaveBeenCalledTimes(2);
   });

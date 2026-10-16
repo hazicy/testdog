@@ -5,6 +5,7 @@ import { BrowserSession } from '@testdog/automation/platform/web/browserSession'
 import { Observer } from '@testdog/automation/platform/web/observer';
 import { executeWebAction } from '@testdog/automation/platform/web/webActions';
 import { locateWebElement } from '@testdog/automation/platform/web/webLocator';
+import { captureWebScreenshot } from '@testdog/automation/platform/web/screenshot';
 import type { ExecutionHooks } from '@testdog/contracts/runs/types';
 import type {
   AutomationSession,
@@ -15,6 +16,7 @@ import type {
   CaptureRequest,
   ArtifactDescriptor,
   ReplayStep,
+  ObservationRequest,
 } from '@testdog/contracts/automation/platform/contracts';
 
 export class PlaywrightSession implements AutomationSession {
@@ -24,7 +26,7 @@ export class PlaywrightSession implements AutomationSession {
     actions: ['navigate', 'click', 'fill', 'press', 'wait', 'screenshot'],
     artifacts: ['screenshot', 'video', 'trace', 'console', 'network'],
     assertions: ['semantic', 'visible', 'text', 'containsText', 'value', 'url'],
-    observations: ['aria-tree', 'url', 'focused-element'],
+    observations: ['aria-tree', 'url', 'focused-element', 'regions'],
   };
   private session: BrowserSession;
   private observer = new Observer();
@@ -78,7 +80,7 @@ export class PlaywrightSession implements AutomationSession {
       browserAction &&
       browserAction.type !== 'navigate' &&
       browserAction.type !== 'wait' &&
-      browserAction.target.kind === 'ariaRef'
+      (browserAction.target.kind === 'ariaRef' || browserAction.target.scope?.kind === 'ariaRef')
     )
       throw new Error('该步骤没有稳定定位器，请重新录制');
   }
@@ -91,9 +93,9 @@ export class PlaywrightSession implements AutomationSession {
     return this.session.version;
   }
 
-  async observe(signal: AbortSignal): Promise<Observation> {
+  async observe(signal: AbortSignal, request?: ObservationRequest): Promise<Observation> {
     signal.throwIfAborted();
-    const observation = await this.session.observe(this.observer);
+    const observation = await this.session.observe(this.observer, request);
 
     signal.throwIfAborted();
 
@@ -181,7 +183,7 @@ export class PlaywrightSession implements AutomationSession {
     return [
       {
         kind: 'screenshot',
-        bytes: await this.session.page.screenshot({
+        bytes: await captureWebScreenshot(this.session.page, {
           type: 'png',
           timeout: 15000,
         }),

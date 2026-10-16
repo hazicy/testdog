@@ -30,7 +30,7 @@ export function modelBudgetFromEnv(): ModelBudget {
   const defaults: ModelBudget = {
     timeoutMs: 60000,
     maxCalls: 60,
-    maxTokens: 200000,
+    maxTokens: 1000000,
     maxDurationMs: 300000,
     maxRetries: 1,
     maxOutputTokens: 8192,

@@ -1,6 +1,7 @@
 import type { Frame, Page } from 'playwright';
 import type { WaitStep } from '@testdog/contracts/automation/compiler/schema';
 import type { Observer } from '@testdog/automation/platform/web/observer';
+import type { ObservationRequest } from '@testdog/contracts/automation/platform/contracts';
 
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const navigationRace = (error: unknown) =>
@@ -64,7 +65,7 @@ export class BrowserSession {
     await action(this.page);
   }
 
-  async observe(observer: Observer) {
+  async observe(observer: Observer, request?: ObservationRequest) {
     const deadline = Date.now() + 5000;
 
     do {
@@ -72,7 +73,7 @@ export class BrowserSession {
       const revision = this.revision;
 
       try {
-        const observation = await observer.observe(page);
+        const observation = await observer.observe(page, request);
 
         if (page === this.page && revision === this.revision) return observation;
       } catch (error) {

@@ -4,6 +4,7 @@ import { StepSchema, type Target } from '@testdog/contracts/automation/compiler/
 import { executeWebAction } from '@testdog/automation/platform/web/webActions';
 import { locateWebElement } from '@testdog/automation/platform/web/webLocator';
 import { PlaywrightSession } from '@testdog/automation/platform/web/playwrightSession';
+import { ReplanRequiredError } from '@testdog/automation/replanning';
 
 const ActionSchema = StepSchema.options[0];
 
@@ -94,4 +95,24 @@ it('allows the platform session to perform and check actions using the extracted
   } finally {
     await session.close();
   }
+});
+
+it('reports intercepted clicks as safe to replan only when no input was dispatched', async () => {
+  await page.setContent(`
+    <button id="background" onclick="this.dataset.clicked='yes'">Background</button>
+    <div role="dialog" aria-modal="true" style="position:fixed;inset:0;background:white">Modal</div>
+  `);
+  page.setDefaultTimeout(200);
+
+  await expect(
+    executeWebAction(
+      page,
+      ActionSchema.parse({
+        type: 'click',
+        target: { kind: 'css', value: '#background' },
+        value: '',
+      }),
+    ),
+  ).rejects.toBeInstanceOf(ReplanRequiredError);
+  expect(await page.locator('#background').getAttribute('data-clicked')).toBeNull();
 });

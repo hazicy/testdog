@@ -59,3 +59,30 @@ it('rejects model decisions with no supporting evidence', async () => {
     }),
   ).rejects.toThrow();
 });
+
+it('evaluates the complete raw observation even when a region was requested', async () => {
+  const generate = vi.fn<ModelClient['generate']>().mockResolvedValue({
+    role: 'assistant',
+    content: { type: 'text', text: '' },
+    outputFormat: 'json_schema',
+    toolCalls: [],
+    structuredContent: { passed: true, evidence: 'Last table row exists' },
+  });
+  const raw = {
+    ...observation,
+    tree: [{ role: 'cell', name: 'Last table row' }],
+    requestedRegion: 'e5',
+  };
+
+  await new SemanticEvaluator({ generate }).evaluate({
+    subject: { assertion: 'Last table row exists' },
+    observation: raw,
+    name: 'assertion_result',
+    signal: new AbortController().signal,
+  });
+  const block = generate.mock.calls[0][0].messages[0].content as { text: string };
+  const payload = JSON.parse(block.text);
+
+  expect(payload.observation.tree).toEqual(raw.tree);
+  expect(payload.observation).toEqual(raw);
+});

@@ -50,6 +50,7 @@ async function fixture() {
     off: vi.fn(),
     url: () => 'https://example.com',
     screenshot: vi.fn(async () => Buffer.from('jpeg')),
+    bringToFront: vi.fn(async () => {}),
     video: () => ({
       saveAs: async (path: string) => {
         await copyFile(video, path);
@@ -197,6 +198,52 @@ describe('recorder cleanup and partial archive recovery', () => {
     expect(page.screenshot).toHaveBeenCalledTimes(1);
     expect(preview.publishPreview).not.toHaveBeenCalled();
     await recorder.stop(browserContext);
+  });
+
+  it('recovers a transient screenshot protocol failure without losing evidence', async () => {
+    const { recorder, browserContext, page } = await fixture();
+
+    page.screenshot.mockRejectedValueOnce(
+      new Error('Page.captureScreenshot: Unable to capture screenshot'),
+    );
+    await recorder.capture(page as unknown as Page, 'before');
+    expect(page.screenshot).toHaveBeenCalledTimes(2);
+    expect(page.bringToFront).toHaveBeenCalledOnce();
+    await recorder.stop(browserContext);
+    expect(store.insertArtifact.mock.calls.map(([artifact]) => artifact.stage)).toContain('before');
+  });
+
+  it('continues subsequent steps after missing screenshots and reports incomplete evidence at archival', async () => {
+    const { recorder, context, browserContext, page } = await fixture();
+    const browserPage = page as unknown as Page;
+
+    page.screenshot.mockRejectedValue(
+      new Error('Page.captureScreenshot: Unable to capture screenshot'),
+    );
+    for (const id of [randomUUID(), randomUUID()]) {
+      await recorder.onStep({ id, kind: 'assertion', title: 'Check', phase: 'start' }, browserPage);
+      await recorder.onStep(
+        { id, kind: 'assertion', title: 'Check', phase: 'finish' },
+        browserPage,
+      );
+      expect(store.finishStep).toHaveBeenCalledWith(
+        id,
+        expect.objectContaining({ status: 'passed' }),
+      );
+    }
+
+    const stopping = recorder.stop(browserContext);
+
+    await expect(stopping).rejects.toMatchObject({
+      errors: expect.arrayContaining([
+        expect.objectContaining({ message: '步骤前截图失败：https://example.com' }),
+      ]),
+    });
+    expect(context.close).toHaveBeenCalledOnce();
+    expect(store.insertArtifact.mock.calls.map(([artifact]) => artifact.kind)).toEqual([
+      'trace',
+      'video',
+    ]);
   });
 
   it('archives trace and video and closes the context even when the final screenshot fails', async () => {

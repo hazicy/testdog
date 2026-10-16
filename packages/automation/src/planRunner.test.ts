@@ -9,9 +9,212 @@ import type {
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
 import { PlanRunner } from '@testdog/automation/planRunner';
 
+import { ReplanRequiredError } from '@testdog/automation/replanning';
+
 const evaluator = { evaluate: vi.fn(async () => ({ passed: true, evidence: 'Verified' })) };
 
 beforeEach(() => vi.clearAllMocks());
+
+const tap = (value: string) => ({
+  platform: 'ios' as const,
+  action: { type: 'tap' as const, target: { kind: 'identifier' as const, value } },
+});
+
+it('forwards AI-selected region observations without recording or dispatching input and resumes the task', async () => {
+  const driver = session(false);
+  const observed = vi.fn<AutomationSession['observe']>(async (_signal, request) => {
+    const observation = await driver.observe();
+
+    return {
+      ...observation,
+      surface: { platform: 'web', id: 'page' },
+      requestedRegion: request?.ref,
+    };
+  });
+  const web = {
+    ...driver,
+    get revision() {
+      return driver.revision;
+    },
+    platform: 'web' as const,
+    observe: observed,
+    capabilities: { actions: ['click'], artifacts: [], assertions: [], observations: ['regions'] },
+  };
+  const click = {
+    platform: 'web' as const,
+    action: {
+      type: 'click' as const,
+      target: { kind: 'ariaRef' as const, value: 'e3', name: '' },
+      value: '',
+    },
+  };
+  const planner = {
+    plan: vi
+      .fn<ActionPlanner['plan']>()
+      .mockResolvedValueOnce({ done: false, steps: [], observe: { ref: 'e2' } })
+      .mockResolvedValueOnce({ done: false, steps: [click] })
+      .mockResolvedValue({ done: true, steps: [] }),
+  };
+
+  await new PlanRunner({ evaluator, session: web, planner, signal, plan }).record();
+  expect(observed.mock.calls.map(([, request]) => request)).toEqual([
+    undefined,
+    { ref: 'e2' },
+    undefined,
+  ]);
+  expect(driver.perform).toHaveBeenCalledExactlyOnceWith(click, signal);
+  expect(planner.plan.mock.calls[1][0]).toMatchObject({
+    completedSteps: [],
+    observation: { requestedRegion: 'e2' },
+  });
+  expect(driver.emit.mock.calls.every(([event]) => event.action?.action.type === 'click')).toBe(
+    true,
+  );
+});
+
+it('bounds repeated region inspections without dispatching or recording business actions', async () => {
+  const driver = session();
+  const web = {
+    ...driver,
+    get revision() {
+      return driver.revision;
+    },
+    capabilities: { ...driver.capabilities, observations: ['regions'] },
+  };
+  const planner = {
+    plan: vi
+      .fn<ActionPlanner['plan']>()
+      .mockResolvedValue({ done: false, steps: [], observe: { ref: '' } }),
+  };
+
+  await expect(
+    new PlanRunner({ evaluator, session: web, planner, signal, plan }).record(),
+  ).rejects.toThrow('Exceeded 20 actions');
+  expect(driver.perform).not.toHaveBeenCalled();
+  expect(driver.emit).not.toHaveBeenCalled();
+});
+
+it('rejects region requests mixed with actions or from unsupported sessions', async () => {
+  for (const steps of [[], [tap('submit')]]) {
+    const driver = session();
+    const planner = {
+      plan: vi
+        .fn<ActionPlanner['plan']>()
+        .mockResolvedValue({ done: false, steps, observe: { ref: 'e1' } }),
+    };
+
+    await expect(
+      new PlanRunner({ evaluator, session: driver, planner, signal, plan }).record(),
+    ).rejects.toThrow(steps.length ? 'must not be combined' : 'does not support region');
+    expect(driver.perform).not.toHaveBeenCalled();
+  }
+});
+
+it('reobserves after blocked input without replaying completed actions or dispatching the remaining batch', async () => {
+  const driver = session(false);
+  const first = tap('first');
+  const blocked = tap('blocked');
+  const replacement = tap('replacement');
+
+  driver.perform
+    .mockResolvedValueOnce(undefined)
+    .mockRejectedValueOnce(new ReplanRequiredError('Blocked before input'))
+    .mockResolvedValue(undefined);
+  const planner = {
+    plan: vi
+      .fn<ActionPlanner['plan']>()
+      .mockResolvedValueOnce({ done: false, steps: [first, blocked, tap('stale')] })
+      .mockResolvedValueOnce({ done: false, steps: [replacement] })
+      .mockResolvedValue({ done: true, steps: [] }),
+  };
+
+  await new PlanRunner({ evaluator, session: driver, planner, signal, plan }).record();
+  expect(driver.perform.mock.calls.map(([action]) => action)).toEqual([
+    first,
+    blocked,
+    replacement,
+  ]);
+  expect(planner.plan.mock.calls[1][0]).toMatchObject({
+    completedSteps: [first],
+    previousFailure: { reason: 'Blocked before input', action: blocked },
+  });
+  expect(planner.plan.mock.calls[1][0].observation).not.toBe(
+    planner.plan.mock.calls[0][0].observation,
+  );
+  expect(driver.emit).toHaveBeenCalledWith(
+    expect.objectContaining({ phase: 'error', action: blocked }),
+  );
+});
+
+it('limits recovery to two replans per task', async () => {
+  const driver = session();
+
+  driver.perform.mockRejectedValue(new ReplanRequiredError('Still blocked'));
+  const planner = {
+    plan: vi
+      .fn<ActionPlanner['plan']>()
+      .mockResolvedValue({ done: false, steps: [tap('blocked')] }),
+  };
+
+  await expect(
+    new PlanRunner({ evaluator, session: driver, planner, signal, plan }).record(),
+  ).rejects.toThrow('Still blocked');
+  expect(planner.plan).toHaveBeenCalledTimes(3);
+  expect(driver.perform).toHaveBeenCalledTimes(3);
+});
+
+it('reobserves an invalid planned ref before dispatching any input', async () => {
+  const driver = session();
+  const planner = {
+    plan: vi
+      .fn<ActionPlanner['plan']>()
+      .mockRejectedValueOnce(new ReplanRequiredError('Invalid ref'))
+      .mockResolvedValueOnce({ done: false, steps: [tap('current')] })
+      .mockResolvedValue({ done: true, steps: [] }),
+  };
+
+  await new PlanRunner({ evaluator, session: driver, planner, signal, plan }).record();
+  expect(driver.perform).toHaveBeenCalledOnce();
+  expect(planner.plan.mock.calls[1][0]).toMatchObject({
+    completedSteps: [],
+    previousFailure: { reason: 'Invalid ref' },
+  });
+});
+
+it('does not replan errors with uncertain dispatch or failed evidence capture', async () => {
+  for (const error of [
+    new Error('Navigation timed out after click'),
+    new AggregateError([new ReplanRequiredError('Blocked'), new Error('Evidence failed')]),
+  ]) {
+    const driver = session();
+
+    driver.perform.mockRejectedValue(error);
+    const planner = {
+      plan: vi
+        .fn<ActionPlanner['plan']>()
+        .mockResolvedValue({ done: false, steps: [tap('submit')] }),
+    };
+
+    await expect(
+      new PlanRunner({ evaluator, session: driver, planner, signal, plan }).record(),
+    ).rejects.toBe(error);
+    expect(planner.plan).toHaveBeenCalledOnce();
+  }
+});
+
+it('never replans a blocked deterministic replay', async () => {
+  const driver = session();
+
+  driver.perform.mockRejectedValue(new ReplanRequiredError('Blocked'));
+  const planner = { plan: vi.fn() };
+
+  await expect(
+    new PlanRunner({ evaluator, session: driver, planner, signal, plan }).replay([
+      { surfaceId: 'app', event: { kind: 'action', title: 'Submit', action: tap('submit') } },
+    ]),
+  ).rejects.toThrow('Blocked');
+  expect(planner.plan).not.toHaveBeenCalled();
+});
 
 it('associates every dispatched action in a batch with its model and tool call', async () => {
   const driver = session(false);
@@ -106,7 +309,7 @@ function session(reobserveAfterAction = true) {
       capturedAt: new Date().toISOString(),
       surface: { platform: 'ios', id: 'app' },
     })),
-    perform: vi.fn(async () => {}),
+    perform: vi.fn<AutomationSession['perform']>(async () => {}),
     emit: vi.fn<(event: SessionEvent) => Promise<void>>(async () => {}),
     check: vi.fn(async () => ({ passed: true, evidence: 'Welcome Ada' })),
     close: vi.fn(),

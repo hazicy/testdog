@@ -10,37 +10,35 @@ import {
   type Step,
 } from '@testdog/contracts/automation/compiler/schema';
 import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
+import { ReplanRequiredError } from '@testdog/automation/replanning';
+import {
+  findAriaNode,
+  observationView,
+  type AriaNode,
+} from '@testdog/automation/platform/web/observationView';
 
 const RefSchema = z.string().regex(/^(?:f\d+)?e\d+$/, 'Expected an ARIA ref token');
-
-function observedTarget(
-  tree: unknown,
-  ref: string,
-): { role?: string; name?: string; url?: string } | undefined {
-  if (!tree || typeof tree !== 'object') return;
-  const node = tree as Record<string, unknown>;
-
-  if (node.ref === ref)
-    return {
-      ...(typeof node.role === 'string' ? { role: node.role } : {}),
-      ...(typeof node.name === 'string' ? { name: node.name } : {}),
-      ...(typeof node.url === 'string' ? { url: node.url } : {}),
-    };
-  for (const child of Object.values(node)) {
-    const match = observedTarget(child, ref);
-
-    if (match) return match;
-  }
-}
+const RelativeLocatorSchema = z.strictObject({
+  kind: z.enum(['role', 'label', 'placeholder', 'testId', 'text']),
+  value: z.string().min(1),
+  name: z.string(),
+});
 
 function describeCompletedAction(step: PlatformAction, observation?: Observation) {
   if (step.platform !== 'web') return [];
   const action = step.action;
   const originalTarget = 'target' in action ? action.target : undefined;
-  const target =
+  const observed =
     originalTarget?.kind === 'ariaRef'
-      ? observedTarget(observation?.tree, originalTarget.value)
+      ? findAriaNode(observation?.tree, originalTarget.value)
       : undefined;
+  const target = observed
+    ? {
+        role: observed.role,
+        ...(observed.name === undefined ? {} : { name: observed.name }),
+        ...(typeof observed.url === 'string' ? { url: observed.url } : {}),
+      }
+    : undefined;
 
   return [
     {
@@ -53,25 +51,37 @@ function describeCompletedAction(step: PlatformAction, observation?: Observation
 
 const ActionArguments = {
   done: z.strictObject({}),
+  observe: z.strictObject({ ref: z.union([RefSchema, z.literal('')]) }),
   navigate: z.strictObject({ url: z.url().refine((url) => /^https?:\/\//.test(url)) }),
   click: z.strictObject({ ref: RefSchema }),
   fill: z.strictObject({ ref: RefSchema, value: z.string() }),
   press: z.strictObject({ ref: RefSchema, value: z.string().min(1) }),
+  act_in: z.strictObject({
+    type: z.enum(['click', 'fill', 'press']),
+    scopeRef: RefSchema,
+    locator: RelativeLocatorSchema,
+    value: z.string(),
+  }),
   wait: WaitStepSchema.omit({ type: true }).strict(),
+};
+const ToolDescriptions: Record<keyof typeof ActionArguments, string> = {
+  act_in:
+    'Click, fill or press using a locator inside an observed region scopeRef. Use when the region and target are clear, without an extra observe call. locator uses role, label, placeholder, testId or text; name is the exact accessible name for role, otherwise empty. value is empty for click, input text for fill, or a key for press. The region and target must each match exactly one element; inspect the region if missing or ambiguous.',
+  done: 'Finish only when the observed result confirms every requested action in the current goal is complete. A link transition completes that navigation, not any explicitly requested actions on the destination page.',
+  observe:
+    'Inspect a region using a ref from the current observation. Returns its full subtree and a fresh page overview without browser input. Use an empty ref to return to the page overview. This must be the only tool call in the response.',
+  wait: 'Wait without browser input, then observe again. condition: observe (pause), newPage, url (substring), text (visible text). value is required for url/text; use an empty string otherwise. timeoutMs: 1000–5000.',
+  navigate: 'Navigate to an absolute HTTP or HTTPS URL.',
+  fill: 'Fill an editable text input, textarea or contenteditable element in the current observation. Never target a button or link, even if its name says Search or its label matches the requested field. ref must be only its ARIA token, e.g. e18 or f1e297.',
+  click:
+    'Click an element in the current observation. ref must be only its ARIA token, e.g. e18 or f1e297.',
+  press:
+    'Press a key on an element in the current observation. ref must be only its ARIA token, e.g. e18 or f1e297.',
 };
 const ActionTools = Object.entries(ActionArguments).map(([name, schema]) => ({
   type: 'function' as const,
   name,
-  description:
-    name === 'done'
-      ? 'Finish only when the observed result confirms every requested action in the current goal is complete. A link transition completes that navigation, not any explicitly requested actions on the destination page.'
-      : name === 'wait'
-        ? 'Wait without browser input, then observe again. condition: observe (pause), newPage, url (substring), text (visible text). value is required for url/text; use an empty string otherwise. timeoutMs: 1000–5000.'
-        : name === 'navigate'
-          ? 'Navigate to an absolute HTTP or HTTPS URL.'
-          : name === 'fill'
-            ? 'Fill an editable text input, textarea or contenteditable element in the current observation. Never target a button or link, even if its name says Search or its label matches the requested field. ref must be only its ARIA token, e.g. e18 or f1e297.'
-            : `${name} on an element in the current observation. ref must be only its ARIA token, e.g. e18 or f1e297.`,
+  description: ToolDescriptions[name as keyof typeof ActionArguments],
   // DeepSeek rejects JSON Schema format: "uri"; validate URLs locally instead.
   parameters: z.toJSONSchema(
     name === 'navigate'
@@ -88,8 +98,18 @@ export class WebActionPlanner implements ActionPlanner {
   ) {}
   async plan(input: Parameters<ActionPlanner['plan']>[0]) {
     const { completedObservations, ...currentInput } = input;
+    const { requestedRegion, ...observation } = input.observation;
+    const view = observationView(
+      observation.tree as AriaNode[],
+      typeof requestedRegion === 'string' ? requestedRegion : undefined,
+    );
+    const planningObservation = {
+      ...observation,
+      ...view,
+    };
     const browserInput = {
       ...currentInput,
+      observation: planningObservation,
       preconditions: [],
       completedSteps: input.completedSteps.flatMap((step, index) =>
         describeCompletedAction(step, completedObservations?.[index]),
@@ -135,7 +155,17 @@ export class WebActionPlanner implements ActionPlanner {
       Use condition observe when no concrete readiness signal is available. A wait never proves success;
       only a fresh observation can. remainingWaitMs is the task's remaining wait budget.
       A wait must be the only call in its response, so subsequent actions use fresh refs.
-      Available tools are done, navigate, click, fill, press, wait. For click, fill and press, ref must be
+      The page tree can be a compact overview: omittedChildren and truncated mark summarized content.
+      Use a control's ref directly when clear. When ownership distinguishes similar controls,
+      use act_in with an observed region scopeRef and a relative semantic locator.
+      No extra observe call is needed if the region and locator are clear. If information is
+      insufficient or a locator was missing or ambiguous, use observe to inspect the region.
+      Observe expands that subtree; it never clicks or fills.
+      A focused observation also includes a fresh page overview so you can discover new content
+      outside the selected region and inspect another region. An empty ref returns to the overview.
+      missingRegion means the requested region disappeared; choose a fresh ref from the overview.
+      Observe must be the only call in its response. A region inspection does not complete a business action.
+      Available tools are done, observe, act_in, navigate, click, fill, press, wait. For click, fill and press, ref must be
       only an ARIA ref token from the current observation, such as e18 or f1e297, never a node description.`,
       messages: [
         {
@@ -148,6 +178,14 @@ export class WebActionPlanner implements ActionPlanner {
     });
 
     const calls = response.toolCalls;
+    const validateRef = (ref: string) => {
+      if (ref && !findAriaNode(view.tree, ref) && !findAriaNode(view.overview, ref))
+        throw Object.assign(
+          new ReplanRequiredError(`目标 ${ref} 不在当前观察中，请根据最新观察重新选择目标`),
+          { modelCallId: response.callId },
+        );
+    };
+
     const isDone = /(?:^|\n)\s*DONE\s*$/.test(response.content.text.trim());
     const doneCall = calls.find((call) => call.name === 'done');
 
@@ -174,6 +212,23 @@ export class WebActionPlanner implements ActionPlanner {
       throw new Error('Planner must return one or more action tool calls or DONE');
     }
 
+    const inspect = calls.find((call) => call.name === 'observe');
+
+    if (inspect) {
+      if (calls.length !== 1)
+        throw new Error('Region observation must not be combined with browser actions');
+      const request = ActionArguments.observe.parse(JSON.parse(inspect.arguments));
+
+      validateRef(request.ref);
+
+      return {
+        done: false,
+        steps: [],
+        observe: request,
+        ...(response.callId ? { modelCallId: response.callId } : {}),
+      };
+    }
+
     const steps = calls.map((call): Step => {
       if (!Object.hasOwn(ActionArguments, call.name)) {
         throw new Error(`Unknown browser action tool: ${call.name}`);
@@ -189,6 +244,19 @@ export class WebActionPlanner implements ActionPlanner {
 
         return StepSchema.parse({ type: 'wait', ...args });
       }
+
+      if ('scopeRef' in args) {
+        validateRef(args.scopeRef);
+        if (args.type === 'press' && !args.value.trim()) throw new Error('Press requires a key');
+
+        return StepSchema.parse({
+          type: args.type,
+          value: args.value,
+          target: { ...args.locator, scope: { kind: 'ariaRef', value: args.scopeRef } },
+        });
+      }
+
+      if ('ref' in args) validateRef(args.ref);
 
       return StepSchema.parse({
         type: call.name,
