@@ -185,7 +185,7 @@ it('lays out sibling groups and merges their exits before the following step', (
   );
   expect(
     layout.insertions.filter((slot) => slot.groupId === 'root').map((slot) => slot.index),
-  ).toEqual([0, 3]);
+  ).toEqual([0, 1, 2, 3]);
   expect(plan).toEqual(original);
   expect(layoutPlan(plan)).toEqual(layout);
 });
@@ -265,7 +265,7 @@ it('connects groups inserted at the parent first slot to that parent, not to the
   expect(plan.nodes.root).toMatchObject({ children: ['new', 'existing'] });
 });
 
-it('shows exactly one insertion per visible group, with none between or after sibling groups', () => {
+it('distinguishes child insertion below a group from sibling insertion beside it', () => {
   const layout = layoutPlan(
     PlanSchema.parse({
       rootId: 'root',
@@ -280,8 +280,26 @@ it('shows exactly one insertion per visible group, with none between or after si
   expect(layout.insertions.map(({ groupId, index }) => ({ groupId, index }))).toEqual([
     { groupId: 'root', index: 0 },
     { groupId: 'left', index: 0 },
+    { groupId: 'root', index: 1 },
     { groupId: 'right', index: 0 },
+    { groupId: 'root', index: 2 },
   ]);
+  for (const slot of layout.insertions) {
+    const anchor = layout.nodes.find((node) => node.id === slot.anchorId)!;
+
+    if (slot.placement === 'beside') {
+      expect(slot.position.x).toBeGreaterThan(anchor.position.x + anchor.width);
+      expect(slot.position.y + 18).toBe(anchor.position.y + anchor.height / 2);
+    } else expect(slot.position.y).toBeGreaterThan(anchor.position.y + anchor.height);
+    for (const node of layout.nodes)
+      expect(
+        slot.position.x + 36 <= node.position.x ||
+          slot.position.x >= node.position.x + node.width ||
+          slot.position.y + 36 <= node.position.y ||
+          slot.position.y >= node.position.y + node.height,
+        `${slot.id} overlaps ${node.id}`,
+      ).toBe(true);
+  }
 });
 
 it('does not duplicate insertion points at hidden sequence boundaries', () => {
@@ -300,7 +318,7 @@ it('does not duplicate insertion points at hidden sequence boundaries', () => {
   expect(layout.insertions.map(({ groupId, index }) => ({ groupId, index }))).toEqual([
     { groupId: 'root', index: 0 },
     { groupId: 'hidden', index: 1 },
-    { groupId: 'hidden', index: 2 },
+    { groupId: 'root', index: 1 },
   ]);
   const positions = layout.insertions.map((slot) => JSON.stringify(slot.position));
 
@@ -383,7 +401,7 @@ it('uses cross-group dependencies to position nodes in execution order', () => {
 });
 
 it.each([false, true])(
-  'positions the branch insertion below both exits (results: %s)',
+  'separates branch sibling insertion from its path insertions (results: %s)',
   (results) => {
     const plan = PlanSchema.parse({
       rootId: 'root',
@@ -406,14 +424,66 @@ it.each([false, true])(
     const insertion = layout.insertions.find(
       (slot) => slot.groupId === 'root' && slot.index === 1,
     )!;
-    const after = layout.nodes.find((node) => node.planNodeId === 'after')!;
+    const branch = layout.nodes.find((node) => node.planNodeId === 'branch')!;
 
-    for (const id of ['yes', 'no']) {
-      const node = layout.nodes.find((node) => node.planNodeId === id)!;
-
-      expect(insertion.position.y).toBeGreaterThan(node.position.y + node.height);
-    }
-
-    expect(insertion.position.y + 36).toBeLessThan(after.position.y);
+    expect(insertion.placement).toBe('beside');
+    expect(insertion.anchorId).toBe(branch.id);
+    expect(insertion.position.x).toBeGreaterThan(branch.position.x + branch.width);
+    expect(insertion.position.y + 18).toBe(branch.position.y + branch.height / 2);
+    for (const node of layout.nodes)
+      expect(
+        insertion.position.x + 36 <= node.position.x ||
+          insertion.position.x >= node.position.x + node.width ||
+          insertion.position.y + 36 <= node.position.y ||
+          insertion.position.y >= node.position.y + node.height,
+        `${insertion.id} overlaps ${node.id}`,
+      ).toBe(true);
   },
 );
+
+it('exposes parent slots after hidden sequences while preserving internal gaps', () => {
+  const layout = layoutPlan(
+    PlanSchema.parse({
+      rootId: 'root',
+      nodes: {
+        root: group('root', ['first', 'second']),
+        first: { ...group('first', ['action', 'assertion']), presentation: 'sequence' },
+        second: { ...group('second', ['last']), presentation: 'sequence' },
+        action: task('action'),
+        assertion: task('assertion'),
+        last: task('last'),
+      },
+    }),
+  );
+
+  expect(layout.insertions.map(({ groupId, index }) => ({ groupId, index }))).toEqual([
+    { groupId: 'root', index: 0 },
+    { groupId: 'first', index: 1 },
+    { groupId: 'root', index: 1 },
+    { groupId: 'root', index: 2 },
+  ]);
+  expect(new Set(layout.insertions.map((slot) => slot.id)).size).toBe(layout.insertions.length);
+});
+
+it('keeps nested branch sibling and empty-path insertion targets separate', () => {
+  let plan = insertStep(emptyPlan('Root'), { groupId: 'root', index: 0 }, 'branch', 'outer');
+
+  plan = insertStep(plan, { groupId: 'outer:then', index: 0 }, 'branch', 'inner');
+  const layout = layoutPlan(plan);
+
+  for (const slot of layout.insertions) {
+    for (const other of [...layout.nodes, ...layout.insertions]) {
+      if (slot === other) continue;
+      const width = 'width' in other ? other.width : 36;
+      const height = 'height' in other ? other.height : 36;
+
+      expect(
+        slot.position.x + 36 <= other.position.x ||
+          slot.position.x >= other.position.x + width ||
+          slot.position.y + 36 <= other.position.y ||
+          slot.position.y >= other.position.y + height,
+        `${slot.id} overlaps ${other.id}`,
+      ).toBe(true);
+    }
+  }
+});

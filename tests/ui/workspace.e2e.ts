@@ -1784,10 +1784,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
       .getByRole('menuitem')
       .filter({ hasText: new RegExp(`^${type}`) })
       .click();
-    await dialog
-      .locator(`[data-step-type="${type.toLowerCase()}"] [data-ui~="plan-content-button"]`)
-      .last()
-      .click();
+    await expect(dialog.getByRole('textbox', { name: /^节点内容/ })).toBeFocused();
     await dialog.getByRole('textbox', { name: /^节点内容/ }).fill(text);
     await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
   }
@@ -1796,7 +1793,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   // Insertion at the first slot changes execution order, rather than always appending.
   await dialog.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
   await page.getByRole('menuitem').filter({ hasText: /^Act/ }).click();
-  await dialog.locator('[data-step-type=act] [data-ui~="plan-content-button"]').first().click();
+  await expect(dialog.getByRole('textbox', { name: /^节点内容/ })).toBeFocused();
   await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('检查前置环境');
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
   await expect(page).toHaveURL(/\/cases\/editor\//);
@@ -2010,7 +2007,7 @@ test('adds adjacent groups as columns with independent insertion points', async 
   }
 
   await expect(groups).toHaveCount(2);
-  await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(3);
+  await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(5);
   await canvas.screenshot({ path: testInfo.outputPath('group-insertions.png') });
   await expect
     .poll(async () => {
@@ -2047,7 +2044,7 @@ test('adds adjacent groups as columns with independent insertion points', async 
   await leftGroup.hover();
   await leftGroup.getByRole('button', { name: `复制节点 ${leftId}`, exact: true }).click();
   await expect(groups).toHaveCount(3);
-  await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(4);
+  await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(7);
   const copy = groups.locator(
     `:scope:not([data-plan-node="${leftId}"]):not([data-plan-node="${rightId}"])`,
   );
@@ -2056,7 +2053,7 @@ test('adds adjacent groups as columns with independent insertion points', async 
   await copy.hover();
   await copy.getByRole('button', { name: `删除节点 ${copyId}`, exact: true }).click();
   await expect(groups).toHaveCount(2);
-  await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(3);
+  await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(5);
 
   for (const id of [leftId, rightId]) {
     await canvas
@@ -2082,8 +2079,8 @@ test('adds adjacent groups as columns with independent insertion points', async 
     })
     .toBe(true);
   // Inserting a task between the groups places the second group below the first.
-  await canvas.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
-  await page.getByRole('combobox', { name: '插入位置', exact: true }).selectOption('1');
+  await canvas.getByRole('button', { name: '在 root 的第 2 个位置添加节点', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: '插入位置', exact: true })).toHaveCount(0);
   await page
     .getByRole('menuitem')
     .filter({ hasText: /^Assert/ })

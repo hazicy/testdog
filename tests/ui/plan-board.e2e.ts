@@ -186,3 +186,143 @@ test('canvas settings make room on phones and preserve edits when dismissed', as
   await page.keyboard.press('Escape');
   await expect(settings).toBeHidden();
 });
+
+test('insertion uses the clicked slot, cancels without changes and focuses the new content', async ({
+  page,
+}) => {
+  await page.route('**/api/tests*', (route) =>
+    route.fulfill({ json: { tests: [], nextCursor: null } }),
+  );
+  await page.route('**/api/workspace/stats', (route) =>
+    route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  const canvas = page.locator('[data-ui~="case-canvas-page"]');
+  const slot = (index: number) =>
+    canvas.getByRole('button', { name: `在 root 的第 ${index} 个位置添加节点`, exact: true });
+  const input = canvas.getByRole('textbox', { name: /^节点内容/ });
+
+  await slot(1).focus();
+  await slot(1).press('Enter');
+  const menu = page.getByRole('menu');
+
+  await expect(menu).toContainText('分组开头');
+  await expect(menu.getByRole('combobox')).toHaveCount(0);
+  await menu.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(slot(1)).toBeFocused();
+  await expect(canvas.locator('[data-step-type=act]')).toHaveCount(0);
+  await expect(canvas.getByRole('button', { name: '撤销画板操作' })).toBeDisabled();
+
+  await slot(1).press('Enter');
+  await menu.getByRole('menuitem').filter({ hasText: /^Act/ }).focus();
+  await page.keyboard.press('Enter');
+  await expect(menu).toBeHidden();
+  await expect(input).toBeFocused();
+  expect(
+    await input.evaluate((element: HTMLTextAreaElement) => [
+      element.selectionStart,
+      element.selectionEnd,
+    ]),
+  ).toEqual([0, '填写操作步骤'.length]);
+  await input.fill('第一步');
+  // Opening the next insertion commits the current draft before deriving its context.
+  await slot(2).click();
+  await expect(menu).toContainText('在「第一步」后');
+  await menu
+    .getByRole('menuitem')
+    .filter({ hasText: /^Assert/ })
+    .click();
+  await expect(input).toBeFocused();
+  await input.fill('最后一步');
+  await input.press('Enter');
+  await slot(2).hover();
+  await slot(2).click();
+  await menu.getByRole('menuitem').filter({ hasText: /^Act/ }).click();
+  await expect(input).toBeFocused();
+  await input.fill('中间一步');
+  await input.press('Enter');
+  const nodes = canvas.locator('[data-step-type=act], [data-step-type=assert]');
+
+  const contents = nodes.locator('[data-ui~="plan-content-button"]');
+
+  await expect(contents).toHaveText(['第一步', '中间一步', '最后一步']);
+  await canvas.getByRole('button', { name: '撤销画板操作' }).click();
+  await expect(contents).toHaveText(['第一步', '填写操作步骤', '最后一步']);
+  await canvas.getByRole('button', { name: '撤销画板操作' }).click();
+  await expect(contents).toHaveText(['第一步', '最后一步']);
+  await canvas.getByRole('button', { name: '重做画板操作' }).click();
+  await expect(input).toHaveCount(0);
+  await expect(nodes).toHaveCount(3);
+});
+
+test('branch insertion keeps each path separate and the continuation outside both paths on phones', async ({
+  page,
+}, testInfo) => {
+  await page.route('**/api/tests*', (route) =>
+    route.fulfill({ json: { tests: [], nextCursor: null } }),
+  );
+  await page.route('**/api/workspace/stats', (route) =>
+    route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  const canvas = page.locator('[data-ui~="case-canvas-page"]');
+  const input = canvas.getByRole('textbox', { name: /^节点内容/ });
+  const insert = async (group: string, position: number, type: string, text: string) => {
+    const trigger = canvas.getByRole('button', {
+      name: `在 ${group} 的第 ${position} 个位置添加节点`,
+      exact: true,
+    });
+
+    await trigger.click();
+    const menu = page.getByRole('menu');
+    const bounds = (await menu.boundingBox())!;
+
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(844);
+    await menu
+      .getByRole('menuitem')
+      .filter({ hasText: new RegExp(`^${type}`) })
+      .click();
+    await expect(input).toBeFocused();
+    await input.fill(text);
+    await input.press('Enter');
+  };
+
+  await insert('root', 1, 'Branch', '是否已登录？');
+  const branchId = (await canvas
+    .locator('[data-step-type=branch]')
+    .getAttribute('data-plan-node'))!;
+
+  await insert(`${branchId}:then`, 1, 'Navigate', 'https://example.com/home');
+  await canvas.getByRole('button', { name: '全览画板', exact: true }).click();
+  await insert(`${branchId}:otherwise`, 1, 'Act', '执行登录');
+  await canvas.getByRole('button', { name: '全览画板', exact: true }).click();
+  await insert('root', 2, 'Screenshot', '保存最终页面');
+  await canvas.getByRole('button', { name: '全览画板', exact: true }).click();
+  await canvas.screenshot({ path: testInfo.outputPath('branch-insertion-phone.png') });
+  await page.reload();
+  await expect(canvas.locator('[data-step-type=navigate]')).toContainText(
+    'https://example.com/home',
+  );
+  await expect(canvas.locator('[data-step-type=act]')).toContainText('执行登录');
+  await expect(canvas.locator('[data-step-type=screenshot]')).toContainText('保存最终页面');
+  await expect(
+    canvas.getByRole('button', { name: `在 ${branchId}:then 的第 2 个位置添加节点`, exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    canvas.getByRole('button', {
+      name: `在 ${branchId}:otherwise 的第 2 个位置添加节点`,
+      exact: true,
+    }),
+  ).toHaveCount(1);
+  await expect(
+    canvas.getByRole('button', { name: '在 root 的第 3 个位置添加节点', exact: true }),
+  ).toHaveCount(1);
+});

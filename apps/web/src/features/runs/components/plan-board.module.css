@@ -444,6 +444,12 @@
   }
 }
 
+.stepInsertArea[data-placement='beside'] {
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: 0;
+}
+
 .stepInsertArea[data-persistent='true'] .stepInsertTrigger,
 .stepInsertArea[data-revealed='true'] .stepInsertTrigger,
 .stepInsertArea:hover .stepInsertTrigger,
@@ -483,7 +489,11 @@
   border: var(--border-width) solid var(--canvas-group-line);
   border-radius: var(--radius-lg);
   box-shadow: 0 0.5rem 2rem var(--canvas-menu-shadow);
-  min-width: 18.75rem;
+  width: 22rem;
+  max-width: calc(100vw - var(--space-6));
+  max-height: var(--available-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   color: var(--canvas-menu-ink);
 }
 

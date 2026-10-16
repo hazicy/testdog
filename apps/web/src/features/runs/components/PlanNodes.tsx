@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
 import { asset } from '@/features/runs/presentation';
 import { type boardResult, planNodeTitle, stepResult } from '@/features/runs/lib/boardResults';
-import { memo, useId, useState } from 'react';
+import { memo, useEffect, useId, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
@@ -31,6 +31,8 @@ export type PlanFlowNode = Node<
   {
     node: PlanNode;
     reference: boolean;
+    autoEdit?: boolean;
+    onAutoEdit?: () => void;
     assertionIndex?: number;
     pathLabel?: string;
     steps: ExecutionStep[];
@@ -54,9 +56,8 @@ export type PlanFlowNode = Node<
 export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNode>) {
   const t = useTranslations('runs');
   const statusText = useTranslations('workspace');
-  const { node, steps } = data;
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
+  const { node, steps, autoEdit, onAutoEdit } = data;
+
   const [expanded, setExpanded] = useState(false);
   const actionsId = useId();
   const type =
@@ -66,6 +67,12 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
         ? (node.actionType ?? 'act')
         : node.kind;
   const content = planNodeTitle(node, data.assertionIndex);
+  const [editing, setEditing] = useState(!!autoEdit);
+  const [draft, setDraft] = useState(content);
+
+  useEffect(() => {
+    if (autoEdit) onAutoEdit?.();
+  }, [autoEdit, onAutoEdit]);
   const status = (data.result ?? stepResult(steps)).status;
   const beforeContent = data.review?.before
     ? planNodeTitle(data.review.before, data.assertionIndex)
@@ -176,6 +183,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
           {editing ? (
             <textarea
               autoFocus
+              onFocus={(event) => event.currentTarget.select()}
               className={clsx(boardStyles.planInlineInput, 'nodrag', 'nopan')}
               aria-label={t('nodeContent', { id: node.id })}
               value={draft}

@@ -50,6 +50,7 @@ export function usePlanBoard({
   const t = useTranslations('runs');
   const labels = useMessages().authoring;
   const [error, setError] = useState('');
+  const [editingNodeId, setEditingNodeId] = useState<string>();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const onNodesChange = useCallback((changes: NodeChange<BoardNode>[]) => {
     const selections = changes.filter((change) => change.type === 'select');
@@ -86,8 +87,12 @@ export function usePlanBoard({
     try {
       onChange?.(operation());
       setError('');
+
+      return true;
     } catch {
       setError(t('invalidReference'));
+
+      return false;
     }
   }
 
@@ -121,6 +126,8 @@ export function usePlanBoard({
       style: { width: item.width, height: item.height },
       data: {
         node,
+        autoEdit: editingNodeId === node.id,
+        onAutoEdit: () => setEditingNodeId(undefined),
         result: results && node.kind !== 'group' && !item.reference ? result : undefined,
         current: nodeSteps.some((step) => step.id === currentStepId),
         currentStepId,
@@ -186,15 +193,10 @@ export function usePlanBoard({
       const group = plan.nodes[item.groupId];
 
       if (group.kind !== 'group') continue;
-      const positions = [
-        { index: 0, label: t('groupStart') },
-        ...group.children.map((id, index) => {
-          const child = plan.nodes[id];
-          const title = child.kind === 'branch' ? child.condition : child.goal;
-
-          return { index: index + 1, label: t('afterNode', { title }) };
-        }),
-      ];
+      const previous = plan.nodes[group.children[item.index - 1]];
+      const position = previous
+        ? t('afterNode', { title: previous.kind === 'branch' ? previous.condition : previous.goal })
+        : t('groupStart');
 
       nodes.push({
         id: item.id,
@@ -209,16 +211,22 @@ export function usePlanBoard({
           persistent: item.index === group.children.length,
           revealed: !!item.anchorId && item.anchorId === hoveredId,
           label: t('insertNode', { group: item.groupId, index: item.index + 1 }),
-          index: item.index,
-          positions,
+          placement: item.placement,
           description: t('addToGroup', {
             group: group.goal,
-            position: positions[item.index].label,
+            position,
           }),
-          onInsert: (type, index) =>
-            commit(() =>
-              insertStep(plan, { groupId: item.groupId, index }, type, undefined, labels),
-            ),
+          onInsert: (type) => {
+            const id = crypto.randomUUID();
+            const inserted = commit(() => insertStep(plan, item, type, id, labels));
+
+            if (inserted) {
+              setSelectedIds(new Set([`plan:${id}`]));
+              setEditingNodeId(id);
+            }
+
+            return inserted;
+          },
           onDrop: (id: string) => commit(() => moveNode(plan, id, item)),
         },
       });

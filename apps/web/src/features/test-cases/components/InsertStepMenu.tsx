@@ -1,14 +1,12 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-
 import clsx from 'clsx';
 
 import boardStyles from '@/features/runs/components/plan-board.module.css';
 import styles from './InsertStepMenu.module.css';
 
 import { nodeDragType } from '@/features/runs/components/PlanNodes';
-import { useState } from 'react';
+import { useRef } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import type { Node, NodeProps } from '@xyflow/react';
 import {
@@ -19,11 +17,10 @@ import {
 
 export type InsertFlowNode = Node<
   {
-    onInsert: (type: BoardStepType, index: number) => void;
+    onInsert: (type: BoardStepType) => boolean;
     label: string;
     description: string;
-    index: number;
-    positions: { index: number; label: string }[];
+    placement: 'below' | 'beside';
     onDrop: (id: string) => void;
     persistent: boolean;
     revealed: boolean;
@@ -32,19 +29,19 @@ export type InsertFlowNode = Node<
 >;
 
 export function InsertStepMenu({ data }: NodeProps<InsertFlowNode>) {
-  const t = useTranslations('editor');
   const stepTypes = useStepTypes();
-  const [index, setIndex] = useState(data.index);
+  const inserted = useRef(false);
 
   return (
     <div
       className={boardStyles.stepInsertArea}
+      data-placement={data.placement}
       data-persistent={data.persistent}
       data-revealed={data.revealed}
     >
       <Menu.Root
         onOpenChange={(open) => {
-          if (open) setIndex(data.index);
+          if (open) inserted.current = false;
         }}
       >
         <Menu.Trigger
@@ -73,30 +70,19 @@ export function InsertStepMenu({ data }: NodeProps<InsertFlowNode>) {
             sideOffset={8}
             className={boardStyles.stepMenuPositioner}
           >
-            <Menu.Popup className={boardStyles.stepTypeMenu} aria-label={t('nodeType')}>
-              <label className={styles.field}>
-                {t('insertPosition')}
-                <select
-                  className={styles.select}
-                  aria-label={t('insertPosition')}
-                  value={index}
-                  onChange={(event) => setIndex(Number(event.target.value))}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Escape') event.stopPropagation();
-                  }}
-                >
-                  {data.positions.map((position) => (
-                    <option key={position.index} value={position.index}>
-                      {position.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <Menu.Popup
+              className={boardStyles.stepTypeMenu}
+              aria-label={data.label}
+              finalFocus={() => !inserted.current}
+            >
+              <p className={styles.location}>{data.description}</p>
               {stepTypes.map((type) => (
                 <Menu.Item
                   key={type.value}
                   className={boardStyles.stepTypeOption}
-                  onClick={() => data.onInsert(type.value, index)}
+                  onClick={() => {
+                    inserted.current = data.onInsert(type.value);
+                  }}
                 >
                   <StepBadge type={type.value} />
                   <span>{type.description}</span>

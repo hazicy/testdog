@@ -22,6 +22,7 @@ export type LayoutEdge = {
 export type LayoutInsertion = Insertion & {
   id: string;
   anchorId?: string;
+  placement: 'below' | 'beside';
   position: { x: number; y: number };
 };
 export type PlanLayout = {
@@ -54,7 +55,12 @@ const height = (value: string) =>
 export function layoutPlan(plan: Plan, results = false): PlanLayout {
   const nodes: LayoutNode[] = [],
     edges: LayoutEdge[] = [];
-  const slots: { groupId: string; index: number; anchors: string[] }[] = [];
+  const slots: {
+    groupId: string;
+    index: number;
+    anchors: string[];
+    placement?: 'below' | 'beside';
+  }[] = [];
   const ordering: { source: string; target: string }[] = [];
 
   type Subtree = { first: string; exits: string[] };
@@ -145,7 +151,14 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
           exits = child.exits;
         }
 
-        if (plan.nodes[childId].kind !== 'group')
+        if (isVisibleGroup(childId) || plan.nodes[childId].kind === 'branch')
+          slots.push({
+            groupId: id,
+            index: index + 1,
+            anchors: [child.first],
+            placement: 'beside',
+          });
+        else if (plan.nodes[childId].kind !== 'group')
           slots.push({ groupId: id, index: index + 1, anchors: child.exits });
       }
     } else if (node.kind === 'branch') {
@@ -235,27 +248,62 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
     node.position = { x: position.x - node.width / 2, y: position.y - node.height / 2 };
   }
 
-  const insertions = slots.map(({ groupId, index, anchors }): LayoutInsertion => {
-    const anchor = byId.get(anchors[0])!;
-    const bottom = Math.max(
-      ...anchors.map((id) => {
-        const node = byId.get(id)!;
+  const parents = new Map<string, Insertion>();
 
-        return node.position.y + node.height;
-      }),
-    );
+  for (const node of Object.values(plan.nodes))
+    if (node.kind === 'group')
+      node.children.forEach((id, index) => {
+        if (!parents.has(id)) parents.set(id, { groupId: node.id, index });
+      });
 
-    return {
-      id: `insert:${groupId}:${index}`,
-      groupId,
-      index,
-      anchorId: anchor.id,
-      position: {
-        x: anchor.position.x + anchor.width / 2 - 18,
-        y: bottom + GAP / 2 - 18,
-      },
-    };
-  });
+  const insertions = slots.map(
+    ({ groupId, index, anchors, placement = 'below' }): LayoutInsertion => {
+      // A hidden sequence's final gap belongs to the next slot in its parent.
+      // Keep gaps within the sequence local (e.g. between an action and its assertions).
+      let group = plan.nodes[groupId];
+      let parent = parents.get(groupId);
+
+      while (
+        group.kind === 'group' &&
+        group.presentation === 'sequence' &&
+        group.children.length > 0 &&
+        index === group.children.length &&
+        parent
+      ) {
+        groupId = parent.groupId;
+        index = parent.index + 1;
+        group = plan.nodes[groupId];
+        parent = parents.get(groupId);
+      }
+
+      const anchor = byId.get(anchors[0])!;
+      const bottom = Math.max(
+        ...anchors.map((id) => {
+          const node = byId.get(id)!;
+
+          return node.position.y + node.height;
+        }),
+      );
+
+      return {
+        id: `insert:${groupId}:${index}`,
+        groupId,
+        index,
+        anchorId: anchor.id,
+        placement,
+        position:
+          placement === 'beside'
+            ? {
+                x: anchor.position.x + anchor.width + (COLUMN_GAP - 36) / 2,
+                y: anchor.position.y + anchor.height / 2 - 18,
+              }
+            : {
+                x: anchor.position.x + anchor.width / 2 - 18,
+                y: bottom + GAP / 2 - 18,
+              },
+      };
+    },
+  );
 
   return { nodes, edges, insertions };
 }
