@@ -137,7 +137,7 @@ const group = (id: string, children: string[] = []) => ({
   dependsOn: [],
 });
 
-it('places consecutive groups in columns and reserves the full subtree width and height', () => {
+it('lays out sibling groups and merges their exits before the following step', () => {
   const plan = PlanSchema.parse({
     rootId: 'root',
     nodes: {
@@ -162,12 +162,9 @@ it('places consecutive groups in columns and reserves the full subtree width and
   const layout = layoutPlan(plan);
   const row = (id: string) => layout.nodes.find((node) => node.planNodeId === id)!;
 
-  expect(row('left').position.y).toBe(row('right').position.y);
-  expect(row('right').position.x).toBeGreaterThan(row('no').position.x + row('no').width);
+  for (const id of ['left', 'right'])
+    expect(row(id).position.y).toBeGreaterThan(row('root').position.y + row('root').height);
   expect(row('after').position.y).toBeGreaterThan(row('no').position.y + row('no').height);
-  expect(row('root').position.x + row('root').width / 2).toBe(
-    (row('right').position.x + row('right').width) / 2,
-  );
   expect(
     layout.edges
       .filter((edge) => edge.kind === 'sequence' && edge.target === 'plan:after')
@@ -338,3 +335,85 @@ it('reserves space for multiline Chinese content and long shared references', ()
   expect(reference.height).toBeGreaterThanOrEqual(long.height);
   expect(after.position.y).toBeGreaterThan(reference.position.y + reference.height);
 });
+
+it('keeps groups below preceding steps without adding sibling containment edges', () => {
+  const layout = layoutPlan(
+    PlanSchema.parse({
+      rootId: 'root',
+      nodes: {
+        root: group('root', ['before', 'left', 'right', 'after']),
+        before: task('before'),
+        left: group('left', ['child']),
+        right: group('right'),
+        child: task('child'),
+        after: task('after'),
+      },
+    }),
+  );
+  const row = (id: string) => layout.nodes.find((node) => node.planNodeId === id)!;
+
+  for (const id of ['left', 'right']) {
+    expect(row(id).position.y).toBeGreaterThan(row('before').position.y + row('before').height);
+    expect(layout.edges.filter((edge) => edge.target === row(id).id)).toEqual([
+      expect.objectContaining({ source: 'plan:root', kind: 'containment' }),
+    ]);
+  }
+
+  for (const id of ['child', 'right'])
+    expect(row('after').position.y).toBeGreaterThan(row(id).position.y + row(id).height);
+});
+
+it('uses cross-group dependencies to position nodes in execution order', () => {
+  const layout = layoutPlan(
+    PlanSchema.parse({
+      rootId: 'root',
+      nodes: {
+        root: group('root', ['left', 'right']),
+        left: group('left', ['consumer']),
+        right: group('right', ['producer']),
+        consumer: task('consumer', ['producer']),
+        producer: task('producer'),
+      },
+    }),
+  );
+  const producer = layout.nodes.find((node) => node.planNodeId === 'producer')!;
+  const consumer = layout.nodes.find((node) => node.planNodeId === 'consumer')!;
+
+  expect(consumer.position.y).toBeGreaterThan(producer.position.y + producer.height);
+});
+
+it.each([false, true])(
+  'positions the branch insertion below both exits (results: %s)',
+  (results) => {
+    const plan = PlanSchema.parse({
+      rootId: 'root',
+      nodes: {
+        root: group('root', ['branch', 'after']),
+        branch: {
+          id: 'branch',
+          kind: 'branch',
+          condition: 'Ready?',
+          then: 'yes',
+          otherwise: 'no',
+          dependsOn: [],
+        },
+        yes: task('yes'),
+        no: { ...task('no'), goal: '检查订单信息是否正确'.repeat(40) },
+        after: task('after'),
+      },
+    });
+    const layout = layoutPlan(plan, results);
+    const insertion = layout.insertions.find(
+      (slot) => slot.groupId === 'root' && slot.index === 1,
+    )!;
+    const after = layout.nodes.find((node) => node.planNodeId === 'after')!;
+
+    for (const id of ['yes', 'no']) {
+      const node = layout.nodes.find((node) => node.planNodeId === id)!;
+
+      expect(insertion.position.y).toBeGreaterThan(node.position.y + node.height);
+    }
+
+    expect(insertion.position.y + 36).toBeLessThan(after.position.y);
+  },
+);

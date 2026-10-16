@@ -1990,17 +1990,24 @@ test('adds adjacent groups as columns with independent insertion points', async 
   await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
   const canvas = page.locator('[data-ui~="case-canvas-page"]');
 
-  for (const index of [1, 1]) {
+  const groups = canvas.locator('[data-step-type=group]:not([data-plan-node=root])');
+  const groupIds: string[] = [];
+
+  for (const count of [1, 2]) {
     await canvas
-      .getByRole('button', { name: `在 root 的第 ${index} 个位置添加节点`, exact: true })
+      .getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true })
       .click();
     await page
       .getByRole('menuitem')
       .filter({ hasText: /^Group/ })
       .click();
-  }
+    await expect(groups).toHaveCount(count);
+    const ids = await groups.evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute('data-plan-node')!),
+    );
 
-  const groups = canvas.locator('[data-step-type=group]:not([data-plan-node=root])');
+    groupIds.push(ids.find((id) => !groupIds.includes(id))!);
+  }
 
   await expect(groups).toHaveCount(2);
   await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(3);
@@ -2010,17 +2017,25 @@ test('adds adjacent groups as columns with independent insertion points', async 
       const left = await groups.nth(0).boundingBox();
       const right = await groups.nth(1).boundingBox();
 
-      return !!left && !!right && Math.abs(left.y - right.y) < 2 && right.x > left.x + left.width;
+      return (
+        !!left &&
+        !!right &&
+        Math.abs(left.y - right.y) < 2 &&
+        (right.x > left.x + left.width || left.x > right.x + right.width)
+      );
     })
     .toBe(true);
-  const leftId = (await groups.nth(0).getAttribute('data-plan-node'))!;
-  const rightId = (await groups.nth(1).getAttribute('data-plan-node'))!;
+  const [rightId, leftId] = groupIds;
+  const leftGroup = canvas.locator(`[data-plan-node="${leftId}"]`);
+  const rightGroup = canvas.locator(`[data-plan-node="${rightId}"]`);
   const rootBounds = (await canvas.locator('[data-plan-node=root]').boundingBox())!;
-  const leftBounds = (await groups.nth(0).boundingBox())!;
-  const rightBounds = (await groups.nth(1).boundingBox())!;
+  const leftBounds = (await leftGroup.boundingBox())!;
+  const rightBounds = (await rightGroup.boundingBox())!;
 
   expect(rootBounds.x + rootBounds.width / 2).toBeCloseTo(
-    (leftBounds.x + rightBounds.x + rightBounds.width) / 2,
+    (Math.min(leftBounds.x, rightBounds.x) +
+      Math.max(leftBounds.x + leftBounds.width, rightBounds.x + rightBounds.width)) /
+      2,
     0,
   );
 
@@ -2029,20 +2044,17 @@ test('adds adjacent groups as columns with independent insertion points', async 
       canvas.locator(`[data-testid="rf__edge-containment:root:${index}:plan:root"]`),
     ).toHaveCount(1);
 
-  await groups.nth(0).hover();
-  await groups
-    .nth(0)
-    .getByRole('button', { name: `复制节点 ${leftId}`, exact: true })
-    .click();
+  await leftGroup.hover();
+  await leftGroup.getByRole('button', { name: `复制节点 ${leftId}`, exact: true }).click();
   await expect(groups).toHaveCount(3);
   await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(4);
-  const copyId = (await groups.nth(1).getAttribute('data-plan-node'))!;
+  const copy = groups.locator(
+    `:scope:not([data-plan-node="${leftId}"]):not([data-plan-node="${rightId}"])`,
+  );
+  const copyId = (await copy.getAttribute('data-plan-node'))!;
 
-  await groups.nth(1).hover();
-  await groups
-    .nth(1)
-    .getByRole('button', { name: `删除节点 ${copyId}`, exact: true })
-    .click();
+  await copy.hover();
+  await copy.getByRole('button', { name: `删除节点 ${copyId}`, exact: true }).click();
   await expect(groups).toHaveCount(2);
   await expect(canvas.locator('[data-ui~="step-insert-trigger"]')).toHaveCount(3);
 
@@ -2061,10 +2073,15 @@ test('adds adjacent groups as columns with independent insertion points', async 
       const left = await tasks.nth(0).boundingBox();
       const right = await tasks.nth(1).boundingBox();
 
-      return !!left && !!right && Math.abs(left.y - right.y) < 2 && right.x > left.x + left.width;
+      return (
+        !!left &&
+        !!right &&
+        Math.abs(left.y - right.y) < 2 &&
+        (right.x > left.x + left.width || left.x > right.x + right.width)
+      );
     })
     .toBe(true);
-  // Inserting a task between the groups restores their sequential rows.
+  // Inserting a task between the groups places the second group below the first.
   await canvas.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
   await page.getByRole('combobox', { name: '插入位置', exact: true }).selectOption('1');
   await page
@@ -2073,10 +2090,10 @@ test('adds adjacent groups as columns with independent insertion points', async 
     .click();
   await expect
     .poll(async () => {
-      const left = await groups.nth(0).boundingBox();
-      const right = await groups.nth(1).boundingBox();
+      const left = await leftGroup.boundingBox();
+      const right = await rightGroup.boundingBox();
 
-      return !!left && !!right && right.y > left.y + left.height && Math.abs(left.x - right.x) < 2;
+      return !!left && !!right && right.y > left.y + left.height;
     })
     .toBe(true);
   expect(errors).toEqual([]);

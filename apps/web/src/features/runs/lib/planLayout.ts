@@ -1,3 +1,4 @@
+import { graphlib, layout } from '@dagrejs/dagre';
 import type { Plan, PlanNode } from '@testdog/contracts/automation/compiler/schema';
 import type { Insertion } from '@/features/test-cases/lib/authoring';
 
@@ -48,19 +49,17 @@ const height = (value: string) =>
         28,
   );
 
-// Consecutive visible groups use columns; tasks and hidden sequences use rows.
-// Visible group columns connect to their parent rather than to each other.
-// Column placement does not change authored execution order. Branch exits both
-// connect to the following step. Layout is a synchronous, UI-independent function.
+// Build the visible execution graph first, then let Dagre position its nodes.
+// Hidden sequences delegate to their children; repeated targets use reference nodes.
 export function layoutPlan(plan: Plan, results = false): PlanLayout {
   const nodes: LayoutNode[] = [],
-    edges: LayoutEdge[] = [],
-    insertions: LayoutInsertion[] = [];
-  const seen = new Set<string>();
-  const actual = new Map<string, { first?: string; exits: string[] }>();
-  let reference = 0;
+    edges: LayoutEdge[] = [];
+  const slots: { groupId: string; index: number; anchors: string[] }[] = [];
+  const ordering: { source: string; target: string }[] = [];
 
-  type Subtree = { first?: string; exits: string[]; bottom: number; right: number };
+  type Subtree = { first: string; exits: string[] };
+  const subtrees = new Map<string, Subtree>();
+  let reference = 0;
 
   function connect(
     sources: string[],
@@ -72,176 +71,116 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
     for (const source of sources) edges.push({ id: `${id}:${source}`, source, target, kind });
   }
 
-  const column = (id: string) => {
+  const isVisibleGroup = (id: string) => {
     const node = plan.nodes[id];
 
     return node.kind === 'group' && !node.presentation;
   };
 
-  function slot(groupId: string, index: number, x: number, y: number, anchorId?: string) {
-    const insertion = {
-      id: `insert:${groupId}:${index}`,
-      groupId,
-      index,
-      anchorId,
-      position: { x: x + WIDTH / 2 - 18, y: y - 18 },
-    };
-
-    insertions.push(insertion);
-
-    return insertion;
-  }
-
-  function visit(id: string, x: number, y: number, pathLabel?: string): Subtree {
+  function visit(id: string, pathLabel?: string): Subtree {
     const node = plan.nodes[id];
     const contentHeight =
       height(text(node)) +
       (pathLabel ? 16 : 0) +
       (node.kind === 'branch' && !node.otherwise ? 16 : 0);
 
-    if (seen.has(id)) {
-      const refId = `reference:${reference++}`;
+    const previous = subtrees.get(id);
+    const rowId = previous ? `reference:${reference++}` : `plan:${id}`;
+    const hidden =
+      !previous &&
+      node.kind === 'group' &&
+      node.presentation === 'sequence' &&
+      node.children.length > 0;
 
+    if (!hidden)
       nodes.push({
-        id: refId,
+        id: rowId,
         planNodeId: id,
-        reference: true,
+        reference: !!previous,
         pathLabel,
-        position: { x, y },
+        position: { x: 0, y: 0 },
         width: WIDTH,
-        height: contentHeight,
+        height: contentHeight + (results && !previous && node.kind !== 'group' ? 190 : 0),
       });
+    if (previous) {
       edges.push({
-        id: `ref:${refId}`,
-        source: refId,
-        target: actual.get(id)?.first ?? `plan:${id}`,
+        id: `ref:${rowId}`,
+        source: rowId,
+        target: previous.first,
         kind: 'reference',
         label: 'reference',
       });
 
-      return { first: refId, exits: [refId], bottom: y + contentHeight, right: x + WIDTH };
+      return { first: rowId, exits: [rowId] };
     }
 
-    seen.add(id);
-    const hidden =
-      node.kind === 'group' && node.presentation === 'sequence' && node.children.length > 0;
-    const rowId = `plan:${id}`;
-    const rowHeight = contentHeight + (results && node.kind !== 'group' ? 190 : 0);
-    let first: string | undefined = hidden ? undefined : rowId;
-    let exits = first ? [first] : [];
-    let bottom = hidden ? y : y + rowHeight;
-    let right = x + WIDTH;
+    let first = rowId;
+    let exits = hidden ? [] : [rowId];
 
-    actual.set(id, { first, exits });
-    const header: LayoutNode = {
-      id: rowId,
-      planNodeId: id,
-      reference: false,
-      pathLabel,
-      position: { x, y },
-      width: WIDTH,
-      height: rowHeight,
-    };
-
-    if (!hidden) nodes.push(header);
     if (node.kind === 'group') {
-      const headerInsertion = hidden ? undefined : slot(id, 0, x, bottom + GAP / 2, rowId);
+      if (!hidden) slots.push({ groupId: id, index: 0, anchors: [rowId] });
+      let columnEntry: string[] | undefined;
 
-      for (let index = 0; index < node.children.length;) {
-        const rowTop = hidden && index === 0 ? y : bottom + GAP;
-        let rowRight = x;
-        let rowBottom = rowTop;
-        const columns = column(node.children[index]);
-        const rowEntry = exits;
-        const columnExits: string[] = [];
+      for (const [index, childId] of node.children.entries()) {
+        const child = visit(childId, hidden && index === 0 ? pathLabel : undefined);
 
-        do {
-          const subtree = visit(
-            node.children[index],
-            rowRight,
-            rowTop,
-            hidden && index === 0 ? pathLabel : undefined,
-          );
-
-          if (columns)
-            connect(
-              hidden ? rowEntry : [rowId],
-              subtree.first,
-              'containment',
-              `containment:${id}:${index}`,
-            );
-          else connect(exits, subtree.first, 'sequence', `sequence:${id}:${index}`);
-          first ??= subtree.first;
-          exits = subtree.exits.length ? subtree.exits : exits;
-          if (columns) columnExits.push(...subtree.exits);
-          rowBottom = Math.max(rowBottom, subtree.bottom);
-          right = Math.max(right, subtree.right);
-          rowRight = subtree.right + COLUMN_GAP;
-          index++;
-          const nextColumn =
-            columns && index < node.children.length && column(node.children[index]);
-
-          if (!nextColumn) {
-            // Visible groups own their header insertion. Hidden groups delegate
-            // to their visible children. Neither needs a second parent slot.
-            if (plan.nodes[node.children[index - 1]].kind !== 'group')
-              slot(id, index, x, rowBottom + GAP / 2, subtree.exits[0]);
-            break;
+        if (hidden && index === 0) first = child.first;
+        if (isVisibleGroup(childId)) {
+          if (!columnEntry) {
+            columnEntry = exits;
+            exits = [];
           }
-        } while (index < node.children.length);
 
-        bottom = rowBottom;
-        if (columns) exits = columnExits;
+          for (const source of columnEntry) ordering.push({ source, target: child.first });
+          connect(
+            hidden ? columnEntry : [rowId],
+            child.first,
+            'containment',
+            `containment:${id}:${index}`,
+          );
+          exits.push(...child.exits);
+        } else {
+          columnEntry = undefined;
+          connect(exits, child.first, 'sequence', `sequence:${id}:${index}`);
+          exits = child.exits;
+        }
+
+        if (plan.nodes[childId].kind !== 'group')
+          slots.push({ groupId: id, index: index + 1, anchors: child.exits });
       }
-
-      // Center the header and its insertion over the entire group subtree.
-      if (headerInsertion) {
-        header.position.x = x + (right - x - WIDTH) / 2;
-        headerInsertion.position.x = header.position.x + WIDTH / 2 - 18;
-      }
-
-      if (!node.children.length) bottom += GAP;
     } else if (node.kind === 'branch') {
-      const yes = visit(node.then, x, bottom + GAP, 'yesCondition');
+      const yes = visit(node.then, 'yesCondition');
 
-      if (yes.first)
+      edges.push({
+        id: `then:${id}`,
+        source: rowId,
+        target: yes.first,
+        kind: 'branch',
+        label: 'YES',
+      });
+      const no = node.otherwise ? visit(node.otherwise, 'noCondition') : undefined;
+
+      if (no)
         edges.push({
-          id: `then:${id}`,
+          id: `otherwise:${id}`,
           source: rowId,
-          target: yes.first,
+          target: no.first,
           kind: 'branch',
-          label: 'YES',
+          label: 'NO',
         });
-      let no: Subtree | undefined;
-
-      if (node.otherwise) {
-        no = visit(node.otherwise, yes.right + COLUMN_GAP, y + rowHeight + GAP, 'noCondition');
-        if (no.first)
-          edges.push({
-            id: `otherwise:${id}`,
-            source: rowId,
-            target: no.first,
-            kind: 'branch',
-            label: 'NO',
-          });
-      }
-
-      bottom = Math.max(yes.bottom, no?.bottom ?? 0);
-      right = Math.max(yes.right, no?.right ?? 0);
       exits = [...yes.exits, ...(no?.exits ?? [rowId])];
     } else if (node.actionType !== 'assert') {
       for (const [index, assertion] of node.assertions.entries()) {
         const assertionId = `assertion:${id}:${index}`;
-        const rowHeight = height(assertion.description) + (results ? 190 : 0);
 
         nodes.push({
           id: assertionId,
           planNodeId: id,
           assertionIndex: index,
           reference: false,
-          position: { x, y: bottom + GAP },
+          position: { x: 0, y: 0 },
           width: WIDTH,
-          height: rowHeight,
+          height: height(assertion.description) + (results ? 190 : 0),
         });
         edges.push({
           id: `assert:${id}:${index}`,
@@ -249,41 +188,74 @@ export function layoutPlan(plan: Plan, results = false): PlanLayout {
           target: assertionId,
           kind: 'sequence',
         });
-        bottom += GAP + rowHeight;
         exits = [assertionId];
       }
     }
 
-    const result = { first, exits, bottom, right };
+    const result = { first, exits };
 
-    actual.set(id, result);
+    subtrees.set(id, result);
 
     return result;
   }
 
-  let top = 0;
-
   function prerequisite(id: string) {
-    if (seen.has(id)) return;
+    if (subtrees.has(id)) return;
     plan.nodes[id].dependsOn.forEach(prerequisite);
-    top = visit(id, 0, top).bottom + GAP;
+    visit(id);
   }
 
   plan.nodes[plan.rootId].dependsOn.forEach(prerequisite);
-  let bottom = visit(plan.rootId, 0, top).bottom;
-
-  for (const id of Object.keys(plan.nodes))
-    if (!seen.has(id)) bottom = visit(id, 0, bottom + GAP).bottom;
-  for (const node of Object.values(plan.nodes)) {
-    for (const dependency of node.dependsOn) {
+  visit(plan.rootId);
+  for (const id of Object.keys(plan.nodes)) if (!subtrees.has(id)) visit(id);
+  for (const node of Object.values(plan.nodes))
+    for (const dependency of node.dependsOn)
       connect(
-        actual.get(dependency)?.exits ?? [],
-        actual.get(node.id)?.first,
+        subtrees.get(dependency)?.exits ?? [],
+        subtrees.get(node.id)?.first,
         'dependency',
         `dep:${JSON.stringify([dependency, node.id])}`,
       );
-    }
+
+  const graph = new graphlib.Graph();
+
+  graph.setGraph({ rankdir: 'TB', nodesep: COLUMN_GAP, ranksep: GAP });
+  graph.setDefaultEdgeLabel(() => ({}));
+  for (const node of nodes) graph.setNode(node.id, { width: node.width, height: node.height });
+  // References point back to existing nodes and must not reverse execution ranks.
+  for (const edge of edges) if (edge.kind !== 'reference') graph.setEdge(edge.source, edge.target);
+  for (const edge of ordering) graph.setEdge(edge.source, edge.target);
+  layout(graph);
+
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+
+  for (const node of nodes) {
+    const position = graph.node(node.id);
+
+    node.position = { x: position.x - node.width / 2, y: position.y - node.height / 2 };
   }
+
+  const insertions = slots.map(({ groupId, index, anchors }): LayoutInsertion => {
+    const anchor = byId.get(anchors[0])!;
+    const bottom = Math.max(
+      ...anchors.map((id) => {
+        const node = byId.get(id)!;
+
+        return node.position.y + node.height;
+      }),
+    );
+
+    return {
+      id: `insert:${groupId}:${index}`,
+      groupId,
+      index,
+      anchorId: anchor.id,
+      position: {
+        x: anchor.position.x + anchor.width / 2 - 18,
+        y: bottom + GAP / 2 - 18,
+      },
+    };
+  });
 
   return { nodes, edges, insertions };
 }

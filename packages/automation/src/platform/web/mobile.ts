@@ -23,6 +23,6 @@ export function resolveWebProfile(input: WebTarget): BrowserContextOptions {
 
 export function launchWebBrowser(target: WebTarget) {
   return (target.browser === 'webkit' ? webkit : chromium).launch({
-    headless: process.env.AUTOMATION_HEADLESS === 'true',
+    headless: process.env.AUTOMATION_HEADLESS !== 'false',
   });
 }

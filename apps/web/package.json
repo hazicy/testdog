@@ -17,6 +17,7 @@
     "@codemirror/language": "catalog:",
     "@codemirror/state": "catalog:",
     "@codemirror/view": "catalog:",
+    "@dagrejs/dagre": "catalog:",
     "@iconify-icons/lucide": "catalog:",
     "@iconify/react": "catalog:",
     "@playwright/test": "catalog:",

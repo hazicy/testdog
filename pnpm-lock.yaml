@@ -188,6 +188,9 @@ catalogs:
     '@codemirror/view':
       specifier: ^6.43.14
       version: 6.43.14
+    '@dagrejs/dagre':
+      specifier: ^3.1.1
+      version: 3.1.1
     '@electric-sql/pglite':
       specifier: ^0.5.8
       version: 0.5.8
@@ -370,6 +373,9 @@ importers:
       '@codemirror/view':
         specifier: 'catalog:'
         version: 6.43.14
+      '@dagrejs/dagre':
+        specifier: 'catalog:'
+        version: 3.1.1
       '@iconify-icons/lucide':
         specifier: 'catalog:'
         version: 2.0.18
@@ -902,6 +908,12 @@ packages:
 
   '@codemirror/view@6.43.14':
     resolution: {integrity: sha512-hC45YnmJNR1rz42OF57BLoQNFMV12/13drnvibDsR2quNDmldcb4WvYVV81hFQg56i9lcqQMEDqilhX2QDcGQQ==}
+
+  '@dagrejs/dagre@3.1.1':
+    resolution: {integrity: sha512-zroZB1dFOFiGgv4Xcrn1DckB1o4aOikPqD2NDQPV0WM//CXGcS6xiD0rNkqHmw6FEg4tabt4nxPLwgCWT+Vb2A==}
+
+  '@dagrejs/graphlib@4.0.5':
+    resolution: {integrity: sha512-7xrBTqIts3o+PMUZX97wSc+7TUbW+/rULzGNCTP6yooNVDXbzw4Wutg/H/xOutTB/c/k0YqOAavgPh4/Zk9PFA==}
 
   '@drizzle-team/brocli@0.12.1':
     resolution: {integrity: sha512-yHwomvolVafvUXhy5TdiJVkuNCxXn+bKOs2aWiWEQh/5YaV97Oa/abJz3dmx7lxgIUsUlS1Jl4mEfvJPo3YsVw==}
@@ -4498,6 +4510,12 @@ snapshots:
       crelt: 1.0.7
       style-mod: 4.1.4
       w3c-keyname: 2.2.8
+
+  '@dagrejs/dagre@3.1.1':
+    dependencies:
+      '@dagrejs/graphlib': 4.0.5
+
+  '@dagrejs/graphlib@4.0.5': {}
 
   '@drizzle-team/brocli@0.12.1': {}
 

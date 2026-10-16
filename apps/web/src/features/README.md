@@ -21,7 +21,7 @@
 
 工作区列表和执行详情通过 SWR 管理 API 数据、缓存、请求去重与刷新，SWR 的 `fetchJson` 和业务请求共用 `ky.create()` 创建的 `api` 实例。业务代码使用 `api.get/post/patch/delete`、`json` 选项和 `.json<T>()`，错误提示统一由 `beforeError` Hook 处理，保留 ky 原生错误类型；ETag 条件读取单独位于 `apps/web/src/client/etag.ts`。ky 关闭自动重试，由 SWR 管理读取重试；写入操作不会自动重复发送。请求与响应体读取共用 15 秒总超时，保留取消请求和统一错误提示。列表 SSE 通知触发缓存重新获取；详情 SSE 快照与增量直接更新同一份缓存，按执行版本防止旧 HTTP 响应覆盖新数据。SSE 连接正常时暂停自动读取，断线后恢复可见页面的轮询；已结束或不存在的执行详情仅在挂载和手动刷新时读取。执行详情的 HTTP 读取保留 ETag 缓存。
 
-画板由三个层次组成：`runs/lib/planLayout.ts` 同步计算节点、连线和插入位置；`runs/hooks/usePlanBoard.ts` 关联执行步骤、审阅状态和编辑操作；`runs/components/PlanBoard.tsx` 管理视口与界面。相邻的普通 Group 左右并排，组内步骤和隐藏的 `presentation: sequence` 保持纵向排列。并排分组通过父子连线连接所属 Group，不连接同级分组。横向排版不改变 `children` 的执行顺序；分支的 YES / NO 出口都连接后续步骤。
+画板由三个层次组成：`runs/lib/planLayout.ts` 构建可见执行图，通过 Dagre 同步计算节点位置，再将插入入口定位到对应节点下方；`runs/hooks/usePlanBoard.ts` 关联执行步骤、审阅状态和编辑操作；`runs/components/PlanBoard.tsx` 管理视口与界面。节点采用从上到下的分层布局，综合步骤顺序、分组和依赖关系决定位置；相邻普通 Group 可以分列，但不强制标题等高或居中。组内步骤和隐藏的 `presentation: sequence` 保持执行顺序。并排分组通过父子连线连接所属 Group，不连接同级分组。布局不改变 `children` 的执行顺序；分支的 YES / NO 出口都连接后续步骤。
 
 插入入口按可见节点生成：每个可见 Group 在标题下保留一个入口，普通步骤在末尾保留入口；组间和组尾不再重复生成入口。所有入口的菜单都可通过“插入位置”选择所属分组中的任意位置。隐藏顺序分组没有标题入口，由可见子步骤提供入口。附属断言只编辑自身描述，不提供复制、删除或拖拽整个任务的操作。
 
