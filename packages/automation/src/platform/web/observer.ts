@@ -20,6 +20,42 @@ export class Observer {
       mode: 'ai',
     })) as AriaNode[];
 
+    // ARIA role alone cannot distinguish an editable input from a select/button combobox.
+    // The snapshot does not expose editability, so read it from the exact observed DOM node.
+    const annotateEditability = async (nodes: AriaNode[]): Promise<void> => {
+      for (const node of nodes) {
+        if (node.role === 'combobox' && node.ref) {
+          node.editable = await page.locator(`aria-ref=${node.ref}`).evaluate((element) => {
+            if (element instanceof HTMLInputElement)
+              return (
+                !element.disabled &&
+                !element.readOnly &&
+                ![
+                  'button',
+                  'checkbox',
+                  'radio',
+                  'file',
+                  'submit',
+                  'reset',
+                  'hidden',
+                  'image',
+                  'range',
+                  'color',
+                ].includes(element.type)
+              );
+            if (element instanceof HTMLTextAreaElement)
+              return !element.disabled && !element.readOnly;
+
+            return element instanceof HTMLElement && element.isContentEditable;
+          });
+        }
+
+        await annotateEditability(node.children ?? []);
+      }
+    };
+
+    await annotateEditability(tree);
+
     const focused = await page.evaluate((): FocusedElement | null => {
       const active = document.activeElement;
 

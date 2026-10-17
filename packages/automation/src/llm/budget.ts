@@ -165,7 +165,11 @@ export function budgetedModel(
             id: callId,
             startedAt,
             durationMs,
-            model: result?.model ?? 'deepseek-flash',
+            model:
+              result?.model ??
+              (params.provider === 'jev'
+                ? (process.env.JEV_MODEL ?? 'jev-1.14.0')
+                : 'deepseek-flash'),
             status: result
               ? 'passed'
               : params.signal?.aborted

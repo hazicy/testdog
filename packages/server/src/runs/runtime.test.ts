@@ -39,12 +39,16 @@ import { RuntimeOpenError } from '@testdog/server/runs/runtimeTypes';
 import { finalizeRuntime } from '@testdog/server/runs/finalizeRuntime';
 
 beforeEach(() => {
+  vi.stubEnv('TESTDOG_WEB_AGENT', 'llm');
   vi.resetAllMocks();
   mocks.drain.mockResolvedValue(undefined);
   mocks.capture.mockResolvedValue(undefined);
   mocks.diagnostics.mockResolvedValue(undefined);
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 
 const run = {
   id: 'runtime',
@@ -147,4 +151,30 @@ it('retains both the web preparation and cleanup errors and quarantines an unclo
     'context failed',
     'browser close failed',
   ]);
+});
+
+it('reports a missing hybrid key before opening a browser and keeps the resource healthy', async () => {
+  vi.stubEnv('TESTDOG_WEB_AGENT', 'hybrid');
+  vi.stubEnv('JEV_API_KEY', '');
+  try {
+    const request = input();
+
+    request.run = {
+      ...run,
+      targetSnapshot: {
+        schemaVersion: 1,
+        platform: 'web',
+        url: 'https://example.com',
+        browser: 'chromium',
+        deviceProfile: 'Pixel 7',
+      },
+    };
+    await expect(openPlatformRuntime(request)).rejects.toMatchObject({
+      healthy: true,
+      cause: expect.objectContaining({ message: '混合 DOM Agent 需要配置 JEV_API_KEY' }),
+    });
+    expect(mocks.browser).not.toHaveBeenCalled();
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });

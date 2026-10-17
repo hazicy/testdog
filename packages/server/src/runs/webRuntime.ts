@@ -7,6 +7,7 @@ import type { BrowserConnection } from '@testdog/automation/platform/web/provide
 import type { BrowserContext, BrowserContextOptions } from 'playwright';
 import { PlaywrightSession } from '@testdog/automation/platform/web/playwrightSession';
 import { WebActionPlanner } from '@testdog/automation/platform/web/webPlanner';
+import { HybridWebActionPlanner } from '@testdog/automation/platform/web/hybridPlanner';
 import { resolveWebProfile } from '@testdog/automation/platform/web/mobile';
 import type { WebTarget } from '@testdog/contracts/automation/platform/target';
 import { RunRecorder } from '@testdog/server/runs/recorder';
@@ -19,6 +20,7 @@ export async function openWebRuntime(
 ): Promise<PlatformRuntime> {
   const { run, expectedEnvironment, signal } = input;
   const model = input.model ?? modelClient;
+  const hybrid = process.env.TESTDOG_WEB_AGENT === 'hybrid' && run.mode !== 'replay';
   const profile = expectedEnvironment?.profile
     ? (expectedEnvironment.profile as BrowserContextOptions)
     : resolveWebProfile(target);
@@ -33,6 +35,10 @@ export async function openWebRuntime(
 
   signal.addEventListener('abort', stop, { once: true });
   try {
+    if (process.env.TESTDOG_WEB_AGENT && !['hybrid', 'llm'].includes(process.env.TESTDOG_WEB_AGENT))
+      throw new Error('TESTDOG_WEB_AGENT 必须是 llm 或 hybrid');
+    if (hybrid && !process.env.JEV_API_KEY?.trim())
+      throw new Error('混合 DOM Agent 需要配置 JEV_API_KEY');
     connection = await openRunBrowser(run.id, target, signal);
     const browser = connection.browser;
 
@@ -67,7 +73,9 @@ export async function openWebRuntime(
     const runtime: PlatformRuntime = {
       session,
       evaluator: new SemanticEvaluator(model),
-      planner: new WebActionPlanner(model, signal),
+      planner: hybrid
+        ? new HybridWebActionPlanner(model, session, signal)
+        : new WebActionPlanner(model, signal),
       environment: {
         platform: 'web',
         browserProvider: connection.provider,

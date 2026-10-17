@@ -1,6 +1,30 @@
 # Playwright + LLM + Jev DOM Agent
 
-可独立运行的实验模块，尚未接入 Testdog 的已有计划运行器或 Web UI。沿用仓库 Node.js 24+、pnpm 和 TypeScript 环境，无新增依赖。
+可独立运行的实验模块，其召回和 Jev 客户端也已接入 Testdog 的 Web 运行器。沿用仓库 Node.js 24+、pnpm 和 TypeScript 环境，无新增依赖。
+
+## 在 Testdog 中启用
+
+在执行 Worker 的环境配置中加入，并重启 Worker：
+
+```dotenv
+TESTDOG_WEB_AGENT=hybrid
+JEV_API_KEY=你的密钥
+# 可选，默认如下
+JEV_MODEL=jev-1.14.0
+JEV_ENDPOINT=https://api.typesafe.ai/v1/systemone
+```
+
+随后从 Testdog 界面正常运行 Web 用例即可，不需要 `DOM_AGENT_URL` 或单独运行 CLI。LLM 仍使用现有 DeepSeek 配置 `OPENAI_API_KEY`。设为 `TESTDOG_WEB_AGENT=llm` 或移除该项，可切回原 Planner；显式启用 hybrid 却缺少 Jev Key 时会在准备浏览器前报错。
+
+`HybridWebActionPlanner` 实现现有 `ActionPlanner`：LLM 一次生成当前用例任务的多步语义计划，执行过程中缓存步骤；候选从 Testdog 完整 ARIA DOM 观察提取，再复用 `recall` 排序和 Jev Choice。唯一匹配直接使用当前 ARIA ref，有歧义才调用 Jev；每次动作后使用新观察验证后置条件，失败先等待，再重规划。成功标准固定为首次计划的 completion，原有用例断言仍由 `SemanticEvaluator` 执行。
+
+实际动作仍经 `PlanRunner`、`PlaywrightSession` 和 `RunRecorder`，保留现有浏览器提供方、移动 Web、页面切换、录制和回放逻辑。回放执行录制的稳定定位器，不调用 Jev。混合模式只使用 Testdog 已支持的 click/fill/press/navigate/wait，滚动转换为 PageDown/PageUp；自定义下拉框通过点击展开及点击选项处理。
+
+LLM 和 Jev 共用每次运行的 `TESTDOG_AI_*` 调用次数、Token、超时及重试预算。AI 日志分别显示“浏览器规划”和“元素选择”，包含模型名、请求、响应、耗时及可用的 token 用量；Jev 选择的动作关联相应调用记录。局部拒选最多三次，LLM 重规划最多两次，同时受原有每任务动作和等待预算限制。派发后的执行异常沿用 Testdog 规则，不自动重放；后置条件失败的相同动作也禁止重发。
+
+集成沿用 Testdog 的用例执行权限，不使用独立 CLI 的 `DOM_AGENT_ALLOWED_TARGETS`。ARIA 候选沿用既有观察的能力和范围，没有新增完整 DOM 提取，也未增加独立的网络隔离或审批系统。真实模型的端到端效果仍需实测。
+
+## 独立演示
 
 ```sh
 pnpm install
@@ -45,11 +69,11 @@ pnpm dom-agent --live
 | `agent.ts`   | 唯一精确匹配直达；歧义交给 Choice；执行、轮询验证、恢复及权限回调                |
 | `cli.ts`     | 本地演示和真实模型入口                                                           |
 
-没有把输入值、密码或整个页面正文送给模型；候选文本和容器上下文分别限制长度。DOM 中自身呈现的敏感文本仍可能被提取，调用方须按数据策略处理。
+独立 DOM 提取不读取输入框当前值；候选文本和容器上下文分别限制长度。任务和填入内容仍由 LLM 规划，Jev 只接收动作类型和目标语义。DOM 中自身呈现的敏感文本仍可能被提取，调用方须按数据策略处理。
 
 ### 执行和验证
 
-支持 click、fill、select（原生 select）、check、hover、navigate、scroll、wait。自定义 combobox 应拆为点击打开、点击选项。每步必须带验证条件，支持 URL 子串、可交互目标可见性、输入值、checked、精确可见文本。wait 等待条件成立；不以固定延迟当作成功。
+支持 click、fill、press、select（原生 select）、check、hover、navigate、scroll、wait。自定义 combobox 应拆为点击打开、点击选项。每步必须带验证条件，支持 URL 子串、可交互目标可见性、输入值、checked、精确可见文本。wait 等待条件成立；不以固定延迟当作成功。
 
 候选 ID 对应提取时的真实 ElementHandle，而非重新匹配的 CSS 或 nth 下标，页面重排不会把 ID 指向另一节点。执行前复查可见性与 enabled，Playwright 再执行动作可操作性检查。唯一匹配检查在全部候选中进行，避免截断后误认为唯一。所有 handle 在每次快照使用结束后释放。
 

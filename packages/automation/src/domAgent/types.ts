@@ -18,6 +18,7 @@ export const conditionSchema = z.discriminatedUnion('kind', [
 const elementActionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('click'), target: targetSchema }),
   z.object({ kind: z.literal('hover'), target: targetSchema }),
+  z.object({ kind: z.literal('press'), target: targetSchema, value: z.string().min(1).max(100) }),
   z.object({ kind: z.literal('fill'), target: targetSchema, value: z.string().max(4000) }),
   z.object({ kind: z.literal('select'), target: targetSchema, value: z.string().max(300) }),
   z.object({ kind: z.literal('check'), target: targetSchema, checked: z.boolean() }),
@@ -63,12 +64,13 @@ export type Candidate = {
   frameUrl: string;
 };
 export type RankedCandidate = Candidate & { score: number };
-export type Decision =
+export type Decision = (
   | { kind: 'element'; id: string }
   | {
       kind: 'fallback';
       reason: 'none' | 'need_scroll' | 'need_replan' | 'wait' | 'uncertain';
-    };
+    }
+) & { modelCallId?: string };
 export type Event = {
   goal: string;
   phase: 'selected' | 'verified' | 'retry' | 'uncertain' | 'replan';

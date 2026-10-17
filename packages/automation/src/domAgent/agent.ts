@@ -218,6 +218,7 @@ async function executeAgent(page: Page, task: string, options: AgentOptions) {
             // Once dispatched, even an execution timeout may mean the server received the action.
             dispatched = true;
             if (action.kind === 'click') await handle.click({ timeout: 5000 });
+            else if (action.kind === 'press') await handle.press(action.value, { timeout: 5000 });
             else if (action.kind === 'hover') await handle.hover({ timeout: 5000 });
             else if (action.kind === 'fill') await handle.fill(action.value, { timeout: 5000 });
             else if (action.kind === 'select')

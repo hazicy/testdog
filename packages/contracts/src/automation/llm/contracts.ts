@@ -43,6 +43,8 @@ export type LLMContentBlock =
     };
 
 export type LLMGenerateParams = {
+  /** Route structured Choice requests through the same run budget and tracing. */
+  provider?: 'jev';
   signal?: AbortSignal;
   maxOutputTokens?: number;
   messages: Array<{

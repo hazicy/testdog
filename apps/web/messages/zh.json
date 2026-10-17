@@ -744,6 +744,8 @@
     "purposes": {
       "plan": "生成计划",
       "native_action": "动作规划",
+      "hybrid_dom_plan": "浏览器规划",
+      "dom_choice": "元素选择",
       "assertion_result": "断言",
       "branch_result": "分支判断"
     },
