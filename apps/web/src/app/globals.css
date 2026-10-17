@@ -67,13 +67,10 @@
   --page-muted: #6b6b6b;
   --text-secondary: #616161;
   --text-subtle: #6b6b6b;
-  --text-neutral: #6b6b6b;
-  --text-disabled: #a6a6a6;
   --text-faint: #a6a6a6;
   --table-heading: #616161;
   --status-none: #6b6b6b;
   --badge-surface: #e9e9e9;
-  --badge-ink: #616161;
 
   /* Status and feedback */
   --success: #49815a;
@@ -95,12 +92,9 @@
   --code-surface: #f9f9f9;
   --editor-gutter: #8c8c8c;
   --editor-active-line: #f0f0f0;
-  --plan-grid: #e6e6e6;
   --plan-line: #d6d6d6;
   --plan-group: #f2f2f2;
   --plan-branch: #f9f9f9;
-  --plan-reference-line: #a6a6a6;
-  --plan-reference-ink: #6b6b6b;
   --plan-edge: #a6a6a6;
   --step-hover: #f9f9f9;
   --step-success: var(--success);
@@ -167,7 +161,6 @@
   --canvas-evidence-shadow: #0001;
 
   /* Run preview */
-  --preview: #f2f2f2;
   --preview-ink: #6b6b6b;
 
   /* Overlays and errors */
@@ -323,13 +316,10 @@
   --page-muted: #b0b0b0;
   --text-secondary: #c0c0c0;
   --text-subtle: #aaa;
-  --text-neutral: #aaa;
-  --text-disabled: #777;
   --text-faint: #888;
   --table-heading: #c0c0c0;
   --status-none: #aaa;
   --badge-surface: #383838;
-  --badge-ink: #ccc;
   --sidebar: #202020;
   --sidebar-hover: #303030;
   --sidebar-muted: #aaa;
@@ -343,12 +333,9 @@
   --code-surface: #202020;
   --editor-gutter: #999;
   --editor-active-line: #303030;
-  --plan-grid: #383838;
   --plan-line: #494949;
   --plan-group: #292929;
   --plan-branch: #242424;
-  --plan-reference-line: #777;
-  --plan-reference-ink: #aaa;
   --plan-edge: #888;
   --step-hover: #303030;
   --success: #87bc8f;
@@ -358,7 +345,6 @@
   --danger: #ef9188;
   --warning: #e9ae52;
   --cancelled: #aaa;
-  --preview: #242424;
   --preview-ink: #aaa;
   --composer-backdrop: #191919d9;
   --review-accept-ink: #80d5ad;
