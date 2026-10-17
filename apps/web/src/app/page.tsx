@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { Brand } from '@/components/brand/Brand';
 import { LandingMotion, LandingReveal } from '@/features/landing/components/LandingMotion';
 import { landingLatin, landingChinese, landingPixel } from '@/features/landing/fonts';
-import { LandingLanguageSwitch } from '@/features/landing/components/LandingLanguageSwitch';
+import { LandingLanguageSelect } from '@/features/landing/components/LandingLanguageSelect';
 import { LandingHero } from '@/features/landing/components/LandingHero';
 import { LandingDemo } from '@/features/landing/components/LandingDemo';
 import styles from '@/features/landing/components/landing.module.css';
@@ -50,9 +50,13 @@ export default function Home() {
             <a href="#faq">{t('faq')}</a>
           </nav>
           <div className={styles.navActions}>
-            <LandingLanguageSwitch />
-            <Link href="/cases" className={clsx(styles.button, styles.navButton)}>
-              {t('openWorkspace')}
+            <LandingLanguageSelect />
+            <Link
+              href="/cases"
+              aria-label={t('openWorkspace')}
+              className={clsx(styles.button, styles.navButton)}
+            >
+              <span className={styles.navWorkspaceLabel}>{t('openWorkspace')}</span>
               <Icon icon={arrowUpRightIcon} aria-hidden="true" />
             </Link>
           </div>

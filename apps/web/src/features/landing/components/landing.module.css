@@ -203,12 +203,15 @@
   align-items: center;
   gap: var(--space-3);
 }
-.languageSwitch {
+.languageSelect {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.5rem;
+  width: auto;
+  gap: var(--space-2);
+  flex-shrink: 0;
   min-height: 2.5rem;
+  border-color: transparent;
   padding-inline: var(--space-2);
   border-radius: var(--radius-md);
   background: transparent;
@@ -985,7 +988,10 @@
 }
 
 @media (max-width: 25rem) {
-  .navButton > svg {
+  .navWorkspaceLabel {
     display: none;
+  }
+  .button.navButton {
+    min-width: 2.5rem;
   }
 }
