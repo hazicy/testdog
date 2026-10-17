@@ -273,9 +273,3 @@
     animation: none;
   }
 }
-
-.caseCanvasPage {
-  & .planBoard {
-    border: 0;
-  }
-}

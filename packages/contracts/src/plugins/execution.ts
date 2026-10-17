@@ -8,7 +8,6 @@ export const PluginActionSchema = z.strictObject({
   type: z.literal('plugin'),
   plugin: PluginInvocationSchema,
 });
-export type PluginAction = z.infer<typeof PluginActionSchema>;
 export type PluginInvocation = z.infer<typeof PluginInvocationSchema>;
 
 const jsonPointer = z.string().regex(/^(\/([^~]|~[01])*)*$/);
@@ -55,15 +54,11 @@ export type PluginSettingsResponse = { settings: ExecutionPluginSettings[] };
 export const VolcengineExperimentSchema = z.strictObject({
   experimentName: z.string().trim().min(1),
   urlIncludes: z.string().trim().min(1).default('/service/2/abtest_config/'),
-  dataPath: z
-    .string()
-    .regex(/^(\/([^~]|~[01])*)*$/)
-    .default('/data'),
+  dataPath: jsonPointer.default('/data'),
   key: z.string().trim().min(1),
   value: z.json(),
   variantId: z.string().trim().min(1).optional(),
 });
-export type VolcengineExperiment = z.infer<typeof VolcengineExperimentSchema>;
 
 // Configuration metadata is shared; browser/driver implementations stay in automation.
 export const executionPlugins = [

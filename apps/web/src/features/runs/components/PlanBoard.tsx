@@ -190,7 +190,7 @@ function PlanBoardContent({
       >
         <div
           data-ui="plan-viewport"
-          className={clsx(boardStyles.planViewport, { [boardStyles.hasComposer]: viewportOverlay })}
+          className={boardStyles.planViewport}
           aria-label={t('plan')}
           tabIndex={0}
           onMouseLeave={() => setHoveredId(undefined)}

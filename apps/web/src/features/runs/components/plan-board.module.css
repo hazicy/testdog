@@ -38,10 +38,6 @@
 }
 
 @media (max-width: 40rem) {
-  .planCanvasHint {
-    display: none;
-  }
-
   .planViewport {
     height: 27.5rem;
   }
@@ -80,12 +76,6 @@
   }
 }
 
-.hasComposer {
-  & .planCanvasHint {
-    display: none;
-  }
-}
-
 .planBoardBody {
   &.hasInspector {
     grid-template-columns: minmax(0, 1fr) 21rem;
@@ -112,16 +102,6 @@
   justify-content: flex-end;
   gap: var(--space-3);
   pointer-events: none;
-}
-
-.planCanvasHint {
-  margin-right: auto;
-  border: var(--border-width) solid var(--page-line);
-  border-radius: var(--radius-lg);
-  padding: 0.5625rem var(--space-3);
-  background: var(--surface);
-  color: var(--page-muted);
-  font-size: var(--text-sm);
 }
 
 .planViewportControls {
@@ -523,10 +503,6 @@
     bottom: 0.75rem;
     left: 0.75rem;
     right: 0.75rem;
-  }
-  .planCanvasHint {
-    max-width: 11.25rem;
-    font-size: var(--text-xs);
   }
   .planBoardBody {
     &.hasInspector {

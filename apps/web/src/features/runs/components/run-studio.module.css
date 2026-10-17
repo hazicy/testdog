@@ -25,9 +25,6 @@
   justify-content: space-between;
   border-bottom: var(--border-width) solid var(--page-line);
 }
-.studioContent {
-  padding: var(--space-5);
-}
 .studioAlert {
   padding: var(--space-3) var(--space-5);
   border-bottom: var(--border-width) solid var(--error-line);
@@ -67,7 +64,6 @@
   border-bottom: 0;
 }
 @media (max-width: 40rem) {
-  .studioContent,
   .studioPanelToolbar {
     padding: var(--space-3);
   }
