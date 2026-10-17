@@ -72,6 +72,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
         </Link>
         <div className={shellStyles.appShellNavigation}>
+          <TeamSwitcher collapsed={collapsed} />
           <nav aria-label={t('workspace_navigation')} className={styles.navigationItems}>
             {workspaceNavigation.map((item) => (
               <Link
@@ -107,12 +108,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Icon icon={menuIcon} width="18" aria-hidden="true" />
           </Button>
-          <TeamSwitcher />
           <nav aria-label={t('breadcrumbs')} className={styles.breadcrumbs}>
-            <Link href="/cases" className={styles.breadcrumbLink}>
-              {t('workspace')}
-            </Link>
-            <Icon icon={chevronIcon} className={styles.separator} width="14" aria-hidden="true" />
             {canvas ? (
               <>
                 <Link href="/cases" className={styles.breadcrumbLink}>

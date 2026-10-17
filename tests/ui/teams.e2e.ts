@@ -77,7 +77,13 @@ test('creates a team, invites members and switches back to a clean personal work
       .locator('#main-content')
       .evaluate((element) => element.scrollWidth <= element.clientWidth),
   ).toBe(true);
+  await expect(page.locator('aside').getByLabel('切换工作区')).toBeVisible();
+  await expect(page.locator('header').getByLabel('切换工作区')).toHaveCount(0);
   await page.getByLabel('切换工作区').click();
+  await expect(page.getByRole('option', { name: 'QA Team', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
   await page.getByRole('option', { name: '个人空间', exact: true }).click();
   await expect(page).toHaveURL('/cases');
   await expect(page.getByLabel('切换工作区')).toHaveText('个人空间');
@@ -123,4 +129,67 @@ test('refreshes other tabs when switching workspaces', async ({ page, context })
   await page.getByRole('option', { name: '个人空间', exact: true }).click();
   await refreshed;
   await expect(other.getByLabel('切换工作区')).toHaveText('个人空间');
+});
+
+test('keeps the workspace picker usable when collapsed, with long names and failed switches', async ({
+  page,
+}, testInfo) => {
+  const name = 'Quality Engineering · 质量保障与自动化测试工作区';
+  let attempts = 0;
+
+  await page.route('**/api/auth/get-session', (route) =>
+    route.fulfill({
+      json: {
+        user: { id: 'alice', name: 'Alice', email: member.email, emailVerified: true },
+        session: { id: 'session', userId: 'alice', expiresAt: '2099-01-01T00:00:00Z' },
+      },
+    }),
+  );
+  await page.route('**/api/teams', (route) => {
+    if (route.request().method() === 'POST') {
+      attempts++;
+
+      return route.fulfill({ status: 503, json: { error: '切换失败，请重试。' } });
+    }
+
+    return route.fulfill({
+      json: {
+        teams: [{ id: teamId, name, role: 'admin' }],
+        activeTeamId: teamId,
+        members: [member],
+        invitations: [],
+      },
+    });
+  });
+  await page.route('**/api/tests*', (route) =>
+    route.fulfill({ json: { tests: [], latestRuns: [], nextCursor: null } }),
+  );
+  await page.route('**/api/workspace/stats', (route) =>
+    route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
+  );
+  await page.goto('/cases');
+  const picker = page.locator('aside').getByLabel('切换工作区');
+
+  await expect(picker).toHaveText(name);
+  await picker.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('option', { name, exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(picker).toBeFocused();
+  await page.screenshot({ path: testInfo.outputPath('workspace-desktop.png') });
+  await page.getByRole('button', { name: '收起侧栏' }).click();
+  await expect(picker).toBeInViewport();
+  await picker.click();
+  await expect(page.getByRole('option', { name, exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('workspace-collapsed.png') });
+  await page.getByRole('option', { name: '个人空间', exact: true }).click();
+  await expect(page.locator('aside').getByRole('alert')).toContainText('请求失败');
+  await expect(picker).toBeEnabled();
+  await expect(picker).toHaveText(name);
+  expect(attempts).toBe(1);
+  await page.setViewportSize({ width: 320, height: 740 });
+  await picker.click();
+  await expect(page.getByRole('option', { name, exact: true })).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+  await page.screenshot({ path: testInfo.outputPath('workspace-phone.png') });
 });
