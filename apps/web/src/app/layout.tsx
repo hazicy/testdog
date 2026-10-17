@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('landing');
 
-  return { title: 'Testdog', description: t('metaDescription') };
+  return { title: 'TestDog', description: t('metaDescription') };
 }
 
 export default async function RootLayout({ children }: LayoutProps<'/'>) {
