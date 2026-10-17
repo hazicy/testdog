@@ -7,7 +7,7 @@ import {
   type PlanNode,
 } from '@testdog/contracts/automation/compiler/schema';
 
-export type PlanChange = {
+type PlanChange = {
   id: string;
   nodeIds: string[];
   kind: 'added' | 'modified' | 'removed';

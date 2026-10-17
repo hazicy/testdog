@@ -1,5 +1,4 @@
-export const notificationKinds = { feishu: '飞书群机器人', email: 'Email 邮件' };
-export type NotificationChannel = keyof typeof notificationKinds;
+export type NotificationChannel = 'feishu' | 'email';
 export const notificationEvents = {
   'run.failed': '执行失败',
   'issue.created': '问题创建',

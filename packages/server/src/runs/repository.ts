@@ -127,10 +127,6 @@ export async function insertArtifact(artifact: RunArtifact, path: string) {
 export async function getArtifact(runId: string, id: string, userId: UserScope) {
   await assertRunAccess(runId, userId);
 
-  return getArtifactInternal(runId, id);
-}
-
-export async function getArtifactInternal(runId: string, id: string) {
   const [artifact] = await db
     .select()
     .from(runArtifacts)

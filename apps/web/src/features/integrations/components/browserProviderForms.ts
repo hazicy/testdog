@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import type { BrowserProviderIntegration } from '@testdog/contracts/integrations/types';
 import { BrowserlessForm } from '@/features/integrations/components/BrowserlessForm';
 
-export type BrowserProviderFormProps = {
+type BrowserProviderFormProps = {
   integration: BrowserProviderIntegration;
   onSaved: () => Promise<unknown>;
   onDismiss: () => void;

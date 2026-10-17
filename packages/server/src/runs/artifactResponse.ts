@@ -3,7 +3,7 @@ import { isAbsolute, relative, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { artifactRoot, openRemoteArtifact } from '@testdog/server/runs/artifactStorage';
 
-export type ArtifactFile = { path: string; contentType: string; id: string; kind: string };
+type ArtifactFile = { path: string; contentType: string; id: string; kind: string };
 type ArtifactRecord = ArtifactFile & { runId: string };
 
 const extensions: Record<string, string> = {

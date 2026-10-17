@@ -1,6 +1,6 @@
 import type { Plan } from '@testdog/contracts/automation/compiler/schema';
 
-export type PlanTree = {
+type PlanTree = {
   id: string;
   reference?: boolean;
   children: PlanTree[];

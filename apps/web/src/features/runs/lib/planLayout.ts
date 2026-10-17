@@ -2,7 +2,7 @@ import { graphlib, layout } from '@dagrejs/dagre';
 import type { Plan, PlanNode } from '@testdog/contracts/automation/compiler/schema';
 import type { Insertion } from '@/features/test-cases/lib/authoring';
 
-export type LayoutNode = {
+type LayoutNode = {
   id: string;
   planNodeId: string;
   reference: boolean;
@@ -12,20 +12,20 @@ export type LayoutNode = {
   width: number;
   height: number;
 };
-export type LayoutEdge = {
+type LayoutEdge = {
   id: string;
   source: string;
   target: string;
   kind: 'dependency' | 'branch' | 'reference' | 'sequence' | 'containment';
   label?: string;
 };
-export type LayoutInsertion = Insertion & {
+type LayoutInsertion = Insertion & {
   id: string;
   anchorId?: string;
   placement: 'below' | 'beside';
   position: { x: number; y: number };
 };
-export type PlanLayout = {
+type PlanLayout = {
   nodes: LayoutNode[];
   edges: LayoutEdge[];
   insertions: LayoutInsertion[];
