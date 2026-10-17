@@ -145,18 +145,40 @@ test('resizing restores desktop groups and preserves recording edits', async ({ 
   await editor.fill('await page.goto("https://example.com/mobile");');
   const draft = await editor.innerText();
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  await expect(dock).toHaveAttribute('data-compact', 'true');
-  await expect(dock.locator('.dv-groupview')).toHaveCount(1);
-  await expect(editor).toHaveText(draft);
-  await dock.getByRole('tab', { name: '回放', exact: true }).click();
-  await dock.getByRole('tab', { name: '录制脚本', exact: true }).click();
-  await expect(editor).toHaveText(draft);
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await expect(dock).toHaveAttribute('data-compact', 'false');
-  await expect(dock.locator('.dv-groupview')).toHaveCount(3);
-  await expect(editor).toHaveText(draft);
-  await expect(page.getByRole('button', { name: '展开分组' })).toHaveCount(1);
+  for (let cycle = 0; cycle < 2; cycle++) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(dock).toHaveAttribute('data-compact', 'true');
+    await expect(dock.locator('.dv-groupview')).toHaveCount(1);
+    await expect(editor).toHaveText(draft);
+    await dock.getByRole('tab', { name: '回放', exact: true }).click();
+    await dock.getByRole('tab', { name: '录制脚本', exact: true }).click();
+    await expect(editor).toHaveText(draft);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(dock).toHaveAttribute('data-compact', 'false');
+    await expect(dock.locator('.dv-groupview')).toHaveCount(3);
+    await expect(editor).toHaveText(draft);
+    await expect(page.getByRole('button', { name: '展开分组' })).toHaveCount(1);
+  }
+
+  // Restored groups must remain interactive, including their saved expanded size.
+  await page.getByRole('button', { name: '展开分组' }).click();
+  const consolePanel = page.getByRole('region', { name: 'Console 记录', exact: true });
+
+  await expect(consolePanel).toBeVisible();
+  const consoleGroup = dock.locator('.dv-groupview').filter({
+    has: page.getByRole('button', { name: '控制台', exact: true }),
+  });
+  const height = (await consoleGroup.boundingBox())!.height;
+
+  expect(height).toBeGreaterThan(100);
+  await consoleGroup.getByRole('button', { name: '折叠分组' }).click();
+  await expect(consolePanel).toBeHidden();
+  await consoleGroup.getByRole('button', { name: '展开分组' }).click();
+  await expect(consolePanel).toBeVisible();
+  // Dockview rounds its API dimensions separately from the rendered group bounds.
+  await expect
+    .poll(async () => Math.abs((await consoleGroup.boundingBox())!.height - height))
+    .toBeLessThanOrEqual(2);
 });
 
 test('phone tabs support keyboard navigation and every layout preset', async ({ page }) => {

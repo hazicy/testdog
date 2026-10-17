@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 
 import clsx from 'clsx';
 
-import studioStyles from '@/features/runs/components/run-studio.module.css';
+import { DockLayout, type DockTab } from './dockLayout';
 import styles from './DockTabs.module.css';
 
 import {
@@ -19,7 +19,6 @@ import {
 import {
   DockviewReact,
   themeLight,
-  type DockviewApi,
   type DockviewGroupPanelApi,
   type IDockviewHeaderActionsProps,
   type IDockviewPanelProps,
@@ -32,18 +31,8 @@ import minimizeIcon from '@iconify-icons/lucide/minimize';
 import collapseIcon from '@iconify-icons/lucide/chevron-down';
 import expandIcon from '@iconify-icons/lucide/chevron-up';
 
-export type DockTab = {
-  id: string;
-  label: string;
-  badge?: number;
-  reference?: string;
-  direction?: 'right' | 'below' | 'within';
-  initialWidth?: number;
-  initialWidthRatio?: number;
-  initialHeight?: number;
-  initiallyVisible?: boolean;
-  initiallyCollapsed?: boolean;
-};
+export type { DockTab } from './dockLayout';
+
 const ContentContext = createContext<{
   render: (id: string) => ReactNode;
   visited: Set<string>;
@@ -71,7 +60,7 @@ function Content({ api }: IDockviewPanelProps) {
   }, [api]);
 
   return (
-    <div className={studioStyles.dockPanel} hidden={!visible || collapsedGroups.has(api.group.id)}>
+    <div className={styles.dockPanel} hidden={!visible || collapsedGroups.has(api.group.id)}>
       {visited.has(api.id) && render(api.id)}
     </div>
   );
@@ -92,7 +81,7 @@ function Header({ api }: IDockviewPanelHeaderProps) {
     <button
       data-ui="dock-tab-button"
       type="button"
-      className={studioStyles.dockTabButton}
+      className={styles.dockTabButton}
       aria-pressed={active}
       aria-expanded={!collapsedGroups.has(api.group.id)}
       onPointerDownCapture={() => {
@@ -132,10 +121,7 @@ function GroupActions({ api, containerApi }: IDockviewHeaderActionsProps) {
   }, [api, containerApi]);
 
   return (
-    <div
-      className={studioStyles.dockGroupActions}
-      onPointerDown={(event) => event.stopPropagation()}
-    >
+    <div className={styles.dockGroupActions} onPointerDown={(event) => event.stopPropagation()}>
       <button
         type="button"
         aria-label={maximized ? t('restoreGroup') : t('maximizeGroup')}
@@ -195,20 +181,13 @@ export function DockTabs<T extends string>({
   revealPanels?: readonly T[];
 }) {
   const t = useTranslations('dock');
-  const dock = useRef<DockviewApi | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const mobileTabs = useRef<HTMLDivElement>(null);
-  const compact = useRef(false);
+  const layout = useRef<DockLayout | null>(null);
   const [isCompact, setIsCompact] = useState(false);
   const [activeId, setActiveId] = useState<string>(value);
-  const desktopLayout = useRef<ReturnType<DockviewApi['toJSON']> | null>(null);
-  const desktopCollapsed = useRef(new Set<string>());
-  const reflowing = useRef(false);
   const initial = useRef({ tabs, value });
   const change = useRef(onChange);
-  const collapsedHeight = 40;
-  const expandedHeights = useRef(new Map<string, number>());
-  const collapsedWidths = useRef(new Map<string, number>());
   const [collapsedGroups, setCollapsedGroups] = useState(() => new Set<string>());
   const [visited, setVisited] = useState(
     () =>
@@ -219,7 +198,7 @@ export function DockTabs<T extends string>({
     change.current = onChange;
   }, [onChange]);
   useEffect(() => {
-    const panel = dock.current?.getPanel(value);
+    const panel = layout.current?.api.getPanel(value);
 
     if (panel && !panel.api.isActive) panel.api.setActive();
   }, [value]);
@@ -230,47 +209,22 @@ export function DockTabs<T extends string>({
   }, [activeId, isCompact]);
 
   useEffect(() => {
-    for (const tab of tabs) dock.current?.getPanel(tab.id)?.api.setTitle(tab.label);
+    for (const tab of tabs) layout.current?.api.getPanel(tab.id)?.api.setTitle(tab.label);
   }, [tabs]);
 
   function collapse(api: DockviewGroupPanelApi, collapsed: boolean) {
-    if (api.isMaximized()) api.exitMaximized();
-    const group = dock.current?.groups.find((group) => group.id === api.id);
+    const current = layout.current;
 
-    if (!group) return;
-    const sideways =
-      collapsedWidths.current.has(api.id) ||
-      (api.height >= (dock.current?.height ?? 0) - 1 && api.width < (dock.current?.width ?? 0) - 1);
+    if (!current) return;
+    current.collapse(api, collapsed);
+    const activePanel = current.api.groups.find((group) => group.id === api.id)?.activePanel;
 
-    if (sideways) {
-      if (collapsed) collapsedWidths.current.set(api.id, api.width);
-      api.setConstraints({
-        minimumWidth: 40,
-        maximumWidth: collapsed ? 40 : Number.POSITIVE_INFINITY,
-      });
-      api.setSize({ width: collapsed ? 40 : collapsedWidths.current.get(api.id) });
-      group.element.classList.toggle(studioStyles.dockCollapsedSide, collapsed);
-    } else {
-      if (collapsed) expandedHeights.current.set(api.id, api.height);
-      api.setConstraints({
-        minimumHeight: collapsedHeight,
-        maximumHeight: collapsed ? collapsedHeight : Number.POSITIVE_INFINITY,
-      });
-      api.setSize({ height: collapsed ? collapsedHeight : expandedHeights.current.get(api.id) });
-    }
-
-    setCollapsedGroups((previous) => {
-      const next = new Set(previous);
-
-      if (collapsed) next.add(api.id);
-      else next.delete(api.id);
-
-      return next;
-    });
+    if (!collapsed && activePanel) setVisited((previous) => new Set([...previous, activePanel.id]));
+    setCollapsedGroups(current.collapsedGroups);
   }
 
   const reveal = useEffectEvent((id: string) => {
-    const panel = dock.current?.getPanel(id);
+    const panel = layout.current?.api.getPanel(id);
 
     if (!panel) return;
     if (collapsedGroups.has(panel.group.id)) collapse(panel.group.api, false);
@@ -282,60 +236,15 @@ export function DockTabs<T extends string>({
   }, [revealPanels]);
 
   const adaptLayout = useEffectEvent((nextCompact: boolean) => {
-    const api = dock.current;
+    const current = layout.current;
 
-    if (!api || nextCompact === compact.current) return;
-    const activeId = api.activePanel?.id;
+    if (!current || nextCompact === current.compact) return;
+    current.adapt(nextCompact);
+    setCollapsedGroups(current.collapsedGroups);
+    setIsCompact(current.compact);
+    const activeId = current.api.activePanel?.id;
 
-    reflowing.current = true;
-    if (nextCompact) {
-      desktopLayout.current = api.toJSON();
-      desktopCollapsed.current = new Set(collapsedGroups);
-      for (const group of api.groups) {
-        if (group.api.isMaximized()) group.api.exitMaximized();
-        group.api.setConstraints({
-          minimumWidth: 0,
-          maximumWidth: Number.POSITIVE_INFINITY,
-          minimumHeight: 0,
-          maximumHeight: Number.POSITIVE_INFINITY,
-        });
-        group.element.classList.remove(studioStyles.dockCollapsedSide);
-      }
-
-      const group = api.panels[0]?.group;
-
-      if (group) {
-        for (const panel of [...api.panels]) {
-          if (panel.group !== group) panel.api.moveTo({ group, skipSetActive: true });
-        }
-      }
-
-      setCollapsedGroups(new Set());
-    } else if (desktopLayout.current) {
-      api.fromJSON(desktopLayout.current, { reuseExistingPanels: true });
-      for (const group of api.groups) {
-        if (!desktopCollapsed.current.has(group.id)) continue;
-        const sideways = collapsedWidths.current.has(group.id);
-
-        group.api.setConstraints(
-          sideways
-            ? { minimumWidth: 40, maximumWidth: 40 }
-            : { minimumHeight: collapsedHeight, maximumHeight: collapsedHeight },
-        );
-        group.element.classList.toggle(studioStyles.dockCollapsedSide, sideways);
-      }
-
-      setCollapsedGroups(new Set(desktopCollapsed.current));
-    }
-
-    compact.current = nextCompact;
-    setIsCompact(nextCompact);
-    if (activeId) {
-      api.getPanel(activeId)?.api.setActive();
-      setActiveId(activeId);
-    }
-
-    reflowing.current = false;
+    if (activeId) setActiveId(activeId);
   });
 
   useEffect(() => {
@@ -355,15 +264,14 @@ export function DockTabs<T extends string>({
   }, []);
 
   function select(id: string, wasActive?: boolean) {
-    const panel = dock.current?.getPanel(id);
+    const panel = layout.current?.api.getPanel(id);
 
     if (!panel) return;
     const group = panel.group;
 
     if (collapsedGroups.has(group.id)) collapse(group.api, false);
     else if (
-      !compact.current &&
-      expandedHeights.current.has(group.id) &&
+      layout.current?.canCollapseActiveTab(group.id) &&
       (wasActive ?? group.activePanel?.id === id)
     )
       collapse(group.api, true);
@@ -390,7 +298,7 @@ export function DockTabs<T extends string>({
         data-ui="dock"
         data-compact={isCompact}
         aria-label={label}
-        className={clsx([studioStyles.dock, 'dockview-theme-light'].join(' '), className)}
+        className={clsx(styles.dock, 'dockview-theme-light', className)}
       >
         {isCompact && (
           <div
@@ -406,7 +314,7 @@ export function DockTabs<T extends string>({
                 role="tab"
                 aria-selected={activeId === tab.id}
                 tabIndex={activeId === tab.id ? 0 : -1}
-                className={studioStyles.dockTabButton}
+                className={styles.dockTabButton}
                 onClick={() => select(tab.id)}
                 onKeyDown={(event) => {
                   const nextIndex =
@@ -443,57 +351,13 @@ export function DockTabs<T extends string>({
             defaultTabComponent={Header}
             rightHeaderActionsComponent={GroupActions}
             onReady={({ api }) => {
-              dock.current = api;
-              for (const tab of initial.current.tabs) {
-                api.addPanel({
-                  id: tab.id,
-                  title: tab.label,
-                  component: 'content',
-                  renderer: 'always',
-                  inactive: true,
-                  initialWidth: tab.initialWidth,
-                  initialHeight: tab.initialHeight,
-                  position: tab.reference
-                    ? { referencePanel: tab.reference, direction: tab.direction ?? 'within' }
-                    : api.panels[0]
-                      ? { referencePanel: api.panels[0].id }
-                      : undefined,
-                });
-              }
+              const current = new DockLayout(api);
 
-              for (const tab of initial.current.tabs) {
-                const width =
-                  tab.initialWidthRatio === undefined
-                    ? tab.initialWidth
-                    : api.width * tab.initialWidthRatio;
-
-                if (width || tab.initialHeight) {
-                  api.getPanel(tab.id)?.group.api.setSize({ width, height: tab.initialHeight });
-                }
-
-                if (tab.initiallyVisible) api.getPanel(tab.id)?.api.setActive();
-              }
-
-              const collapsed = new Set<string>();
-
-              for (const tab of initial.current.tabs) {
-                if (!tab.initiallyCollapsed) continue;
-                const group = api.getPanel(tab.id)?.group;
-
-                if (!group) continue;
-                expandedHeights.current.set(group.id, tab.initialHeight ?? group.api.height);
-                group.api.setConstraints({
-                  minimumHeight: collapsedHeight,
-                  maximumHeight: collapsedHeight,
-                });
-                group.api.setSize({ height: collapsedHeight });
-                collapsed.add(group.id);
-              }
-
-              setCollapsedGroups(collapsed);
-              api.getPanel(initial.current.value)?.api.setActive();
+              layout.current = current;
+              current.initialize(initial.current.tabs, initial.current.value);
+              setCollapsedGroups(current.collapsedGroups);
               api.onDidActivePanelChange(({ panel }) => {
-                if (!panel || reflowing.current) return;
+                if (!panel || current.reflowing) return;
                 setActiveId(panel.id);
                 setVisited((previous) =>
                   previous.has(panel.id) ? previous : new Set([...previous, panel.id]),
