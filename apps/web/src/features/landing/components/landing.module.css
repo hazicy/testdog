@@ -296,6 +296,7 @@
   animation: hero-actions-in 0.7s 0.35s ease-out both;
 }
 .heroArtwork {
+  overflow: clip;
   position: relative;
   min-width: 0;
   width: 100%;
@@ -395,21 +396,55 @@
   }
 }
 .heroCursor {
-  animation: hero-cursor-in 1s 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --cursor-cycle: 9s;
   position: absolute;
   left: 64%;
   top: 59%;
-  display: grid;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  color: var(--ink);
-  filter: drop-shadow(0 0.125rem 0.125rem #ffffff);
+  z-index: 1;
+  pointer-events: none;
+  animation-name: hero-cursor-tour;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  animation-fill-mode: both;
+  & > span {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--ink);
+    transform-origin: 25% 25%;
+    animation-name: hero-cursor-click;
+    &::before {
+      content: '';
+      position: absolute;
+      left: 10%;
+      top: 10%;
+      width: 1.5rem;
+      height: 1.5rem;
+      border: var(--border-width) solid var(--brand-active);
+      border-radius: 50%;
+      opacity: 0;
+      animation-name: hero-cursor-ripple;
+      animation-timing-function: ease-out;
+    }
+  }
   & svg {
     width: 1.75rem;
     height: 1.75rem;
     fill: #ffffff;
+    filter: drop-shadow(0 0.125rem 0.125rem #ffffff);
   }
+}
+.heroCursor,
+.heroCursor > span,
+.heroCursor > span::before {
+  animation-duration: var(--cursor-cycle);
+  animation-delay: 0.5s;
+  animation-iteration-count: infinite;
+  animation-play-state: var(--cursor-play-state, running);
+}
+.hero[data-motion-paused] {
+  --cursor-play-state: paused;
 }
 .heroVerified {
   animation: hero-verified-in 0.7s 2.25s ease both;
@@ -466,14 +501,55 @@
     opacity: 1;
   }
 }
-@keyframes hero-cursor-in {
-  from {
-    transform: translate(2.5rem, 2rem);
+@keyframes hero-cursor-tour {
+  0%,
+  12%,
+  100% {
+    left: 64%;
+    top: 59%;
+  }
+  26%,
+  38% {
+    left: 15%;
+    top: 23%;
+  }
+  78%,
+  90% {
+    left: 87%;
+    top: 74%;
+  }
+}
+@keyframes hero-cursor-click {
+  0%,
+  30%,
+  36%,
+  82%,
+  88%,
+  100% {
+    transform: scale(1);
+  }
+  33%,
+  85% {
+    transform: scale(0.82);
+  }
+}
+@keyframes hero-cursor-ripple {
+  0%,
+  31%,
+  83%,
+  100% {
+    transform: scale(0.4);
     opacity: 0;
   }
-  to {
-    transform: translate(0, 0);
-    opacity: 1;
+  33%,
+  85% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  38%,
+  90% {
+    transform: scale(1.8);
+    opacity: 0;
   }
 }
 @keyframes hero-verified-in {
