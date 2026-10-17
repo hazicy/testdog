@@ -237,3 +237,34 @@ test('keeps sign out within the sidebar on short, narrow and collapsed layouts',
     }
   }
 });
+
+test('landing stays mounted when the signed-in session finishes loading', async ({ page }) => {
+  let releaseSession!: () => void;
+  const sessionReady = new Promise<void>((resolve) => {
+    releaseSession = resolve;
+  });
+
+  await page.route('**/api/auth/get-session', async (route) => {
+    await sessionReady;
+    await route.fulfill({
+      json: {
+        user: { id: 'user-1', name: '测试用户', email: 'user@example.com', emailVerified: true },
+        session: { id: 'session-1', userId: 'user-1', expiresAt: '2099-01-01T00:00:00Z' },
+      },
+    });
+  });
+  const sessionRequest = page.waitForRequest('**/api/auth/get-session');
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await sessionRequest;
+  const heading = await page.locator('#hero-heading').elementHandle();
+
+  expect(heading).not.toBeNull();
+  const sessionResponse = page.waitForResponse('**/api/auth/get-session');
+
+  releaseSession();
+  await sessionResponse;
+  // Allow the session update to render before checking the original DOM node.
+  await page.waitForTimeout(500);
+  expect(await heading!.evaluate((element) => element.isConnected)).toBe(true);
+});
