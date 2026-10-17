@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import {
   createColumnHelper,
   createSortedRowModel,
@@ -14,6 +14,7 @@ import {
 } from '@tanstack/react-table';
 import { useLogVirtualizer } from '../hooks/useLogVirtualizer';
 import clsx from 'clsx';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Tabs } from '@base-ui/react/tabs';
 import type { BrowserLog } from '@testdog/contracts/runs/types';
@@ -275,15 +276,15 @@ function Headers({ label, values }: { label: string; values?: Record<string, str
 
 function RequestDetails({ log, close }: { log: BrowserLog; close: () => void }) {
   const t = useTranslations('runs');
-  const [copyStatus, setCopyStatus] = useState('');
+  const toastManager = useToastManager();
   const url = requestUrl(log, t('unknownRequest'));
 
   async function copyUrl() {
     try {
       await navigator.clipboard.writeText(log.url || '');
-      setCopyStatus(t('urlCopied'));
+      toastManager.add({ title: t('urlCopied'), type: 'success' });
     } catch {
-      setCopyStatus(t('copyUrlFailed'));
+      toastManager.add({ title: t('copyUrlFailed'), type: 'error' });
     }
   }
 
@@ -315,11 +316,6 @@ function RequestDetails({ log, close }: { log: BrowserLog; close: () => void }) 
                 {t('copyUrl')}
               </Button>
             </div>
-            {copyStatus && (
-              <p role="status" className={styles.detailEmpty}>
-                {copyStatus}
-              </p>
-            )}
             <Fields
               values={[
                 [t('requestUrlLabel'), log.url],

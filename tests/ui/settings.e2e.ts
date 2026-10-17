@@ -46,7 +46,12 @@ test('saves the profile and updates the sidebar and refreshed page', async ({ pa
   await expect(page.getByLabel('邮箱', { exact: true })).toHaveAttribute('readonly', '');
   await page.getByLabel('姓名', { exact: true }).fill('更新用户');
   await page.getByRole('button', { name: '保存资料' }).click();
-  await expect(page.getByRole('status')).toHaveText('资料已保存。');
+  await expect(
+    page
+      .getByRole('region', { name: '通知', exact: true })
+      .getByText('资料已保存。', { exact: true })
+      .last(),
+  ).toBeVisible();
   await expect(page.locator('aside').getByText('更新用户', { exact: true })).toBeVisible();
   await page.reload();
   await page.getByRole('tab', { name: '账户资料', exact: true }).click();
@@ -89,7 +94,12 @@ test('validates confirmation, handles incorrect passwords and clears fields on s
     '当前密码不正确，请重新输入。',
   );
   await page.getByRole('button', { name: '修改密码', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('密码已修改，其他设备的登录已退出。');
+  await expect(
+    page
+      .getByRole('region', { name: '通知', exact: true })
+      .getByText('密码已修改，其他设备的登录已退出。', { exact: true })
+      .last(),
+  ).toBeVisible();
   await expect(page.getByLabel('当前密码', { exact: true })).toHaveValue('');
   await expect(page.getByLabel('新密码', { exact: true })).toHaveValue('');
   await expect(page.getByLabel('确认新密码', { exact: true })).toHaveValue('');
@@ -122,5 +132,10 @@ test('keeps profile edits when saving fails and supports retry', async ({ page }
   await expect(page.getByRole('main').getByRole('alert')).toHaveText('资料保存失败，请稍后重试。');
   await expect(page.getByLabel('姓名', { exact: true })).toHaveValue('保留草稿');
   await page.getByRole('button', { name: '保存资料' }).click();
-  await expect(page.getByRole('status')).toHaveText('资料已保存。');
+  await expect(
+    page
+      .getByRole('region', { name: '通知', exact: true })
+      .getByText('资料已保存。', { exact: true })
+      .last(),
+  ).toBeVisible();
 });

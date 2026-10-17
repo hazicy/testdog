@@ -39,11 +39,6 @@
   font-size: var(--text-lg);
   line-height: 1.25rem;
 }
-.loading {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
-  color: var(--step-success);
-}
 .container {
   display: flex;
   flex-wrap: wrap;

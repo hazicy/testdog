@@ -23,6 +23,7 @@ import Image from 'next/image';
 import useSWR from 'swr';
 import { api, fetchJson } from '@/client/api';
 import { useRunSubmission } from '@/client/useRunSubmission';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { ErrorState } from '@/components/shared/ErrorState';
@@ -141,7 +142,7 @@ export function IssueDetail({ id }: { id: string }) {
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
+  const toastManager = useToastManager();
 
   async function addComment(event: React.FormEvent) {
     event.preventDefault();
@@ -230,13 +231,13 @@ export function IssueDetail({ id }: { id: string }) {
                     ),
                   ].join('\n'),
                 );
-                setCopied(true);
+                toastManager.add({ title: t('copiedPrompt'), type: 'success' });
               } catch {
-                setError(t('clipboardFailed'));
+                toastManager.add({ title: t('clipboardFailed'), type: 'error' });
               }
             }}
           >
-            {copied ? t('copiedPrompt') : t('copyPrompt')}
+            {t('copyPrompt')}
           </Button>
           <Button className={styles.action} onClick={() => setEditing(true)}>
             {t('editIssue')}

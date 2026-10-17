@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl';
 
 import useSWR from 'swr';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react/offline';
 import copyIcon from '@iconify-icons/lucide/copy';
-import checkIcon from '@iconify-icons/lucide/check';
 import { fetchJson } from '@/client/api';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import type { ModelCallDetail } from '@testdog/contracts/runs/modelCalls';
 import styles from './ModelUsagePanel.module.css';
@@ -216,25 +216,10 @@ function CopyableContent({
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const t = useTranslations('runs');
-  const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
-
-  useEffect(() => {
-    if (status === 'idle') return;
-    const timeout = setTimeout(() => setStatus('idle'), 2000);
-
-    return () => clearTimeout(timeout);
-  }, [status]);
+  const toastManager = useToastManager();
 
   return (
     <span className={styles.copyControl}>
-      {status !== 'idle' && (
-        <span
-          role={status === 'failed' ? 'alert' : 'status'}
-          className={status === 'failed' ? styles.errorCode : undefined}
-        >
-          {status === 'copied' ? t('copied') : t('copyFailed')}
-        </span>
-      )}
       <Button
         variant="ghost"
         size="icon-xs"
@@ -243,13 +228,13 @@ function CopyButton({ value, label }: { value: string; label: string }) {
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(value);
-            setStatus('copied');
+            toastManager.add({ title: t('copied'), type: 'success' });
           } catch {
-            setStatus('failed');
+            toastManager.add({ title: t('copyFailed'), type: 'error' });
           }
         }}
       >
-        <Icon icon={status === 'copied' ? checkIcon : copyIcon} width="13" aria-hidden="true" />
+        <Icon icon={copyIcon} width="13" aria-hidden="true" />
       </Button>
     </span>
   );

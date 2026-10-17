@@ -369,7 +369,19 @@ test('shows expected, actual and reproduction, copies a fix prompt and resolves 
   await expect(latest.getByText('查看订单', { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('issue-detail.png'), fullPage: true });
   await page.getByRole('button', { name: '复制修复提示词', exact: true }).click();
-  await expect(page.getByRole('button', { name: '已复制修复提示词' })).toBeVisible();
+  const notifications = page.getByRole('region', { name: '通知', exact: true });
+
+  await expect(notifications.getByText('已复制修复提示词', { exact: true })).toBeVisible();
+  await notifications.getByText('已复制修复提示词', { exact: true }).hover();
+  await notifications.getByRole('button', { name: '关闭通知' }).click();
+  await expect(notifications.getByText('已复制修复提示词', { exact: true })).toHaveCount(0);
+  await page.evaluate(() => {
+    navigator.clipboard.writeText = async () => {
+      throw new Error('Clipboard unavailable');
+    };
+  });
+  await page.getByRole('button', { name: '复制修复提示词', exact: true }).click();
+  await expect(notifications.getByText('复制失败，请检查浏览器剪贴板权限。')).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('实际为120');
   await page.getByRole('button', { name: '标记已解决', exact: true }).click();
   await expect(page.getByText('关闭原因：已修复')).toBeVisible();
@@ -468,6 +480,11 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await panel.getByRole('button', { name: '回放证据 00:26' }).click();
   await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:26 / 00:32');
   await panel.getByRole('button', { name: '复制修复提示词', exact: true }).click();
+  await expect(
+    page
+      .getByRole('region', { name: '通知', exact: true })
+      .getByText('已复制修复提示词', { exact: true }),
+  ).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('实际为120');
   await panel.getByRole('combobox', { name: '问题状态：订单金额错误' }).click();
   await page.getByRole('option', { name: '已关闭', exact: true }).click();
@@ -477,7 +494,7 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await panel.locator('[data-ui~="run-issue-body"]').evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  await expect(panel.getByRole('button', { name: '已复制修复提示词', exact: true })).toBeVisible();
+  await expect(panel.getByRole('button', { name: '复制修复提示词', exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('run-issues.png'), fullPage: true });
   await page.getByRole('button', { name: '步骤', exact: true }).click();
   await expect(transcript).toBeVisible();

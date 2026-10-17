@@ -12,6 +12,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@/client/api';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { asset, time } from '@/features/runs/presentation';
@@ -56,7 +57,7 @@ function RunIssueCard({
   const snapshot = occurrence.snapshot;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
+  const toastManager = useToastManager();
   const expected = snapshot.step?.assertion?.description ?? snapshot.nodeGoal ?? snapshot.goal;
   const actual = snapshot.step?.evidence ?? snapshot.error ?? issue.description;
   const reproduction =
@@ -189,13 +190,13 @@ function RunIssueCard({
                   ...reproduction.map((title, position) => `${position + 1}. ${title}`),
                 ].join('\n'),
               );
-              setCopied(true);
+              toastManager.add({ title: t('copiedPrompt'), type: 'success' });
             } catch {
-              setError(t('clipboardFailed'));
+              toastManager.add({ title: t('clipboardFailed'), type: 'error' });
             }
           }}
         >
-          {copied ? t('copiedPrompt') : t('copyPrompt')}
+          {t('copyPrompt')}
         </Button>
         <Link href={`/issues/${issue.id}`} className={styles.detailsLink}>
           {t('viewDetails')}

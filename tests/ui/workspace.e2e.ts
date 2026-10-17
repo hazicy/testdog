@@ -1189,7 +1189,9 @@ test('validates the current draft and locks editing while saving a version', asy
   await expect(editor).toHaveAttribute('contenteditable', 'false');
   await expect(save).toBeDisabled();
   release();
-  await expect(editorRegion.getByRole('status')).toHaveText('新版本已保存。');
+  await expect(
+    page.getByRole('region', { name: '通知', exact: true }).getByText('新版本已保存。'),
+  ).toBeVisible();
   await expect(editor).toHaveAttribute('contenteditable', 'true');
   await expect(editor).toHaveText(draft);
   expect(submitted).toBe(draft);

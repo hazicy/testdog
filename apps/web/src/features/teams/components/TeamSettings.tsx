@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { authClient } from '@/client/auth';
 import { reloadWorkspace } from '../navigation';
 import { api, fetchJson } from '@/client/api';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -25,7 +26,7 @@ export function TeamSettings({ invitation }: { invitation?: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [invitationLink, setInvitationLink] = useState('');
-  const [copied, setCopied] = useState(false);
+  const toastManager = useToastManager();
   const active = data?.teams.find((team) => team.id === data.activeTeamId);
   const admin = active?.role === 'admin';
 
@@ -47,7 +48,6 @@ export function TeamSettings({ invitation }: { invitation?: string }) {
 
         url.searchParams.set('invite', result.invitationToken);
         setInvitationLink(url.toString());
-        setCopied(false);
       }
 
       await mutate();
@@ -199,13 +199,13 @@ export function TeamSettings({ invitation }: { invitation?: string }) {
                         onClick={async () => {
                           try {
                             await navigator.clipboard.writeText(invitationLink);
-                            setCopied(true);
+                            toastManager.add({ title: t('copied'), type: 'success' });
                           } catch {
-                            setError(t('copyFailed'));
+                            toastManager.add({ title: t('copyFailed'), type: 'error' });
                           }
                         }}
                       >
-                        {t(copied ? 'copied' : 'copy')}
+                        {t('copy')}
                       </Button>
                     </div>
                   )}

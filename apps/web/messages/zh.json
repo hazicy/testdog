@@ -1,5 +1,7 @@
 {
   "ui": {
+    "dismiss_notification": "关闭通知",
+    "notifications": "通知",
     "skip_to_main_content": "跳转到主内容",
     "testdog_home": "testdog 首页",
     "workspace_navigation": "工作区导航",

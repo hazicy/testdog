@@ -6,6 +6,7 @@ import styles from './BrowserlessForm.module.css';
 
 import { useId, useState } from 'react';
 import { Dialog, DialogHeader } from '@/components/ui/Dialog';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -31,13 +32,13 @@ export function BrowserlessForm({
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const toastManager = useToastManager();
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError('');
-    setMessage('');
+
     try {
       const result = await api
         .put('/api/integrations/browser-providers/browserless', {
@@ -56,7 +57,7 @@ export function BrowserlessForm({
       setToken('');
       setClearToken(false);
       setDirty(false);
-      setMessage(t('saved'));
+      toastManager.add({ title: t('saved'), type: 'success' });
       await onSaved();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('saveFailed'));
@@ -68,7 +69,7 @@ export function BrowserlessForm({
   async function test() {
     setBusy(true);
     setError('');
-    setMessage('');
+
     try {
       const result = await api
         .post('/api/integrations/browser-providers/browserless/test', {
@@ -78,7 +79,10 @@ export function BrowserlessForm({
         })
         .json<{ browserVersion: string }>();
 
-      setMessage(t('connectionSuccess', { version: result.browserVersion }));
+      toastManager.add({
+        title: t('connectionSuccess', { version: result.browserVersion }),
+        type: 'success',
+      });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('connectionFailed'));
     } finally {
@@ -174,11 +178,6 @@ export function BrowserlessForm({
         {error && (
           <p role="alert" className={styles.error}>
             {error}
-          </p>
-        )}
-        {message && (
-          <p role="status" className={styles.loading}>
-            {message}
           </p>
         )}
         <div className={styles.container}>

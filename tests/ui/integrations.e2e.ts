@@ -90,7 +90,12 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
   await feishu.getByRole('checkbox', { name: '启用事件通知', exact: true }).check();
   await feishu.getByRole('checkbox', { name: '问题状态变化', exact: true }).check();
   await feishu.getByRole('button', { name: '保存配置', exact: true }).click();
-  await expect(feishu.getByText('配置已保存。')).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: '通知', exact: true })
+      .getByText('配置已保存。', { exact: true })
+      .last(),
+  ).toBeVisible();
   await expect(feishu.getByLabel('Webhook 地址', { exact: true })).toHaveValue('');
   await expect(feishu.getByLabel('签名密钥（可选）')).toHaveValue('');
   expect(payloads[0]).toMatchObject({
@@ -99,7 +104,9 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
     signingSecret: 'test-secret',
   });
   await feishu.getByRole('button', { name: '发送测试通知' }).click();
-  await expect(feishu.getByRole('status')).toContainText('测试通知已提交');
+  await expect(
+    page.getByRole('region', { name: '通知', exact: true }).getByText('测试通知已提交').last(),
+  ).toBeVisible();
   await feishu.getByRole('button', { name: '关闭配置' }).click();
   await expect(feishu).toHaveCount(0);
   await expect(configure).toBeFocused();
@@ -194,7 +201,12 @@ test('configures email recipients without SMTP fields and retries failed deliver
   await expect(email.getByLabel(/SMTP|发件邮箱/)).toHaveCount(0);
   await email.getByLabel('收件邮箱', { exact: true }).fill('one@example.com, two@example.com');
   await email.getByRole('button', { name: '保存配置', exact: true }).click();
-  await expect(email.getByText('配置已保存。')).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: '通知', exact: true })
+      .getByText('配置已保存。', { exact: true })
+      .last(),
+  ).toBeVisible();
   expect(lastInput).toEqual({
     version: 0,
     enabled: false,
@@ -202,7 +214,9 @@ test('configures email recipients without SMTP fields and retries failed deliver
     recipients: ['one@example.com', 'two@example.com'],
   });
   await email.getByRole('button', { name: '发送测试通知' }).click();
-  await expect(email.getByRole('status')).toContainText('测试通知已提交');
+  await expect(
+    page.getByRole('region', { name: '通知', exact: true }).getByText('测试通知已提交').last(),
+  ).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(email).toHaveCount(0);
   await expect(configure).toBeFocused();
@@ -220,7 +234,12 @@ test('configures email recipients without SMTP fields and retries failed deliver
   await configure.click();
   await email.getByLabel('收件邮箱', { exact: true }).fill('three@example.com');
   await email.getByRole('button', { name: '保存配置', exact: true }).click();
-  await expect(email.getByText('配置已保存。')).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: '通知', exact: true })
+      .getByText('配置已保存。', { exact: true })
+      .last(),
+  ).toBeVisible();
   expect(lastInput).not.toHaveProperty('password');
 });
 
@@ -278,7 +297,12 @@ test('saves email preferences while platform mail is unavailable and disables te
   await expect(email.getByText('邮件通知暂不可用，请联系管理员。')).toBeVisible();
   await email.getByLabel('收件邮箱', { exact: true }).fill('recipient@example.com');
   await email.getByRole('button', { name: '保存配置', exact: true }).click();
-  await expect(email.getByText('配置已保存。')).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: '通知', exact: true })
+      .getByText('配置已保存。', { exact: true })
+      .last(),
+  ).toBeVisible();
   await expect(email.getByRole('button', { name: '发送测试通知' })).toBeDisabled();
   await email.getByRole('button', { name: '关闭配置' }).click();
   await page.getByRole('button', { name: '配置Email 邮件', exact: true }).click();
@@ -375,7 +399,9 @@ test('configures Browserless through generic provider APIs and keeps credentials
   await dialog.getByLabel('Token（可选）').fill('private-token');
   await dialog.getByRole('checkbox', { name: '启用 Browserless' }).check();
   await dialog.getByRole('button', { name: '保存配置' }).click();
-  await expect(dialog.getByRole('status')).toHaveText('配置已保存。');
+  await expect(
+    page.getByRole('region', { name: '通知', exact: true }).getByText('配置已保存。').last(),
+  ).toBeVisible();
   await expect(dialog.getByLabel('WebSocket 地址', { exact: true })).toHaveValue('');
   await expect(dialog.getByLabel('Token（可选）')).toHaveValue('');
   expect(payloads[0]).toMatchObject({
@@ -384,11 +410,15 @@ test('configures Browserless through generic provider APIs and keeps credentials
     endpoint: 'wss://host/chromium/playwright',
   });
   await dialog.getByRole('button', { name: '测试连接' }).click();
-  await expect(dialog.getByRole('status')).toContainText('连接测试成功');
+  await expect(
+    page.getByRole('region', { name: '通知', exact: true }).getByText('连接测试成功').last(),
+  ).toBeVisible();
   await dialog.getByRole('checkbox', { name: '启用 Browserless' }).uncheck();
   await expect(dialog.getByRole('button', { name: '测试连接' })).toBeDisabled();
   await dialog.getByRole('button', { name: '保存配置' }).click();
-  await expect(dialog.getByRole('status')).toHaveText('配置已保存。');
+  await expect(
+    page.getByRole('region', { name: '通知', exact: true }).getByText('配置已保存。').last(),
+  ).toBeVisible();
   expect(payloads[1]).not.toHaveProperty('endpoint');
   expect(payloads[1]).not.toHaveProperty('token');
   await dialog.getByRole('checkbox', { name: '清除已保存的 Token' }).check();

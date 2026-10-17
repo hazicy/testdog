@@ -365,7 +365,12 @@ test('AI trajectories load lazily and connect replies and tool results to execut
   for (const { button, value } of copies) {
     await button.click();
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(value);
-    await expect(button.locator('..').getByRole('status')).toHaveText('已复制');
+    await expect(
+      page
+        .getByRole('region', { name: '通知', exact: true })
+        .getByText('已复制', { exact: true })
+        .first(),
+    ).toBeVisible();
   }
 
   expect(reads).toBe(1);

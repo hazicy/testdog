@@ -8,6 +8,7 @@
 - `Checkbox`：用 `checked` 和 `onCheckedChange` 控制状态，配合外层 `label` 提供名称。
 - `Select`：使用 `value`、`onValueChange`、`items`，支持 `disabled`、`required`、`name` 和 `aria-label`。选项值统一转成字符串，弹出列表通过 Portal 渲染。
 - `Dialog`：配合 `DialogHeader`、`DialogFooter` 使用。调用方通过自己的模块类名设置宽度。挂载时打开，`onDismiss` 处理关闭，`busy` 时阻止关闭。关闭后恢复触发元素焦点，元素被删除时回到主内容。
+- `Toast`：根布局挂载 `ToastProvider`，业务组件通过 `useToastManager().add({ title, description?, type })` 显示短暂反馈，`type` 使用 `success` 或 `error`；支持自动关闭、手动关闭和键盘访问。需要持续展示的表单错误保留在表单内。
 - `Tabs`：直接使用 Base UI 的 `Root`、`List`、`Tab`、`Panel`，由组件管理键盘导航和关联关系。
 
 基础控件样式位于 `controls` 层，页面模块位于默认层，调用方可以直接覆盖默认样式，不依赖类名顺序。使用 `clsx` 拼接模块类名和按条件启用状态类，不解析或合并 CSS 属性。

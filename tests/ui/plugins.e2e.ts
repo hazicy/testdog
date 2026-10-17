@@ -131,7 +131,12 @@ test('configures the plugin centrally and keeps canvas nodes to key and group', 
   await page.getByRole('textbox', { name: '实验值（JSON）', exact: true }).fill('{"group":"B"}');
   await page.getByRole('textbox', { name: '版本 vid', exact: true }).fill('variant-b');
   await saveSettings.click();
-  await expect(page.getByRole('status')).toHaveText('已保存');
+  await expect(
+    page
+      .getByRole('region', { name: '通知', exact: true })
+      .getByText('已保存', { exact: true })
+      .last(),
+  ).toBeVisible();
   await expect(saveSettings).toBeDisabled();
   expect(settings.config.experiments[0]).toMatchObject({
     key: 'checkout_layout',

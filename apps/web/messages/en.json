@@ -1,5 +1,7 @@
 {
   "ui": {
+    "dismiss_notification": "Dismiss notification",
+    "notifications": "Notifications",
     "skip_to_main_content": "Skip to main content",
     "testdog_home": "testdog home",
     "workspace_navigation": "Workspace navigation",

@@ -6,6 +6,7 @@ import { Icon } from '@iconify/react/offline';
 import closeIcon from '@iconify-icons/lucide/x';
 import { api } from '@/client/api';
 import { useRunSubmission } from '@/client/useRunSubmission';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Dialog, DialogHeader } from '@/components/ui/Dialog';
@@ -41,7 +42,7 @@ export function NotificationChannelForm({
   const [recipients, setRecipients] = useState(integration.email?.recipients.join(', ') ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const toastManager = useToastManager();
   const [baseVersion, setBaseVersion] = useState(integration.version);
   const [configured, setConfigured] = useState(integration.configured);
   const [dirty, setDirty] = useState(false);
@@ -51,7 +52,7 @@ export function NotificationChannelForm({
     event.preventDefault();
     setBusy(true);
     setError('');
-    setMessage('');
+
     try {
       const json = {
         version: baseVersion,
@@ -77,7 +78,7 @@ export function NotificationChannelForm({
       setSigningSecret('');
       setClearSigningSecret(false);
       setDirty(false);
-      setMessage(t('saved'));
+      toastManager.add({ title: t('saved'), type: 'success' });
       await onSaved();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('saveFailed'));
@@ -89,10 +90,10 @@ export function NotificationChannelForm({
   async function test() {
     setBusy(true);
     setError('');
-    setMessage('');
+
     try {
       await submit(`/api/integrations/${channel}/test`, {});
-      setMessage(t('notificationSubmitted'));
+      toastManager.add({ title: t('notificationSubmitted'), type: 'success' });
       await onSaved();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('notificationFailed'));
@@ -227,11 +228,6 @@ export function NotificationChannelForm({
         {error && (
           <p role="alert" className={styles.saveError}>
             {error}
-          </p>
-        )}
-        {message && (
-          <p role="status" className={styles.loading}>
-            {message}
           </p>
         )}
         <div className={styles.container}>

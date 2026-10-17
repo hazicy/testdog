@@ -8,6 +8,7 @@ import styles from './RecordingEditor.module.css';
 import studioStyles from '@/features/runs/components/run-studio.module.css';
 
 import { useRunSubmission } from '@/client/useRunSubmission';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { isActiveRun } from '@testdog/contracts/runs/types';
@@ -45,7 +46,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
   const [versions, setVersions] = useState<RecordingVersion[]>([]);
   const [selected, setSelected] = useState('');
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
+  const toastManager = useToastManager();
   const [error, setError] = useState('');
   const [validation, setValidation] = useState<{ code: string; error?: string }>();
   const validating = validation?.code !== code;
@@ -94,7 +95,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
     if (!canSave) return;
     setBusy(true);
     setError('');
-    setMessage('');
+
     try {
       let version = versions.find((v) => v.id === selected);
 
@@ -108,7 +109,7 @@ export function RecordingEditor({ run }: { run: TestRun }) {
         version = data.version;
         setVersions((current) => [data.version, ...current]);
         setSelected(version.id);
-        setMessage(t('versionSaved'));
+        toastManager.add({ title: t('versionSaved'), type: 'success' });
       }
 
       if (execute) {
@@ -156,7 +157,6 @@ export function RecordingEditor({ run }: { run: TestRun }) {
             onValueChange={(value) => {
               setSelected(value);
               setCode(versions.find((v) => v.id === value)?.code || original);
-              setMessage('');
             }}
             items={[
               {
@@ -221,11 +221,6 @@ export function RecordingEditor({ run }: { run: TestRun }) {
       {(error || (!validating && validation?.error)) && (
         <p role="alert" className={studioStyles.recordingEditorError}>
           {error || validation?.error}
-        </p>
-      )}
-      {message && (
-        <p role="status" className={studioStyles.recordingEditorFeedback}>
-          {message}
         </p>
       )}
     </section>

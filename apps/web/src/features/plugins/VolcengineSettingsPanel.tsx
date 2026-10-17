@@ -7,6 +7,7 @@ import { Icon } from '@iconify/react/offline';
 import plusIcon from '@iconify-icons/lucide/plus';
 import trashIcon from '@iconify-icons/lucide/trash-2';
 import { api, fetchJson } from '@/client/api';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
@@ -28,7 +29,7 @@ export function VolcengineSettingsPanel() {
   const { data, error, mutate } = useSWR<PluginSettingsResponse>('/api/plugins', fetchJson, {
     revalidateOnFocus: false,
   });
-  const [saved, setSaved] = useState(false);
+  const toastManager = useToastManager();
   const settings = data?.settings.find((item) => item.id === 'volcengine-abtest');
 
   if (error)
@@ -46,11 +47,9 @@ export function VolcengineSettingsPanel() {
     <VolcengineSettingsForm
       key={settings.version}
       settings={settings}
-      saved={saved}
-      onDirty={() => setSaved(false)}
       onSaved={async (response) => {
         await mutate(response, { revalidate: false });
-        setSaved(true);
+        toastManager.add({ title: t('saved'), type: 'success' });
       }}
     />
   );
@@ -58,13 +57,9 @@ export function VolcengineSettingsPanel() {
 
 function VolcengineSettingsForm({
   settings,
-  saved,
-  onDirty,
   onSaved,
 }: {
   settings: ExecutionPluginSettings;
-  saved: boolean;
-  onDirty: () => void;
   onSaved: (response: PluginSettingsResponse) => Promise<void>;
 }) {
   const t = useTranslations('executionPlugins');
@@ -118,7 +113,6 @@ function VolcengineSettingsForm({
       })),
     );
     setError('');
-    onDirty();
   }
 
   function edit(id: string, operation: (item: Experiment) => Experiment) {
@@ -135,7 +129,6 @@ function VolcengineSettingsForm({
   return (
     <form
       className={styles.settings}
-      onChange={onDirty}
       onSubmit={async (event) => {
         event.preventDefault();
         setError('');
@@ -205,7 +198,6 @@ function VolcengineSettingsForm({
               variant="ghost"
               size="sm"
               onClick={() => {
-                onDirty();
                 setExperiments((items) => [
                   ...items,
                   { id: crypto.randomUUID(), key: '', groups: [newGroup()] },
@@ -239,7 +231,6 @@ function VolcengineSettingsForm({
                   aria-label={t('removeExperiment')}
                   title={t('removeExperiment')}
                   onClick={() => {
-                    onDirty();
                     setExperiments((items) => items.filter((item) => item.id !== experiment.id));
                   }}
                 >
@@ -304,7 +295,6 @@ function VolcengineSettingsForm({
                             aria-label={t('removeGroup')}
                             title={t('removeGroup')}
                             onClick={() => {
-                              onDirty();
                               edit(experiment.id, (item) => ({
                                 ...item,
                                 groups: item.groups.filter((item) => item.id !== group.id),
@@ -324,7 +314,6 @@ function VolcengineSettingsForm({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  onDirty();
                   edit(experiment.id, (item) => ({
                     ...item,
                     groups: [...item.groups, newGroup()],
@@ -344,7 +333,6 @@ function VolcengineSettingsForm({
         </p>
       )}
       <footer className={styles.settingsFooter}>
-        {saved && <span role="status">{t('saved')}</span>}
         {dirty && (
           <Button type="button" variant="ghost" disabled={busy} onClick={discard}>
             {t('discard')}

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { authClient } from '@/client/auth';
 import { fetchJson } from '@/client/api';
+import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Input } from '@/components/ui/Input';
@@ -26,13 +27,13 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
   const [savedName, setSavedName] = useState(name);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const toastManager = useToastManager();
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
     setError('');
-    setMessage('');
+
     const value = draft.trim();
 
     if (!value) {
@@ -53,7 +54,7 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
 
       setDraft(value);
       setSavedName(value);
-      setMessage(t('profile_saved'));
+      toastManager.add({ title: t('profile_saved'), type: 'success' });
     } catch {
       setError(t('unable_to_connect_please_try_again'));
     } finally {
@@ -73,7 +74,6 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
           value={draft}
           onChange={(event) => {
             setDraft(event.target.value);
-            setMessage('');
           }}
           disabled={pending}
         />
@@ -90,11 +90,6 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
           {error}
         </p>
       )}
-      {message && (
-        <p role="status" className={styles.loading}>
-          {message}
-        </p>
-      )}
       <Button type="submit" variant="primary" disabled={pending || draft.trim() === savedName}>
         {pending ? t('saving') : t('save_profile')}
       </Button>
@@ -106,7 +101,7 @@ function PasswordForm() {
   const t = useTranslations('ui');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const toastManager = useToastManager();
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -117,7 +112,7 @@ function PasswordForm() {
     const newPassword = String(data.get('newPassword'));
 
     setError('');
-    setMessage('');
+
     if (newPassword !== data.get('confirmPassword')) {
       setError(t('the_new_passwords_do_not_match'));
 
@@ -151,7 +146,10 @@ function PasswordForm() {
       }
 
       form.reset();
-      setMessage(t('password_changed_other_devices_have_been_signed_out'));
+      toastManager.add({
+        title: t('password_changed_other_devices_have_been_signed_out'),
+        type: 'success',
+      });
     } catch {
       setError(t('unable_to_connect_please_try_again'));
     } finally {
@@ -203,11 +201,6 @@ function PasswordForm() {
       {error && (
         <p role="alert" className={styles.error}>
           {error}
-        </p>
-      )}
-      {message && (
-        <p role="status" className={styles.loading}>
-          {message}
         </p>
       )}
       <Button type="submit" variant="primary" disabled={pending}>

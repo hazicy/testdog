@@ -103,6 +103,19 @@ test('network supports sorting, resource filtering and structured request inspec
   await page.setViewportSize({ width: 900, height: 850 });
   await expect(detail.getByRole('tab', { name: '请求头', exact: true })).toBeVisible();
   await panel.screenshot({ path: testInfo.outputPath('network-narrow.png') });
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await detail.getByRole('button', { name: '复制 URL', exact: true }).click();
+  const notifications = page.getByRole('region', { name: '通知', exact: true });
+
+  await expect(notifications.getByText('URL 已复制', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('users');
+  await page.evaluate(() => {
+    navigator.clipboard.writeText = async () => {
+      throw new Error('Clipboard unavailable');
+    };
+  });
+  await detail.getByRole('button', { name: '复制 URL', exact: true }).click();
+  await expect(notifications.getByText('复制失败，请从下方选择 URL 复制')).toBeVisible();
   await detail.getByRole('button', { name: '关闭请求详情' }).click();
   await expect(detail).toHaveCount(0);
   await panel.getByRole('textbox', { name: '搜索浏览器记录' }).fill('orders');

@@ -148,13 +148,6 @@
     }
   }
 }
-.recordingEditorFeedback {
-  flex-shrink: 0;
-  padding: var(--space-1-5) var(--space-4);
-  border-top: var(--border-width) solid var(--page-line);
-  color: var(--step-success);
-  font-size: var(--text-xs);
-}
 .recordingEditorError {
   flex-shrink: 0;
   max-height: 7.5rem;

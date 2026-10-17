@@ -7,6 +7,7 @@ import styles from './layout.module.css';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import '@/app/globals.css';
+import { ToastProvider } from '@/components/ui/Toast';
 import { AppShell } from '@/components/shell/AppShell';
 import { AuthCacheBoundary } from '@/features/auth/components/AuthCacheBoundary';
 
@@ -42,11 +43,13 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       <body>
         <div className={styles.container}>
           <NextIntlClientProvider>
-            <AuthCacheBoundary>
-              <NuqsAdapter>
-                <AppShell>{children}</AppShell>
-              </NuqsAdapter>
-            </AuthCacheBoundary>
+            <ToastProvider>
+              <AuthCacheBoundary>
+                <NuqsAdapter>
+                  <AppShell>{children}</AppShell>
+                </NuqsAdapter>
+              </AuthCacheBoundary>
+            </ToastProvider>
           </NextIntlClientProvider>
         </div>
       </body>
