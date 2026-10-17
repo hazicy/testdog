@@ -53,7 +53,7 @@ it.each([
   "import { renderToStaticMarkup } from 'react-dom/server'; export { renderToStaticMarkup };",
   "import type { TestRun } from '@testdog/contracts/runs/types'; export type Run = TestRun;",
   "import { recordingScript } from '@testdog/contracts/runs/lib/recordingScript'; export { recordingScript };",
-  "import { planForest } from '../apps/web/src/features/runs/lib/planTree'; export { planForest };",
+  "import { layoutPlan } from '../apps/web/src/features/runs/lib/planLayout'; export { layoutPlan };",
   "import { testSchema } from '@testdog/contracts/test-cases/schemas'; export { testSchema };",
 ])('permits shared browser utilities and erased type imports', async (source) => {
   expect(await violations(source)).toEqual([]);

@@ -1255,10 +1255,13 @@ test('plan subflows retain both branch paths, shared references and external dep
   await expect(
     page.locator('.react-flow').getByText('NO / 条件不成立', { exact: true }),
   ).toBeVisible();
-  await expect(page.locator('.react-flow__edge[aria-label="依赖：external → root"]')).toBeVisible();
   const dependency = page.locator(
     '.react-flow__edge[aria-label="依赖：external → root"] .react-flow__edge-path',
   );
+
+  // A vertical SVG path has zero-width bounds; verify its paint and endpoints instead.
+  await expect(dependency).toHaveCSS('visibility', 'visible');
+  await expect(dependency).not.toHaveCSS('stroke', 'none');
   const ends = await dependency.evaluate((element) => {
     const path = element as SVGPathElement;
     const start = path.getPointAtLength(0);

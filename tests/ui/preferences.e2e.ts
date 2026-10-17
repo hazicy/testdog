@@ -179,7 +179,8 @@ test('English canvas inserts localized default node content', async ({ page, con
   await page.getByRole('button', { name: 'New test', exact: true }).click();
   await page.locator('[data-ui="step-insert-trigger"]').first().click();
   await page.getByRole('menuitem').filter({ hasText: /^Act/ }).click();
-  await expect(
-    page.getByRole('button', { name: /^Edit node / }).filter({ hasText: 'Describe the action' }),
-  ).toHaveCount(1);
+  const content = page.getByRole('textbox', { name: /^Node content / });
+
+  await expect(content).toBeFocused();
+  await expect(content).toHaveValue('Describe the action');
 });

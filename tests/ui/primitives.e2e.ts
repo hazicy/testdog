@@ -136,7 +136,6 @@ test('native setup validates required selection and submits custom checkbox valu
   await dialog.getByRole('button', { name: '收起面板' }).click();
   await dialog.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
   await page.getByRole('menuitem').filter({ hasText: /^Act/ }).click();
-  await dialog.locator('[data-step-type=act] [data-ui~="plan-content-button"]').click();
   await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('Verify welcome');
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
