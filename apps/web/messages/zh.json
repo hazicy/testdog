@@ -63,6 +63,9 @@
   },
   "auth": {
     "oauthIncomplete": "第三方登录未完成，请重试。",
+    "accountNotLinked": "该邮箱已有账号，请先用原登录方式登录，再到设置 → 安全绑定第三方账号。",
+    "linkProvider": "绑定 {provider}",
+    "providerLinked": "已绑定 {provider}",
     "registrationFailed": "注册失败，请检查填写内容或使用已有邮箱登录。",
     "loginFailed": "登录失败，请检查邮箱和密码。",
     "connectionFailed": "暂时无法连接，请稍后重试。",

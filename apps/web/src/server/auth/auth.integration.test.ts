@@ -26,6 +26,7 @@ test('persists users, hashes passwords, validates sessions and revokes them on l
     emailAndPassword: { enabled: true, minPasswordLength: 8, maxPasswordLength: 128 },
     socialProviders: {
       github: { clientId: 'test-github-client', clientSecret: 'test-github-secret' },
+      google: { clientId: 'test-google-client', clientSecret: 'test-google-secret' },
     },
     rateLimit: { enabled: false },
     advanced: { disableOriginCheck: false, disableCSRFCheck: false },
@@ -59,17 +60,29 @@ test('persists users, hashes passwords, validates sessions and revokes them on l
     );
 
     expect(untrusted.status).toBe(403);
-    const social = await post('sign-in/social', { provider: 'github', callbackURL: '/cases' });
+    for (const provider of ['github', 'google'] as const) {
+      const social = await post('sign-in/social', {
+        provider,
+        callbackURL: '/cases',
+        errorCallbackURL: '/login?error=oauth',
+      });
 
-    expect(social.status).toBe(200);
-    const authorization = new URL((await social.json()).url);
+      expect(social.status).toBe(200);
+      const authorization = new URL((await social.json()).url);
 
-    expect(authorization.origin).toBe('https://github.com');
-    expect(authorization.searchParams.get('client_id')).toBe('test-github-client');
-    expect(authorization.searchParams.get('redirect_uri')).toBe(
-      'http://localhost:3000/api/auth/callback/github',
-    );
-    expect(authorization.searchParams.get('state')).toBeTruthy();
+      expect(authorization.origin).toBe(
+        provider === 'github' ? 'https://github.com' : 'https://accounts.google.com',
+      );
+      expect(authorization.searchParams.get('client_id')).toBe(`test-${provider}-client`);
+      expect(authorization.searchParams.get('redirect_uri')).toBe(
+        `http://localhost:3000/api/auth/callback/${provider}`,
+      );
+      expect(authorization.searchParams.get('state')).toBeTruthy();
+    }
+    expect(
+      (await post('sign-in/social', { provider: 'github', callbackURL: 'https://evil.example' }))
+        .status,
+    ).toBe(403);
 
     const signup = await post('sign-up/email', {
       name: '测试用户',
@@ -113,6 +126,19 @@ test('persists users, hashes passwords, validates sessions and revokes them on l
     const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
 
     expect(session?.user.id).toBe(user.id);
+    // Existing password users can explicitly link a social identity while signed in.
+    const linking = await post(
+      'link-social',
+      { provider: 'github', callbackURL: '/settings' },
+      cookie,
+    );
+
+    expect(linking.status).toBe(200);
+    expect(new URL((await linking.json()).url).origin).toBe('https://github.com');
+    expect(
+      (await post('link-social', { provider: 'github', callbackURL: '/settings' })).status,
+    ).toBe(401);
+
     expect(
       await auth.api.getSession({
         headers: new Headers({ cookie: 'better-auth.session_token=forged' }),

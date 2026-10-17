@@ -63,6 +63,9 @@
   },
   "auth": {
     "oauthIncomplete": "Social sign-in was not completed. Please try again.",
+    "accountNotLinked": "An account already uses this email. Sign in using your original method, then link your account in Settings → Security.",
+    "linkProvider": "Link {provider}",
+    "providerLinked": "{provider} linked",
     "registrationFailed": "Registration failed. Check your details or sign in with an existing email.",
     "loginFailed": "Sign-in failed. Check your email and password.",
     "connectionFailed": "Unable to connect. Please try again.",

@@ -216,7 +216,63 @@ function PasswordForm() {
   );
 }
 
-export function Settings({ initialTheme }: { initialTheme: string }) {
+function SocialAccounts({
+  providers,
+  accounts,
+}: {
+  providers: ('google' | 'github')[];
+  accounts: { providerId: string }[];
+}) {
+  const t = useTranslations('auth');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+
+  async function link(provider: 'google' | 'github') {
+    if (pending) return;
+    setPending(true);
+    setError('');
+    try {
+      const result = await authClient.linkSocial({
+        provider,
+        callbackURL: '/settings',
+        errorCallbackURL: '/login?error=oauth&callbackURL=%2Fsettings',
+      });
+      if (!result.error) return;
+      setError(t('oauthUnavailable'));
+    } catch {
+      setError(t('connectionFailed'));
+    }
+    setPending(false);
+  }
+
+  return (
+    <div className={styles.form}>
+      {providers.map((provider) => {
+        const linked = accounts.some((account) => account.providerId === provider);
+        return (
+          <Button key={provider} disabled={pending || linked} onClick={() => link(provider)}>
+            {t(linked ? 'providerLinked' : 'linkProvider', {
+              provider: provider === 'github' ? 'GitHub' : 'Google',
+            })}
+          </Button>
+        );
+      })}
+      {error && (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function Settings({
+  initialTheme,
+  providers = [],
+}: {
+  initialTheme: string;
+  providers?: ('google' | 'github')[];
+}) {
   const t = useTranslations('ui');
   const general = useTranslations('preferences');
   const [tab, setTab] = useState('general');
@@ -302,6 +358,7 @@ export function Settings({ initialTheme }: { initialTheme: string }) {
                 <h2 id="security-title" className={styles.heading}>
                   {t('security')}
                 </h2>
+                {accounts.data && <SocialAccounts providers={providers} accounts={accounts.data} />}
                 {accounts.error ? (
                   <div className={styles.sessionError}>
                     <p role="alert" className={styles.error}>

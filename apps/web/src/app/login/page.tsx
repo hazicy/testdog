@@ -4,7 +4,7 @@ import { configuredProviders } from '@/server/auth/auth';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackURL?: string; error?: string }>;
+  searchParams: Promise<{ callbackURL?: string; error?: string | string[] }>;
 }) {
   const params = await searchParams;
 
@@ -13,7 +13,7 @@ export default async function LoginPage({
       mode="login"
       providers={Object.keys(configuredProviders()) as ('google' | 'github')[]}
       callbackURL={params.callbackURL}
-      oauthError={!!params.error}
+      oauthError={params.error}
     />
   );
 }

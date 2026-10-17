@@ -22,14 +22,22 @@ export function AuthForm({
   mode: 'login' | 'register';
   providers: ('google' | 'github')[];
   callbackURL?: string;
-  oauthError?: boolean;
+  oauthError?: string | string[];
 }) {
   const t = useTranslations('auth');
   const router = useRouter();
   const register = mode === 'register';
   const destination = safeCallbackURL(callbackURL);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState(oauthError ? t('oauthIncomplete') : '');
+  const [error, setError] = useState(
+    oauthError
+      ? t(
+          (Array.isArray(oauthError) ? oauthError : [oauthError]).includes('account_not_linked')
+            ? 'accountNotLinked'
+            : 'oauthIncomplete',
+        )
+      : '',
+  );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,6 +71,7 @@ export function AuthForm({
   }
 
   async function social(provider: 'google' | 'github') {
+    if (pending) return;
     setPending(true);
     setError('');
     try {
