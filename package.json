@@ -8,6 +8,7 @@
   },
   "type": "module",
   "scripts": {
+    "dom-agent": "tsx packages/automation/src/domAgent/cli.ts",
     "test": "vitest run",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build:worker && pnpm test:ui",
     "test:ui": "pnpm build:web && playwright test",
