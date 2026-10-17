@@ -1,10 +1,10 @@
+import { rowScope, workspaceChannel } from '@testdog/server/shared/ownership';
 import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { realtimeOutbox, runArtifacts, runSteps, testRuns } from '@testdog/server/db/schema';
 import { artifactRecord, runRecord, stepRecord } from '@testdog/server/runs/records';
 import { readyRedis, redisClient, redisKey } from '@testdog/server/shared/redis';
 import type { RunUpdate } from '@testdog/contracts/runs/lib/realtime';
-import { workspaceChannel } from '@testdog/server/shared/ownership';
 
 type Listener = (message: string) => void;
 const state = globalThis as typeof globalThis & {
@@ -49,6 +49,7 @@ async function publishOutbox() {
           id: realtimeOutbox.id,
           runId: realtimeOutbox.runId,
           userId: realtimeOutbox.userId,
+          teamId: realtimeOutbox.teamId,
           summary: realtimeOutbox.summary,
         })
         .from(realtimeOutbox)
@@ -61,7 +62,7 @@ async function publishOutbox() {
       const runs = new Set(rows.flatMap((row) => (row.runId ? [row.runId] : [])));
 
       for (const id of runs) await client.publish(redisKey(`run:${id}`), '{"kind":"changed"}');
-      const owners = new Set(rows.filter((row) => row.summary).map((row) => row.userId));
+      const owners = new Set(rows.filter((row) => row.summary).map(rowScope));
 
       for (const userId of owners)
         await client.publish(

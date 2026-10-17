@@ -28,12 +28,15 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: LayoutProps<'/'>) {
   const locale = await getLocale();
-  const theme = (await cookies()).get('theme')?.value === 'dark' ? 'dark' : 'light';
+  const requestCookies = await cookies();
+  const theme = requestCookies.get('theme')?.value === 'dark' ? 'dark' : 'light';
+  const workspace = requestCookies.get('testdog_team')?.value || 'personal';
 
   return (
     <html
       lang={locale === 'zh' ? 'zh-CN' : 'en'}
       data-theme={theme}
+      data-workspace={workspace}
       className={clsx(geistSans.variable, geistMono.variable)}
     >
       <body>

@@ -79,6 +79,7 @@ test('persists users, hashes passwords, validates sessions and revokes them on l
       );
       expect(authorization.searchParams.get('state')).toBeTruthy();
     }
+
     expect(
       (await post('sign-in/social', { provider: 'github', callbackURL: 'https://evil.example' }))
         .status,

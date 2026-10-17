@@ -1,4 +1,9 @@
-import { assertUserScope, ownedBy, type UserScope } from '@testdog/server/shared/ownership';
+import {
+  ownershipValues,
+  assertUserScope,
+  ownedBy,
+  type UserScope,
+} from '@testdog/server/shared/ownership';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases } from '@testdog/server/db/schema';
@@ -10,7 +15,7 @@ export async function getTest(id: string, userId: UserScope) {
   const [test] = await db
     .select()
     .from(testCases)
-    .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)));
+    .where(and(eq(testCases.id, id), ownedBy(testCases, userId)));
 
   if (!test) throw new WorkspaceError('用例不存在。', 404);
 
@@ -32,11 +37,11 @@ export async function saveTest(raw: unknown, id: string | undefined, userId: Use
     ? await db
         .update(testCases)
         .set({ ...input, updatedAt: new Date().toISOString() })
-        .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)))
+        .where(and(eq(testCases.id, id), ownedBy(testCases, userId)))
         .returning()
     : await db
         .insert(testCases)
-        .values({ ...input, userId })
+        .values({ ...input, ...ownershipValues(userId) })
         .returning();
 
   if (!test) throw new WorkspaceError('用例不存在。', 404);
@@ -47,7 +52,7 @@ export async function saveTest(raw: unknown, id: string | undefined, userId: Use
 export async function deleteTest(id: string, userId: UserScope) {
   const rows = await db
     .delete(testCases)
-    .where(and(eq(testCases.id, id), ownedBy(testCases.userId, userId)))
+    .where(and(eq(testCases.id, id), ownedBy(testCases, userId)))
     .returning({ id: testCases.id });
 
   if (!rows.length) throw new WorkspaceError('用例不存在。', 404);

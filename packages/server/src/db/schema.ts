@@ -89,11 +89,52 @@ export const authVerifications = pgTable(
   (table) => [index('auth_verifications_identifier_idx').on(table.identifier)],
 );
 
+// A team owns exactly one shared workspace. Personal ownership remains unchanged.
+export const teams = pgTable('teams', {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+});
+
+export const teamMembers = pgTable(
+  'team_members',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    teamId: uuid()
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    userId: text()
+      .notNull()
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
+    role: text({ enum: ['admin', 'member'] }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('team_members_team_user_idx').on(table.teamId, table.userId),
+    index('team_members_user_idx').on(table.userId),
+    check('team_members_role_check', sql`${table.role} in ('admin', 'member')`),
+  ],
+);
+
+export const teamInvitations = pgTable(
+  'team_invitations',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    teamId: uuid()
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    email: text().notNull(),
+    tokenHash: text().notNull().unique(),
+    expiresAt: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
+  },
+  (table) => [uniqueIndex('team_invitations_team_email_idx').on(table.teamId, table.email)],
+);
+
 // Execution records are independent snapshots; deleting a case does not delete history.
 export const testCases = pgTable(
   'test_cases',
   {
     userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
     target: jsonb().$type<TestTarget>().notNull(),
     id: uuid().primaryKey().defaultRandom(),
     name: text().notNull(),
@@ -104,6 +145,8 @@ export const testCases = pgTable(
     updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
+    check('test_cases_ownership_check', sql`${table.userId} is null or ${table.teamId} is null`),
+    index('test_cases_team_updated_idx').on(table.teamId, table.updatedAt, table.id),
     index('test_cases_updated_idx').on(table.updatedAt, table.id),
     index('test_cases_user_updated_idx').on(table.userId, table.updatedAt, table.id),
   ],
@@ -112,6 +155,7 @@ export const testRuns = pgTable(
   'test_runs',
   {
     userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
     id: uuid().primaryKey().defaultRandom(),
     testId: uuid().references(() => testCases.id, { onDelete: 'set null' }),
     recordingVersionId: uuid().references((): AnyPgColumn => recordingVersions.id, {
@@ -150,6 +194,8 @@ export const testRuns = pgTable(
     error: text(),
   },
   (table) => [
+    check('test_runs_ownership_check', sql`${table.userId} is null or ${table.teamId} is null`),
+    index('test_runs_team_started_idx').on(table.teamId, table.startedAt, table.id),
     index('test_runs_started_idx').on(table.startedAt, table.id),
     index('test_runs_user_started_idx').on(table.userId, table.startedAt, table.id),
     index('test_runs_case_idx').on(table.testId, table.startedAt, table.id),
@@ -336,6 +382,7 @@ export const realtimeOutbox = pgTable(
   'realtime_outbox',
   {
     userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
     id: bigserial({ mode: 'number' }).primaryKey(),
     runId: uuid().references(() => testRuns.id, { onDelete: 'cascade' }),
     revision: integer(),
@@ -346,6 +393,13 @@ export const realtimeOutbox = pgTable(
     publishedAt: timestamp({ withTimezone: true, mode: 'string' }),
   },
   (table) => [
+    index('realtime_outbox_team_summary_idx')
+      .on(table.teamId, table.id)
+      .where(sql`${table.summary} = true`),
+    check(
+      'realtime_outbox_ownership_check',
+      sql`${table.userId} is null or ${table.teamId} is null`,
+    ),
     uniqueIndex('realtime_outbox_run_revision_idx').on(table.runId, table.revision),
     index('realtime_outbox_user_summary_idx')
       .on(table.userId, table.id)
@@ -362,15 +416,21 @@ export const submissionRequests = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     key: uuid().notNull(),
     userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
     fingerprint: text().notNull(),
     response: jsonb().$type<Record<string, unknown>>(),
     createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
+    check(
+      'submission_requests_ownership_check',
+      sql`${table.userId} is null or ${table.teamId} is null`,
+    ),
+    uniqueIndex('submission_requests_team_key_idx').on(table.teamId, table.key),
     uniqueIndex('submission_requests_user_key_idx').on(table.userId, table.key),
     uniqueIndex('submission_requests_legacy_key_idx')
       .on(table.key)
-      .where(sql`${table.userId} is null`),
+      .where(sql`${table.userId} is null and ${table.teamId} is null`),
   ],
 );
 export const modelCalls = pgTable(
@@ -399,6 +459,7 @@ export const issues = pgTable(
   {
     id: uuid().primaryKey().defaultRandom(),
     userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
     title: text().notNull(),
     description: text().notNull().default(''),
     status: text({ enum: ['open', 'in_progress', 'pending_verification', 'closed'] })
@@ -416,6 +477,8 @@ export const issues = pgTable(
     updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
+    check('issues_ownership_check', sql`${table.userId} is null or ${table.teamId} is null`),
+    index('issues_team_idx').on(table.teamId, table.updatedAt, table.id),
     index('issues_user_updated_idx').on(table.userId, table.updatedAt, table.id),
     check(
       'issues_status_check',
@@ -493,6 +556,7 @@ export const notificationIntegrations = pgTable(
   {
     id: uuid().primaryKey().defaultRandom(),
     userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
     channel: text({ enum: ['feishu', 'email'] }).notNull(),
     enabled: boolean().notNull().default(false),
     events: jsonb()
@@ -504,16 +568,22 @@ export const notificationIntegrations = pgTable(
     updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
+    check(
+      'notification_integrations_ownership_check',
+      sql`${table.userId} is null or ${table.teamId} is null`,
+    ),
+    uniqueIndex('notification_integrations_team_idx').on(table.teamId, table.channel),
     uniqueIndex('notification_integrations_owner_idx').on(table.userId, table.channel),
     uniqueIndex('notification_integrations_legacy_idx')
       .on(table.channel)
-      .where(sql`${table.userId} is null`),
+      .where(sql`${table.userId} is null and ${table.teamId} is null`),
     check('notification_integrations_channel_check', sql`${table.channel} in ('feishu','email')`),
   ],
 );
 export const notificationEventRecords = pgTable('notification_events', {
   id: uuid().primaryKey().defaultRandom(),
   userId: text().references(() => authUsers.id),
+  teamId: uuid().references(() => teams.id),
   sourceKey: text().notNull().unique(),
   eventType: text().notNull(),
   payload: jsonb()
@@ -558,6 +628,7 @@ export const browserProviderIntegrations = pgTable(
   {
     id: uuid().primaryKey().defaultRandom(),
     userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
     provider: text().notNull(),
     enabled: boolean().notNull().default(false),
     encryptedConfig: text().notNull(),
@@ -565,16 +636,24 @@ export const browserProviderIntegrations = pgTable(
     updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
+    check(
+      'browser_provider_integrations_ownership_check',
+      sql`${table.userId} is null or ${table.teamId} is null`,
+    ),
+    uniqueIndex('browser_provider_integrations_team_idx').on(table.teamId, table.provider),
+    uniqueIndex('browser_providers_active_team_idx')
+      .on(table.teamId)
+      .where(sql`${table.enabled} = true`),
     uniqueIndex('browser_provider_integrations_owner_idx').on(table.userId, table.provider),
     uniqueIndex('browser_provider_integrations_active_owner_idx')
       .on(table.userId)
       .where(sql`${table.enabled} = true`),
     uniqueIndex('browser_provider_integrations_active_legacy_idx')
       .on(sql`(1)`)
-      .where(sql`${table.userId} is null and ${table.enabled} = true`),
+      .where(sql`${table.userId} is null and ${table.teamId} is null and ${table.enabled} = true`),
     uniqueIndex('browser_provider_integrations_legacy_idx')
       .on(table.provider)
-      .where(sql`${table.userId} is null`),
+      .where(sql`${table.userId} is null and ${table.teamId} is null`),
   ],
 );
 
@@ -583,15 +662,21 @@ export const pluginSettings = pgTable(
   {
     id: uuid().primaryKey().defaultRandom(),
     userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
     pluginId: text().notNull(),
     config: jsonb().$type<Record<string, unknown>>().notNull(),
     version: integer().notNull().default(1),
     updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
+    check(
+      'plugin_settings_ownership_check',
+      sql`${table.userId} is null or ${table.teamId} is null`,
+    ),
+    uniqueIndex('plugin_settings_team_idx').on(table.teamId, table.pluginId),
     uniqueIndex('plugin_settings_owner_idx').on(table.userId, table.pluginId),
     uniqueIndex('plugin_settings_legacy_idx')
       .on(table.pluginId)
-      .where(sql`${table.userId} is null`),
+      .where(sql`${table.userId} is null and ${table.teamId} is null`),
   ],
 );

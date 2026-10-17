@@ -23,7 +23,11 @@ export function useRealtime(url: string | null, onEvent: (event: string, data: u
       clearTimeout(retry);
       disconnect();
       if (!url || document.visibilityState !== 'visible' || !active) return;
-      source = new EventSource(url);
+      const endpoint = new URL(url, window.location.origin);
+
+      if (document.documentElement.dataset.workspace)
+        endpoint.searchParams.set('workspace', document.documentElement.dataset.workspace);
+      source = new EventSource(endpoint.toString());
       source.onerror = () => {
         setConnected(false);
       };

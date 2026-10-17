@@ -17,6 +17,7 @@ import { Icon } from '@iconify/react/offline';
 import userIcon from '@iconify-icons/lucide/user-round';
 import shieldIcon from '@iconify-icons/lucide/shield-check';
 import settingsIcon from '@iconify-icons/lucide/settings-2';
+import { TeamSettings } from '@/features/teams/components/TeamSettings';
 import { GeneralSettings } from './GeneralSettings';
 
 function ProfileForm({ name, email }: { name: string; email: string }) {
@@ -237,11 +238,13 @@ function SocialAccounts({
         callbackURL: '/settings',
         errorCallbackURL: '/login?error=oauth&callbackURL=%2Fsettings',
       });
+
       if (!result.error) return;
       setError(t('oauthUnavailable'));
     } catch {
       setError(t('connectionFailed'));
     }
+
     setPending(false);
   }
 
@@ -249,6 +252,7 @@ function SocialAccounts({
     <div className={styles.form}>
       {providers.map((provider) => {
         const linked = accounts.some((account) => account.providerId === provider);
+
         return (
           <Button key={provider} disabled={pending || linked} onClick={() => link(provider)}>
             {t(linked ? 'providerLinked' : 'linkProvider', {
@@ -269,13 +273,18 @@ function SocialAccounts({
 export function Settings({
   initialTheme,
   providers = [],
+  invitation,
+  teamTab,
 }: {
   initialTheme: string;
   providers?: ('google' | 'github')[];
+  invitation?: string;
+  teamTab?: boolean;
 }) {
   const t = useTranslations('ui');
   const general = useTranslations('preferences');
-  const [tab, setTab] = useState('general');
+  const team = useTranslations('teams');
+  const [tab, setTab] = useState(invitation || teamTab ? 'team' : 'general');
 
   const { data: session, isPending, error, refetch } = authClient.useSession();
   const accounts = useSWR<{ providerId: string }[]>(
@@ -331,8 +340,15 @@ export function Settings({
             <Icon icon={shieldIcon} width="16" aria-hidden="true" />
             {t('security')}
           </Tabs.Tab>
+          <Tabs.Tab value="team" className={styles.tab}>
+            <Icon icon={userIcon} width="16" aria-hidden="true" />
+            {team('title')}
+          </Tabs.Tab>
         </Tabs.List>
         <div className={styles.panels}>
+          <Tabs.Panel value="team" keepMounted>
+            {session ? <TeamSettings invitation={invitation} /> : accountState}
+          </Tabs.Panel>
           <Tabs.Panel value="general" keepMounted>
             <GeneralSettings initialTheme={initialTheme} />
           </Tabs.Panel>

@@ -1,4 +1,9 @@
-import { assertUserScope, ownedBy, type UserScope } from '@testdog/server/shared/ownership';
+import {
+  ownershipValues,
+  assertUserScope,
+  ownedBy,
+  type UserScope,
+} from '@testdog/server/shared/ownership';
 import { createHash } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -35,7 +40,7 @@ export async function submitOnce<T extends Record<string, unknown>>(
     if (!key) return create(tx);
     const inserted = await tx
       .insert(submissionRequests)
-      .values({ key, fingerprint, userId })
+      .values({ key, fingerprint, ...ownershipValues(userId) })
       .onConflictDoNothing()
       .returning();
 
@@ -43,7 +48,7 @@ export async function submitOnce<T extends Record<string, unknown>>(
       const [existing] = await tx
         .select()
         .from(submissionRequests)
-        .where(and(eq(submissionRequests.key, key), ownedBy(submissionRequests.userId, userId)));
+        .where(and(eq(submissionRequests.key, key), ownedBy(submissionRequests, userId)));
 
       if (existing.fingerprint !== fingerprint)
         throw new WorkspaceError('同一请求 ID 不能提交不同参数。', 409);
@@ -56,7 +61,7 @@ export async function submitOnce<T extends Record<string, unknown>>(
     await tx
       .update(submissionRequests)
       .set({ response })
-      .where(and(eq(submissionRequests.key, key), ownedBy(submissionRequests.userId, userId)));
+      .where(and(eq(submissionRequests.key, key), ownedBy(submissionRequests, userId)));
 
     return response;
   });

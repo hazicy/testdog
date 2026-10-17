@@ -1,9 +1,14 @@
+import {
+  ownershipValues,
+  rowScope,
+  ownedBy,
+  type UserScope,
+} from '@testdog/server/shared/ownership';
 import { and, eq, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { WebTarget } from '@testdog/contracts/automation/platform/target';
 import { db } from '@testdog/server/db';
 import { browserProviderIntegrations as integrations, testRuns } from '@testdog/server/db/schema';
-import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { encryptSecret, decryptSecret } from '@testdog/server/shared/secrets';
 import type { BrowserProviderIntegration } from '@testdog/contracts/integrations/types';
@@ -16,7 +21,7 @@ import {
 const saveInput = z.object({ version: z.number().int().min(0), enabled: z.boolean() });
 
 function decode(row: typeof integrations.$inferSelect, definition: BrowserProviderDefinition) {
-  return definition.decodeConfig(decryptSecret(row.encryptedConfig, row.userId, row.provider));
+  return definition.decodeConfig(decryptSecret(row.encryptedConfig, rowScope(row), row.provider));
 }
 
 function view(
@@ -47,7 +52,7 @@ function view(
 }
 
 export async function readBrowserProviders(userId: UserScope) {
-  const rows = await db.select().from(integrations).where(ownedBy(integrations.userId, userId));
+  const rows = await db.select().from(integrations).where(ownedBy(integrations, userId));
 
   return browserProviderDefinitions.map((definition) =>
     view(
@@ -69,7 +74,7 @@ export async function saveBrowserProvider(provider: string, raw: unknown, userId
       const [row] = await tx
         .select()
         .from(integrations)
-        .where(and(eq(integrations.provider, provider), ownedBy(integrations.userId, userId)))
+        .where(and(eq(integrations.provider, provider), ownedBy(integrations, userId)))
         .for('update');
 
       if ((row?.version ?? 0) !== input.version)
@@ -105,7 +110,7 @@ export async function saveBrowserProvider(provider: string, raw: unknown, userId
           })
           .where(
             and(
-              ownedBy(integrations.userId, userId),
+              ownedBy(integrations, userId),
               ne(integrations.provider, provider),
               eq(integrations.enabled, true),
             ),
@@ -120,7 +125,7 @@ export async function saveBrowserProvider(provider: string, raw: unknown, userId
         ? await tx.update(integrations).set(values).where(eq(integrations.id, row.id)).returning()
         : await tx
             .insert(integrations)
-            .values({ ...values, provider, userId })
+            .values({ ...values, provider, ...ownershipValues(userId) })
             .onConflictDoNothing()
             .returning();
 
@@ -144,7 +149,7 @@ export async function savedBrowserProvider(provider: string, userId: UserScope) 
   const [row] = await db
     .select()
     .from(integrations)
-    .where(and(eq(integrations.provider, provider), ownedBy(integrations.userId, userId)));
+    .where(and(eq(integrations.provider, provider), ownedBy(integrations, userId)));
 
   if (!row) throw new WorkspaceError('请先保存浏览器服务配置。');
   try {
@@ -156,7 +161,7 @@ export async function savedBrowserProvider(provider: string, userId: UserScope) 
 
 export async function browserProviderForRun(runId: string, browser: WebTarget['browser']) {
   const [run] = await db
-    .select({ userId: testRuns.userId })
+    .select({ userId: testRuns.userId, teamId: testRuns.teamId })
     .from(testRuns)
     .where(eq(testRuns.id, runId));
 
@@ -164,7 +169,7 @@ export async function browserProviderForRun(runId: string, browser: WebTarget['b
   const [row] = await db
     .select()
     .from(integrations)
-    .where(and(ownedBy(integrations.userId, run.userId), eq(integrations.enabled, true)));
+    .where(and(ownedBy(integrations, rowScope(run)), eq(integrations.enabled, true)));
 
   if (!row) return undefined;
   const definition = browserProviderDefinition(row.provider);

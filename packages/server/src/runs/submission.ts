@@ -1,3 +1,9 @@
+import {
+  ownershipValues,
+  assertUserScope,
+  ownedBy,
+  type UserScope,
+} from '@testdog/server/shared/ownership';
 import { resolvePlanPlugins, resolvePluginInvocations } from '@testdog/server/plugins/repository';
 import { and, asc, eq } from 'drizzle-orm';
 import { isDeepStrictEqual } from 'node:util';
@@ -10,7 +16,6 @@ import { runRequestSchema, type RunRequest } from '@testdog/contracts/runs/schem
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { submitOnce } from '@testdog/server/shared/idempotency';
 import type { z } from 'zod';
-import { assertUserScope, ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { recordingOperation } from '@testdog/contracts/runs/lib/recordingOperation';
 import { runRecord, stepRecord } from '@testdog/server/runs/records';
 
@@ -79,7 +84,7 @@ async function persistRun(
       const [source] = await tx
         .select()
         .from(testRuns)
-        .where(and(eq(testRuns.id, input.sourceRunId), ownedBy(testRuns.userId, userId)));
+        .where(and(eq(testRuns.id, input.sourceRunId), ownedBy(testRuns, userId)));
 
       if (!source) throw new WorkspaceError('原执行不存在。', 404);
 
@@ -126,7 +131,7 @@ async function persistRun(
       const [test] = await tx
         .select()
         .from(testCases)
-        .where(and(eq(testCases.id, input.testId), ownedBy(testCases.userId, userId)));
+        .where(and(eq(testCases.id, input.testId), ownedBy(testCases, userId)));
 
       if (!test) throw new WorkspaceError('用例不存在。', 404);
       const target = input.target ?? test.target;
@@ -178,7 +183,7 @@ async function persistRun(
 
     const [run] = await tx
       .insert(testRuns)
-      .values({ ...snapshot, userId, batchId, status: 'queued' })
+      .values({ ...snapshot, ...ownershipValues(userId), batchId, status: 'queued' })
       .returning();
 
     return runRecord(run);

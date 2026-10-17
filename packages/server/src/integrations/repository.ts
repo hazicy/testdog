@@ -1,3 +1,9 @@
+import {
+  ownershipValues,
+  rowScope,
+  ownedBy,
+  type UserScope,
+} from '@testdog/server/shared/ownership';
 import { readBrowserProviders } from '@testdog/server/browser-providers/repository';
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -7,7 +13,6 @@ import {
   notificationDeliveries as deliveries,
   notificationEventRecords as events,
 } from '@testdog/server/db/schema';
-import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { encryptSecret, decryptSecret } from '@testdog/server/shared/secrets';
 import { platformSmtpConfig, requirePlatformSmtp } from '@testdog/server/integrations/smtp';
@@ -26,7 +31,7 @@ function integrationView(row: typeof integrations.$inferSelect): Integration {
   let config: NotificationConfig;
 
   try {
-    config = decryptSecret(row.encryptedConfig, row.userId, row.channel) as NotificationConfig;
+    config = decryptSecret(row.encryptedConfig, rowScope(row), row.channel) as NotificationConfig;
   } catch {
     return {
       channel: row.channel,
@@ -64,14 +69,14 @@ async function integrationFor(
   const query = tx
     .select()
     .from(integrations)
-    .where(and(eq(integrations.channel, channel), ownedBy(integrations.userId, userId)));
+    .where(and(eq(integrations.channel, channel), ownedBy(integrations, userId)));
   const [row] = await (lock ? query.for('update') : query);
 
   return row;
 }
 
 export async function readIntegrations(userId: UserScope) {
-  const rows = await db.select().from(integrations).where(ownedBy(integrations.userId, userId));
+  const rows = await db.select().from(integrations).where(ownedBy(integrations, userId));
   const history = await db
     .select({
       id: deliveries.id,
@@ -87,7 +92,7 @@ export async function readIntegrations(userId: UserScope) {
     .from(deliveries)
     .innerJoin(integrations, eq(integrations.id, deliveries.integrationId))
     .innerJoin(events, eq(events.id, deliveries.eventId))
-    .where(ownedBy(integrations.userId, userId))
+    .where(ownedBy(integrations, userId))
     .orderBy(desc(deliveries.createdAt), desc(deliveries.id))
     .limit(50);
 
@@ -172,7 +177,7 @@ export async function saveIntegration(
       ? await tx.update(integrations).set(values).where(eq(integrations.id, row.id)).returning()
       : await tx
           .insert(integrations)
-          .values({ ...values, channel, userId })
+          .values({ ...values, channel, ...ownershipValues(userId) })
           .onConflictDoNothing()
           .returning();
 
@@ -208,7 +213,7 @@ export async function queueTest(channel: NotificationChannel, userId: UserScope,
   const [event] = await tx
     .insert(events)
     .values({
-      userId,
+      ...ownershipValues(userId),
       sourceKey: `test:${randomUUID()}`,
       eventType: 'test',
       payload: {

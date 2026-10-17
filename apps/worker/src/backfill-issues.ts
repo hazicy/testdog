@@ -20,7 +20,7 @@ async function main() {
     .where(
       and(
         eq(testRuns.status, 'failed'),
-        scope === '--all' ? undefined : ownedBy(testRuns.userId, userId ?? null),
+        scope === '--all' ? undefined : ownedBy(testRuns, userId ?? null),
       ),
     )
     .orderBy(asc(testRuns.startedAt), asc(testRuns.id));

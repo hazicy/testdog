@@ -83,6 +83,9 @@
 }
 .list {
   display: flex;
+  @media (width < 48rem) {
+    flex-wrap: wrap;
+  }
   min-width: 0;
   overflow-x: auto;
   gap: var(--space-1);

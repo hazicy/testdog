@@ -35,7 +35,13 @@ export const api = ky.create({
     }
   },
   hooks: {
-    beforeRequest: [({ request }) => request.signal.throwIfAborted()],
+    beforeRequest: [
+      ({ request }) => {
+        request.signal.throwIfAborted();
+        if (typeof document !== 'undefined' && document.documentElement.dataset?.workspace)
+          request.headers.set('x-testdog-workspace', document.documentElement.dataset?.workspace);
+      },
+    ],
     beforeError: [
       ({ error, request }) => {
         const t = errorMessages();

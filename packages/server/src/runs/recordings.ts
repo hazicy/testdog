@@ -42,7 +42,7 @@ export async function saveRecordingVersion(runId: string, input: unknown, userId
       targetSnapshot: testRuns.targetSnapshot,
     })
     .from(testRuns)
-    .where(and(eq(testRuns.id, runId), ownedBy(testRuns.userId, userId)));
+    .where(and(eq(testRuns.id, runId), ownedBy(testRuns, userId)));
 
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
   if (isActiveRun(run.status)) throw new WorkspaceError('请等待录制结束后编辑。', 409);

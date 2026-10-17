@@ -1,8 +1,8 @@
+import { ownershipValues, ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@testdog/server/db';
 import { pluginSettings } from '@testdog/server/db/schema';
-import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import {
   VolcengineSettingsSchema,
@@ -19,7 +19,7 @@ export async function readPluginSettings(userId: UserScope, tx: Tx | typeof db =
   const [row] = await tx
     .select()
     .from(pluginSettings)
-    .where(and(ownedBy(pluginSettings.userId, userId), eq(pluginSettings.pluginId, pluginId)));
+    .where(and(ownedBy(pluginSettings, userId), eq(pluginSettings.pluginId, pluginId)));
 
   return {
     settings: [
@@ -48,14 +48,16 @@ export async function savePluginSettings(id: string, raw: unknown, userId: UserS
       };
 
       if (parsed.data.version === 0) {
-        await tx.insert(pluginSettings).values({ ...values, userId, pluginId: id });
+        await tx
+          .insert(pluginSettings)
+          .values({ ...values, ...ownershipValues(userId), pluginId: id });
       } else {
         const updated = await tx
           .update(pluginSettings)
           .set(values)
           .where(
             and(
-              ownedBy(pluginSettings.userId, userId),
+              ownedBy(pluginSettings, userId),
               eq(pluginSettings.pluginId, id),
               eq(pluginSettings.version, parsed.data.version),
             ),

@@ -18,7 +18,7 @@ import { runRecord, stepRecord, artifactRecord } from '@testdog/server/runs/reco
 export async function getRun(id: string, options: { userId: UserScope }): Promise<TestRun> {
   assertUserScope(options?.userId);
 
-  return readRun(id, and(eq(testRuns.id, id), ownedBy(testRuns.userId, options.userId))!);
+  return readRun(id, and(eq(testRuns.id, id), ownedBy(testRuns, options.userId))!);
 }
 
 export function getRunInternal(id: string): Promise<TestRun> {
@@ -156,7 +156,7 @@ export async function assertRunAccess(id: string, userId: UserScope) {
   const [run] = await db
     .select({ id: testRuns.id })
     .from(testRuns)
-    .where(and(eq(testRuns.id, id), ownedBy(testRuns.userId, userId)));
+    .where(and(eq(testRuns.id, id), ownedBy(testRuns, userId)));
 
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
 }

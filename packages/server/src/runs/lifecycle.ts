@@ -12,7 +12,7 @@ export async function requestCancellation(id: string, userId: UserScope) {
     const [run] = await tx
       .select()
       .from(testRuns)
-      .where(and(eq(testRuns.id, id), ownedBy(testRuns.userId, userId)))
+      .where(and(eq(testRuns.id, id), ownedBy(testRuns, userId)))
       .for('update');
 
     if (!run) throw new WorkspaceError('执行记录不存在。', 404);

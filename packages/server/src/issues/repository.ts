@@ -1,3 +1,9 @@
+import {
+  ownershipValues,
+  rowScope,
+  ownedBy,
+  type UserScope,
+} from '@testdog/server/shared/ownership';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import {
@@ -10,7 +16,6 @@ import {
   runSteps,
   runArtifacts,
 } from '@testdog/server/db/schema';
-import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
 import { createRun } from '@testdog/server/runs/submission';
@@ -38,7 +43,7 @@ async function issueFor(tx: Tx | typeof db, id: string, userId: UserScope, lock 
   const query = tx
     .select()
     .from(issues)
-    .where(and(eq(issues.id, id), ownedBy(issues.userId, userId)));
+    .where(and(eq(issues.id, id), ownedBy(issues, userId)));
   const [issue] = await (lock ? query.for('update') : query);
 
   if (!issue) throw new WorkspaceError('问题不存在。', 404);
@@ -50,7 +55,7 @@ async function sourceSnapshot(tx: Tx, input: z.infer<typeof occurrenceInput>, us
   const [run] = await tx
     .select()
     .from(testRuns)
-    .where(and(eq(testRuns.id, input.runId), ownedBy(testRuns.userId, userId)));
+    .where(and(eq(testRuns.id, input.runId), ownedBy(testRuns, userId)));
 
   if (!run) throw new WorkspaceError('执行记录不存在。', 404);
   const [step] = input.stepId
@@ -139,7 +144,7 @@ export async function listIssues(
     .from(issues)
     .where(
       and(
-        ownedBy(issues.userId, userId),
+        ownedBy(issues, userId),
         page.status !== 'all'
           ? eq(issues.status, page.status as keyof typeof issueStatuses)
           : undefined,
@@ -202,7 +207,7 @@ export async function createIssue(input: z.infer<typeof issueInput>, userId: Use
   const snapshot = source ? await sourceSnapshot(tx, source, userId) : undefined;
   const [issue] = await tx
     .insert(issues)
-    .values({ ...values, userId })
+    .values({ ...values, ...ownershipValues(userId) })
     .returning();
 
   if (source && snapshot)
@@ -245,7 +250,7 @@ export async function updateIssue(
         version: version + 1,
         updatedAt: new Date().toISOString(),
       })
-      .where(and(eq(issues.id, id), ownedBy(issues.userId, userId), eq(issues.version, version)))
+      .where(and(eq(issues.id, id), ownedBy(issues, userId), eq(issues.version, version)))
       .returning();
 
     if (!issue) throw new WorkspaceError('问题已被更新，请刷新后重试。', 409);
@@ -414,7 +419,7 @@ export async function createIssuesForFailedRun(runId: string, tx: Tx) {
 
     if (existingSource) continue;
     const category = step?.kind === 'assertion' ? 'product' : 'execution';
-    const snapshot = await sourceSnapshot(tx, source, run.userId);
+    const snapshot = await sourceSnapshot(tx, source, rowScope(run));
     const [matching] = run.testId
       ? await tx
           .select({ id: issues.id })
@@ -422,7 +427,7 @@ export async function createIssuesForFailedRun(runId: string, tx: Tx) {
           .innerJoin(issueOccurrences, eq(issueOccurrences.issueId, issues.id))
           .where(
             and(
-              ownedBy(issues.userId, run.userId),
+              ownedBy(issues, rowScope(run)),
               inArray(issues.status, ['open', 'in_progress', 'pending_verification']),
               eq(issues.category, category),
               sql`${issueOccurrences.snapshot}->>'testId' = ${run.testId}`,
@@ -473,7 +478,7 @@ export async function createIssuesForFailedRun(runId: string, tx: Tx) {
           severity: 'medium',
           source,
         }),
-        run.userId,
+        rowScope(run),
         tx,
       );
     }

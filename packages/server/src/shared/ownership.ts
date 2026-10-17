@@ -1,22 +1,44 @@
-import { eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 
-// null identifies unassigned local data. It never grants access to other users.
+// Personal IDs retain their existing representation. Team scopes use a reserved prefix.
+// null identifies unassigned local data, never team data.
 export type UserScope = string | null;
 
-export function assertUserScope(userId: unknown): asserts userId is UserScope {
-  if (userId !== null && (typeof userId !== 'string' || !userId))
-    throw new TypeError('查询必须指定用户 ID 或 null（无归属数据）');
+export function assertUserScope(scope: unknown): asserts scope is UserScope {
+  if (scope !== null && (typeof scope !== 'string' || !scope))
+    throw new TypeError('查询必须指定工作区或 null（无归属数据）');
 }
 
-export function ownedBy(column: PgColumn, userId: UserScope) {
-  assertUserScope(userId);
-
-  return userId === null ? isNull(column) : eq(column, userId);
+export function teamScope(teamId: string) {
+  return `team:${teamId}`;
 }
 
-export function workspaceChannel(userId: UserScope) {
-  assertUserScope(userId);
+export function ownershipValues(scope: UserScope) {
+  assertUserScope(scope);
 
-  return userId === null ? 'workspace:legacy' : `workspace:user:${userId}`;
+  return typeof scope === 'string' && scope.startsWith('team:')
+    ? { userId: null, teamId: scope.slice(5) }
+    : { userId: scope, teamId: null };
+}
+
+export function rowScope(row: { userId: string | null; teamId?: string | null }): UserScope {
+  return row.teamId ? teamScope(row.teamId) : row.userId;
+}
+
+export function ownedBy(table: { userId: PgColumn; teamId: PgColumn }, scope: UserScope) {
+  const owner = ownershipValues(scope);
+
+  return owner.teamId
+    ? eq(table.teamId, owner.teamId)
+    : and(
+        isNull(table.teamId),
+        owner.userId === null ? isNull(table.userId) : eq(table.userId, owner.userId),
+      );
+}
+
+export function workspaceChannel(scope: UserScope) {
+  assertUserScope(scope);
+
+  return scope === null ? 'workspace:legacy' : `workspace:user:${scope}`;
 }

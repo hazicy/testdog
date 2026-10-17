@@ -914,7 +914,8 @@
     "writeTimeout": "请求超时，操作可能已完成，请刷新确认后再试。",
     "network": "无法连接服务，请检查网络后重试。",
     "signInRequired": "请先登录",
-    "databaseUnavailable": "无法访问数据，请确认数据库已启动并完成迁移。"
+    "databaseUnavailable": "无法访问数据，请确认数据库已启动并完成迁移。",
+    "workspaceChanged": "工作区已切换，请刷新页面。"
   },
   "plugins": {
     "title": "插件",
@@ -979,5 +980,34 @@
     "groupPlaceholder": "例如 B 组",
     "optional": "可选",
     "discard": "放弃修改"
+  },
+  "teams": {
+    "title": "团队",
+    "workspace": "切换工作区",
+    "personal": "个人空间",
+    "unavailable": "团队已不可访问",
+    "retry": "重新加载团队",
+    "failed": "操作失败，请重试。",
+    "loading": "正在加载团队…",
+    "invitation": "团队邀请",
+    "accept": "接受邀请",
+    "name": "团队名称",
+    "rename": "保存名称",
+    "members": "成员",
+    "roleFor": "{name} 的角色",
+    "admin": "管理员",
+    "member": "成员",
+    "leave": "退出团队",
+    "remove": "移除",
+    "confirmLeave": "确定退出团队吗？",
+    "confirmRemove": "确定移除 {name} 吗？",
+    "inviteEmail": "成员邮箱",
+    "invite": "创建邀请",
+    "inviteLink": "邀请链接（7 天内有效，请发送给受邀者）",
+    "copy": "复制链接",
+    "copied": "已复制",
+    "copyFailed": "复制失败，请选择链接后手动复制。",
+    "revoke": "撤销邀请",
+    "create": "创建团队"
   }
 }

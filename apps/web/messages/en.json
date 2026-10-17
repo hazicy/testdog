@@ -914,7 +914,8 @@
     "writeTimeout": "The request timed out. The action may have completed. Refresh to check before trying again.",
     "network": "Unable to connect. Check your network and try again.",
     "signInRequired": "Please sign in first",
-    "databaseUnavailable": "Unable to access data. Check that the database is running and migrations have been applied."
+    "databaseUnavailable": "Unable to access data. Check that the database is running and migrations have been applied.",
+    "workspaceChanged": "The workspace has changed. Reload this page."
   },
   "plugins": {
     "title": "Plugins",
@@ -979,5 +980,34 @@
     "groupPlaceholder": "e.g. Group B",
     "optional": "Optional",
     "discard": "Discard changes"
+  },
+  "teams": {
+    "title": "Team",
+    "workspace": "Switch workspace",
+    "personal": "Personal",
+    "unavailable": "Team unavailable",
+    "retry": "Reload teams",
+    "failed": "Something went wrong. Please try again.",
+    "loading": "Loading teams…",
+    "invitation": "Team invitation",
+    "accept": "Accept invitation",
+    "name": "Team name",
+    "rename": "Save name",
+    "members": "Members",
+    "roleFor": "Role for {name}",
+    "admin": "Administrator",
+    "member": "Member",
+    "leave": "Leave team",
+    "remove": "Remove",
+    "confirmLeave": "Leave this team?",
+    "confirmRemove": "Remove {name} from this team?",
+    "inviteEmail": "Member email",
+    "invite": "Create invitation",
+    "inviteLink": "Invitation link (valid for 7 days; send to the invitee)",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "copyFailed": "Could not copy. Select the link and copy it manually.",
+    "revoke": "Revoke invitation",
+    "create": "Create team"
   }
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { TeamSwitcher } from '@/features/teams/components/TeamSwitcher';
+
 import { useTranslations } from 'next-intl';
 
 import clsx from 'clsx';
@@ -100,6 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Icon icon={menuIcon} width="18" aria-hidden="true" />
           </Button>
+          <TeamSwitcher />
           <nav aria-label={t('breadcrumbs')} className={styles.breadcrumbs}>
             <Link href="/cases" className={styles.breadcrumbLink}>
               {t('workspace')}

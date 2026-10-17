@@ -18,7 +18,7 @@ export async function workspaceVersion(userId: UserScope) {
   const [row] = await db
     .select({ version: sql<string>`concat(count(*), ':', coalesce(sum(${realtimeOutbox.id}), 0))` })
     .from(realtimeOutbox)
-    .where(and(eq(realtimeOutbox.summary, true), ownedBy(realtimeOutbox.userId, userId)));
+    .where(and(eq(realtimeOutbox.summary, true), ownedBy(realtimeOutbox, userId)));
 
   return row.version;
 }
@@ -112,7 +112,7 @@ export async function eventStream(request: Request, runId: string | undefined, u
           const [row] = await db
             .select({ revision: testRuns.realtimeRevision, status: testRuns.status })
             .from(testRuns)
-            .where(and(eq(testRuns.id, runId), ownedBy(testRuns.userId, userId)));
+            .where(and(eq(testRuns.id, runId), ownedBy(testRuns, userId)));
 
           if (!row) {
             close();

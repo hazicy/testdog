@@ -1,0 +1,64 @@
+.switcher {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  max-width: clamp(6rem, 25vw, 16rem);
+}
+.settings,
+.section {
+  display: grid;
+  gap: var(--space-5);
+}
+.settings {
+  max-width: 48rem;
+}
+.section {
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-2xl);
+}
+.heading {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+}
+.field,
+.identity {
+  display: grid;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 10rem;
+}
+.list {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.muted {
+  color: var(--page-muted);
+  overflow-wrap: anywhere;
+}
+.error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+.workspaceSelect {
+  min-width: 0;
+  max-width: 100%;
+  & > span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

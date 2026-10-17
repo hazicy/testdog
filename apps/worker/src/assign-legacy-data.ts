@@ -1,5 +1,6 @@
+import { ownedBy } from '@testdog/server/shared/ownership';
 import './environment';
-import { eq, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db, pool } from '@testdog/server/db';
 import {
   authUsers,
@@ -25,22 +26,22 @@ async function main() {
     const tests = await tx
       .update(testCases)
       .set(patch)
-      .where(isNull(testCases.userId))
+      .where(ownedBy(testCases, null))
       .returning({ id: testCases.id });
     const runs = await tx
       .update(testRuns)
       .set(patch)
-      .where(isNull(testRuns.userId))
+      .where(ownedBy(testRuns, null))
       .returning({ id: testRuns.id });
     // Old deduplication keys must not collide with this user's newer submissions.
     // A collision rolls back the entire assignment instead of partially transferring data.
     const requests = await tx
       .update(submissionRequests)
       .set(patch)
-      .where(isNull(submissionRequests.userId))
+      .where(ownedBy(submissionRequests, null))
       .returning({ id: submissionRequests.id });
 
-    await tx.update(realtimeOutbox).set(patch).where(isNull(realtimeOutbox.userId));
+    await tx.update(realtimeOutbox).set(patch).where(ownedBy(realtimeOutbox, null));
 
     return {
       tests: tests.length,

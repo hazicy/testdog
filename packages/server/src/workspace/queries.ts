@@ -45,7 +45,7 @@ export async function listRunPage({ limit, q, status, cursor }: PageQuery, userI
     .from(testRuns)
     .where(
       and(
-        ownedBy(testRuns.userId, userId),
+        ownedBy(testRuns, userId),
         q
           ? sql`concat_ws(' ', ${testRuns.name}, ${targetUrlColumn(testRuns.targetSnapshot)}) ilike ${searchPattern(q)}`
           : undefined,
@@ -75,7 +75,7 @@ export async function listTestPage({ limit, q, status, cursor }: PageQuery, user
     .from(testCases)
     .where(
       and(
-        ownedBy(testCases.userId, userId),
+        ownedBy(testCases, userId),
         q
           ? sql`concat_ws(' ', ${testCases.name}, ${targetUrlColumn(testCases.target)}, ${testCases.tags}::text, ${testCases.target}->>'appId', ${testCases.target}->>'platform') ilike ${searchPattern(q)}`
           : undefined,
@@ -98,7 +98,7 @@ export async function listTestPage({ limit, q, status, cursor }: PageQuery, user
         .from(testRuns)
         .where(
           and(
-            ownedBy(testRuns.userId, userId),
+            ownedBy(testRuns, userId),
             inArray(
               testRuns.testId,
               page.map((test) => test.id),
@@ -123,11 +123,11 @@ export async function workspaceStats(userId: UserScope): Promise<WorkspaceStats>
         tx
           .select({ count: sql<number>`count(*)::int` })
           .from(testCases)
-          .where(ownedBy(testCases.userId, userId)),
+          .where(ownedBy(testCases, userId)),
         tx
           .select({ status: testRuns.status, count: sql<number>`count(*)::int` })
           .from(testRuns)
-          .where(ownedBy(testRuns.userId, userId))
+          .where(ownedBy(testRuns, userId))
           .groupBy(testRuns.status),
       ]);
       const counts = emptyRunCounts();

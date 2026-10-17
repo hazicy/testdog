@@ -1,3 +1,4 @@
+import { rowScope } from '@testdog/server/shared/ownership';
 import { logger } from '@testdog/server/shared/logger';
 import type { NotificationConfig } from '@testdog/contracts/integrations/types';
 import { randomUUID } from 'node:crypto';
@@ -100,7 +101,7 @@ export async function dispatchNotifications(limit = 10) {
       try {
         const config = decryptSecret(
           integration.encryptedConfig,
-          integration.userId,
+          rowScope(integration),
           integration.channel,
         ) as NotificationConfig;
 
