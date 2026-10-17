@@ -1,7 +1,7 @@
 .demo {
   display: grid;
   gap: 7.5rem;
-  padding-top: 5rem;
+  padding-top: var(--space-16);
 }
 .sectionHeading {
   margin-bottom: var(--space-8);
@@ -11,12 +11,12 @@
 .workspaceFrame {
   overflow: hidden;
   min-width: 0;
-  border: var(--border-width) solid #ffffff24;
+  border: var(--border-width) solid var(--control-line);
   border-radius: var(--radius-xl);
   background: var(--surface);
   box-shadow:
-    0 1.5rem 4rem #00000026,
-    inset 0 var(--border-width) 0 #ffffff04;
+    0 1rem 3rem #15203508,
+    0 0.125rem 0.5rem #15203504;
 }
 .windowHeader {
   display: flex;
@@ -26,7 +26,7 @@
   min-height: 3.25rem;
   padding: var(--space-3) var(--space-5);
   border-bottom: var(--border-width) solid var(--page-line);
-  background: #ffffff02;
+  background: #fafbfc;
   font-size: var(--text-sm);
   & > span {
     display: inline-flex;
@@ -53,14 +53,14 @@
   display: flex;
   flex-direction: column;
   padding: var(--space-7);
-  background: #ffffff02;
+  background: #fafbfc;
   font-size: var(--text-lg);
   border-right: var(--border-width) solid var(--page-line);
   & ol {
     list-style: decimal;
     padding-left: var(--space-4);
     margin-top: var(--space-6);
-    color: #b7b4b2;
+    color: var(--text-secondary);
   }
   & li {
     padding: var(--space-2) 0 var(--space-2) var(--space-2);
@@ -149,7 +149,7 @@
 
 .runSteps {
   --brand: var(--brand-active);
-  --brand-soft: #1d1e21;
-  --surface-hover: #202125;
-  --step-hover: #202125;
+  --brand-soft: #faf1eb;
+  --surface-hover: #f3f5f7;
+  --step-hover: #f3f5f7;
 }

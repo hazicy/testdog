@@ -154,6 +154,23 @@ test('public pages fit phone screens', async ({ page }) => {
   }
 });
 
+test('landing stays at the top when compact playback mounts', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const dock = page.locator('[data-ui="dock"]');
+
+  await expect(dock).toHaveAttribute('data-compact', 'true');
+  await expect(dock.getByRole('tab', { selected: true })).toHaveText('回放');
+  // Wait through layout and effects after the mobile tab strip is committed.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test('quick creation keeps prompt text and actions accessible on a phone', async ({
   page,
 }, testInfo) => {

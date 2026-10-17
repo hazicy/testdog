@@ -33,7 +33,7 @@ export default function Home() {
       <header className={styles.header}>
         <div className={clsx(styles.container, styles.nav)}>
           <Link href="/" aria-label={t('home')}>
-            <Brand monochrome />
+            <Brand />
           </Link>
           <nav aria-label={t('navigation')}>
             <a href="#workflow">{t('workflow')}</a>
@@ -153,7 +153,7 @@ export default function Home() {
         </section>
       </main>
       <footer className={clsx(styles.container, styles.footer)}>
-        <Brand monochrome />
+        <Brand />
         <span>© {new Date().getFullYear()} testdog</span>
         <a href="#main-content">
           {t('backTop')}

@@ -203,9 +203,19 @@ export function DockTabs<T extends string>({
     if (panel && !panel.api.isActive) panel.api.setActive();
   }, [value]);
   useEffect(() => {
-    mobileTabs.current
-      ?.querySelector('[aria-selected="true"]')
-      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    const list = mobileTabs.current;
+    const selected = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+
+    if (!list || !selected) return;
+    const listBounds = list.getBoundingClientRect();
+    const tabBounds = selected.getBoundingClientRect();
+    const offset =
+      tabBounds.left < listBounds.left
+        ? tabBounds.left - listBounds.left
+        : Math.max(0, tabBounds.right - listBounds.right);
+
+    // Reveal the tab within its strip without scrolling the surrounding page.
+    list.scrollLeft += offset;
   }, [activeId, isCompact]);
 
   useEffect(() => {
