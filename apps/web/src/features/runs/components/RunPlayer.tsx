@@ -35,6 +35,7 @@ type Props = {
   previewUrl?: string;
   clearPreview: () => void;
   durationMs: number;
+  artifactUrl?: (artifact: RunArtifact) => string;
   playback: ReturnType<typeof useRunStudio>['playback'];
 };
 
@@ -49,6 +50,7 @@ export function RunPlayer({
   previewUrl,
   clearPreview,
   durationMs,
+  artifactUrl = (artifact) => asset(id, artifact),
   playback,
 }: Props) {
   const t = useTranslations('runs');
@@ -193,7 +195,7 @@ export function RunPlayer({
             />
           ) : currentFrame ? (
             <Image
-              src={asset(id, currentFrame)}
+              src={artifactUrl(currentFrame)}
               alt={t('frameView', { url: currentFrame.pageUrl || currentFrame.surface?.id || '' })}
               width={1280}
               height={800}

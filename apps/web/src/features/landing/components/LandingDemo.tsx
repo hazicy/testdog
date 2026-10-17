@@ -1,102 +1,118 @@
 'use client';
 
+import dynamic from 'next/dynamic';
+import { useMemo, useState, useSyncExternalStore } from 'react';
+import { createLoginExample } from '../lib/loginExample';
+import { LandingReveal } from './LandingMotion';
 import { Icon } from '@iconify/react/offline';
-import checkIcon from '@iconify-icons/lucide/check';
+import fileIcon from '@iconify-icons/lucide/file-text';
+import lockIcon from '@iconify-icons/lucide/lock-keyhole';
 
 import { useTranslations } from 'next-intl';
 
 import styles from './LandingDemo.module.css';
 
-import { statusStyles } from '@/components/ui/statusStyles';
-import { Tabs } from '@base-ui/react/tabs';
+const PlanBoard = dynamic(
+  () => import('@/features/runs/components/PlanBoard').then((module) => module.PlanBoard),
+  { ssr: false },
+);
+
+const LandingRunPreview = dynamic(
+  () => import('./LandingRunPreview').then((module) => module.LandingRunPreview),
+  { ssr: false, loading: () => <div className={styles.previewLoading} aria-hidden="true" /> },
+);
+
+function subscribeLayout(callback: () => void) {
+  const media = window.matchMedia('(max-width: 47.5rem)');
+
+  media.addEventListener('change', callback);
+
+  return () => media.removeEventListener('change', callback);
+}
 
 export function LandingDemo() {
+  const compact = useSyncExternalStore(
+    subscribeLayout,
+    () => window.matchMedia('(max-width: 47.5rem)').matches,
+    () => false,
+  );
   const t = useTranslations('landing');
-  const examples = [
-    {
-      name: t('loginName'),
-      url: 'app.example.com/login',
-      input: [
-        t('openLogin'),
-        t('enterExampleCredentials'),
-        t('clickLoginButton'),
-        t('verifyWelcome'),
-      ],
-      steps: [t('compileFour'), t('observeLogin'), t('actLogin'), t('verifyLogin')],
-      title: t('welcome'),
-      subtitle: t('signedIn'),
-      badge: t('loginSuccess'),
-    },
-    {
-      name: t('formName'),
-      url: 'app.example.com/contact',
-      input: [t('openContact'), t('fillContact'), t('clickSubmit'), t('verifySubmit')],
-      steps: [t('compileFour'), t('observeContact'), t('actContact'), t('verifyContact')],
-      title: t('submitted'),
-      subtitle: t('receivedMessage'),
-      badge: t('formSubmitted'),
-    },
-    {
-      name: t('navigation'),
-      url: 'app.example.com/settings',
-      input: [t('openWorkspaceHome'), t('clickSettings'), t('waitSettings'), t('verifySettings')],
-      steps: [t('compileFour'), t('observeNavigation'), t('actNavigation'), t('verifyNavigation')],
-      title: t('accountSettings'),
-      subtitle: t('manageProfile'),
-      badge: t('navigationComplete'),
-    },
-  ];
+  const example = useMemo(
+    () =>
+      createLoginExample({
+        name: t('loginName'),
+        url: 'app.example.com/login',
+        input: [
+          t('openLogin'),
+          t('enterExampleCredentials'),
+          t('clickLoginButton'),
+          t('verifyWelcome'),
+        ],
+        title: t('welcome'),
+        subtitle: t('signedIn'),
+      }),
+    [t],
+  );
+  const [draftPlan, setDraftPlan] = useState(example.run.plan);
+  const { content } = example;
 
   return (
-    <Tabs.Root defaultValue={0} className={styles.root}>
-      <div className={styles.container}>
-        <Tabs.List activateOnFocus className={styles.list} aria-label={t('exampleCases')}>
-          {examples.map((item, index) => (
-            <Tabs.Tab key={item.name} value={index} className={styles.tab}>
-              {item.name}
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-        <span className={styles.label}>{t('interactiveDemo')}</span>
-      </div>
-      {examples.map((example, index) => (
-        <Tabs.Panel key={example.name} value={index} className={styles.panel}>
-          <section className={styles.section} aria-label={t('testDescription')}>
-            <h3 className={styles.subheading}>{t('testDescription')}</h3>
-            <p className={styles.description}>https://{example.url}</p>
-            <ol className={styles.ol}>
-              {example.input.map((line, index) => (
-                <li key={line} className={styles.item}>
-                  <span className={styles.stepNumber}>{index + 1}.</span>
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-          <section className={styles.result} aria-label={t('exampleResult')}>
-            <div className={styles.resultHeading}>
-              <h3 className={styles.resultTitle}>{t('runs')}</h3>
-              <span data-slot="status" data-status="passed" className={statusStyles('passed')}>
-                <span />
-                {t('passed')}
+    <div className={styles.demo}>
+      <section aria-labelledby="editor-heading">
+        <LandingReveal>
+          <h2 id="editor-heading" className={styles.sectionHeading}>
+            {t('editorTitle')}
+          </h2>
+          <div className={styles.editorFrame}>
+            <div className={styles.windowHeader}>
+              <span>
+                <Icon icon={fileIcon} aria-hidden="true" />
+                {content.name}
+              </span>
+              <span className={styles.windowUrl}>
+                <Icon icon={lockIcon} aria-hidden="true" />
+                {content.url}
               </span>
             </div>
-            <ol className={styles.ol}>
-              {example.steps.map((step) => (
-                <li key={step} className={styles.item}>
-                  <Icon icon={checkIcon} aria-hidden="true" className={styles.checkmark} />
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
-            <div className={styles.evidence}>
-              <p className={styles.evidenceCaption}>
-                {t('pageEvidence', { title: example.title })}
-              </p>
+            <div className={styles.editorBody}>
+              <aside className={styles.prompt} aria-label={t('testDescription')}>
+                <span className={styles.promptTitle}>{t('testDescription')}</span>
+                <ol>
+                  {content.input.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ol>
+              </aside>
+              <div className={styles.planCanvas}>
+                <PlanBoard
+                  key={compact ? 'compact' : 'wide'}
+                  plan={draftPlan}
+                  steps={[]}
+                  onStep={() => {}}
+                  onChange={setDraftPlan}
+                  fullHeight
+                />
+              </div>
             </div>
-          </section>
-        </Tabs.Panel>
-      ))}
-    </Tabs.Root>
+          </div>
+        </LandingReveal>
+      </section>
+      <section id="replay" className={styles.playbackSection} aria-labelledby="playback-heading">
+        <LandingReveal>
+          <h2 id="playback-heading" className={styles.sectionHeading}>
+            {t('playbackTitle')}
+          </h2>
+          <div className={styles.workspaceFrame}>
+            <div className={styles.windowHeader}>
+              <span>
+                <Icon icon={fileIcon} aria-hidden="true" />
+                {content.name}
+              </span>
+            </div>
+            <LandingRunPreview example={example} />
+          </div>
+        </LandingReveal>
+      </section>
+    </div>
   );
 }

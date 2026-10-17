@@ -11,6 +11,11 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@iconify/react/offline';
 import pointerIcon from '@iconify-icons/lucide/mouse-pointer-2';
 import handIcon from '@iconify-icons/lucide/hand';
+import undoIcon from '@iconify-icons/lucide/undo-2';
+import redoIcon from '@iconify-icons/lucide/redo-2';
+import minusIcon from '@iconify-icons/lucide/minus';
+import plusIcon from '@iconify-icons/lucide/plus';
+import closeIcon from '@iconify-icons/lucide/x';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -309,7 +314,7 @@ function PlanBoardContent({
                     disabled={!history.canUndo}
                     onClick={history.undo}
                   >
-                    ↶
+                    <Icon icon={undoIcon} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -318,7 +323,7 @@ function PlanBoardContent({
                     disabled={!history.canRedo}
                     onClick={history.redo}
                   >
-                    ↷
+                    <Icon icon={redoIcon} aria-hidden="true" />
                   </button>
                 </>
               )}
@@ -329,7 +334,7 @@ function PlanBoardContent({
                 disabled={zoom <= MIN_ZOOM}
                 onClick={() => void flow.zoomOut()}
               >
-                −
+                <Icon icon={minusIcon} aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -353,7 +358,7 @@ function PlanBoardContent({
                 disabled={zoom >= MAX_ZOOM}
                 onClick={() => void flow.zoomIn()}
               >
-                ＋
+                <Icon icon={plusIcon} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -380,7 +385,7 @@ function PlanBoardContent({
                 aria-label={t('closeSettings')}
                 onClick={onSettingsClose}
               >
-                ×
+                <Icon icon={closeIcon} aria-hidden="true" />
               </Button>
             </div>
             {settings}

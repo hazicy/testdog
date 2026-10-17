@@ -1,139 +1,155 @@
-.root {
+.demo {
+  display: grid;
+  gap: 7.5rem;
+  padding-top: 5rem;
+}
+.sectionHeading {
+  margin-bottom: var(--space-8);
+}
+
+.editorFrame,
+.workspaceFrame {
   overflow: hidden;
-  border-radius: var(--radius-lg);
-  border: var(--border-width) solid var(--page-line);
-  background-color: var(--surface);
+  min-width: 0;
+  border: var(--border-width) solid #ffffff24;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow:
+    0 1.5rem 4rem #00000026,
+    inset 0 var(--border-width) 0 #ffffff04;
 }
-.container {
+.windowHeader {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   justify-content: space-between;
-  column-gap: var(--space-4);
-  border-bottom-style: solid;
-  border-bottom-width: var(--border-width);
-  border-color: var(--page-line);
-  padding-inline: var(--space-5);
+  align-items: center;
+  gap: var(--space-5);
+  min-height: 3.25rem;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: var(--border-width) solid var(--page-line);
+  background: #ffffff02;
+  font-size: var(--text-sm);
+  & > span {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  & svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    color: var(--text-subtle);
+  }
+  & .windowUrl {
+    color: var(--text-subtle);
+    font-size: var(--text-xs);
+    font-family: var(--font-geist-mono), monospace;
+  }
 }
-.list {
+.editorBody {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 2fr);
+}
+.prompt {
+  min-width: 0;
   display: flex;
-  gap: var(--space-6);
-}
-.tab {
-  cursor: pointer;
-  border-bottom-style: solid;
-  border-bottom-width: var(--focus-width);
-  border-color: transparent;
-  padding-block: var(--space-4);
+  flex-direction: column;
+  padding: var(--space-7);
+  background: #ffffff02;
   font-size: var(--text-lg);
-  line-height: 1.25rem;
-  color: var(--text-secondary);
-  @media (hover: hover) {
-    &:hover {
-      color: var(--ink);
+  border-right: var(--border-width) solid var(--page-line);
+  & ol {
+    list-style: decimal;
+    padding-left: var(--space-4);
+    margin-top: var(--space-6);
+    color: #b7b4b2;
+  }
+  & li {
+    padding: var(--space-2) 0 var(--space-2) var(--space-2);
+    line-height: 1.85;
+    overflow-wrap: anywhere;
+  }
+}
+.promptTitle {
+  color: var(--text-subtle);
+  font-size: var(--text-sm);
+}
+
+.planCanvas {
+  height: 32rem;
+  min-width: 0;
+  overflow: hidden;
+  & [data-ui='plan-viewport'] {
+    height: 100%;
+    min-height: 0;
+  }
+  & [data-ui='plan-board'] {
+    border: 0;
+  }
+}
+.playbackSection {
+  scroll-margin-top: var(--space-10);
+}
+.runWorkspace,
+.previewLoading {
+  display: flex;
+  height: 36rem;
+  min-width: 0;
+}
+.previewLoading {
+  background: linear-gradient(110deg, var(--surface), var(--surface-muted), var(--surface));
+}
+.runDock {
+  flex: 1;
+  min-width: 0;
+}
+@media (max-width: 65rem) {
+  .editorBody {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr);
+  }
+  .prompt {
+    padding: var(--space-5);
+  }
+}
+@media (max-width: 47.5rem) {
+  .demo {
+    gap: var(--space-20);
+    padding-top: var(--space-12);
+  }
+  .sectionHeading {
+    margin-bottom: var(--space-6);
+  }
+  .editorBody {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .prompt {
+    padding: var(--space-5);
+    border-right: 0;
+    border-bottom: var(--border-width) solid var(--page-line);
+    & ol {
+      margin-top: var(--space-3);
+    }
+    & li {
+      padding-block: var(--space-1);
     }
   }
-  &[aria-selected='true'] {
-    border-color: var(--brand);
-    color: var(--ink);
+  .planCanvas {
+    height: 27rem;
+  }
+  .windowHeader {
+    padding-inline: var(--space-4);
+    gap: var(--space-3);
+    & .windowUrl {
+      font-size: var(--text-2xs);
+    }
+  }
+  .runWorkspace,
+  .previewLoading {
+    height: 32rem;
   }
 }
-.label {
-  padding-block: var(--space-3);
-  font-size: var(--text-sm);
-  line-height: 1rem;
-  color: var(--text-subtle);
-}
-.panel {
-  display: grid;
-  @media (width >= 48rem) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-.section {
-  border-bottom-style: solid;
-  border-bottom-width: var(--border-width);
-  border-color: var(--page-line);
-  padding: var(--space-6);
-  @media (width >= 40rem) {
-    padding: var(--space-8);
-  }
-  @media (width >= 48rem) {
-    border-bottom-style: solid;
-    border-bottom-width: 0;
-    border-right-style: solid;
-    border-right-width: var(--border-width);
-  }
-}
-.subheading {
-  margin-bottom: var(--space-5);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
-  font-weight: 600;
-}
-.description {
-  margin-bottom: var(--space-5);
-  word-break: break-all;
-  border-radius: var(--radius-md);
-  background-color: var(--code-surface);
-  padding: var(--space-2) var(--space-3);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: var(--text-sm);
-  line-height: 1rem;
-  color: var(--text-secondary);
-}
-.ol {
-  & > :not(:last-child) {
-    margin-block-start: 0;
-    margin-block-end: var(--space-4);
-  }
-}
-.item {
-  display: flex;
-  gap: var(--space-3);
-  font-size: var(--text-lg);
-  line-height: 1.5rem;
-}
-.stepNumber {
-  width: 1.25rem;
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-subtle);
-}
-.result {
-  padding: var(--space-6);
-  @media (width >= 40rem) {
-    padding: var(--space-8);
-  }
-}
-.resultHeading {
-  margin-bottom: var(--space-5);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-.resultTitle {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
-  font-weight: 600;
-}
-.checkmark {
-  width: 1rem;
-  height: 1.5rem;
-  flex-shrink: 0;
-  color: var(--success);
-}
-.evidence {
-  margin-top: var(--space-6);
-  border-radius: var(--radius-md);
-  border: var(--border-width) solid var(--success-line);
-  background-color: var(--success-soft);
-  padding: var(--space-3) var(--space-4);
-}
-.evidenceCaption {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
-  font-weight: 500;
-  color: var(--success-strong);
+
+.runSteps {
+  --brand: var(--brand-active);
+  --brand-soft: #1d1e21;
+  --surface-hover: #202125;
+  --step-hover: #202125;
 }

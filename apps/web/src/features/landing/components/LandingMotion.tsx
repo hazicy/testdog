@@ -1,137 +1,60 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { LazyMotion, domAnimation, MotionConfig } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useSyncExternalStore, type ReactNode } from 'react';
 
-/** Adds motion to server-rendered content; everything stays visible without JavaScript. */
+const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
+
+function subscribeReducedMotion(callback: () => void) {
+  const media = window.matchMedia(reducedMotionQuery);
+
+  media.addEventListener('change', callback);
+
+  return () => media.removeEventListener('change', callback);
+}
+
+export function useLandingReducedMotion() {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia(reducedMotionQuery).matches,
+    () => true,
+  );
+}
+
 export function LandingMotion({ children, className }: { children: ReactNode; className: string }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const root = rootRef.current;
-
-    if (!root) return;
-
-    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const pointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-    const animations = new Set<Animation>();
-    const revealElements = root.querySelectorAll<HTMLElement>('[data-reveal]');
-    const hero = root.querySelector<HTMLElement>('[data-hero-art]');
-    const tilt = root.querySelector<HTMLElement>('[data-forge-tilt]');
-    const previousScrollBehavior = document.documentElement.style.scrollBehavior;
-    let observer: IntersectionObserver | undefined;
-    let frame = 0;
-    let playedEntrance = false;
-
-    function play(element: HTMLElement, delay = 0, entrance = false) {
-      if (!element.animate || preference.matches) return;
-      const art = element.hasAttribute('data-hero-art');
-      const animation = element.animate(
-        art
-          ? [
-              { opacity: 0, clipPath: 'inset(12% 0 0 0)' },
-              { opacity: 1, clipPath: 'inset(0% 0 0 0)' },
-            ]
-          : [
-              { opacity: 0, transform: 'translate3d(0, 1.5rem, 0)' },
-              { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-            ],
-        {
-          duration: entrance ? 900 : 700,
-          delay,
-          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-          fill: 'backwards',
-        },
-      );
-
-      animations.add(animation);
-      animation.onfinish = () => animations.delete(animation);
-    }
-
-    function configureMotion() {
-      observer?.disconnect();
-      for (const animation of animations) animation.cancel();
-      animations.clear();
-      for (const element of revealElements) element.removeAttribute('data-motion');
-      if (preference.matches) {
-        document.documentElement.style.scrollBehavior = previousScrollBehavior;
-        tilt?.style.removeProperty('--forge-rx');
-        tilt?.style.removeProperty('--forge-ry');
-
-        return;
-      }
-
-      document.documentElement.style.scrollBehavior = 'smooth';
-      if (!playedEntrance) {
-        root?.querySelectorAll<HTMLElement>('[data-entrance]').forEach((element) => {
-          play(element, Number(element.dataset.entrance) || 0, true);
-        });
-        playedEntrance = true;
-      }
-
-      if (!('IntersectionObserver' in window)) return;
-      observer = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (!entry.isIntersecting) continue;
-            const element = entry.target as HTMLElement;
-
-            element.removeAttribute('data-motion');
-            play(element, Number(element.dataset.reveal) || 0);
-            observer?.unobserve(element);
-          }
-        },
-        { rootMargin: '0px 0px -40px 0px', threshold: 0.08 },
-      );
-
-      for (const element of revealElements) {
-        // Content already in view stays visible, including when restoring scroll position.
-        if (element.getBoundingClientRect().top < window.innerHeight - 40) continue;
-        element.dataset.motion = 'pending';
-        observer.observe(element);
-      }
-    }
-
-    function onPointerMove(event: PointerEvent) {
-      if (!hero || !tilt || preference.matches || !pointer.matches) return;
-      if (frame) cancelAnimationFrame(frame);
-      const bounds = hero.getBoundingClientRect();
-      const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-      const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-
-      frame = requestAnimationFrame(() => {
-        tilt?.style.setProperty('--forge-rx', `${-y * 14}deg`);
-        tilt?.style.setProperty('--forge-ry', `${x * 18}deg`);
-        frame = 0;
-      });
-    }
-
-    function resetPointer() {
-      if (frame) cancelAnimationFrame(frame);
-      frame = 0;
-      tilt?.style.setProperty('--forge-rx', '0deg');
-      tilt?.style.setProperty('--forge-ry', '0deg');
-    }
-
-    configureMotion();
-    preference.addEventListener('change', configureMotion);
-    hero?.addEventListener('pointermove', onPointerMove);
-    hero?.addEventListener('pointerleave', resetPointer);
-
-    return () => {
-      observer?.disconnect();
-      for (const animation of animations) animation.cancel();
-      for (const element of revealElements) element.removeAttribute('data-motion');
-      preference.removeEventListener('change', configureMotion);
-      hero?.removeEventListener('pointermove', onPointerMove);
-      hero?.removeEventListener('pointerleave', resetPointer);
-      resetPointer();
-      document.documentElement.style.scrollBehavior = previousScrollBehavior;
-    };
-  }, []);
+  const reduced = useLandingReducedMotion();
 
   return (
-    <div ref={rootRef} data-landing-motion className={className}>
+    <LazyMotion features={domAnimation} strict>
+      <MotionConfig reducedMotion={reduced ? 'always' : 'never'}>
+        <div className={className}>{children}</div>
+      </MotionConfig>
+    </LazyMotion>
+  );
+}
+
+/** Content stays visible in the server response; motion starts on entering the viewport. */
+export function LandingReveal({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const reduced = useLandingReducedMotion();
+
+  return (
+    <m.div
+      className={className}
+      initial={false}
+      whileInView={reduced ? undefined : { opacity: [0.65, 1], y: ['1rem', '0rem'] }}
+      viewport={{ once: true, amount: 0.12 }}
+      transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
+    >
       {children}
-    </div>
+    </m.div>
   );
 }

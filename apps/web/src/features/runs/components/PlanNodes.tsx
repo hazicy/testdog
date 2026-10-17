@@ -1,5 +1,10 @@
 'use client';
 
+import { Icon } from '@iconify/react/offline';
+import gripIcon from '@iconify-icons/lucide/grip-vertical';
+import checkIcon from '@iconify-icons/lucide/check';
+import closeIcon from '@iconify-icons/lucide/x';
+
 import { useTranslations } from 'next-intl';
 
 import clsx from 'clsx';
@@ -131,7 +136,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             title={t('accept')}
             onClick={data.review.onAccept}
           >
-            ✓
+            <Icon icon={checkIcon} width="14" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -139,7 +144,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
             title={t('reject')}
             onClick={data.review.onReject}
           >
-            ×
+            <Icon icon={closeIcon} width="14" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -156,7 +161,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
               event.dataTransfer.effectAllowed = 'move';
             }}
           >
-            ⠿
+            <Icon icon={gripIcon} width="14" aria-hidden="true" />
           </button>
           <button
             type="button"
