@@ -11,7 +11,7 @@ import clsx from 'clsx';
 import Link from 'next/link';
 import { Brand } from '@/components/brand/Brand';
 import { LandingMotion, LandingReveal } from '@/features/landing/components/LandingMotion';
-import { landingLatin, landingChinese } from '@/features/landing/fonts';
+import { landingLatin, landingChinese, landingPixel } from '@/features/landing/fonts';
 import { LandingLanguageSwitch } from '@/features/landing/components/LandingLanguageSwitch';
 import { LandingHero } from '@/features/landing/components/LandingHero';
 import { LandingDemo } from '@/features/landing/components/LandingDemo';
@@ -28,7 +28,14 @@ export default function Home() {
   ];
 
   return (
-    <LandingMotion className={clsx(styles.landing, landingLatin.variable, landingChinese.variable)}>
+    <LandingMotion
+      className={clsx(
+        styles.landing,
+        landingLatin.variable,
+        landingChinese.variable,
+        landingPixel.variable,
+      )}
+    >
       <a href="#main-content" className={styles.skip}>
         {t('skip')}
       </a>

@@ -16,3 +16,11 @@ export const landingChinese = localFont({
   display: 'swap',
   variable: '--font-landing-chinese',
 });
+
+export const landingPixel = localFont({
+  src: './hero-pixel.woff2',
+  weight: '400',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-landing-pixel',
+});
