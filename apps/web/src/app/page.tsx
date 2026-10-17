@@ -11,6 +11,8 @@ import clsx from 'clsx';
 import Link from 'next/link';
 import { Brand } from '@/components/brand/Brand';
 import { LandingMotion, LandingReveal } from '@/features/landing/components/LandingMotion';
+import { landingLatin, landingChinese } from '@/features/landing/fonts';
+import { LandingLanguageSwitch } from '@/features/landing/components/LandingLanguageSwitch';
 import { LandingHero } from '@/features/landing/components/LandingHero';
 import { LandingDemo } from '@/features/landing/components/LandingDemo';
 import styles from '@/features/landing/components/landing.module.css';
@@ -26,7 +28,7 @@ export default function Home() {
   ];
 
   return (
-    <LandingMotion className={styles.landing}>
+    <LandingMotion className={clsx(styles.landing, landingLatin.variable, landingChinese.variable)}>
       <a href="#main-content" className={styles.skip}>
         {t('skip')}
       </a>
@@ -40,10 +42,13 @@ export default function Home() {
             <a href="#features">{t('features')}</a>
             <a href="#faq">{t('faq')}</a>
           </nav>
-          <Link href="/cases" className={clsx(styles.button, styles.navButton)}>
-            {t('openWorkspace')}
-            <Icon icon={arrowUpRightIcon} aria-hidden="true" />
-          </Link>
+          <div className={styles.navActions}>
+            <LandingLanguageSwitch />
+            <Link href="/cases" className={clsx(styles.button, styles.navButton)}>
+              {t('openWorkspace')}
+              <Icon icon={arrowUpRightIcon} aria-hidden="true" />
+            </Link>
+          </div>
         </div>
       </header>
       <main id="main-content">

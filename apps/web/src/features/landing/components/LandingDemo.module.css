@@ -9,6 +9,7 @@
 
 .editorFrame,
 .workspaceFrame {
+  font-family: var(--font-geist-sans), 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
   overflow: hidden;
   min-width: 0;
   border: var(--border-width) solid var(--control-line);
