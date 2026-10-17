@@ -39,9 +39,14 @@ export default function CaseCanvasPage() {
       duplicate={draft.duplicate}
       initialDraft={draft}
       draftId={draftId}
-      onSaved={async () => {
+      folderId={draft.folderId}
+      onSaved={async (test) => {
         clearCaseDraft(draftId);
-        router.push('/cases');
+        router.replace(
+          test
+            ? `/cases?${new URLSearchParams({ ...(draft.folderId ? { folder: draft.folderId } : {}), case: test.id })}`
+            : '/cases',
+        );
       }}
     />
   );

@@ -12,9 +12,12 @@ export function testValidationMessage(error: z.ZodError) {
   return error.issues.find((issue) => issue.code === 'custom')?.message ?? testInputMessage;
 }
 
+export const testNameSchema = z.string().trim().min(1).max(120);
+
 export const testSchema = z
   .object({
-    name: z.string().trim().min(1).max(120),
+    folderId: z.uuid().nullable().optional(),
+    name: testNameSchema,
     // URL-only Web input remains accepted; persisted URLs live in the target.
     url: z.preprocess((value) => (value === '' ? undefined : value), HttpUrlSchema.optional()),
     target: TestTargetSchema.optional(),

@@ -202,7 +202,10 @@ test('keeps sign out within the sidebar on short, narrow and collapsed layouts',
     await expect(signOut).toBeInViewport();
     const checkBounds = async () => {
       const button = (await signOut.boundingBox())!;
-      const sidebar = (await page.locator('aside').boundingBox())!;
+      const sidebar = (await page
+        .getByRole('navigation', { name: '工作区导航' })
+        .locator('..')
+        .boundingBox())!;
 
       expect(button.x).toBeGreaterThanOrEqual(sidebar.x);
       expect(button.x + button.width).toBeLessThanOrEqual(sidebar.x + sidebar.width);

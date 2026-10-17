@@ -8,6 +8,8 @@ import {
   testRuns,
   submissionRequests,
   realtimeOutbox,
+  testSuites,
+  suiteRuns,
 } from '@testdog/server/db/schema';
 
 // Explicit operator command. Registration and migrations never claim legacy data.
@@ -43,7 +45,16 @@ async function main() {
 
     await tx.update(realtimeOutbox).set(patch).where(ownedBy(realtimeOutbox, null));
 
+    const suites = await tx
+      .update(testSuites)
+      .set(patch)
+      .where(ownedBy(testSuites, null))
+      .returning({ id: testSuites.id });
+
+    await tx.update(suiteRuns).set(patch).where(ownedBy(suiteRuns, null));
+
     return {
+      suites: suites.length,
       tests: tests.length,
       runs: runs.length,
       requests: requests.length,

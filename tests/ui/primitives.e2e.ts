@@ -308,6 +308,7 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await page.getByRole('button', { name: '放大画板' }).click();
   await expect(viewport).not.toHaveAttribute('style', initialTransform!);
   const transform = await viewport.getAttribute('style');
+  const zoomLabel = await page.getByRole('button', { name: '画板恢复原始比例' }).textContent();
   const bounds = await canvas.boundingBox();
 
   await panel.getByRole('button', { name: '展开面板' }).click();
@@ -315,7 +316,7 @@ test('compact panel defaults closed and Run retries the draft without saving the
   const settings = page.getByRole('complementary', { name: '测试设置', exact: true });
 
   await expect(settings).toBeVisible();
-  await expect(page.getByRole('button', { name: '画板恢复原始比例' })).toHaveText('120%');
+  await expect(page.getByRole('button', { name: '画板恢复原始比例' })).toHaveText(zoomLabel!);
   const reducedBounds = (await canvas.boundingBox())!;
   const settingsBounds = (await settings.boundingBox())!;
 

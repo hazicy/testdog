@@ -121,3 +121,10 @@
   white-space: nowrap;
   font-weight: 500;
 }
+
+.suiteMain {
+  position: relative;
+  display: grid;
+  padding: 0;
+  overflow: hidden;
+}

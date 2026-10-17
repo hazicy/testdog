@@ -12,9 +12,11 @@ import { writeCaseDraft } from '@/features/test-cases/lib/caseDraft';
 export function QuickCreateDialog({
   onClose,
   container,
+  folderId,
 }: {
   onClose: () => void;
   container: RefObject<HTMLElement | null>;
+  folderId?: string | null;
 }) {
   const t = useTranslations('editor');
   const { caseName, editablePlan } = useAuthoring();
@@ -36,7 +38,7 @@ export function QuickCreateDialog({
       const plan = editablePlan(source, name);
       const id = crypto.randomUUID();
 
-      writeCaseDraft(id, { name, goal, plan });
+      writeCaseDraft(id, { name, goal, plan, folderId });
       router.push(`/cases/editor/${id}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('generateFailed'));

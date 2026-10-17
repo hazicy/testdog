@@ -1,11 +1,5 @@
-import { LoadingState } from '@/components/shared/LoadingState';
-import { Suspense } from 'react';
-import { Workspace } from '@/features/workspace/components/Workspace';
+import { CaseWorkbench } from '@/features/suites/components/CaseWorkbench';
 
 export default function Cases() {
-  return (
-    <Suspense fallback={<LoadingState />}>
-      <Workspace view="tests" />
-    </Suspense>
-  );
+  return <CaseWorkbench />;
 }

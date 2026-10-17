@@ -135,6 +135,8 @@ export const testCases = pgTable(
   {
     userId: text().references(() => authUsers.id),
     teamId: uuid().references(() => teams.id),
+    folderId: uuid().references((): AnyPgColumn => testSuites.id, { onDelete: 'set null' }),
+    folderPosition: integer().notNull().default(0),
     target: jsonb().$type<TestTarget>().notNull(),
     id: uuid().primaryKey().defaultRandom(),
     name: text().notNull(),
@@ -148,9 +150,51 @@ export const testCases = pgTable(
     check('test_cases_ownership_check', sql`${table.userId} is null or ${table.teamId} is null`),
     index('test_cases_team_updated_idx').on(table.teamId, table.updatedAt, table.id),
     index('test_cases_updated_idx').on(table.updatedAt, table.id),
+    index('test_cases_folder_idx').on(table.folderId, table.folderPosition),
     index('test_cases_user_updated_idx').on(table.userId, table.updatedAt, table.id),
   ],
 );
+export const testSuites = pgTable(
+  'test_suites',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
+    parentId: uuid().references((): AnyPgColumn => testSuites.id, { onDelete: 'cascade' }),
+    position: integer().notNull().default(0),
+    name: text().notNull(),
+    version: integer().notNull().default(1),
+    updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('test_suites_ownership_check', sql`${table.userId} is null or ${table.teamId} is null`),
+    index('test_suites_parent_idx').on(table.parentId, table.position),
+    index('test_suites_user_updated_idx').on(table.userId, table.updatedAt, table.id),
+    index('test_suites_team_updated_idx').on(table.teamId, table.updatedAt, table.id),
+  ],
+);
+
+export const suiteRuns = pgTable(
+  'suite_runs',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: text().references(() => authUsers.id),
+    teamId: uuid().references(() => teams.id),
+    suiteId: uuid().references(() => testSuites.id, { onDelete: 'set null' }),
+    name: text().notNull(),
+    total: integer().notNull(),
+    cancelRequested: boolean().notNull().default(false),
+    createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('suite_runs_ownership_check', sql`${table.userId} is null or ${table.teamId} is null`),
+    check('suite_runs_total_check', sql`${table.total} > 0`),
+    index('suite_runs_user_created_idx').on(table.userId, table.createdAt, table.id),
+    index('suite_runs_team_created_idx').on(table.teamId, table.createdAt, table.id),
+    index('suite_runs_suite_created_idx').on(table.suiteId, table.createdAt, table.id),
+  ],
+);
+
 export const testRuns = pgTable(
   'test_runs',
   {
@@ -198,6 +242,7 @@ export const testRuns = pgTable(
     index('test_runs_team_started_idx').on(table.teamId, table.startedAt, table.id),
     index('test_runs_started_idx').on(table.startedAt, table.id),
     index('test_runs_user_started_idx').on(table.userId, table.startedAt, table.id),
+    index('test_runs_batch_idx').on(table.batchId),
     index('test_runs_case_idx').on(table.testId, table.startedAt, table.id),
     index('test_runs_status_started_idx').on(table.status, table.startedAt, table.id),
     index('test_runs_active_lease_idx')

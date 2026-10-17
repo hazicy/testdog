@@ -1,6 +1,10 @@
+import {
+  runSummaryColumns as summaryColumns,
+  runSummary as summary,
+} from '@testdog/server/runs/records';
 import { emptyRunCounts, type WorkspaceStats } from '@testdog/contracts/workspace/types';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
-import { and, desc, eq, inArray, sql, type SQLWrapper } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql, type SQLWrapper } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases, testRuns } from '@testdog/server/db/schema';
 import { targetUrl } from '@testdog/contracts/automation/platform/target';
@@ -8,30 +12,9 @@ import type { RunSummary } from '@testdog/contracts/runs/types';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
 
-const summaryColumns = {
-  id: testRuns.id,
-  testId: testRuns.testId,
-  name: testRuns.name,
-  url: targetUrlColumn(testRuns.targetSnapshot),
-  mode: testRuns.mode,
-  status: testRuns.status,
-  startedAt: testRuns.startedAt,
-  finishedAt: testRuns.finishedAt,
-  durationMs: testRuns.durationMs,
-  error: testRuns.error,
-  sourceRunId: testRuns.sourceRunId,
-  replayable: testRuns.replayable,
-  cancelRequested: testRuns.cancelRequested,
-};
-
 function targetUrlColumn(target: SQLWrapper) {
   return sql<string>`case when ${target}->>'platform' = 'web' then ${target}->>'url' else '' end`;
 }
-
-const summary = (row: typeof testRuns.$inferSelect | Record<string, unknown>) =>
-  Object.fromEntries(
-    Object.entries(row).map(([key, value]) => [key, value ?? undefined]),
-  ) as RunSummary;
 
 function validateStatus(status: string, tests = false) {
   if (status !== 'all' && !(tests && status === 'none') && !Object.hasOwn(emptyRunCounts(), status))
@@ -66,16 +49,25 @@ export async function listRunPage({ limit, q, status, cursor }: PageQuery, userI
   };
 }
 
-export async function listTestPage({ limit, q, status, cursor }: PageQuery, userId: UserScope) {
+export async function listTestPage(
+  { limit, q, status, cursor }: PageQuery,
+  userId: UserScope,
+  folderId?: string | null,
+) {
   validateStatus(status, true);
   // The latest execution is independent of the execution-list page.
-  const latestStatus = sql`(select r.status from test_runs r where r."testId" = ${testCases.id} and r."userId" is not distinct from ${userId}::text order by r."startedAt" desc, r.id desc limit 1)`;
+  const latestStatus = sql`(select status from test_runs where "testId" = ${testCases.id} and ${ownedBy(testRuns, userId)} order by "startedAt" desc, id desc limit 1)`;
   const rows = await db
     .select()
     .from(testCases)
     .where(
       and(
         ownedBy(testCases, userId),
+        folderId === undefined
+          ? undefined
+          : folderId === null
+            ? isNull(testCases.folderId)
+            : eq(testCases.folderId, folderId),
         q
           ? sql`concat_ws(' ', ${testCases.name}, ${targetUrlColumn(testCases.target)}, ${testCases.tags}::text, ${testCases.target}->>'appId', ${testCases.target}->>'platform') ilike ${searchPattern(q)}`
           : undefined,

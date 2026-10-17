@@ -41,17 +41,19 @@ export function TestEditor({
   onSaved,
   initialDraft,
   draftId,
+  folderId,
 }: {
   test?: TestCase;
   duplicate?: boolean;
   onSaved: (test?: TestCase) => Promise<void>;
   initialDraft?: CaseDraft;
   draftId?: string;
+  folderId?: string | null;
 }) {
   const t = useTranslations('editor');
   const { caseName, editablePlan, emptyPlan, planText } = useAuthoring();
   const submitRun = useRunSubmission();
-  const [savedCase] = useState<TestCase | undefined>(duplicate ? undefined : test);
+  const [savedCase, setSavedCase] = useState<TestCase | undefined>(duplicate ? undefined : test);
 
   const nameChanged = useRef(!!test || (!!initialDraft && initialDraft.name !== caseName('')));
   const [configuration, setConfiguration] = useState<CaseSettingsValue>(() => {
@@ -104,8 +106,9 @@ export function TestEditor({
         goal,
         plan,
         settings: configuration,
+        folderId,
       });
-  }, [draftId, plan, name, goal, configuration, test, duplicate, savedCase]);
+  }, [draftId, plan, name, goal, configuration, test, duplicate, savedCase, folderId]);
 
   function changeName(value: string) {
     nameChanged.current = true;
@@ -198,6 +201,7 @@ export function TestEditor({
 
     const payload = {
       name,
+      ...(!savedCase && folderId !== undefined ? { folderId } : {}),
       target: caseTarget(configuration),
       goal: planText(plan),
       plan,
@@ -255,6 +259,7 @@ export function TestEditor({
             : api.post('/api/tests', { json: parsed.data })
         ).json<{ test: TestCase }>();
 
+        if (result?.test) setSavedCase(result.test);
         await onSaved(result?.test);
       }
     } catch (error) {

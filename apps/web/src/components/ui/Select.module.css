@@ -1,5 +1,5 @@
 @layer controls {
-  .select {
+  .select[data-slot='select'] {
     display: inline-flex;
     align-items: center;
     justify-content: space-between;

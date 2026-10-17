@@ -8,7 +8,13 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases } from '@testdog/server/db/schema';
 import { defaultWebTarget, targetUrl } from '@testdog/contracts/automation/platform/target';
-import { testSchema, testValidationMessage } from '@testdog/contracts/test-cases/schemas';
+import {
+  testNameSchema,
+  testSchema,
+  testValidationMessage,
+} from '@testdog/contracts/test-cases/schemas';
+import { caseFolderValues, lockTree } from '@testdog/server/suites/folders';
+import { validId } from '@testdog/server/shared/http';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 
 export async function getTest(id: string, userId: UserScope) {
@@ -27,26 +33,30 @@ export async function saveTest(raw: unknown, id: string | undefined, userId: Use
   const parsed = testSchema.safeParse(raw);
 
   if (!parsed.success) throw new WorkspaceError(testValidationMessage(parsed.error));
-  const { url, ...values } = parsed.data;
+  const { url, folderId, ...values } = parsed.data;
   const input = {
     ...values,
     target: parsed.data.target ?? defaultWebTarget(url),
   };
 
-  const [test] = id
-    ? await db
-        .update(testCases)
-        .set({ ...input, updatedAt: new Date().toISOString() })
-        .where(and(eq(testCases.id, id), ownedBy(testCases, userId)))
-        .returning()
-    : await db
-        .insert(testCases)
-        .values({ ...input, ...ownershipValues(userId) })
-        .returning();
+  return db.transaction(async (tx) => {
+    if (folderId !== undefined) await lockTree(tx, userId);
+    const location = folderId === undefined ? {} : await caseFolderValues(tx, folderId, userId);
+    const [test] = id
+      ? await tx
+          .update(testCases)
+          .set({ ...input, ...location, updatedAt: new Date().toISOString() })
+          .where(and(eq(testCases.id, id), ownedBy(testCases, userId)))
+          .returning()
+      : await tx
+          .insert(testCases)
+          .values({ ...input, ...location, ...ownershipValues(userId) })
+          .returning();
 
-  if (!test) throw new WorkspaceError('用例不存在。', 404);
+    if (!test) throw new WorkspaceError('用例不存在。', 404);
 
-  return { ...test, url: targetUrl(test.target) };
+    return { ...test, url: targetUrl(test.target) };
+  });
 }
 
 export async function deleteTest(id: string, userId: UserScope) {
@@ -56,4 +66,20 @@ export async function deleteTest(id: string, userId: UserScope) {
     .returning({ id: testCases.id });
 
   if (!rows.length) throw new WorkspaceError('用例不存在。', 404);
+}
+
+export async function renameTest(id: string, name: unknown, scope: UserScope) {
+  validId(id);
+  const parsed = testNameSchema.safeParse(name);
+
+  if (!parsed.success) throw new WorkspaceError('用例名称无效。');
+  const [test] = await db
+    .update(testCases)
+    .set({ name: parsed.data, updatedAt: new Date().toISOString() })
+    .where(and(eq(testCases.id, id), ownedBy(testCases, scope)))
+    .returning();
+
+  if (!test) throw new WorkspaceError('用例不存在。', 404);
+
+  return { ...test, url: targetUrl(test.target) };
 }

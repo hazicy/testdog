@@ -30,3 +30,9 @@
   flex-shrink: 0;
   text-decoration-line: underline;
 }
+
+.folderTitle {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-xl);
+  font-weight: 600;
+}

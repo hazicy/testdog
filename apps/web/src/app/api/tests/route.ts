@@ -3,13 +3,23 @@ import { listTestPage } from '@testdog/server/workspace/queries';
 import { readPage } from '@testdog/server/shared/pagination';
 import { NextResponse } from 'next/server';
 import { saveTest } from '@testdog/server/test-cases/repository';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError, validId } from '@testdog/server/shared/http';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   try {
-    return NextResponse.json(await listTestPage(readPage(request), await requireUserId(request)));
+    const folder = new URL(request.url).searchParams.get('folder');
+
+    if (folder && folder !== 'root') validId(folder);
+
+    return NextResponse.json(
+      await listTestPage(
+        readPage(request),
+        await requireUserId(request),
+        folder === 'root' ? null : (folder ?? undefined),
+      ),
+    );
   } catch (error) {
     return apiError(error);
   }

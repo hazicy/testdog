@@ -35,6 +35,7 @@ export const config = {
     '/register',
     '/onboarding/:path*',
     '/cases/:path*',
+    '/suites/:path*',
     '/runs/:path*',
     '/issues/:path*',
     '/integrations/:path*',

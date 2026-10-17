@@ -39,18 +39,18 @@ DROP INDEX "plugin_settings_legacy_idx";--> statement-breakpoint
 CREATE UNIQUE INDEX "plugin_settings_legacy_idx" ON "plugin_settings" ("pluginId") WHERE "userId" is null and "teamId" is null;--> statement-breakpoint
 DROP INDEX "submission_requests_legacy_key_idx";--> statement-breakpoint
 CREATE UNIQUE INDEX "submission_requests_legacy_key_idx" ON "submission_requests" ("key") WHERE "userId" is null and "teamId" is null;--> statement-breakpoint
-CREATE UNIQUE INDEX "browser_provider_integrations_team_idx" ON "browser_provider_integrations" ("teamId","provider");--> statement-breakpoint
+CREATE UNIQUE INDEX "browserProviderIntegrations_team_idx" ON "browser_provider_integrations" ("teamId","provider");--> statement-breakpoint
 CREATE UNIQUE INDEX "browser_providers_active_team_idx" ON "browser_provider_integrations" ("teamId") WHERE "enabled" = true;--> statement-breakpoint
 CREATE INDEX "issues_team_idx" ON "issues" ("teamId","updatedAt","id");--> statement-breakpoint
-CREATE UNIQUE INDEX "notification_integrations_team_idx" ON "notification_integrations" ("teamId","channel");--> statement-breakpoint
-CREATE UNIQUE INDEX "plugin_settings_team_idx" ON "plugin_settings" ("teamId","pluginId");--> statement-breakpoint
+CREATE UNIQUE INDEX "notificationIntegrations_team_idx" ON "notification_integrations" ("teamId","channel");--> statement-breakpoint
+CREATE UNIQUE INDEX "pluginSettings_team_idx" ON "plugin_settings" ("teamId","pluginId");--> statement-breakpoint
 CREATE INDEX "realtime_outbox_team_summary_idx" ON "realtime_outbox" ("teamId","id") WHERE "summary" = true;--> statement-breakpoint
-CREATE UNIQUE INDEX "submission_requests_team_key_idx" ON "submission_requests" ("teamId","key");--> statement-breakpoint
+CREATE UNIQUE INDEX "submissionRequests_team_idx" ON "submission_requests" ("teamId","key");--> statement-breakpoint
 CREATE UNIQUE INDEX "team_invitations_team_email_idx" ON "team_invitations" ("teamId","email");--> statement-breakpoint
 CREATE UNIQUE INDEX "team_members_team_user_idx" ON "team_members" ("teamId","userId");--> statement-breakpoint
 CREATE INDEX "team_members_user_idx" ON "team_members" ("userId");--> statement-breakpoint
-CREATE INDEX "test_cases_team_updated_idx" ON "test_cases" ("teamId","updatedAt","id");--> statement-breakpoint
-CREATE INDEX "test_runs_team_started_idx" ON "test_runs" ("teamId","startedAt","id");--> statement-breakpoint
+CREATE INDEX "testCases_team_idx" ON "test_cases" ("teamId","updatedAt","id");--> statement-breakpoint
+CREATE INDEX "testRuns_team_idx" ON "test_runs" ("teamId","startedAt","id");--> statement-breakpoint
 ALTER TABLE "browser_provider_integrations" ADD CONSTRAINT "browser_provider_integrations_teamId_teams_id_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id");--> statement-breakpoint
 ALTER TABLE "issues" ADD CONSTRAINT "issues_teamId_teams_id_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id");--> statement-breakpoint
 ALTER TABLE "notification_events" ADD CONSTRAINT "notification_events_teamId_teams_id_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id");--> statement-breakpoint
@@ -63,14 +63,14 @@ ALTER TABLE "team_members" ADD CONSTRAINT "team_members_teamId_teams_id_fkey" FO
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_userId_auth_users_id_fkey" FOREIGN KEY ("userId") REFERENCES "auth_users"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "test_cases" ADD CONSTRAINT "test_cases_teamId_teams_id_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id");--> statement-breakpoint
 ALTER TABLE "test_runs" ADD CONSTRAINT "test_runs_teamId_teams_id_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id");--> statement-breakpoint
-ALTER TABLE "browser_provider_integrations" ADD CONSTRAINT "browser_provider_integrations_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
+ALTER TABLE "browser_provider_integrations" ADD CONSTRAINT "browserProviderIntegrations_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
 ALTER TABLE "issues" ADD CONSTRAINT "issues_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
-ALTER TABLE "notification_integrations" ADD CONSTRAINT "notification_integrations_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
-ALTER TABLE "plugin_settings" ADD CONSTRAINT "plugin_settings_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
-ALTER TABLE "realtime_outbox" ADD CONSTRAINT "realtime_outbox_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
-ALTER TABLE "submission_requests" ADD CONSTRAINT "submission_requests_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
-ALTER TABLE "test_cases" ADD CONSTRAINT "test_cases_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
-ALTER TABLE "test_runs" ADD CONSTRAINT "test_runs_ownership_check" CHECK ("userId" is null or "teamId" is null);
+ALTER TABLE "notification_integrations" ADD CONSTRAINT "notificationIntegrations_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
+ALTER TABLE "plugin_settings" ADD CONSTRAINT "pluginSettings_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
+ALTER TABLE "realtime_outbox" ADD CONSTRAINT "realtimeOutbox_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
+ALTER TABLE "submission_requests" ADD CONSTRAINT "submissionRequests_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
+ALTER TABLE "test_cases" ADD CONSTRAINT "testCases_ownership_check" CHECK ("userId" is null or "teamId" is null);--> statement-breakpoint
+ALTER TABLE "test_runs" ADD CONSTRAINT "testRuns_ownership_check" CHECK ("userId" is null or "teamId" is null);
 --> statement-breakpoint
 CREATE OR REPLACE FUNCTION testdog_realtime_event() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE

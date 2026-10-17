@@ -1,0 +1,227 @@
+.page {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 75rem;
+  margin-inline: auto;
+  min-width: 0;
+}
+.title {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-xl);
+  font-weight: 600;
+}
+.header,
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.header {
+  justify-content: space-between;
+}
+.section {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  &:not(:last-child) {
+    border-bottom: var(--border-width) solid var(--page-line);
+  }
+}
+.name,
+.identity {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.name {
+  font-weight: 500;
+}
+.identity {
+  display: grid;
+  gap: var(--space-2);
+}
+.back {
+  color: var(--page-muted);
+  font-size: var(--text-md);
+}
+.error {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+.editor {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+.progress {
+  width: 100%;
+  height: 0.5rem;
+  accent-color: var(--brand-active);
+}
+
+.explorer {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.directory {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: var(--border-width) solid var(--page-line);
+  background: var(--sidebar);
+}
+.treeHeader,
+.treeRow,
+.treeLink {
+  display: flex;
+  align-items: center;
+}
+.treeHeader {
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+.rootButton {
+  justify-content: flex-start;
+  font-weight: 600;
+  min-width: 0;
+  &[aria-current='page'] {
+    background: var(--surface-muted);
+  }
+}
+.treeNavigation {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-2);
+}
+.tree,
+.treeChildren {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.treeChildren {
+  padding-left: var(--space-4);
+}
+.treeRow {
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: 2rem;
+  border-radius: var(--radius-md);
+  &[data-selected] {
+    background: var(--surface-muted);
+  }
+}
+.treeLink {
+  min-width: 0;
+  flex: 1;
+  gap: var(--space-2);
+  justify-content: flex-start;
+  height: 2rem;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  font-weight: 400;
+  & > svg {
+    flex-shrink: 0;
+    color: var(--page-muted);
+  }
+  & > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+.treeSpacer {
+  flex: 0 0 1.5rem;
+}
+.expanded {
+  transform: rotate(90deg);
+}
+.treeActions {
+  opacity: 0;
+  flex: 0 0 auto;
+}
+.treeRow:hover > .treeActions,
+.treeRow:focus-within > .treeActions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .treeActions {
+    opacity: 1;
+  }
+}
+.inlineEdit {
+  flex: 1;
+  min-width: 0;
+  & input {
+    min-height: 1.75rem;
+    height: 1.75rem;
+    padding: 0 var(--space-1);
+    font-size: var(--text-md);
+  }
+}
+.movePanel {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-bottom: var(--border-width) solid var(--page-line);
+  font-size: var(--text-sm);
+  & strong {
+    overflow-wrap: anywhere;
+  }
+}
+.treeError {
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--danger);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+.folderContent {
+  container: case-content / inline-size;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-6);
+  &[data-editor] {
+    padding: 0;
+    overflow: hidden;
+  }
+}
+@media (width < 48rem) {
+  .explorer {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(8rem, 35%) minmax(0, 1fr);
+  }
+  .directory {
+    border-right: 0;
+    border-bottom: var(--border-width) solid var(--page-line);
+  }
+  .folderContent {
+    padding: var(--space-4);
+  }
+}

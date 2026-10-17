@@ -26,12 +26,22 @@ import { useWorkspaceData } from '@/features/workspace/hooks/useWorkspaceData';
 import { WorkspaceList } from '@/features/workspace/components/WorkspaceList';
 import { ErrorState } from '@/components/shared/ErrorState';
 
-export function Workspace({ view }: { view: 'tests' | 'results' }) {
+export function Workspace({
+  view,
+  folderId,
+  title,
+  actions,
+}: {
+  view: 'tests' | 'results';
+  folderId?: string | null;
+  title?: string;
+  actions?: React.ReactNode;
+}) {
   const t = useTranslations('workspace');
   const { editablePlan, emptyPlan, caseName } = useAuthoring();
   const promptContainer = useRef<HTMLElement>(null);
   const isTests = view === 'tests';
-  const data = useWorkspaceData(isTests);
+  const data = useWorkspaceData(isTests, folderId);
   const { tests, runs, loading, error, setError, latestRuns, running, refresh } = data;
   const submit = useRunSubmission();
   const router = useRouter();
@@ -52,17 +62,26 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
   }, [selectedId, router]);
 
   function openEditor(test?: TestCase, duplicate = false) {
+    if (test && !duplicate && folderId !== undefined) {
+      router.push(
+        `/cases?${new URLSearchParams({ ...(folderId ? { folder: folderId } : {}), case: test.id })}`,
+      );
+
+      return;
+    }
+
     const id = crypto.randomUUID();
     const name = test ? `${test.name}${duplicate ? t('copySuffix') : ''}` : caseName('');
 
     writeCaseDraft(id, {
       test,
       duplicate,
+      folderId,
       name,
       goal: test?.goal ?? '',
       plan: test?.plan ? editablePlan(test.plan, name) : emptyPlan(name),
     });
-    router.push(`/cases/editor/${id}`);
+    router.push(`/cases/editor/${id}${folderId ? `?folder=${folderId}` : ''}`);
   }
 
   async function start(testId: string) {
@@ -132,7 +151,9 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
       }}
       className={clsx(workspaceStyles.workspaceIndex, styles.container)}
     >
-      <h1 className={styles.accessibleLabel}>{isTests ? t('tests') : t('runs')}</h1>
+      <h1 className={title ? styles.folderTitle : styles.accessibleLabel}>
+        {title ?? (isTests ? t('tests') : t('runs'))}
+      </h1>
       {error && !previewEmpty && !previewLoading && (
         <div role="alert" className={styles.error}>
           <span>{error}</span>
@@ -150,6 +171,7 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         actions={
           isTests ? (
             <>
+              {actions}
               <Button
                 size="sm"
                 className={clsx(workspaceStyles.caseCreateButton, workspaceStyles.isQuick)}
@@ -194,7 +216,11 @@ export function Workspace({ view }: { view: 'tests' | 'results' }) {
         exportRun={exportRun}
       />
       {quickCreateOpen && (
-        <QuickCreateDialog container={promptContainer} onClose={() => setQuickCreateOpen(false)} />
+        <QuickCreateDialog
+          folderId={folderId}
+          container={promptContainer}
+          onClose={() => setQuickCreateOpen(false)}
+        />
       )}
       {matrixTest && (
         <RunMatrixDialog

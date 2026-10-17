@@ -3,6 +3,7 @@ import type { TestTarget } from '@testdog/contracts/automation/platform/target';
 
 export type TestCase = {
   id: string;
+  folderId?: string | null;
   name: string;
   url: string;
   goal: string;

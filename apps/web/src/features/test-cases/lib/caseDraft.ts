@@ -4,6 +4,7 @@ import type { CaseSettingsValue } from '@/features/test-cases/lib/caseSettings';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 
 export type CaseDraft = {
+  folderId?: string | null;
   test?: TestCase;
   duplicate?: boolean;
   name: string;

@@ -19,7 +19,15 @@ type Action = {
   danger?: boolean;
 };
 
-export function WorkspaceRowMenu({ label, actions }: { label: string; actions: Action[] }) {
+export function WorkspaceRowMenu({
+  label,
+  actions,
+  icon = moreIcon,
+}: {
+  label: string;
+  actions: Action[];
+  icon?: ComponentProps<typeof Icon>['icon'];
+}) {
   const trigger = useRef<HTMLButtonElement>(null);
   const pendingAction = useRef<(() => void) | null>(null);
 
@@ -46,7 +54,7 @@ export function WorkspaceRowMenu({ label, actions }: { label: string; actions: A
         })}
         aria-label={label}
       >
-        <Icon icon={moreIcon} width="17" aria-hidden="true" />
+        <Icon icon={icon} width="17" aria-hidden="true" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner

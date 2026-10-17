@@ -1,5 +1,11 @@
-import type { testRuns, runSteps, runArtifacts } from '@testdog/server/db/schema';
-import type { TestRun, ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
+import { sql } from 'drizzle-orm';
+import { testRuns, type runSteps, type runArtifacts } from '@testdog/server/db/schema';
+import type {
+  TestRun,
+  ExecutionStep,
+  RunArtifact,
+  RunSummary,
+} from '@testdog/contracts/runs/types';
 import { targetUrl } from '@testdog/contracts/automation/platform/target';
 
 const optional = <T>(value: T | null) => value ?? undefined;
@@ -74,3 +80,24 @@ export function artifactRecord(row: typeof runArtifacts.$inferSelect): RunArtifa
     stepId: optional(row.stepId),
   };
 }
+
+export const runSummaryColumns = {
+  id: testRuns.id,
+  testId: testRuns.testId,
+  name: testRuns.name,
+  url: sql<string>`case when ${testRuns.targetSnapshot}->>'platform' = 'web' then ${testRuns.targetSnapshot}->>'url' else '' end`,
+  mode: testRuns.mode,
+  status: testRuns.status,
+  startedAt: testRuns.startedAt,
+  finishedAt: testRuns.finishedAt,
+  durationMs: testRuns.durationMs,
+  error: testRuns.error,
+  sourceRunId: testRuns.sourceRunId,
+  replayable: testRuns.replayable,
+  cancelRequested: testRuns.cancelRequested,
+};
+
+export const runSummary = (row: typeof testRuns.$inferSelect | Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [key, value ?? undefined]),
+  ) as RunSummary;

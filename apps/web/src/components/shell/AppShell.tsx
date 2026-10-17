@@ -44,6 +44,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const activeItem = activeWorkspaceNavigation(pathname);
   const canvas = pathname.startsWith('/cases/editor/');
+  const suites =
+    pathname === '/cases' ||
+    pathname.startsWith('/cases/') ||
+    pathname === '/suites' ||
+    pathname.startsWith('/suites/');
   const workspaceIndex =
     pathname === '/cases' ||
     pathname === '/runs' ||
@@ -134,8 +139,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           id="main-content"
           tabIndex={-1}
           className={
-            canvas
-              ? clsx(shellStyles.appShellMain, shellStyles.appShellMainCanvas)
+            suites
+              ? clsx(shellStyles.appShellMain, styles.suiteMain)
               : workspaceIndex
                 ? clsx(shellStyles.appShellMain, workspaceStyles.workspaceIndexMain)
                 : clsx(shellStyles.appShellMain, shellStyles.appShellMainPadded)

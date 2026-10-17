@@ -922,7 +922,7 @@ test('dialogs support keyboard entry, Escape dismissal and focus restoration', a
   await expect(more).toBeFocused();
 });
 
-test('create, edit, duplicate and delete use independent dialogs and preserve history', async ({
+test('creates, edits and duplicates in the persistent canvas and preserves run history when deleting', async ({
   page,
 }) => {
   let tests = [saved];
@@ -933,7 +933,14 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await page.route('**/api/tests**', async (route) => {
     const request = route.request();
 
-    if (request.method() === 'GET') return route.fulfill({ json: { tests } });
+    if (request.method() === 'GET') {
+      const id = new URL(request.url()).pathname.split('/').at(-1);
+
+      return route.fulfill({
+        json: id === 'tests' ? { tests } : { test: tests.find((item) => item.id === id) },
+      });
+    }
+
     if (request.method() === 'DELETE') {
       if (rejectDelete) {
         rejectDelete = false;
@@ -981,7 +988,14 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
       tests = [makeCase({ ...body, id: `${saved.id.slice(0, -1)}${writes.length}` }), ...tests];
     else tests = tests.map((item) => (item.id === saved.id ? { ...item, ...body } : item));
 
-    return route.fulfill({ json: { test: tests[0] } });
+    return route.fulfill({
+      json: {
+        test:
+          request.method() === 'POST'
+            ? tests[0]
+            : tests.find((item) => request.url().endsWith(item.id)),
+      },
+    });
   });
   await mockLists(page, { runs: [summary] });
   await page.goto('/cases');
@@ -1000,6 +1014,10 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await expect(dialog.getByRole('alert')).toHaveText('保存暂时失败');
   await expect(dialog.getByLabel('测试名称')).toHaveValue('新用例');
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page).toHaveURL(/\/cases\?case=/);
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute('aria-busy', 'false');
+  await page.getByRole('button', { name: '测试用例', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '更多操作：验证登录', exact: true }).click();
   await page.getByRole('menuitem', { name: '编辑 验证登录', exact: true }).click();
@@ -1009,6 +1027,10 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await openSettings(dialog);
   await dialog.getByLabel('测试名称').fill('更新登录');
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page).toHaveURL(/\/cases\?case=/);
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute('aria-busy', 'false');
+  await page.getByRole('button', { name: '测试用例', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '更多操作：更新登录', exact: true }).click();
   await page.getByRole('menuitem', { name: '复制 更新登录', exact: true }).click();
@@ -1016,6 +1038,10 @@ test('create, edit, duplicate and delete use independent dialogs and preserve hi
   await expect(dialog.getByLabel('测试名称')).toHaveValue('更新登录（副本）');
   await expect(dialog.getByRole('alert')).toHaveCount(0);
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page).toHaveURL(/\/cases\?case=/);
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute('aria-busy', 'false');
+  await page.getByRole('button', { name: '测试用例', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   expect(writes.map((item) => item.method)).toEqual(['POST', 'PATCH', 'POST']);
   expect(writes[2].body.tags).toEqual(['登录']);
@@ -1730,11 +1756,16 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
 }) => {
   let stored: TestCase | undefined;
 
-  await page.route('**/api/tests*', async (route) => {
+  await page.route('**/api/tests**', async (route) => {
     if (route.request().method() === 'POST') {
       stored = makeCase({ ...route.request().postDataJSON() });
       await route.fulfill({ json: { test: stored }, status: 201 });
-    } else await route.fulfill({ json: { tests: stored ? [stored] : [], nextCursor: null } });
+    } else
+      await route.fulfill({
+        json: new URL(route.request().url()).pathname.endsWith('/tests')
+          ? { tests: stored ? [stored] : [], nextCursor: null }
+          : { test: stored },
+      });
   });
   const errors: string[] = [];
 
@@ -1768,7 +1799,9 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
 
   expect(panelBounds!.height).toBeLessThan(100);
   await expect(panel.getByRole('button', { name: '展开面板' })).toBeVisible();
-  expect(canvas!.width).toBeGreaterThan(1000);
+  const contentBounds = (await dialog.boundingBox())!;
+
+  expect(canvas!.width).toBeGreaterThan(contentBounds.width - 4);
   await expect(dialog.getByRole('button', { name: '添加操作', exact: true })).toHaveCount(0);
   const content = [
     ['Act', 'Open the tester-army/e2e repository page'],
@@ -1852,6 +1885,8 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
     .screenshot({ path: 'artifacts/ui/case-tree-editor.png' });
 
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(dialog).toBeVisible();
+  await page.getByRole('button', { name: '测试用例', exact: true }).click();
   await expect(dialog).toBeHidden();
   const root = stored!.plan!.nodes.root;
 

@@ -13,6 +13,7 @@ vi.mock('@testdog/server/db', async () => {
   return { db: result.db };
 });
 import { POST, GET } from '@/app/api/tests/route';
+import { PATCH as RENAME } from '@/app/api/tests/[id]/name/route';
 import { PATCH, DELETE } from '@/app/api/tests/[id]/route';
 
 afterAll(() => isolated.client?.close());
@@ -95,3 +96,31 @@ it.each(['', 'bad url', 'javascript:alert(1)'])(
     expect(response.status).toBe(400);
   },
 );
+
+it('renames a case without replacing its contents and rejects unrelated fields', async () => {
+  const original = { name: 'Original', goal: 'Keep the newer steps', url: 'https://example.com' };
+  const created = await POST(
+    new Request('http://localhost/api/tests', { method: 'POST', body: JSON.stringify(original) }),
+  );
+  const { test } = await created.json();
+  const context = { params: Promise.resolve({ id: test.id }) };
+  const response = await RENAME(
+    new Request('http://localhost/api/tests/' + test.id + '/name', {
+      method: 'PATCH',
+      body: JSON.stringify({ name: 'Renamed' }),
+    }),
+    context,
+  );
+
+  expect(response.status).toBe(200);
+  expect((await response.json()).test).toMatchObject({ name: 'Renamed', goal: original.goal });
+  const invalid = await RENAME(
+    new Request('http://localhost/api/tests/' + test.id + '/name', {
+      method: 'PATCH',
+      body: JSON.stringify({ name: 'Invalid', goal: 'Overwrite' }),
+    }),
+    context,
+  );
+
+  expect(invalid.status).toBe(400);
+});

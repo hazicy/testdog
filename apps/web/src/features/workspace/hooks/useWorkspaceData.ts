@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
@@ -11,6 +11,7 @@ import { emptyRunCounts, type WorkspaceStats } from '@testdog/contracts/workspac
 import { fetchJson } from '@/client/api';
 import { useDebouncedValue } from '@/client/useDebouncedValue';
 import { useCursorPagination } from '@/client/useCursorPagination';
+import { WorkspaceRealtimeContext } from '@/client/WorkspaceRealtimeContext';
 import { useRealtime } from '@/client/useRealtime';
 import { retryVisibleRequest } from '@/client/swr';
 
@@ -23,7 +24,7 @@ type ListPage = {
 
 const emptyCounts = emptyRunCounts();
 
-export function useWorkspaceData(isTests: boolean) {
+export function useWorkspaceData(isTests: boolean, folderId?: string | null) {
   const t = useTranslations('workspace');
   const [error, setError] = useState('');
   const [{ q: query, status: filter }, setFilters] = useQueryStates({
@@ -42,13 +43,15 @@ export function useWorkspaceData(isTests: boolean) {
   });
   const search = useDebouncedValue(query.trim());
   const { cursors, previousPage, nextPage } = useCursorPagination(
-    JSON.stringify([isTests, search, filter]),
+    JSON.stringify([isTests, search, filter, folderId]),
   );
   const connection = useRef(false);
   const realtimeRefresh = useRef<() => Promise<void>>(async () => {});
-  const connected = useRealtime('/api/events', () => {
+  const sharedConnection = useContext(WorkspaceRealtimeContext);
+  const ownConnection = useRealtime(sharedConnection === null ? '/api/events' : null, () => {
     void realtimeRefresh.current();
   });
+  const connected = sharedConnection ?? ownConnection;
 
   const isVisible = useCallback(
     () => document.visibilityState === 'visible' && !connection.current,
@@ -68,6 +71,7 @@ export function useWorkspaceData(isTests: boolean) {
   } = useSWR<WorkspaceStats>('/api/workspace/stats', fetchJson, options);
   const params = new URLSearchParams();
 
+  if (isTests && folderId !== undefined) params.set('folder', folderId ?? 'root');
   if (search) params.set('q', search);
   if (filter !== 'all') params.set('status', filter);
   if (cursors.length) params.set('cursor', cursors.at(-1)!);
