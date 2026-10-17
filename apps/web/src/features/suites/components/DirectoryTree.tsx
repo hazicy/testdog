@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Icon } from '@iconify/react/offline';
 import folderIcon from '@iconify-icons/lucide/folder';
 import fileIcon from '@iconify-icons/lucide/file-check';
-import chevronIcon from '@iconify-icons/lucide/chevron-right';
+import folderOpenIcon from '@iconify-icons/lucide/folder-open';
 import { Button } from '@/components/ui/Button';
 import { WorkspaceRowMenu } from '@/features/workspace/components/WorkspaceRowMenu';
 import type { SuiteTreeNode } from '@testdog/contracts/suites/types';
@@ -53,7 +53,6 @@ export function DirectoryTree({
   function inlineRow(parentId: string | null) {
     return edit?.kind === 'create' && edit.parentId === parentId ? (
       <li className={styles.treeRow}>
-        <span className={styles.treeSpacer} />
         <Icon icon={folderIcon} width="16" aria-hidden="true" />
         <InlineName
           key={`new-${parentId}`}
@@ -76,7 +75,6 @@ export function DirectoryTree({
         className={styles.treeRow}
         data-selected={selectedCase === item.id || undefined}
       >
-        <span className={styles.treeSpacer} />
         {renaming ? (
           <>
             <Icon icon={fileIcon} width="16" aria-hidden="true" />
@@ -125,32 +123,9 @@ export function DirectoryTree({
         return (
           <li key={folder.id}>
             <div className={styles.treeRow} data-selected={selected || undefined}>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                aria-label={t(open ? 'collapseFolder' : 'expandFolder', { name: folder.name })}
-                aria-expanded={open}
-                onClick={() =>
-                  setCollapsed((current) => {
-                    const next = new Set(current);
-
-                    if (open) next.add(folder.id);
-                    else next.delete(folder.id);
-
-                    return next;
-                  })
-                }
-              >
-                <Icon
-                  icon={chevronIcon}
-                  width="14"
-                  className={open ? styles.expanded : undefined}
-                  aria-hidden="true"
-                />
-              </Button>
               {renaming ? (
                 <>
-                  <Icon icon={folderIcon} width="16" aria-hidden="true" />
+                  <Icon icon={open ? folderOpenIcon : folderIcon} width="16" aria-hidden="true" />
                   <InlineName
                     key={folder.id}
                     initialName={folder.name}
@@ -164,9 +139,20 @@ export function DirectoryTree({
                     variant="ghost"
                     className={styles.treeLink}
                     aria-current={selected ? 'page' : undefined}
-                    onClick={() => selectFolder(folder.id)}
+                    aria-expanded={open}
+                    onClick={() => {
+                      setCollapsed((current) => {
+                        const next = new Set(current);
+
+                        if (next.has(folder.id)) next.delete(folder.id);
+                        else next.add(folder.id);
+
+                        return next;
+                      });
+                      selectFolder(folder.id);
+                    }}
                   >
-                    <Icon icon={folderIcon} width="16" aria-hidden="true" />
+                    <Icon icon={open ? folderOpenIcon : folderIcon} width="16" aria-hidden="true" />
                     <span>{folder.name}</span>
                   </Button>
                   <span className={styles.treeActions}>

@@ -967,6 +967,7 @@
     "create": "Create team"
   },
   "suites": {
+    "allCases": "All cases",
     "title": "Test suites",
     "history": "Suite runs",
     "navigation": "Suite navigation",

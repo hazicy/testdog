@@ -967,6 +967,7 @@
     "create": "创建团队"
   },
   "suites": {
+    "allCases": "全部用例",
     "title": "测试套件",
     "history": "套件执行",
     "navigation": "套件导航",

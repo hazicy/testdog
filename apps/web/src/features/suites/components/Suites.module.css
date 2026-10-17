@@ -98,18 +98,20 @@
   display: flex;
   align-items: center;
 }
+.treeDivider {
+  margin: var(--space-2) 0;
+  border-top: var(--border-width) solid var(--page-line);
+}
 .treeHeader {
   justify-content: space-between;
   gap: var(--space-2);
   padding: var(--space-3);
 }
-.rootButton {
-  justify-content: flex-start;
-  font-weight: 600;
+.treeTitle {
+  margin: 0;
   min-width: 0;
-  &[aria-current='page'] {
-    background: var(--surface-muted);
-  }
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 .treeNavigation {
   flex: 1;
@@ -127,7 +129,7 @@
   padding-left: var(--space-4);
 }
 .treeRow {
-  gap: var(--space-1);
+  gap: 0;
   min-width: 0;
   min-height: 2rem;
   border-radius: var(--radius-md);
@@ -154,12 +156,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-}
-.treeSpacer {
-  flex: 0 0 1.5rem;
-}
-.expanded {
-  transform: rotate(90deg);
 }
 .treeActions {
   opacity: 0;

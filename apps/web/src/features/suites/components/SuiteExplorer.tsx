@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { Icon } from '@iconify/react/offline';
+import filesIcon from '@iconify-icons/lucide/files';
 import folderIcon from '@iconify-icons/lucide/folder';
 import fileIcon from '@iconify-icons/lucide/file-check';
 import plusIcon from '@iconify-icons/lucide/plus';
@@ -256,16 +258,7 @@ export function SuiteExplorer({ children }: { children: ReactNode }) {
         <div className={styles.explorer}>
           <aside className={styles.directory} aria-label={t('directory')}>
             <div className={styles.treeHeader}>
-              <Button
-                variant="ghost"
-                className={styles.rootButton}
-                aria-current={
-                  !selectedFolder && !selectedCase && path === '/cases' ? 'page' : undefined
-                }
-                onClick={() => selectFolder(null)}
-              >
-                {ui('test_cases')}
-              </Button>
+              <h2 className={styles.treeTitle}>{ui('test_cases')}</h2>
               <WorkspaceRowMenu
                 label={t('createItem')}
                 icon={plusIcon}
@@ -335,6 +328,23 @@ export function SuiteExplorer({ children }: { children: ReactNode }) {
               </p>
             )}
             <nav aria-label={t('directory')} className={styles.treeNavigation}>
+              <div
+                className={styles.treeRow}
+                data-selected={(!selectedFolder && !selectedCase && path === '/cases') || undefined}
+              >
+                <Button
+                  variant="ghost"
+                  className={styles.treeLink}
+                  aria-current={
+                    !selectedFolder && !selectedCase && path === '/cases' ? 'page' : undefined
+                  }
+                  onClick={() => selectFolder(null)}
+                >
+                  <Icon icon={filesIcon} width="16" aria-hidden="true" />
+                  <span>{t('allCases')}</span>
+                </Button>
+              </div>
+              <div role="separator" className={styles.treeDivider} />
               {treeError ? (
                 <Button onClick={() => mutate()}>{t('retry')}</Button>
               ) : (
