@@ -802,7 +802,7 @@
     "collapse": "Collapse",
     "tabs": "{label} tabs"
   },
-  "marketing": {
+  "landing": {
     "faqScripts": "Do I need to write test scripts?",
     "faqScriptsAnswer": "Describe the steps and expected results. After recording, you can also edit actions and Playwright assertions.",
     "faqPlatforms": "Which platforms are supported?",
@@ -852,7 +852,7 @@
     "closingFirst": "For your next release,",
     "closingSecond": "start with confidence.",
     "getStartedBrand": "Get started with testdog",
-    "backTop": "Back to top ↑",
+    "backTop": "Back to top",
     "loginName": "Sign-in verification",
     "enterExampleCredentials": "Enter tester@example.com and a password",
     "clickLoginButton": "Click the “Sign in” button",

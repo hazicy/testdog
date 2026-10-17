@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('marketing');
+  const t = await getTranslations('landing');
 
   return { title: 'Testdog', description: t('metaDescription') };
 }

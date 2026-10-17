@@ -3,13 +3,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 
 /** Adds motion to server-rendered content; everything stays visible without JavaScript. */
-export function MarketingMotion({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className: string;
-}) {
+export function LandingMotion({ children, className }: { children: ReactNode; className: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -136,7 +130,7 @@ export function MarketingMotion({
   }, []);
 
   return (
-    <div ref={rootRef} data-marketing-motion className={className}>
+    <div ref={rootRef} data-landing-motion className={className}>
       {children}
     </div>
   );

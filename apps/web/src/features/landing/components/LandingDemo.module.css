@@ -119,6 +119,9 @@
   font-weight: 600;
 }
 .checkmark {
+  width: 1rem;
+  height: 1.5rem;
+  flex-shrink: 0;
   color: var(--success);
 }
 .evidence {

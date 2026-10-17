@@ -1,14 +1,19 @@
+import { Icon } from '@iconify/react/offline';
+import arrowUpRightIcon from '@iconify-icons/lucide/arrow-up-right';
+import arrowDownIcon from '@iconify-icons/lucide/arrow-down';
+import arrowUpIcon from '@iconify-icons/lucide/arrow-up';
+import checkIcon from '@iconify-icons/lucide/check';
+import plusIcon from '@iconify-icons/lucide/plus';
 import { useTranslations } from 'next-intl';
 import clsx from 'clsx';
-import marketingStyles from '@/features/marketing/components/marketing.module.css';
+import landingStyles from '@/features/landing/components/landing.module.css';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Brand } from '@/components/brand/Brand';
-import { MarketingDemo } from '@/features/marketing/components/MarketingDemo';
-import { MarketingMotion } from '@/features/marketing/components/MarketingMotion';
+import { LandingDemo } from '@/features/landing/components/LandingDemo';
+import { LandingMotion } from '@/features/landing/components/LandingMotion';
 
 export default function Home() {
-  const t = useTranslations('marketing');
+  const t = useTranslations('landing');
   const faqs = [
     [t('faqScripts'), t('faqScriptsAnswer')],
     [t('faqPlatforms'), t('faqPlatformsAnswer')],
@@ -17,112 +22,92 @@ export default function Home() {
   ];
 
   return (
-    <MarketingMotion className={marketingStyles.marketing}>
-      <a href="#main-content" className={marketingStyles.marketingSkip}>
+    <LandingMotion className={landingStyles.landing}>
+      <a href="#main-content" className={landingStyles.landingSkip}>
         {t('skip')}
       </a>
-      <header className={marketingStyles.marketingHeader}>
-        <div className={clsx(marketingStyles.marketingContainer, marketingStyles.marketingNav)}>
+      <header className={landingStyles.landingHeader}>
+        <div className={clsx(landingStyles.landingContainer, landingStyles.landingNav)}>
           <Link href="/" aria-label={t('home')}>
-            <Brand />
+            <Brand monochrome />
           </Link>
           <nav aria-label={t('navigation')}>
             <a href="#features">{t('features')}</a>
             <a href="#workflow">{t('workflow')}</a>
             <a href="#faq">{t('faq')}</a>
           </nav>
-          <Link
-            href="/cases"
-            className={clsx(marketingStyles.marketingButton, marketingStyles.small)}
-          >
-            {t('openWorkspace')} <span aria-hidden="true">↗</span>
+          <Link href="/cases" className={clsx(landingStyles.landingButton, landingStyles.small)}>
+            {t('openWorkspace')}{' '}
+            <Icon icon={arrowUpRightIcon} className={landingStyles.icon} aria-hidden="true" />
           </Link>
         </div>
       </header>
       <main id="main-content">
-        <section
-          className={clsx(marketingStyles.marketingHero, marketingStyles.marketingContainer)}
-        >
+        <section className={clsx(landingStyles.landingHero, landingStyles.landingContainer)}>
           <div>
             <h1 data-entrance="100">
               {t('heroFirst')}
               <br />
               <span>{t('heroSecond')}</span>
             </h1>
-            <p className={marketingStyles.marketingIntro} data-entrance="200">
+            <p className={landingStyles.landingIntro} data-entrance="200">
               {t('intro')}
             </p>
-            <div className={marketingStyles.marketingActions} data-entrance="300">
+            <div className={landingStyles.landingActions} data-entrance="300">
               <Link
                 href="/cases"
-                className={clsx(marketingStyles.marketingButton, marketingStyles.primary)}
+                className={clsx(landingStyles.landingButton, landingStyles.primary)}
               >
-                {t('getStarted')} <span aria-hidden="true">↗</span>
+                {t('getStarted')}{' '}
+                <Icon icon={arrowUpRightIcon} className={landingStyles.icon} aria-hidden="true" />
               </Link>
-              <a href="#workflow" className={marketingStyles.marketingButton}>
-                {t('viewDemo')} <span aria-hidden="true">↓</span>
+              <a href="#workflow" className={landingStyles.landingButton}>
+                {t('viewDemo')}{' '}
+                <Icon icon={arrowDownIcon} className={landingStyles.icon} aria-hidden="true" />
               </a>
             </div>
           </div>
-          <div
-            className={marketingStyles.marketingArt}
-            data-hero-art
-            data-entrance="150"
-            aria-label={t('illustration')}
-          >
-            <div className={marketingStyles.marketingArtGrid} />
-            <div className={clsx(marketingStyles.marketingOrbit, marketingStyles.orbitOne)} />
-            <div className={clsx(marketingStyles.marketingOrbit, marketingStyles.orbitTwo)} />
-            <div className={clsx(marketingStyles.marketingOrbit, marketingStyles.orbitThree)} />
-            <div className={marketingStyles.marketingCore} data-forge-tilt>
-              <div className={marketingStyles.marketingCoreFace}>
-                <Image src="/brand/testdog-mark.svg" alt="" width={112} height={112} unoptimized />
-              </div>
-            </div>
-            <div className={clsx(marketingStyles.marketingArtLabel, marketingStyles.labelInput)}>
-              <span className={marketingStyles.artIcon}>Aa</span>
-              <div>
-                <strong>{t('examplePrompt')}</strong>
-              </div>
-            </div>
-            <div className={clsx(marketingStyles.marketingArtLabel, marketingStyles.labelExecute)}>
-              <span className={marketingStyles.artIcon}>↗</span>
-              <div>
-                <strong>
-                  {t('realExecution')}
-                  <span className={marketingStyles.marketingLive} />
-                </strong>
-              </div>
-            </div>
-            <div className={clsx(marketingStyles.marketingArtLabel, marketingStyles.labelResult)}>
-              <span className={clsx(marketingStyles.artIcon, marketingStyles.green)}>✓</span>
-              <div>
-                <strong>{t('verified')}</strong>
-              </div>
+        </section>
+        <section
+          id="workflow"
+          className={clsx(landingStyles.landingShowcase, landingStyles.landingContainer)}
+        >
+          <div className={landingStyles.landingDemoHeading} data-reveal>
+            <div>
+              <h2>{t('workflowTitle')}</h2>
             </div>
           </div>
+          <div className={landingStyles.landingDemo} data-reveal>
+            <div className={landingStyles.landingDemoTitle}>
+              <span>
+                <i />
+                <i />
+                <i />
+              </span>
+              <span>{t('interactiveDemo')}</span>
+            </div>
+            <LandingDemo />
+          </div>
         </section>
-        <div
-          className={clsx(marketingStyles.marketingPlatforms, marketingStyles.marketingContainer)}
-        >
+        <div className={clsx(landingStyles.landingPlatforms, landingStyles.landingContainer)}>
           <span>{t('crossPlatform')}</span>
           <div>
-            <span>◎ Web</span>
-            <span>◉ Android</span>
-            <span>◈ iOS</span>
+            <span>Web</span>
+            <span>Android</span>
+            <span>iOS</span>
           </div>
         </div>
         <section
           id="features"
-          className={clsx(marketingStyles.marketingSection, marketingStyles.marketingContainer)}
+          className={clsx(landingStyles.landingSection, landingStyles.landingContainer)}
         >
-          <div className={marketingStyles.marketingSectionHeading} data-reveal>
+          <div className={landingStyles.landingSectionHeading} data-reveal>
             <h2>{t('featuresTitle')}</h2>
           </div>
-          <div className={marketingStyles.marketingFeatures}>
-            <article className={marketingStyles.marketingFeature} data-reveal>
-              <div className={marketingStyles.marketingFeatureVisual}>
-                <div className={marketingStyles.marketingPrompt}>
+          <div className={landingStyles.landingFeatures}>
+            <article className={landingStyles.landingFeature} data-reveal>
+              <div className={landingStyles.landingFeatureVisual}>
+                <div className={landingStyles.landingPrompt}>
                   <span>{t('testCase')}</span>
                   <p>
                     {t('openLogin')}
@@ -132,34 +117,49 @@ export default function Home() {
                     {t('clickLogin')}
                     <br />
                     <em>{t('verifyWelcome')}</em>
-                    <b className={marketingStyles.marketingCaret}>▍</b>
+                    <span className={landingStyles.landingCaret} aria-hidden="true" />
                   </p>
                 </div>
               </div>
               <h3>{t('describeTitle')}</h3>
               <p>{t('describeBody')}</p>
             </article>
-            <article className={marketingStyles.marketingFeature} data-reveal="100">
-              <div className={marketingStyles.marketingFeatureVisual}>
-                <div className={marketingStyles.marketingMiniFlow}>
+            <article className={landingStyles.landingFeature} data-reveal="100">
+              <div className={landingStyles.landingFeatureVisual}>
+                <div className={landingStyles.landingMiniFlow}>
                   <span>{t('observe')}</span>
-                  <i>↓</i>
-                  <span className={marketingStyles.active}>
-                    {t('act')} <b className={marketingStyles.marketingLive} />
+                  <Icon
+                    icon={arrowDownIcon}
+                    className={landingStyles.flowConnector}
+                    aria-hidden="true"
+                  />
+                  <span className={landingStyles.active}>
+                    {t('act')} <b className={landingStyles.landingLive} />
                   </span>
-                  <i>↓</i>
+                  <Icon
+                    icon={arrowDownIcon}
+                    className={landingStyles.flowConnector}
+                    aria-hidden="true"
+                  />
                   <span>
-                    {t('verify')} <b>✓</b>
+                    {t('verify')}{' '}
+                    <Icon icon={checkIcon} className={landingStyles.flowCheck} aria-hidden="true" />
                   </span>
                 </div>
               </div>
               <h3>{t('realTitle')}</h3>
               <p>{t('realBody')}</p>
             </article>
-            <article className={marketingStyles.marketingFeature} data-reveal="200">
-              <div className={marketingStyles.marketingFeatureVisual}>
-                <div className={marketingStyles.marketingEvidence}>
-                  <span className={marketingStyles.marketingEvidenceCheck}>✓</span>
+            <article className={landingStyles.landingFeature} data-reveal="200">
+              <div className={landingStyles.landingFeatureVisual}>
+                <div className={landingStyles.landingEvidence}>
+                  <span className={landingStyles.landingEvidenceCheck}>
+                    <Icon
+                      icon={checkIcon}
+                      className={landingStyles.evidenceIcon}
+                      aria-hidden="true"
+                    />
+                  </span>
                   <strong>{t('evidenceMatch')}</strong>
                   <div>
                     <span>{t('screenshots')}</span>
@@ -174,32 +174,11 @@ export default function Home() {
           </div>
         </section>
         <section
-          id="workflow"
-          className={clsx(marketingStyles.marketingSection, marketingStyles.marketingContainer)}
-        >
-          <div className={marketingStyles.marketingDemoHeading} data-reveal>
-            <div>
-              <h2>{t('workflowTitle')}</h2>
-            </div>
-          </div>
-          <div className={marketingStyles.marketingDemo} data-reveal>
-            <div className={marketingStyles.marketingDemoTitle}>
-              <span>
-                <i />
-                <i />
-                <i />
-              </span>
-              <span>{t('interactiveDemo')}</span>
-            </div>
-            <MarketingDemo />
-          </div>
-        </section>
-        <section
           id="faq"
           className={clsx(
-            marketingStyles.marketingSection,
-            marketingStyles.marketingContainer,
-            marketingStyles.marketingFaq,
+            landingStyles.landingSection,
+            landingStyles.landingContainer,
+            landingStyles.landingFaq,
           )}
           data-reveal
         >
@@ -211,7 +190,9 @@ export default function Home() {
               <details key={question}>
                 <summary>
                   {question}
-                  <span aria-hidden="true">+</span>
+                  <span aria-hidden="true">
+                    <Icon icon={plusIcon} className={landingStyles.icon} />
+                  </span>
                 </summary>
                 <p>{answer}</p>
               </details>
@@ -219,28 +200,29 @@ export default function Home() {
           </div>
         </section>
         <section
-          className={clsx(marketingStyles.marketingClosing, marketingStyles.marketingContainer)}
+          className={clsx(landingStyles.landingClosing, landingStyles.landingContainer)}
           data-reveal
         >
-          <div className={marketingStyles.marketingClosingGlow} />
+          <div className={landingStyles.landingClosingGlow} />
           <h2>
             {t('closingFirst')}
             <br />
             <span>{t('closingSecond')}</span>
           </h2>
-          <Link
-            href="/cases"
-            className={clsx(marketingStyles.marketingButton, marketingStyles.primary)}
-          >
-            {t('getStartedBrand')} <span aria-hidden="true">↗</span>
+          <Link href="/cases" className={clsx(landingStyles.landingButton, landingStyles.primary)}>
+            {t('getStartedBrand')}{' '}
+            <Icon icon={arrowUpRightIcon} className={landingStyles.icon} aria-hidden="true" />
           </Link>
         </section>
       </main>
-      <footer className={clsx(marketingStyles.marketingContainer, marketingStyles.marketingFooter)}>
-        <Brand />
+      <footer className={clsx(landingStyles.landingContainer, landingStyles.landingFooter)}>
+        <Brand monochrome />
         <span>© {new Date().getFullYear()} testdog</span>
-        <a href="#main-content">{t('backTop')}</a>
+        <a href="#main-content">
+          {t('backTop')}{' '}
+          <Icon icon={arrowUpIcon} className={landingStyles.icon} aria-hidden="true" />
+        </a>
       </footer>
-    </MarketingMotion>
+    </LandingMotion>
   );
 }

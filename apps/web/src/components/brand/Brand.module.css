@@ -13,3 +13,11 @@
 .accent {
   color: var(--brand);
 }
+
+.monochromeMark {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  background: currentColor;
+  mask: url('/brand/testdog-mark-mono.svg') center / contain no-repeat;
+}

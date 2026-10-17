@@ -1,14 +1,17 @@
 'use client';
 
+import { Icon } from '@iconify/react/offline';
+import checkIcon from '@iconify-icons/lucide/check';
+
 import { useTranslations } from 'next-intl';
 
-import styles from './MarketingDemo.module.css';
+import styles from './LandingDemo.module.css';
 
 import { statusStyles } from '@/components/ui/statusStyles';
 import { Tabs } from '@base-ui/react/tabs';
 
-export function MarketingDemo() {
-  const t = useTranslations('marketing');
+export function LandingDemo() {
+  const t = useTranslations('landing');
   const examples = [
     {
       name: t('loginName'),
@@ -81,9 +84,7 @@ export function MarketingDemo() {
             <ol className={styles.ol}>
               {example.steps.map((step) => (
                 <li key={step} className={styles.item}>
-                  <span aria-hidden="true" className={styles.checkmark}>
-                    ✓
-                  </span>
+                  <Icon icon={checkIcon} aria-hidden="true" className={styles.checkmark} />
                   <span>{step}</span>
                 </li>
               ))}

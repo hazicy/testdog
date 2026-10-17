@@ -802,7 +802,7 @@
     "collapse": "折叠",
     "tabs": "{label}标签"
   },
-  "marketing": {
+  "landing": {
     "faqScripts": "需要编写测试脚本吗？",
     "faqScriptsAnswer": "描述步骤和预期即可。录制后，也可以编辑操作与 Playwright 断言。",
     "faqPlatforms": "支持哪些平台？",
@@ -852,7 +852,7 @@
     "closingFirst": "下一次发布，",
     "closingSecond": "让信心先到位。",
     "getStartedBrand": "开始使用 testdog",
-    "backTop": "回到顶部 ↑",
+    "backTop": "回到顶部",
     "loginName": "登录验证",
     "enterExampleCredentials": "输入邮箱 tester@example.com 和密码",
     "clickLoginButton": "点击「登录」按钮",
