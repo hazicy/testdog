@@ -268,7 +268,7 @@ export class JevActionPlanner implements ActionPlanner {
     if (input.previousFailure) this.fallbackActive = true;
     // An incomplete fill/login instruction needs value generation, not a guessed
     // literal or a premature click. Keep the entire task on the LLM fallback.
-    if (/(?:填写|填入|输入(?!框|法|项)|登录|\\bfill\\b|\\btype\\b|\\blog\\s*in\\b)/i.test(input.goal) &&
+    if (/(?:填写|填入|输入(?!框|法|项)|登录|\bfill\b|\btype\b|\blog\s*in\b)/i.test(input.goal) &&
         explicitFillValue(input.goal) === undefined) this.fallbackActive = true;
     if (this.fallbackActive) return this.fallback.plan(input);
 
