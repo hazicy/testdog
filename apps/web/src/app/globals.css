@@ -41,19 +41,20 @@
 
   /* Typography roles share the same Latin and Chinese font stack. */
   --font-ui:
-    var(--font-geist-sans), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    var(--font-misans), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --line-ui: 1.25rem;
   --line-metadata: 1.125rem;
   --line-page-title: 1.625rem;
-  --type-page-title: 600 var(--text-2xl) / var(--line-page-title) var(--font-ui);
-  --type-panel-title: 600 var(--text-md) / var(--line-ui) var(--font-ui);
+  --type-page-title: 550 var(--text-2xl) / var(--line-page-title) var(--font-ui);
+  --type-panel-title: 550 var(--text-md) / var(--line-ui) var(--font-ui);
   --type-navigation: 500 var(--text-md) / var(--line-ui) var(--font-ui);
   --type-list-primary: var(--type-navigation);
   --type-column-header: 500 var(--text-sm) / var(--line-metadata) var(--font-ui);
   --type-metadata: 400 var(--text-sm) / var(--line-metadata) var(--font-ui);
   --type-status: var(--type-column-header);
   --type-resource-item: 400 var(--text-md) / var(--line-ui) var(--font-ui);
+  --workspace-header-height: 4.5rem;
   --navigation-row-height: 2.25rem;
   --resource-row-height: 2rem;
   --list-row-min-height: 3rem;
@@ -66,7 +67,7 @@
 
   /* Warm neutral workspace with a restrained Testdog accent. */
   --page: #fafaf9;
-  --ink: #202020;
+  --ink: #292927;
   --brand: #b45332;
   --brand-foreground: #ffffff;
   --brand-hover: #99482e;
@@ -89,9 +90,9 @@
   --page-line: #eaeae8;
   --line-subtle: #f0f0ee;
   --dialog-line: #e6e6e6;
-  --page-muted: #737373;
-  --text-secondary: #737373;
-  --text-subtle: #6b6b6b;
+  --page-muted: #74746f;
+  --text-secondary: #5f5f5b;
+  --text-subtle: #74746f;
   --text-faint: #a6a6a6;
   --table-heading: #616161;
   --status-none: #6b6b6b;

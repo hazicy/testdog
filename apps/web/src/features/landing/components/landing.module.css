@@ -129,7 +129,7 @@
 }
 .nav > a:first-child,
 .footer > :first-child {
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-ui);
 }
 .landing ::selection {
   background: #b4573626;

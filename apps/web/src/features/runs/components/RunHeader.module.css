@@ -1,6 +1,6 @@
 .header {
   display: grid;
-  min-height: 3.5rem;
+  min-height: var(--workspace-header-height);
   flex-shrink: 0;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -50,7 +50,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: var(--type-list-primary);
+  font: var(--type-panel-title);
+  color: var(--ink);
 }
 .status {
   flex-shrink: 0;

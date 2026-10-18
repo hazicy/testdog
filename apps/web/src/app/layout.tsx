@@ -5,15 +5,19 @@ import { cookies } from 'next/headers';
 import clsx from 'clsx';
 import styles from './layout.module.css';
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import '@/app/globals.css';
 import { ToastProvider } from '@/components/ui/Toast';
 import { AppShell } from '@/components/shell/AppShell';
 import { AuthCacheBoundary } from '@/features/auth/components/AuthCacheBoundary';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
+const miSans = localFont({
+  src: './fonts/misans-ui.woff2',
+  variable: '--font-misans',
+  weight: '400 600',
+  style: 'normal',
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({
@@ -38,7 +42,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       lang={locale === 'zh' ? 'zh-CN' : 'en'}
       data-theme={theme}
       data-workspace={workspace}
-      className={clsx(geistSans.variable, geistMono.variable)}
+      className={clsx(miSans.variable, geistMono.variable)}
     >
       <body>
         <div className={styles.container}>

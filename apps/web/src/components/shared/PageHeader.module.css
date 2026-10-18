@@ -4,7 +4,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding-bottom: var(--space-6);
+  min-height: var(--workspace-control-height);
+  margin-bottom: var(--space-6);
 }
 .identity {
   flex: 1 1 12rem;
@@ -13,7 +14,8 @@
 .title {
   margin: 0;
   font: var(--type-page-title);
-  letter-spacing: -0.025em;
+  color: var(--ink);
+  letter-spacing: -0.015em;
   overflow-wrap: anywhere;
 }
 .description {

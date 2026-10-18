@@ -3,18 +3,22 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-5);
-  padding: var(--space-4) var(--space-5) var(--space-2);
+  gap: var(--space-4);
+  min-height: var(--workspace-header-height);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: var(--border-width) solid var(--line-subtle);
 }
 
 .caseName {
   width: 24rem;
+  flex: 0 1 24rem;
   min-width: 0;
-  padding: var(--space-2) var(--space-2-5);
+  padding: var(--space-2);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-lg);
-  font-size: var(--text-lg);
-  font-weight: 600;
+  font: 550 var(--text-xl) / var(--line-page-title) var(--font-ui);
+  color: var(--ink);
+  letter-spacing: -0.015em;
   text-overflow: ellipsis;
 
   @media (pointer: coarse) {
@@ -91,6 +95,7 @@
 
   .caseName {
     flex: 1 1 100%;
+    width: 100%;
   }
 
   .casePanelActions {

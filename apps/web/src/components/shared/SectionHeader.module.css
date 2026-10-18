@@ -4,7 +4,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  min-height: var(--control-height);
   & h2 {
+    color: var(--ink);
     font: var(--type-panel-title);
     overflow-wrap: anywhere;
   }
