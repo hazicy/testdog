@@ -104,6 +104,29 @@ describe('plan review', () => {
     expect(result.nodes.c).toMatchObject({ goal: '注销' });
   });
 
+  it.each([
+    ['c', 'b', 'a'],
+    ['b', 'c', 'a'],
+    ['c', 'a', 'b'],
+  ])('preserves review order and mixed decisions when steps become %s, %s, %s', (...ids) => {
+    const before = plan([task('a', '首页'), task('b', '登录'), task('c', '退出')]);
+    const after = plan(
+      [task('a', '首页'), task('b', '登录'), task('c', '退出'), task('d', '截图')],
+      [...ids, 'd'],
+    );
+    const review = reviewPlan(before, after);
+    const reorder = review.changes.find((change) => change.nodeIds.includes('a'))!;
+
+    expect(review.changes.map((change) => change.id)).toEqual(['a', 'd']);
+    expect(resolveReview(review, all(review, false))).toEqual(before);
+    expect(resolveReview(review, all(review, true))).toEqual(PlanSchema.parse(after));
+    expect(resolveReview(review, { [reorder.id]: false, d: true })).toEqual(
+      PlanSchema.parse(
+        plan([task('a', '首页'), task('b', '登录'), task('c', '退出'), task('d', '截图')]),
+      ),
+    );
+  });
+
   it('keeps newly added branch paths and dependencies together', () => {
     const before = plan([task('a', '首页')]);
     const branch: PlanNode = {

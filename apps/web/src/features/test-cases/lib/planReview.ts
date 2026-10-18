@@ -53,8 +53,10 @@ const owners = (plan: Plan) => {
 };
 
 function reorderedChildren(before: string[], after: string[]): string[] {
-  const common = before.filter((id) => after.includes(id));
-  const reordered = after.filter((id) => common.includes(id));
+  const afterIds = new Set(after);
+  const common = before.filter((id) => afterIds.has(id));
+  const commonIds = new Set(common);
+  const reordered = after.filter((id) => commonIds.has(id));
 
   return common.filter((id, index) => reordered[index] !== id);
 }
@@ -121,38 +123,47 @@ function align(before: Plan, source: Plan): Plan {
   return PlanSchema.parse({ rootId: before.rootId, nodes });
 }
 
-export function reviewPlan(before: Plan, source: Plan): PlanReview {
-  const after = align(before, source);
+function changedNodes(before: Plan, after: Plan): Set<string> {
   const oldOwners = owners(before);
   const newOwners = owners(after);
   const changed = new Set<string>();
+  const reordered = new Set<string>();
+
+  for (const old of Object.values(before.nodes)) {
+    const next = after.nodes[old.id];
+
+    if (old.kind !== 'group' || next?.kind !== 'group') continue;
+    for (const id of reorderedChildren(old.children, next.children)) reordered.add(id);
+  }
 
   for (const id of new Set([...Object.keys(before.nodes), ...Object.keys(after.nodes)])) {
     const old = before.nodes[id];
     const next = after.nodes[id];
 
     if ((!old || scaffold(old)) && (!next || scaffold(next))) continue;
-    let moved = oldOwners.get(id) !== newOwners.get(id);
-    const oldParent = before.nodes[oldOwners.get(id) ?? ''];
-    const newParent = after.nodes[newOwners.get(id) ?? ''];
+    const oldOwner = oldOwners.get(id);
+    const newOwner = newOwners.get(id);
 
-    if (oldParent?.kind === 'group' && newParent?.kind === 'group') {
-      moved ||= reorderedChildren(oldParent.children, newParent.children).includes(id);
-    }
-
-    if (
-      !old ||
-      !next ||
-      !same(content(old), content(next)) ||
-      !same(old.dependsOn, next.dependsOn) ||
-      moved ||
-      (old.kind === 'branch' &&
-        next.kind === 'branch' &&
-        (old.then !== next.then || old.otherwise !== next.otherwise))
-    )
-      changed.add(id);
+    if (nodeChanged(old, next) || oldOwner !== newOwner || reordered.has(id)) changed.add(id);
   }
 
+  return changed;
+}
+
+function nodeChanged(old: PlanNode | undefined, next: PlanNode | undefined): boolean {
+  if (!old || !next) return true;
+  if (!same(content(old), content(next)) || !same(old.dependsOn, next.dependsOn)) return true;
+
+  return (
+    old.kind === 'branch' &&
+    next.kind === 'branch' &&
+    (old.then !== next.then || old.otherwise !== next.otherwise)
+  );
+}
+
+function groupChanges(before: Plan, after: Plan, changed: Set<string>): Set<string>[] {
+  const oldOwners = owners(before);
+  const newOwners = owners(after);
   const groups = new Map([...changed].map((id) => [id, new Set([id])]));
   const join = (a: string, b: string) => {
     const left = groups.get(a);
@@ -198,27 +209,73 @@ export function reviewPlan(before: Plan, source: Plan): PlanReview {
     for (const id of moved) join(moved[0], id);
   }
 
-  const changes = [...new Set(groups.values())].map((ids): PlanChange => {
-    const nodeIds = [...ids];
-    const id =
-      nodeIds.find(
-        (value) => before.nodes[value]?.kind === 'branch' || after.nodes[value]?.kind === 'branch',
-      ) ??
-      nodeIds.find(
-        (value) => before.nodes[value]?.kind === 'group' || after.nodes[value]?.kind === 'group',
-      ) ??
-      nodeIds[0];
+  return [...new Set(groups.values())];
+}
 
-    return {
-      id,
-      nodeIds,
-      kind: !before.nodes[id] ? 'added' : !after.nodes[id] ? 'removed' : 'modified',
-      before: before.nodes[id],
-      after: after.nodes[id],
-    };
-  });
+export function reviewPlan(before: Plan, source: Plan): PlanReview {
+  const after = align(before, source);
+  const changes = groupChanges(before, after, changedNodes(before, after)).map(
+    (ids): PlanChange => {
+      const nodeIds = [...ids];
+      const id =
+        nodeIds.find(
+          (value) =>
+            before.nodes[value]?.kind === 'branch' || after.nodes[value]?.kind === 'branch',
+        ) ??
+        nodeIds.find(
+          (value) => before.nodes[value]?.kind === 'group' || after.nodes[value]?.kind === 'group',
+        ) ??
+        nodeIds[0];
+
+      return {
+        id,
+        nodeIds,
+        kind: !before.nodes[id] ? 'added' : !after.nodes[id] ? 'removed' : 'modified',
+        before: before.nodes[id],
+        after: after.nodes[id],
+      };
+    },
+  );
 
   return { before, after, changes };
+}
+
+function resolveChildren(
+  parentId: string,
+  review: PlanReview,
+  choice: Map<string, boolean>,
+  nodes: Plan['nodes'],
+  selectedOwner: Map<string, string>,
+): string[] {
+  const old = review.before.nodes[parentId];
+  const next = review.after.nodes[parentId];
+  const oldOrder = old?.kind === 'group' ? old.children : [];
+  let newOrder = next?.kind === 'group' ? next.children : [];
+  const moved = reorderedChildren(oldOrder, newOrder);
+
+  if (moved.length && moved.every((id) => !choice.get(id)))
+    newOrder = [...oldOrder, ...newOrder.filter((id) => !oldOrder.includes(id))];
+  const belongs = (id: string) => !!nodes[id] && selectedOwner.get(id) === parentId;
+  const order = newOrder.filter(belongs);
+
+  for (let index = 0; index < oldOrder.length; index++) {
+    const id = oldOrder[index];
+
+    if (!belongs(id) || order.includes(id)) continue;
+    const anchor = oldOrder.slice(index + 1).find((value) => order.includes(value));
+    const previous = oldOrder
+      .slice(0, index)
+      .reverse()
+      .find((value) => order.includes(value));
+
+    order.splice(
+      anchor ? order.indexOf(anchor) : previous ? order.indexOf(previous) + 1 : 0,
+      0,
+      id,
+    );
+  }
+
+  return order;
 }
 
 export function resolveReview(
@@ -251,34 +308,7 @@ export function resolveReview(
 
   for (const node of Object.values(nodes)) {
     if (node.kind !== 'group') continue;
-    const old = review.before.nodes[node.id];
-    const next = review.after.nodes[node.id];
-    const oldOrder = old?.kind === 'group' ? old.children : [];
-    let newOrder = next?.kind === 'group' ? next.children : [];
-    const moved = reorderedChildren(oldOrder, newOrder);
-
-    if (moved.length && moved.every((id) => !choice.get(id)))
-      newOrder = [...oldOrder, ...newOrder.filter((id) => !oldOrder.includes(id))];
-    const order = newOrder.filter((id) => nodes[id] && selectedOwner.get(id) === node.id);
-
-    for (let index = 0; index < oldOrder.length; index++) {
-      const id = oldOrder[index];
-
-      if (!nodes[id] || selectedOwner.get(id) !== node.id || order.includes(id)) continue;
-      const anchor = oldOrder.slice(index + 1).find((value) => order.includes(value));
-      const previous = oldOrder
-        .slice(0, index)
-        .reverse()
-        .find((value) => order.includes(value));
-
-      order.splice(
-        anchor ? order.indexOf(anchor) : previous ? order.indexOf(previous) + 1 : 0,
-        0,
-        id,
-      );
-    }
-
-    node.children = order;
+    node.children = resolveChildren(node.id, review, choice, nodes, selectedOwner);
   }
 
   for (const [id, node] of Object.entries(nodes)) {
