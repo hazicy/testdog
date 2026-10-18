@@ -4,7 +4,7 @@ import type {
   ActionPlanner,
   PlatformAction,
 } from '@testdog/contracts/automation/platform/contracts';
-import { hybridCandidates } from './hybridPlanner';
+import { ariaCandidates } from './ariaCandidates';
 import { findAriaNode, type AriaNode } from './observationView';
 import { WebActionPlanner } from './webPlanner';
 import { normalize } from '@testdog/automation/domAgent/recall';
@@ -23,7 +23,9 @@ export type JevActionChooser = (state: ChoiceState, signal: AbortSignal) => Prom
 
 type Option =
   | { kind: 'action'; label: string; action: PlatformAction }
-  | { kind: 'done' | 'wait' | 'fallback'; label: string };
+  | { kind: 'done'; label: string }
+  | { kind: 'wait'; label: string }
+  | { kind: 'fallback'; label: string };
 
 const choiceSchema = z.object({
   answers: z.object({
@@ -141,7 +143,7 @@ export function jevActionOptions(input: Input): Map<string, Option> {
   const url = input.observation.surface.url ?? '';
   const value = explicitFillValue(input.goal);
   const enter = /(?:按(?:下)?回车|按(?:下)?enter|press enter)/i.test(input.goal);
-  const ranked = hybridCandidates(tree, url)
+  const ranked = ariaCandidates(tree, url)
     .filter((candidate) => candidate.enabled)
     .map((candidate) => ({ candidate, score: candidateScore(candidate, input.goal) }))
     .sort((a, b) => b.score - a.score || a.candidate.id.localeCompare(b.candidate.id))
@@ -162,7 +164,7 @@ export function jevActionOptions(input: Input): Map<string, Option> {
         if (!source || source.surface.url !== url) return false;
 
         const previousRef = step.action.target.value;
-        const previous = hybridCandidates(source.tree as AriaNode[], url).find(
+        const previous = ariaCandidates(source.tree as AriaNode[], url).find(
           (item) => item.id === previousRef,
         );
 
@@ -197,7 +199,7 @@ export function jevActionOptions(input: Input): Map<string, Option> {
 
     if (value !== undefined && candidate.editable) add('fill', value);
     if (enter && candidate.editable) add('press', 'Enter');
-    // All elements here were classified as interactive by hybridCandidates.
+    // All elements here were classified as interactive by ariaCandidates.
     add('click');
     if (options.size >= 220) break;
   }

@@ -16,7 +16,6 @@ export function useModelCallPurposes(): Record<string, string> {
   return {
     plan: t('plan'),
     native_action: t('native_action'),
-    hybrid_dom_plan: t('hybrid_dom_plan'),
     dom_choice: t('dom_choice'),
     assertion_result: t('assertion_result'),
     branch_result: t('branch_result'),

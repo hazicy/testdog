@@ -15,14 +15,13 @@ JEV_ENDPOINT=https://api.typesafe.ai/v1/systemone
 ```
 
 - `hybrid`（或 `jev`）：**Jev-first Action Planner**。不再预先调用 LLM 生成整条多步 DOM 语义动作计划，而是从每次真实 ARIA 观察中构建有界的 click/fill/press 候选，由 Jev Choice 挑选下一步；执行后重新观察。只对能从任务自然语言中明确、唯一提取的字面值开放 fill；其余值生成、复杂完成判定和异常恢复转交原 `WebActionPlanner`（LLM）。特殊 choice 为 `done`、`wait`、`need_llm`。
-- `hybrid-legacy`：之前的 `HybridWebActionPlanner`，先用 LLM 生成多步语义计划、缓存后逐步调用 Jev 选元素，供对照与回退。
 - `llm`（或未设置）：原 `WebActionPlanner`，LLM 根据当前观察直接生成动作。
 
 Jev-first 的 `done` 只允许完成已派发的单动作明确指令；多步/不确定的完成判定回退 LLM，不将一次 Jev 选择视作业务验证。已经派发的同一目标动作不会作为重复候选提供；浏览器操作异常由原 PlanRunner 处理，进入 LLM 兜底。仍沿用 PlanRunner、PlaywrightSession、RunRecorder 的录制、回放与运行预算；回放不会调用 Jev。
 
 当前 Jev-first 的动作候选只涵盖 click、可确定字面值的 fill、显式回车 press、wait 和完成/兜底决策；复杂交互（如自定义下拉框、多字段动态填写、滚动容器）可能交给 LLM。真实模型上的任务成功率、耗时及 Jev 下一步动作选择质量需要通过回归集实测。
 
-下面关于多步 Planner、验证条件及独立 `runDOMAgent` 的说明，适用于 **hybrid-legacy 或独立实验模块**，不代表 Jev-first 需要生成预先计划的所有动作。
+下面关于多步 Planner、验证条件及独立 `runDOMAgent` 的说明，适用于 **独立实验模块**，不代表 Jev-first 需要生成预先计划的所有动作。
 
 ## 独立演示
 

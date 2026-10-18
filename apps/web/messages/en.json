@@ -739,7 +739,6 @@
     "purposes": {
       "plan": "Generate plan",
       "native_action": "Plan action",
-      "hybrid_dom_plan": "Browser planning",
       "dom_choice": "Element selection",
       "assertion_result": "Assertion",
       "branch_result": "Branch decision"

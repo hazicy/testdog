@@ -189,90 +189,6 @@ beforeEach(async () => {
   });
 });
 describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30000 }, () => {
-  it('runs the legacy hybrid planner through runtime and persists the Jev call and linked action', async () => {
-    vi.stubEnv('TESTDOG_WEB_AGENT', 'hybrid-legacy');
-    vi.stubEnv('JEV_API_KEY', 'fixture-key');
-    vi.stubEnv('JEV_MODEL', 'jev-1.14.0');
-    vi.stubEnv('JEV_ENDPOINT', 'https://jev.test/v1/systemone');
-    const implementation = mocks.generate.getMockImplementation()!;
-
-    mocks.generate.mockImplementation(async (input) => {
-      if (input.responseFormat?.name !== 'hybrid_dom_plan') return implementation(input);
-
-      return {
-        structuredContent: {
-          steps: [
-            {
-              goal: 'Fill name',
-              action: { kind: 'fill', target: { name: 'Name', role: 'textbox' }, value: 'Ada' },
-              expected: { kind: 'value', target: { name: 'Name', role: 'textbox' }, value: 'Ada' },
-            },
-            {
-              goal: 'Submit the form',
-              action: {
-                kind: 'click',
-                target: { name: 'Submit', role: 'button', keywords: ['Continue'] },
-              },
-              expected: { kind: 'text', value: 'Welcome Ada' },
-            },
-          ],
-          completion: [{ kind: 'text', value: 'Welcome Ada' }],
-        },
-        content: { text: '' },
-        toolCalls: [],
-      };
-    });
-    const choice = vi.spyOn(globalThis, 'fetch').mockImplementation(async (endpoint, request) => {
-      expect(endpoint).toBe('https://jev.test/v1/systemone');
-      const body = JSON.parse(request!.body as string);
-      const criteria = body.questions.target.criteria as Record<string, string>;
-      const id = Object.keys(criteria).find((key) => criteria[key].includes('"name":"Continue"'))!;
-
-      expect(id).toBeTruthy();
-
-      return new Response(
-        JSON.stringify({
-          model: 'jev-1.14.0',
-          answers: {
-            target: { type: 'choice', choice: id, confidence: 1, probabilities: { [id]: 1 } },
-          },
-          usage: { input_tokens: 100, output_tokens: 5 },
-        }),
-      );
-    });
-
-    try {
-      const run = await createRun({ case: 'Fill Ada and submit', url }, undefined, null);
-
-      await executeRun(run);
-      const recorded = await getRun(run.id, { userId: null });
-      const calls = await listModelCalls(run.id);
-      const jev = calls.find((call) => call.purpose === 'dom_choice');
-
-      expect(recorded.status, recorded.error).toBe('passed');
-      expect(recorded.replayable).toBe(true);
-      expect(calls.filter((call) => call.purpose === 'hybrid_dom_plan')).toHaveLength(1);
-      expect(jev).toMatchObject({
-        model: 'jev-1.14.0',
-        status: 'passed',
-        inputTokens: 100,
-        outputTokens: 5,
-      });
-      expect((await readModelCall(run.id, jev!.id)).steps).toEqual([
-        expect.objectContaining({ kind: 'action', status: 'passed' }),
-      ]);
-      expect(choice).toHaveBeenCalledTimes(1);
-      vi.stubEnv('JEV_API_KEY', '');
-      const replay = await createRun({ mode: 'replay', sourceRunId: run.id }, undefined, null);
-
-      await executeRun(replay);
-      expect((await getRun(replay.id, { userId: null })).status).toBe('passed');
-      expect(choice).toHaveBeenCalledTimes(1);
-    } finally {
-      choice.mockRestore();
-    }
-  });
-
   it('runs Jev-first actions without a hybrid LLM plan and replays without Jev', async () => {
     vi.stubEnv('TESTDOG_WEB_AGENT', 'hybrid');
     vi.stubEnv('JEV_API_KEY', 'fixture-key');
@@ -284,7 +200,9 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
       const result = await implementation(input);
 
       if (input.responseFormat?.name === 'plan') {
-        const task = result.structuredContent.nodes.find((node: { id: string }) => node.id === 'task');
+        const task = result.structuredContent.nodes.find(
+          (node: { id: string }) => node.id === 'task',
+        );
 
         task.goal = '点击 Continue';
         task.assertions = [];
@@ -294,22 +212,29 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
     });
     const choice = vi.spyOn(globalThis, 'fetch').mockImplementation(async (endpoint, request) => {
       expect(endpoint).toBe('https://jev.test/v1/systemone');
-      const criteria = JSON.parse(request!.body as string).questions.next.criteria as Record<string, string>;
+      const criteria = JSON.parse(request!.body as string).questions.next.criteria as Record<
+        string,
+        string
+      >;
       const id = criteria.done
         ? 'done'
-        : Object.keys(criteria).find((key) =>
-            criteria[key].includes('"name":"Continue"') && criteria[key].includes('"type":"click"'),
+        : Object.keys(criteria).find(
+            (key) =>
+              criteria[key].includes('"name":"Continue"') &&
+              criteria[key].includes('"type":"click"'),
           );
 
       expect(id).toBeTruthy();
 
-      return new Response(JSON.stringify({
-        model: 'jev-1.14.0',
-        answers: {
-          next: { type: 'choice', choice: id, confidence: 0.99, probabilities: { [id!]: 1 } },
-        },
-        usage: { input_tokens: 100, output_tokens: 5 },
-      }));
+      return new Response(
+        JSON.stringify({
+          model: 'jev-1.14.0',
+          answers: {
+            next: { type: 'choice', choice: id, confidence: 0.99, probabilities: { [id!]: 1 } },
+          },
+          usage: { input_tokens: 100, output_tokens: 5 },
+        }),
+      );
     });
 
     try {
@@ -322,7 +247,6 @@ describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30
 
       expect(recorded.status, recorded.error).toBe('passed');
       expect(recorded.replayable).toBe(true);
-      expect(calls.filter((call) => call.purpose === 'hybrid_dom_plan')).toHaveLength(0);
       expect(jev).toHaveLength(2);
       expect((await readModelCall(run.id, jev[0].id)).steps).toEqual([
         expect.objectContaining({ kind: 'action', status: 'passed' }),

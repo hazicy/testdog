@@ -7,7 +7,6 @@ import type { BrowserConnection } from '@testdog/automation/platform/web/provide
 import type { BrowserContext, BrowserContextOptions } from 'playwright';
 import { PlaywrightSession } from '@testdog/automation/platform/web/playwrightSession';
 import { WebActionPlanner } from '@testdog/automation/platform/web/webPlanner';
-import { HybridWebActionPlanner } from '@testdog/automation/platform/web/hybridPlanner';
 import { JevActionPlanner } from '@testdog/automation/platform/web/jevActionPlanner';
 import { resolveWebProfile } from '@testdog/automation/platform/web/mobile';
 import type { WebTarget } from '@testdog/contracts/automation/platform/target';
@@ -23,7 +22,6 @@ export async function openWebRuntime(
   const model = input.model ?? modelClient;
   const agentMode = process.env.TESTDOG_WEB_AGENT;
   const jevFirst = ['hybrid', 'jev'].includes(agentMode ?? '') && run.mode !== 'replay';
-  const legacyHybrid = agentMode === 'hybrid-legacy' && run.mode !== 'replay';
   const profile = expectedEnvironment?.profile
     ? (expectedEnvironment.profile as BrowserContextOptions)
     : resolveWebProfile(target);
@@ -38,9 +36,12 @@ export async function openWebRuntime(
 
   signal.addEventListener('abort', stop, { once: true });
   try {
-    if (process.env.TESTDOG_WEB_AGENT && !['hybrid', 'jev', 'hybrid-legacy', 'llm'].includes(process.env.TESTDOG_WEB_AGENT))
-      throw new Error('TESTDOG_WEB_AGENT 必须是 llm、hybrid、jev 或 hybrid-legacy');
-    if ((jevFirst || legacyHybrid) && !process.env.JEV_API_KEY?.trim())
+    if (
+      process.env.TESTDOG_WEB_AGENT &&
+      !['hybrid', 'jev', 'llm'].includes(process.env.TESTDOG_WEB_AGENT)
+    )
+      throw new Error('TESTDOG_WEB_AGENT 必须是 llm、hybrid 或 jev');
+    if (jevFirst && !process.env.JEV_API_KEY?.trim())
       throw new Error('混合 DOM Agent 需要配置 JEV_API_KEY');
     connection = await openRunBrowser(run.id, target, signal);
     const browser = connection.browser;
@@ -76,11 +77,7 @@ export async function openWebRuntime(
     const runtime: PlatformRuntime = {
       session,
       evaluator: new SemanticEvaluator(model),
-      planner: jevFirst
-        ? new JevActionPlanner(model, signal)
-        : legacyHybrid
-          ? new HybridWebActionPlanner(model, session, signal)
-          : new WebActionPlanner(model, signal),
+      planner: jevFirst ? new JevActionPlanner(model, signal) : new WebActionPlanner(model, signal),
       environment: {
         platform: 'web',
         browserProvider: connection.provider,
