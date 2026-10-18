@@ -1,4 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
+import { SuitesPage } from './pages/suites.page';
+
+import { test, expect } from './fixtures/test.fixture';
+import { type Page } from '@playwright/test';
 import { makeCase } from './fixtures/workspace';
 import { emptyRunCounts } from '../../packages/contracts/src/workspace/types';
 import type { SuiteTreeNode } from '../../packages/contracts/src/suites/types';
@@ -186,12 +189,15 @@ async function menu(page: Page, name: string, action: string) {
 }
 
 async function newFolder(page: Page) {
-  await page.getByRole('button', { name: '新建', exact: true }).click();
+  const suitesPage = new SuitesPage(page);
+
+  await suitesPage.createButton.click();
   await page.getByRole('menuitem', { name: '新建文件夹', exact: true }).click();
 }
 
 test('creates folders inline, ignores IME Enter, cancels blanks and retries failures', async ({
   page,
+  suitesPage,
 }) => {
   const state = await support(page);
 
@@ -204,7 +210,7 @@ test('creates folders inline, ignores IME Enter, cancels blanks and retries fail
   await input.press('Escape');
   await expect(input).toHaveCount(0);
   await newFolder(page);
-  await page.locator('[data-ui="suite-content"]').click({ position: { x: 10, y: 10 } });
+  await suitesPage.content.click({ position: { x: 10, y: 10 } });
   await expect(input).toHaveCount(0);
   await newFolder(page);
   await input.fill('冒烟');
@@ -223,6 +229,7 @@ test('creates folders inline, ignores IME Enter, cancels blanks and retries fail
 
 test('folder menus create children and rename on blur without opening a dialog', async ({
   page,
+  suitesPage,
 }) => {
   const state = await support(page);
 
@@ -240,13 +247,14 @@ test('folder menus create children and rename on blur without opening a dialog',
   await expect(tree(page).getByRole('button', { name: '每日冒烟', exact: true })).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await menu(page, '回归', '移动');
-  await page.getByRole('combobox', { name: '所属文件夹' }).click();
+  await suitesPage.folderSelect.click();
   await expect(page.getByRole('option', { name: /回归/ })).toHaveCount(0);
   await page.keyboard.press('Escape');
 });
 
 test('moves a case between root and folder, opens the canvas directly and retains drafts', async ({
   page,
+  suitesPage,
 }) => {
   const state = await support(page);
 
@@ -267,9 +275,9 @@ test('moves a case between root and folder, opens the canvas directly and retain
   await expect(canvas).toBeVisible();
   await page.screenshot({ path: '/tmp/testdog-case-workbench.png' });
   await menu(page, '搜索', '移动');
-  await page.getByRole('combobox', { name: '所属文件夹' }).click();
+  await suitesPage.folderSelect.click();
   await page.getByRole('option', { name: '回归', exact: true }).click();
-  await page.getByRole('button', { name: '移动', exact: true }).click();
+  await suitesPage.moveButton.click();
   await expect.poll(() => state.locations.get(cases[1].id)).toBe(folderId);
   await tree(page).getByRole('button', { name: '回归', exact: true }).click();
   const list = page.getByRole('region', { name: '测试用例列表' });
@@ -277,15 +285,16 @@ test('moves a case between root and folder, opens the canvas directly and retain
   await expect(list.getByRole('button', { name: '搜索', exact: true })).toBeVisible();
   await tree(page).getByRole('button', { name: '回归', exact: true }).click();
   await menu(page, '搜索', '移动');
-  await page.getByRole('combobox', { name: '所属文件夹' }).click();
+  await suitesPage.folderSelect.click();
   await page.getByRole('option', { name: '根目录', exact: true }).click();
-  await page.getByRole('button', { name: '移动', exact: true }).click();
+  await suitesPage.moveButton.click();
   await expect(list.getByRole('button', { name: '搜索', exact: true })).toHaveCount(0);
   await expect(tree(page).getByRole('button', { name: '搜索', exact: true })).toBeVisible();
 });
 
 test('keeps expanded state, creates cases in the selected folder and runs batches from its menu', async ({
   page,
+  suitesPage,
 }) => {
   await support(page);
   await page.goto('/cases');
@@ -296,7 +305,7 @@ test('keeps expanded state, creates cases in the selected folder and runs batche
     'false',
   );
   await tree(page).getByRole('button', { name: '回归', exact: true }).click();
-  await page.getByRole('button', { name: '新建', exact: true }).click();
+  await suitesPage.createButton.click();
   await page.getByRole('menuitem', { name: '新建用例', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/cases/editor/.*folder=${folderId}`));
   const draft = await page.evaluate(() =>
@@ -308,8 +317,8 @@ test('keeps expanded state, creates cases in the selected folder and runs batche
   expect(JSON.parse(draft!).folderId).toBe(folderId);
   await menu(page, '回归', '运行文件夹');
   await expect(page).toHaveURL(`/cases/batches/${batchId}`);
-  await page.getByRole('button', { name: '停止整批执行', exact: true }).click();
-  await expect(page.getByRole('button', { name: '停止整批执行', exact: true })).toHaveCount(0);
+  await suitesPage.stopBatchButton.click();
+  await expect(suitesPage.stopBatchButton).toHaveCount(0);
   await expect(page.getByRole('link', { name: '返回执行记录', exact: true })).toHaveAttribute(
     'href',
     '/runs',
@@ -348,6 +357,8 @@ test('renames a case with a name-only request and keeps its newer content', asyn
 
 test('keeps the case workspace contained, scrolls panels independently and collapses the directory', async ({
   page,
+  suitesPage,
+  workspacePage,
 }) => {
   const state = await support(page);
 
@@ -363,11 +374,11 @@ test('keeps the case workspace contained, scrolls panels independently and colla
 
   await page.setViewportSize({ width: 1440, height: 800 });
   await page.goto('/cases');
-  const content = page.locator('[data-ui="suite-content"]');
+  const content = suitesPage.content;
   const directory = tree(page);
 
   await expect(content.getByRole('button', { name: '回归用例 1', exact: true })).toBeVisible();
-  const surface = page.locator('#main-content');
+  const surface = workspacePage.main;
   const box = await surface.boundingBox();
 
   expect(box!.y).toBeGreaterThan(0);
@@ -384,20 +395,20 @@ test('keeps the case workspace contained, scrolls panels independently and colla
   expect(await directory.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
   const contentScroll = await content.evaluate((node) => node.scrollTop);
 
-  await page.getByRole('button', { name: '收起用例目录', exact: true }).click();
+  await suitesPage.collapseButton.click();
   await expect(directory).toBeHidden();
   expect(await content.evaluate((node) => node.scrollTop)).toBe(contentScroll);
-  await page.getByRole('button', { name: '展开用例目录', exact: true }).click();
+  await suitesPage.expandButton.click();
   await expect(directory).toBeVisible();
   expect(await directory.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
   await page.getByRole('button', { name: '收起侧栏', exact: true }).click();
   await expect(page.getByRole('button', { name: '展开侧栏', exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: '收起用例目录', exact: true }).click();
+  await suitesPage.collapseButton.click();
   await expect(directory).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(844);
-  await page.getByRole('button', { name: '展开用例目录', exact: true }).click();
+  await suitesPage.expandButton.click();
   await expect(directory).toBeVisible();
 });
 

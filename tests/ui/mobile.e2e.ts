@@ -1,4 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
+import { type Locator, type Page } from '@playwright/test';
 import { makeCase, makeRun, makeScreenshot, summarizeRun } from './fixtures/workspace';
 import { mockLists, mockRun, mockScreenshots, mockWorkspaceSupport } from './fixtures/routes';
 
@@ -76,7 +77,10 @@ for (const viewport of [
   { width: 390, height: 844 },
   { width: 844, height: 390 },
 ]) {
-  test(`all routes fit touch screens at ${viewport.width}×${viewport.height}`, async ({ page }) => {
+  test(`all routes fit touch screens at ${viewport.width}×${viewport.height}`, async ({
+    page,
+    workspacePage,
+  }) => {
     await page.setViewportSize(viewport);
     for (const path of [
       '/',
@@ -94,17 +98,17 @@ for (const viewport of [
       await page.goto(path);
       await expect(page.locator('main')).toBeVisible();
       await fitsPage(page);
-      if (path !== '/' && (await page.locator('#main-content').count()))
-        await fitsRegion(page.locator('#main-content'));
+      if (path !== '/' && (await workspacePage.main.count())) await fitsRegion(workspacePage.main);
     }
   });
 
   test(`execution panels use the full width at ${viewport.width}×${viewport.height}`, async ({
     page,
+    runPage,
   }, testInfo) => {
     await page.setViewportSize(viewport);
-    await page.goto(`/runs/${run.id}`);
-    const dock = page.getByLabel('执行工作台', { exact: true });
+    await runPage.goto(run.id);
+    const dock = runPage.workbench;
 
     await expect(dock).toHaveAttribute('data-compact', 'true');
     await expect(dock.locator('.dv-groupview')).toHaveCount(1);
@@ -114,9 +118,9 @@ for (const viewport of [
       ['录制脚本', page.locator('.cm-editor')],
       ['AI 调用', page.getByRole('region', { name: 'AI 调用记录', exact: true })],
       ['问题', page.getByText('本次执行暂无关联问题', { exact: true })],
-      ['控制台', page.getByRole('region', { name: 'Console 记录', exact: true })],
-      ['网络', page.getByRole('region', { name: 'Network 记录', exact: true })],
-      ['计划', page.locator('[data-ui~="plan-viewport"]')],
+      ['控制台', runPage.consoleLogs],
+      ['网络', runPage.networkLogs],
+      ['计划', runPage.planViewport],
     ] as const) {
       await dock.getByRole('tab', { name, exact: true }).click();
       await expect(content).toBeVisible();
@@ -133,13 +137,16 @@ for (const viewport of [
   });
 }
 
-test('resizing restores desktop groups and preserves recording edits', async ({ page }) => {
+test('resizing restores desktop groups and preserves recording edits', async ({
+  page,
+  runPage,
+}) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`/runs/${run.id}`);
-  const dock = page.getByLabel('执行工作台', { exact: true });
+  await runPage.goto(run.id);
+  const dock = runPage.workbench;
 
   await expect(dock.locator('.dv-groupview')).toHaveCount(3);
-  await page.getByRole('button', { name: '录制脚本', exact: true }).click();
+  await runPage.scriptButton.click();
   const editor = page.locator('.cm-content');
 
   await editor.fill('await page.goto("https://example.com/mobile");');
@@ -162,11 +169,11 @@ test('resizing restores desktop groups and preserves recording edits', async ({ 
 
   // Restored groups must remain interactive, including their saved expanded size.
   await page.getByRole('button', { name: '展开分组' }).click();
-  const consolePanel = page.getByRole('region', { name: 'Console 记录', exact: true });
+  const consolePanel = runPage.consoleLogs;
 
   await expect(consolePanel).toBeVisible();
   const consoleGroup = dock.locator('.dv-groupview').filter({
-    has: page.getByRole('button', { name: '控制台', exact: true }),
+    has: runPage.consoleButton,
   });
   const height = (await consoleGroup.boundingBox())!.height;
 
@@ -181,10 +188,13 @@ test('resizing restores desktop groups and preserves recording edits', async ({ 
     .toBeLessThanOrEqual(2);
 });
 
-test('phone tabs support keyboard navigation and every layout preset', async ({ page }) => {
+test('phone tabs support keyboard navigation and every layout preset', async ({
+  page,
+  runPage,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/runs/${run.id}`);
-  const dock = page.getByLabel('执行工作台', { exact: true });
+  await runPage.goto(run.id);
+  const dock = runPage.workbench;
 
   await expect(dock).toHaveAttribute('data-compact', 'true');
   await dock.getByRole('tab', { name: '步骤', exact: true }).focus();
@@ -207,6 +217,7 @@ test('phone tabs support keyboard navigation and every layout preset', async ({ 
 
 test('canvas settings and embedded trial work on portrait and landscape phones', async ({
   page,
+  caseEditor,
 }, testInfo) => {
   const draftId = 'mobile-draft';
 
@@ -233,7 +244,7 @@ test('canvas settings and embedded trial work on portrait and landscape phones',
   ]) {
     await page.setViewportSize(viewport);
     await page.goto(`/cases/editor/${draftId}`);
-    const canvas = page.getByRole('region', { name: '测试画板' });
+    const canvas = caseEditor.board;
     const panel = canvas.getByRole('complementary', { name: '测试面板' });
 
     await expect(panel).toBeVisible();
@@ -332,15 +343,15 @@ test('all integration configuration dialogs fit a touch phone', async ({ page })
   await fitsPage(page);
 });
 
-test('plan canvas pans with a finger on a phone', async ({ page, browserName }) => {
+test('plan canvas pans with a finger on a phone', async ({ page, browserName, runPage }) => {
   test.skip(browserName !== 'chromium', 'Touch injection uses the Chromium DevTools protocol.');
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/runs/${run.id}`);
-  const dock = page.getByLabel('执行工作台', { exact: true });
+  await runPage.goto(run.id);
+  const dock = runPage.workbench;
 
   await expect(dock).toHaveAttribute('data-compact', 'true');
   await dock.getByRole('tab', { name: '计划', exact: true }).click();
-  const canvas = page.locator('[data-ui~="plan-viewport"]');
+  const canvas = runPage.planViewport;
   const viewport = canvas.locator('.react-flow__viewport');
 
   await expect(canvas).toBeVisible();

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/auth/get-session', (route) => route.fulfill({ json: null }));
@@ -21,9 +21,10 @@ test.beforeEach(async ({ page }) => {
 
 test('sidebar destinations open with one selected item and a matching workspace title', async ({
   page,
+  workspacePage,
 }) => {
   await page.goto('/cases');
-  const sidebar = page.getByRole('navigation', { name: '工作区导航' });
+  const sidebar = workspacePage.navigation;
 
   for (const [href, name] of [
     ['/runs', '执行记录'],
@@ -50,19 +51,23 @@ test('sidebar destinations open with one selected item and a matching workspace 
   }
 });
 
-test('settings supports direct visits, refresh and collapsed navigation', async ({ page }) => {
-  await page.goto('/settings');
+test('settings supports direct visits, refresh and collapsed navigation', async ({
+  page,
+  settingsPage,
+  workspacePage,
+}) => {
+  await settingsPage.goto();
   await page.reload();
   await expect(page.getByRole('heading', { name: '设置', level: 1, exact: true })).toBeVisible();
-  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
+  await settingsPage.openProfile();
   await expect(
     page
       .getByRole('tabpanel', { name: '账户资料' })
       .getByRole('link', { name: '登录', exact: true }),
   ).toHaveAttribute('href', '/login?callbackURL=%2Fsettings');
 
-  await page.getByRole('button', { name: '收起侧栏' }).click();
-  const sidebar = page.getByRole('navigation', { name: '工作区导航' });
+  await workspacePage.collapseSidebarButton.click();
+  const sidebar = workspacePage.navigation;
 
   await sidebar.getByRole('link', { name: '集成', exact: true }).click();
   await expect(page).toHaveURL('/integrations');
@@ -72,6 +77,7 @@ test('settings supports direct visits, refresh and collapsed navigation', async 
 
 test('keeps workspace chrome fixed while long content scrolls inside the viewport', async ({
   page,
+  workspacePage,
 }) => {
   for (const viewport of [
     { width: 1280, height: 720 },
@@ -79,7 +85,7 @@ test('keeps workspace chrome fixed while long content scrolls inside the viewpor
   ]) {
     await page.setViewportSize(viewport);
     await page.goto('/settings');
-    const main = page.locator('#main-content');
+    const main = workspacePage.main;
 
     await expect(page.getByRole('heading', { name: '设置', level: 1, exact: true })).toBeVisible();
     await main.evaluate((element) => {
@@ -89,7 +95,7 @@ test('keeps workspace chrome fixed while long content scrolls inside the viewpor
       element.append(content);
     });
     const brand = page.getByRole('link', { name: 'testdog 首页', exact: true });
-    const navigation = page.getByRole('navigation', { name: '工作区导航' });
+    const navigation = workspacePage.navigation;
     const brandBefore = await brand.boundingBox();
     const navigationBefore = await navigation.boundingBox();
 
@@ -124,13 +130,13 @@ test('empty lists fill the remaining workspace height', async ({ page }) => {
   }
 });
 
-test('workspace pages keep controls within narrow screens', async ({ page }) => {
+test('workspace pages keep controls within narrow screens', async ({ page, workspacePage }) => {
   for (const width of [320, 390, 768]) {
     await page.setViewportSize({ width, height: 740 });
     for (const path of ['/cases', '/runs', '/issues', '/integrations', '/settings']) {
       await page.goto(path);
-      await expect(page.locator('#main-content')).toBeVisible();
-      const sizes = await page.locator('#main-content').evaluate((main) => ({
+      await expect(workspacePage.main).toBeVisible();
+      const sizes = await workspacePage.main.evaluate((main) => ({
         pageWidth: document.documentElement.scrollWidth,
         contentWidth: main.clientWidth,
         scrollWidth: main.scrollWidth,
@@ -178,10 +184,11 @@ test('landing stays at the top when compact playback mounts', async ({ page }) =
 
 test('quick creation keeps prompt text and actions accessible on a phone', async ({
   page,
+  caseEditor,
 }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 600 });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '快速创建', exact: true }).click();
+  await caseEditor.goto();
+  await caseEditor.quickCreateButton.click();
   const dialog = page.getByRole('dialog', { name: '快速创建' });
   const input = dialog.getByRole('textbox', { name: '测试步骤与预期结果' });
 
@@ -196,6 +203,7 @@ test('quick creation keeps prompt text and actions accessible on a phone', async
 
 test('keeps sign out within the sidebar on short, narrow and collapsed layouts', async ({
   page,
+  workspacePage,
 }) => {
   await page.route('**/api/auth/get-session', (route) =>
     route.fulfill({
@@ -214,7 +222,7 @@ test('keeps sign out within the sidebar on short, narrow and collapsed layouts',
     const signOut = page.getByRole('button', { name: '账户菜单', exact: true });
 
     await expect(signOut).toBeInViewport();
-    await page.locator('#main-content').evaluate((element) => {
+    await workspacePage.main.evaluate((element) => {
       const content = document.createElement('div');
 
       content.style.height = '2000px';
@@ -224,10 +232,7 @@ test('keeps sign out within the sidebar on short, narrow and collapsed layouts',
     await expect(signOut).toBeInViewport();
     const checkBounds = async () => {
       const button = (await signOut.boundingBox())!;
-      const sidebar = (await page
-        .getByRole('navigation', { name: '工作区导航' })
-        .locator('..')
-        .boundingBox())!;
+      const sidebar = (await workspacePage.navigation.locator('..').boundingBox())!;
 
       expect(button.x).toBeGreaterThanOrEqual(sidebar.x);
       expect(button.x + button.width).toBeLessThanOrEqual(sidebar.x + sidebar.width);
@@ -239,7 +244,7 @@ test('keeps sign out within the sidebar on short, narrow and collapsed layouts',
     await expect(page.getByRole('menuitem', { name: '退出', exact: true })).toBeInViewport();
     await page.keyboard.press('Escape');
     if (viewport.width >= 768) {
-      await page.getByRole('button', { name: '收起侧栏' }).click();
+      await workspacePage.collapseSidebarButton.click();
       await expect(signOut).toBeInViewport();
       await checkBounds();
     }

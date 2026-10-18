@@ -1,13 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 import { mockWorkspaceSupport, mockLists, mockRun } from './fixtures/routes';
 import { makeCase, makeRun, summarizeRun } from './fixtures/workspace';
 
-test('language and theme persist across refresh and navigation', async ({ page }) => {
-  await page.goto('/settings');
-  await expect(page.getByRole('tab', { name: '通用', exact: true })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
+test('language and theme persist across refresh and navigation', async ({ page, settingsPage }) => {
+  await settingsPage.goto();
+  await expect(settingsPage.generalTab).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('combobox', { name: '语言', exact: true }).click();
   await page.getByRole('option', { name: 'English', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
@@ -31,7 +28,7 @@ test('language and theme persist across refresh and navigation', async ({ page }
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: 'Sign in to testdog' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.goto('/settings');
+  await settingsPage.goto();
   await page.getByRole('combobox', { name: 'Language', exact: true }).click();
   await page.getByRole('option', { name: '中文', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');

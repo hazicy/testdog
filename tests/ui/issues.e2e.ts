@@ -1,5 +1,5 @@
 import { WebTargetSchema } from '@testdog/contracts/automation/platform/target';
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 import type { Issue, IssueDetail, IssueOccurrence } from '@testdog/contracts/issues/types';
 import type { TestRun } from '@testdog/contracts/runs/types';
 
@@ -88,7 +88,7 @@ const occurrence: IssueOccurrence = {
   },
 };
 
-test('creates, edits, comments, closes and reopens an issue', async ({ page }) => {
+test('creates, edits, comments, closes and reopens an issue', async ({ page, issuesPage }) => {
   let issue = { ...initial };
   const detail: IssueDetail = { issue, occurrences: [], events: [], verifications: [] };
 
@@ -125,12 +125,12 @@ test('creates, edits, comments, closes and reopens an issue', async ({ page }) =
 
     return route.fulfill({ json: route.request().method() === 'PATCH' ? { issue } : detail });
   });
-  await page.goto('/issues');
+  await issuesPage.goto();
   await expect(page.getByText('暂无问题', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '新建问题' }).click();
-  await page.getByLabel('问题标题', { exact: true }).fill('订单金额错误');
-  await page.getByLabel('问题描述', { exact: true }).fill('预期100，实际120');
-  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await issuesPage.createButton.click();
+  await issuesPage.titleInput.fill('订单金额错误');
+  await issuesPage.descriptionInput.fill('预期100，实际120');
+  await issuesPage.saveButton.click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
   await expect(page.getByRole('heading', { name: '订单金额错误', exact: true })).toBeVisible();
   await page.getByLabel('补充处理说明').fill('已修正优惠计算，等待回归。');
@@ -138,25 +138,28 @@ test('creates, edits, comments, closes and reopens an issue', async ({ page }) =
   await expect(
     page.getByRole('region', { name: '处理记录' }).getByText('已修正优惠计算，等待回归。'),
   ).toBeVisible();
-  await page.getByRole('button', { name: '编辑问题' }).click();
-  await page.getByRole('combobox', { name: '问题状态' }).click();
+  await issuesPage.editButton.click();
+  await issuesPage.statusSelect.click();
   await page.getByRole('option', { name: '已关闭', exact: true }).click();
-  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await issuesPage.saveButton.click();
   await expect(page.getByText('关闭原因：已修复')).toBeVisible();
-  await page.getByRole('button', { name: '编辑问题' }).click();
-  await page.getByRole('combobox', { name: '问题状态' }).click();
+  await issuesPage.editButton.click();
+  await issuesPage.statusSelect.click();
   await page.getByRole('option', { name: '待确认', exact: true }).click();
-  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await issuesPage.saveButton.click();
   await expect(page.getByText('关闭原因：已修复')).toHaveCount(0);
 });
 
-test('issue editor fits a narrow phone and stacks classification fields', async ({ page }) => {
+test('issue editor fits a narrow phone and stacks classification fields', async ({
+  page,
+  issuesPage,
+}) => {
   await page.setViewportSize({ width: 320, height: 600 });
   await page.route('**/api/issues*', (route) =>
     route.fulfill({ json: { issues: [], nextCursor: null } }),
   );
-  await page.goto('/issues');
-  await page.getByRole('button', { name: '新建问题' }).click();
+  await issuesPage.goto();
+  await issuesPage.createButton.click();
   const dialog = page.getByRole('dialog');
 
   await expect(dialog).toBeVisible();
@@ -173,6 +176,8 @@ test('issue editor fits a narrow phone and stacks classification fields', async 
 
 test('creates an issue from a failed board node and starts a regression without auto-closing', async ({
   page,
+  runPage,
+  issuesPage,
 }) => {
   const detail: IssueDetail = {
     issue: initial,
@@ -205,15 +210,15 @@ test('creates an issue from a failed board node and starts a regression without 
 
     return route.fulfill({ json: { run } });
   });
-  await page.goto(`/runs/${runId}`);
-  await page.getByRole('button', { name: '计划', exact: true }).click();
+  await runPage.goto(runId);
+  await runPage.planButton.click();
   await page
     .locator('[data-plan-node="amount"]')
     .getByRole('button', { name: '创建或关联问题' })
     .click();
-  await expect(page.getByLabel('问题标题', { exact: true })).toHaveValue('订单金额为100');
-  await expect(page.getByLabel('问题描述', { exact: true })).toHaveValue(/实际为120/);
-  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await expect(issuesPage.titleInput).toHaveValue('订单金额为100');
+  await expect(issuesPage.descriptionInput).toHaveValue(/实际为120/);
+  await issuesPage.saveButton.click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
   expect(submittedSource).toEqual({ runId, stepId });
   await expect(
@@ -230,7 +235,10 @@ test('creates an issue from a failed board node and starts a regression without 
   );
 });
 
-test('links a failed step to an existing issue and filters the issue list', async ({ page }) => {
+test('links a failed step to an existing issue and filters the issue list', async ({
+  page,
+  runPage,
+}) => {
   let linked = false;
   const queries: string[] = [];
 
@@ -251,8 +259,8 @@ test('links a failed step to an existing issue and filters the issue list', asyn
       json: { issue: initial, occurrences: [occurrence], events: [], verifications: [] },
     }),
   );
-  await page.goto(`/runs/${runId}`);
-  await page.getByRole('button', { name: '计划', exact: true }).click();
+  await runPage.goto(runId);
+  await runPage.planButton.click();
   await page
     .locator('[data-plan-node="amount"]')
     .getByRole('button', { name: '创建或关联问题' })
@@ -325,6 +333,8 @@ test('shows issue summaries and filters environment, date and ordering', async (
 test('shows expected, actual and reproduction, copies a fix prompt and resolves the issue', async ({
   page,
   context,
+  issuesPage,
+  workspacePage,
 }, testInfo) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const detail: IssueDetail = {
@@ -368,8 +378,8 @@ test('shows expected, actual and reproduction, copies a fix prompt and resolves 
   await expect(latest.getByText('实际为120', { exact: true })).toBeVisible();
   await expect(latest.getByText('查看订单', { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('issue-detail.png'), fullPage: true });
-  await page.getByRole('button', { name: '复制修复提示词', exact: true }).click();
-  const notifications = page.getByRole('region', { name: '通知', exact: true });
+  await issuesPage.copyFixPromptButton.click();
+  const notifications = workspacePage.notifications;
 
   await expect(notifications.getByText('已复制修复提示词', { exact: true })).toBeVisible();
   await notifications.getByText('已复制修复提示词', { exact: true }).hover();
@@ -380,7 +390,7 @@ test('shows expected, actual and reproduction, copies a fix prompt and resolves 
       throw new Error('Clipboard unavailable');
     };
   });
-  await page.getByRole('button', { name: '复制修复提示词', exact: true }).click();
+  await issuesPage.copyFixPromptButton.click();
   await expect(notifications.getByText('复制失败，请检查浏览器剪贴板权限。')).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('实际为120');
   await page.getByRole('button', { name: '标记已解决', exact: true }).click();
@@ -392,6 +402,9 @@ test('shows expected, actual and reproduction, copies a fix prompt and resolves 
 test('opens an issue tab from the transcript and synchronizes it with replay', async ({
   page,
   context,
+  workspacePage,
+  issuesPage,
+  runPage,
 }, testInfo) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const frame = {
@@ -455,17 +468,14 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
       ),
     }),
   );
-  await page.goto(`/runs/${runId}`);
+  await runPage.goto(runId);
   const transcript = page.locator('section[aria-label="步骤"]');
-  const panel = page.getByRole('region', { name: '执行关联问题', exact: true });
+  const panel = issuesPage.linkedIssues;
 
   await expect(transcript.getByRole('button', { name: '查看问题：订单金额错误' })).toBeVisible();
   await expect(panel).toBeHidden();
   await transcript.getByRole('button', { name: '查看问题：订单金额错误' }).click();
-  await expect(page.getByRole('button', { name: '问题', exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(issuesPage.issuesButton).toHaveAttribute('aria-pressed', 'true');
   await expect(transcript).toBeHidden();
   await expect(panel.getByText('预期 EXPECTED')).toBeVisible();
   await expect(panel.getByText('实际为120', { exact: true })).toBeVisible();
@@ -473,17 +483,15 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await expect(page.locator('[data-ui~="run-studio"] > [aria-label="执行关联问题"]')).toHaveCount(
     0,
   );
-  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:26 / 00:32');
+  await expect(runPage.playbackTime).toHaveText('00:26 / 00:32');
   await page.screenshot({ path: testInfo.outputPath('run-issues-default.png'), fullPage: true });
   await expect(panel.getByText('查看订单', { exact: true })).toBeVisible();
   await panel.getByText('截图证据 · 1', { exact: true }).click();
   await panel.getByRole('button', { name: '回放证据 00:26' }).click();
-  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:26 / 00:32');
+  await expect(runPage.playbackTime).toHaveText('00:26 / 00:32');
   await panel.getByRole('button', { name: '复制修复提示词', exact: true }).click();
   await expect(
-    page
-      .getByRole('region', { name: '通知', exact: true })
-      .getByText('已复制修复提示词', { exact: true }),
+    workspacePage.notifications.getByText('已复制修复提示词', { exact: true }),
   ).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('实际为120');
   await panel.getByRole('combobox', { name: '问题状态：订单金额错误' }).click();
@@ -496,12 +504,16 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   });
   await expect(panel.getByRole('button', { name: '复制修复提示词', exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('run-issues.png'), fullPage: true });
-  await page.getByRole('button', { name: '步骤', exact: true }).click();
+  await runPage.stepsButton.click();
   await expect(transcript).toBeVisible();
-  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:26 / 00:32');
+  await expect(runPage.playbackTime).toHaveText('00:26 / 00:32');
 });
 
-test('selects among issues in the issue tab and shows a clear empty state', async ({ page }) => {
+test('selects among issues in the issue tab and shows a clear empty state', async ({
+  page,
+  issuesPage,
+  runPage,
+}) => {
   const secondId = '62534c46-a8eb-4991-993e-af6df14bece5';
   const secondOccurrence = {
     ...occurrence,
@@ -517,9 +529,9 @@ test('selects among issues in the issue tab and shows a clear empty state', asyn
   await page.route('**/api/issues?*', (route) =>
     route.fulfill({ json: { issues: entries, nextCursor: null } }),
   );
-  await page.goto(`/runs/${runId}`);
-  await page.getByRole('button', { name: '问题', exact: true }).click();
-  const panel = page.getByRole('region', { name: '执行关联问题', exact: true });
+  await runPage.goto(runId);
+  await issuesPage.issuesButton.click();
+  const panel = issuesPage.linkedIssues;
 
   await expect(panel.getByText('本次执行 · 2 个问题')).toBeVisible();
   await panel.getByRole('combobox', { name: '选择执行问题' }).click();
@@ -527,13 +539,10 @@ test('selects among issues in the issue tab and shows a clear empty state', asyn
   await expect(panel.getByRole('heading', { name: '优惠金额错误', exact: true })).toBeVisible();
   await expect(panel.getByText('优惠金额为10', { exact: true })).toBeVisible();
   await expect(panel.getByText('实际为120', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '回放', exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(runPage.playbackButton).toHaveAttribute('aria-pressed', 'true');
   entries = [];
   await page.reload();
-  await page.getByRole('button', { name: '问题', exact: true }).click();
+  await issuesPage.issuesButton.click();
   await expect(panel.getByRole('heading', { name: '本次执行暂无关联问题' })).toBeVisible();
 });
 

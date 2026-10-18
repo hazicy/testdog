@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 
 async function mockAccount(page: import('@playwright/test').Page, provider = 'credential') {
   let name = '测试用户';
@@ -21,45 +21,50 @@ async function mockAccount(page: import('@playwright/test').Page, provider = 'cr
   });
 }
 
-test('profile and security settings remain usable on a narrow phone', async ({ page }) => {
+test('profile and security settings remain usable on a narrow phone', async ({
+  page,
+  workspacePage,
+  settingsPage,
+}) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await mockAccount(page);
-  await page.goto('/settings');
-  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
-  await expect(page.getByLabel('姓名', { exact: true })).toBeVisible();
-  await page.getByRole('tab', { name: '登录安全' }).click();
-  await expect(page.getByLabel('当前密码', { exact: true })).toBeVisible();
+  await settingsPage.goto();
+  await settingsPage.openProfile();
+  await expect(settingsPage.nameInput).toBeVisible();
+  await settingsPage.openSecurity();
+  await expect(settingsPage.currentPasswordInput).toBeVisible();
   expect(
-    await page
-      .locator('#main-content')
-      .evaluate((element) => element.scrollWidth <= element.clientWidth),
+    await workspacePage.main.evaluate((element) => element.scrollWidth <= element.clientWidth),
   ).toBe(true);
-  await page.getByRole('button', { name: '修改密码', exact: true }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole('button', { name: '修改密码', exact: true })).toBeInViewport();
+  await settingsPage.changePasswordButton.scrollIntoViewIfNeeded();
+  await expect(settingsPage.changePasswordButton).toBeInViewport();
 });
 
-test('saves the profile and updates the sidebar and refreshed page', async ({ page }) => {
+test('saves the profile and updates the sidebar and refreshed page', async ({
+  page,
+  settingsPage,
+  workspacePage,
+}) => {
   await mockAccount(page);
-  await page.goto('/settings');
-  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
-  await expect(page.getByLabel('邮箱', { exact: true })).toHaveValue('user@example.com');
-  await expect(page.getByLabel('邮箱', { exact: true })).toHaveAttribute('readonly', '');
-  await page.getByLabel('姓名', { exact: true }).fill('更新用户');
-  await page.getByRole('button', { name: '保存资料' }).click();
+  await settingsPage.goto();
+  await settingsPage.openProfile();
+  await expect(settingsPage.emailInput).toHaveValue('user@example.com');
+  await expect(settingsPage.emailInput).toHaveAttribute('readonly', '');
+  await settingsPage.nameInput.fill('更新用户');
+  await settingsPage.saveProfile();
   await expect(
-    page
-      .getByRole('region', { name: '通知', exact: true })
-      .getByText('资料已保存。', { exact: true })
-      .last(),
+    workspacePage.notifications.getByText('资料已保存。', { exact: true }).last(),
   ).toBeVisible();
-  await expect(page.locator('aside').getByText('更新用户', { exact: true })).toBeVisible();
+  await expect(workspacePage.sidebar.getByText('更新用户', { exact: true })).toBeVisible();
   await page.reload();
-  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
-  await expect(page.getByLabel('姓名', { exact: true })).toHaveValue('更新用户');
+  await settingsPage.openProfile();
+  await expect(settingsPage.nameInput).toHaveValue('更新用户');
 });
 
 test('validates confirmation, handles incorrect passwords and clears fields on success', async ({
   page,
+  workspacePage,
+  settingsPage,
 }) => {
   await mockAccount(page);
   let requests = 0;
@@ -79,42 +84,43 @@ test('validates confirmation, handles incorrect passwords and clears fields on s
         })
       : route.fulfill({ json: { token: 'new-token', user: { id: 'user-1' } } });
   });
-  await page.goto('/settings');
-  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
-  await page.getByRole('tab', { name: '登录安全' }).click();
-  await page.getByLabel('当前密码', { exact: true }).fill('old-password');
-  await page.getByLabel('新密码', { exact: true }).fill('new-password');
-  await page.getByLabel('确认新密码', { exact: true }).fill('different-password');
-  await page.getByRole('button', { name: '修改密码', exact: true }).click();
-  await expect(page.getByRole('main').getByRole('alert')).toHaveText('两次输入的新密码不一致。');
+  await settingsPage.goto();
+  await settingsPage.openProfile();
+  await settingsPage.openSecurity();
+  await settingsPage.currentPasswordInput.fill('old-password');
+  await settingsPage.newPasswordInput.fill('new-password');
+  await settingsPage.confirmPasswordInput.fill('different-password');
+  await settingsPage.changePasswordButton.click();
+  await expect(settingsPage.errorAlert).toHaveText('两次输入的新密码不一致。');
   expect(requests).toBe(0);
-  await page.getByLabel('确认新密码', { exact: true }).fill('new-password');
-  await page.getByRole('button', { name: '修改密码', exact: true }).click();
-  await expect(page.getByRole('main').getByRole('alert')).toHaveText(
-    '当前密码不正确，请重新输入。',
-  );
-  await page.getByRole('button', { name: '修改密码', exact: true }).click();
+  await settingsPage.confirmPasswordInput.fill('new-password');
+  await settingsPage.changePasswordButton.click();
+  await expect(settingsPage.errorAlert).toHaveText('当前密码不正确，请重新输入。');
+  await settingsPage.changePasswordButton.click();
   await expect(
-    page
-      .getByRole('region', { name: '通知', exact: true })
+    workspacePage.notifications
       .getByText('密码已修改，其他设备的登录已退出。', { exact: true })
       .last(),
   ).toBeVisible();
-  await expect(page.getByLabel('当前密码', { exact: true })).toHaveValue('');
-  await expect(page.getByLabel('新密码', { exact: true })).toHaveValue('');
-  await expect(page.getByLabel('确认新密码', { exact: true })).toHaveValue('');
+  await expect(settingsPage.currentPasswordInput).toHaveValue('');
+  await expect(settingsPage.newPasswordInput).toHaveValue('');
+  await expect(settingsPage.confirmPasswordInput).toHaveValue('');
 });
 
-test('guides third-party accounts to their login provider', async ({ page }) => {
+test('guides third-party accounts to their login provider', async ({ page, settingsPage }) => {
   await mockAccount(page, 'github');
-  await page.goto('/settings');
-  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
-  await page.getByRole('tab', { name: '登录安全' }).click();
+  await settingsPage.goto();
+  await settingsPage.openProfile();
+  await settingsPage.openSecurity();
   await expect(page.getByText('此账户使用第三方登录', { exact: false })).toBeVisible();
-  await expect(page.getByRole('button', { name: '修改密码', exact: true })).toHaveCount(0);
+  await expect(settingsPage.changePasswordButton).toHaveCount(0);
 });
 
-test('keeps profile edits when saving fails and supports retry', async ({ page }) => {
+test('keeps profile edits when saving fails and supports retry', async ({
+  page,
+  workspacePage,
+  settingsPage,
+}) => {
   await mockAccount(page);
   let requests = 0;
 
@@ -125,17 +131,14 @@ test('keeps profile edits when saving fails and supports retry', async ({ page }
       ? route.fulfill({ status: 500, json: { message: 'Failed' } })
       : route.fulfill({ json: { status: true } });
   });
-  await page.goto('/settings');
-  await page.getByRole('tab', { name: '账户资料', exact: true }).click();
-  await page.getByLabel('姓名', { exact: true }).fill('保留草稿');
-  await page.getByRole('button', { name: '保存资料' }).click();
-  await expect(page.getByRole('main').getByRole('alert')).toHaveText('资料保存失败，请稍后重试。');
-  await expect(page.getByLabel('姓名', { exact: true })).toHaveValue('保留草稿');
-  await page.getByRole('button', { name: '保存资料' }).click();
+  await settingsPage.goto();
+  await settingsPage.openProfile();
+  await settingsPage.nameInput.fill('保留草稿');
+  await settingsPage.saveProfile();
+  await expect(settingsPage.errorAlert).toHaveText('资料保存失败，请稍后重试。');
+  await expect(settingsPage.nameInput).toHaveValue('保留草稿');
+  await settingsPage.saveProfile();
   await expect(
-    page
-      .getByRole('region', { name: '通知', exact: true })
-      .getByText('资料已保存。', { exact: true })
-      .last(),
+    workspacePage.notifications.getByText('资料已保存。', { exact: true }).last(),
   ).toBeVisible();
 });

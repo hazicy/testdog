@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 import { makeRun, makeStep } from './fixtures/workspace';
 import { mockRun, mockWorkspaceSupport } from './fixtures/routes';
 
@@ -8,6 +8,7 @@ const run = makeRun({
 
 test('AI logs show calls directly without repeating execution steps', async ({
   page,
+  runPage,
 }, testInfo) => {
   await mockWorkspaceSupport(page);
   await mockRun(page, run);
@@ -52,10 +53,10 @@ test('AI logs show calls directly without repeating execution steps', async ({
       },
     }),
   );
-  await page.goto(`/runs/${run.id}`);
+  await runPage.goto(run.id);
   await expect(page.getByRole('button', { name: '执行日志', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'AI 调用', exact: true }).click();
-  const panel = page.getByLabel('AI 调用内容', { exact: true });
+  await runPage.openAiLogs();
+  const panel = runPage.aiContent;
   const calls = panel.getByRole('listitem');
 
   await expect(panel.locator('details')).toHaveCount(0);
@@ -117,6 +118,7 @@ test('AI logs show calls directly without repeating execution steps', async ({
 
 test('AI log updates follow the bottom and preserve historical scroll positions', async ({
   page,
+  runPage,
 }) => {
   await page.clock.install();
   await mockWorkspaceSupport(page);
@@ -150,8 +152,8 @@ test('AI log updates follow the bottom and preserve historical scroll positions'
       },
     }),
   );
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: 'AI 调用', exact: true }).click();
+  await runPage.goto(run.id);
+  await runPage.openAiLogs();
   const panel = page.getByRole('region', { name: 'AI 调用记录' });
   const scroll = panel.locator('ol').locator('..');
 
@@ -194,6 +196,8 @@ test('AI log updates follow the bottom and preserve historical scroll positions'
 
 test('AI trajectories load lazily and connect replies and tool results to execution steps', async ({
   page,
+  workspacePage,
+  runPage,
 }, testInfo) => {
   await mockWorkspaceSupport(page);
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
@@ -283,9 +287,9 @@ test('AI trajectories load lazily and connect replies and tool results to execut
       },
     });
   });
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: 'AI 调用', exact: true }).click();
-  const panel = page.getByLabel('AI 调用内容', { exact: true });
+  await runPage.goto(run.id);
+  await runPage.openAiLogs();
+  const panel = runPage.aiContent;
 
   await expect(panel.getByRole('listitem')).toHaveCount(1);
   await expect(panel.locator('details')).toHaveCount(0);
@@ -366,10 +370,7 @@ test('AI trajectories load lazily and connect replies and tool results to execut
     await button.click();
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(value);
     await expect(
-      page
-        .getByRole('region', { name: '通知', exact: true })
-        .getByText('已复制', { exact: true })
-        .first(),
+      workspacePage.notifications.getByText('已复制', { exact: true }).first(),
     ).toBeVisible();
   }
 
@@ -415,8 +416,6 @@ test('AI trajectories load lazily and connect replies and tool results to execut
   await tools.first().getByRole('button', { name: '查看步骤', exact: true }).click();
   await expect(drawer).toHaveCount(0);
   await expect(
-    page
-      .getByRole('region', { name: '步骤' })
-      .getByRole('heading', { name: '输入搜索内容', exact: true }),
+    runPage.steps.getByRole('heading', { name: '输入搜索内容', exact: true }),
   ).toBeVisible();
 });

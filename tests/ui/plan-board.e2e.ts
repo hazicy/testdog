@@ -1,7 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 
 test('canvas insertion visibility, editing history and Chinese composition work together', async ({
   page,
+  caseEditor,
 }, testInfo) => {
   await page.route('**/api/tests*', (route) =>
     route.fulfill({ json: { tests: [], nextCursor: null } }),
@@ -10,9 +11,9 @@ test('canvas insertion visibility, editing history and Chinese composition work 
     route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const canvas = page.locator('[data-ui~="case-canvas-page"]');
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  const canvas = caseEditor.canvas;
   const viewport = canvas.locator('[data-ui~="plan-viewport"]');
   const firstInsert = canvas.getByRole('button', {
     name: '在 root 的第 1 个位置添加节点',
@@ -147,6 +148,7 @@ test('canvas insertion visibility, editing history and Chinese composition work 
 
 test('canvas settings make room on phones and preserve edits when dismissed', async ({
   page,
+  caseEditor,
 }, testInfo) => {
   await page.route('**/api/tests*', (route) =>
     route.fulfill({ json: { tests: [], nextCursor: null } }),
@@ -155,9 +157,9 @@ test('canvas settings make room on phones and preserve edits when dismissed', as
     route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
   );
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const canvas = page.getByRole('region', { name: '测试画板' });
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  const canvas = caseEditor.board;
   const name = canvas.getByRole('textbox', { name: '测试名称', exact: true });
   const viewport = canvas.locator('[data-ui="plan-viewport"]');
 
@@ -189,6 +191,7 @@ test('canvas settings make room on phones and preserve edits when dismissed', as
 
 test('insertion uses the clicked slot, cancels without changes and focuses the new content', async ({
   page,
+  caseEditor,
 }) => {
   await page.route('**/api/tests*', (route) =>
     route.fulfill({ json: { tests: [], nextCursor: null } }),
@@ -197,9 +200,9 @@ test('insertion uses the clicked slot, cancels without changes and focuses the n
     route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const canvas = page.locator('[data-ui~="case-canvas-page"]');
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  const canvas = caseEditor.canvas;
   const slot = (index: number) =>
     canvas.getByRole('button', { name: `在 root 的第 ${index} 个位置添加节点`, exact: true });
   const input = canvas.getByRole('textbox', { name: /^节点内容/ });
@@ -260,6 +263,7 @@ test('insertion uses the clicked slot, cancels without changes and focuses the n
 
 test('branch insertion keeps each path separate and the continuation outside both paths on phones', async ({
   page,
+  caseEditor,
 }, testInfo) => {
   await page.route('**/api/tests*', (route) =>
     route.fulfill({ json: { tests: [], nextCursor: null } }),
@@ -268,9 +272,9 @@ test('branch insertion keeps each path separate and the continuation outside bot
     route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
   );
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const canvas = page.locator('[data-ui~="case-canvas-page"]');
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  const canvas = caseEditor.canvas;
   const input = canvas.getByRole('textbox', { name: /^节点内容/ });
   const insert = async (group: string, position: number, type: string, text: string) => {
     const trigger = canvas.getByRole('button', {

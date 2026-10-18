@@ -1,4 +1,5 @@
-import { expect, test, type Locator } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
+import { type Locator } from '@playwright/test';
 
 async function openSettings(editor: Locator) {
   await expect(editor.getByRole('complementary', { name: '测试面板' })).toBeVisible();
@@ -58,14 +59,15 @@ test.beforeEach(async ({ page }) => {
 
 test('field overrides and focus styles survive the shared CSS Module controls', async ({
   page,
+  caseEditor,
 }) => {
-  await page.goto('/cases');
+  await caseEditor.goto();
   await expect(page.getByRole('textbox', { name: '搜索测试', exact: true })).toHaveCSS(
     'padding-left',
     '36px',
   );
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const editor = page.locator('[data-ui~="case-canvas-page"]');
+  await caseEditor.newTestButton.first().click();
+  const editor = caseEditor.canvas;
 
   await openSettings(editor);
   const name = editor.getByRole('textbox', { name: '测试名称', exact: true });
@@ -81,10 +83,13 @@ test('field overrides and focus styles survive the shared CSS Module controls', 
   await expect(editor.getByLabel('输入引用（JSON，可选）', { exact: true })).toHaveCount(0);
 });
 
-test('select keyboard navigation and Escape stay within the editor dialog', async ({ page }) => {
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('[data-ui~="case-canvas-page"]');
+test('select keyboard navigation and Escape stay within the editor dialog', async ({
+  page,
+  caseEditor,
+}) => {
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  const dialog = caseEditor.canvas;
 
   await openSettings(dialog);
   const platform = dialog.getByRole('combobox', { name: '平台', exact: true });
@@ -110,6 +115,7 @@ test('select keyboard navigation and Escape stay within the editor dialog', asyn
 
 test('native setup validates required selection and submits custom checkbox values', async ({
   page,
+  caseEditor,
 }) => {
   let submitted: Record<string, unknown> | undefined;
   let release!: () => void;
@@ -123,9 +129,9 @@ test('native setup validates required selection and submits custom checkbox valu
     await pending;
     await route.fulfill({ json: { test: submitted } });
   });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const dialog = page.locator('[data-ui~="case-canvas-page"]');
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  const dialog = caseEditor.canvas;
 
   await openSettings(dialog);
 
@@ -168,6 +174,7 @@ test('native setup validates required selection and submits custom checkbox valu
 
 test('native text conversion includes application context before selecting a device', async ({
   page,
+  caseEditor,
 }) => {
   let submitted: Record<string, unknown> | undefined;
 
@@ -193,18 +200,18 @@ test('native text conversion includes application context before selecting a dev
       },
     });
   });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const editor = page.locator('[data-ui~="case-canvas-page"]');
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  const editor = caseEditor.canvas;
 
   await openSettings(editor);
   await editor.getByLabel('平台', { exact: true }).click();
   await page.getByRole('option', { name: 'iOS · 原生应用', exact: true }).click();
   await editor.getByLabel('应用标识', { exact: true }).fill('com.example.app');
   await editor.getByRole('button', { name: '描述生成', exact: true }).click();
-  await page.getByLabel('测试步骤与预期结果').fill('验证显示 Ada');
-  await page.getByRole('button', { name: '生成', exact: true }).click();
-  await page.getByRole('button', { name: '全部接受', exact: true }).click();
+  await caseEditor.promptInput.fill('验证显示 Ada');
+  await caseEditor.generateButton.click();
+  await caseEditor.acceptAllButton.click();
   expect(submitted).toEqual({
     goal: '验证显示 Ada',
     context: {
@@ -237,6 +244,8 @@ test('example tabs navigate with arrow keys and expose the matching panel', asyn
 
 test('compact panel defaults closed and Run retries the draft without saving the case', async ({
   page,
+  caseEditor,
+  runPage,
 }) => {
   const testId = '62534c46-a8eb-4991-993e-af6df14bece0';
   const runId = '62534c46-a8eb-4991-993e-af6df14bece1';
@@ -290,8 +299,8 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await page.route(`**/api/runs/${runId}`, (route) =>
     route.fulfill({ status: 404, json: { message: '执行详情尚未就绪' } }),
   );
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
   const panel = page.getByRole('complementary', { name: '测试面板' });
 
   await expect(panel).toHaveAttribute('data-collapsed', 'true');
@@ -299,7 +308,7 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await expect(panel.getByRole('button', { name: '返回用例列表' })).toHaveCount(0);
   await expect(panel.getByRole('button', { name: '试跑', exact: true })).toBeVisible();
   await expect(panel.getByRole('button', { name: '保存', exact: true })).toBeVisible();
-  const canvas = page.locator('[data-ui~="plan-viewport"]');
+  const canvas = runPage.planViewport;
   const viewport = page.locator('.react-flow__viewport');
 
   await expect(canvas.locator('.react-flow__node').first()).toBeVisible();
@@ -308,7 +317,7 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await page.getByRole('button', { name: '放大画板' }).click();
   await expect(viewport).not.toHaveAttribute('style', initialTransform!);
   const transform = await viewport.getAttribute('style');
-  const zoomLabel = await page.getByRole('button', { name: '画板恢复原始比例' }).textContent();
+  const zoomLabel = await caseEditor.resetZoomButton.textContent();
   const bounds = await canvas.boundingBox();
 
   await panel.getByRole('button', { name: '展开面板' }).click();
@@ -316,7 +325,7 @@ test('compact panel defaults closed and Run retries the draft without saving the
   const settings = page.getByRole('complementary', { name: '测试设置', exact: true });
 
   await expect(settings).toBeVisible();
-  await expect(page.getByRole('button', { name: '画板恢复原始比例' })).toHaveText(zoomLabel!);
+  await expect(caseEditor.resetZoomButton).toHaveText(zoomLabel!);
   const reducedBounds = (await canvas.boundingBox())!;
   const settingsBounds = (await settings.boundingBox())!;
 
@@ -328,7 +337,7 @@ test('compact panel defaults closed and Run retries the draft without saving the
   await expect(viewport).toHaveAttribute('style', transform!);
   expect(await canvas.boundingBox()).toEqual(bounds);
   await panel.getByRole('button', { name: '描述生成', exact: true }).click();
-  await expect(page.getByLabel('测试步骤与预期结果')).toHaveAttribute(
+  await expect(caseEditor.promptInput).toHaveAttribute(
     'placeholder',
     '描述测试步骤和预期结果，可附上网站地址…',
   );
@@ -337,23 +346,15 @@ test('compact panel defaults closed and Run retries the draft without saving the
   const overlay = page.getByRole('dialog', { name: '描述测试' });
 
   await expect(overlay).toBeVisible();
-  expect(await overlay.boundingBox()).toEqual(
-    await page.locator('[data-ui~="case-canvas-page"]').boundingBox(),
-  );
-  expect(await page.getByLabel('测试步骤与预期结果').boundingBox()).toEqual(
-    await overlay.boundingBox(),
-  );
-  await expect(page.getByLabel('测试步骤与预期结果')).toBeFocused();
-  await page
-    .locator('[data-ui~="case-canvas-page"]')
-    .screenshot({ path: 'artifacts/ui/case-prompt-overlay.png' });
-  await page.getByLabel('测试步骤与预期结果').fill('打开 https://example.com，验证首页');
-  await page.getByRole('button', { name: '生成', exact: true }).click();
+  expect(await overlay.boundingBox()).toEqual(await caseEditor.canvas.boundingBox());
+  expect(await caseEditor.promptInput.boundingBox()).toEqual(await overlay.boundingBox());
+  await expect(caseEditor.promptInput).toBeFocused();
+  await caseEditor.canvas.screenshot({ path: 'artifacts/ui/case-prompt-overlay.png' });
+  await caseEditor.promptInput.fill('打开 https://example.com，验证首页');
+  await caseEditor.generateButton.click();
   await page.getByRole('button', { name: '全部接受' }).click();
   await panel.getByRole('button', { name: '试跑', exact: true }).click();
-  await expect(page.getByRole('region', { name: '测试画板' }).getByRole('alert')).toHaveText(
-    '运行暂时失败',
-  );
+  await expect(caseEditor.board.getByRole('alert')).toHaveText('运行暂时失败');
   await panel.getByRole('button', { name: '试跑', exact: true }).click();
   await expect(page.getByRole('dialog', { name: /草稿试跑/ })).toBeVisible();
   expect(attempts).toBe(2);
@@ -362,6 +363,7 @@ test('compact panel defaults closed and Run retries the draft without saving the
 
 test('reviews generated edits, additions and deletions individually before saving the mixed board', async ({
   page,
+  caseEditor,
 }) => {
   let generation = 0;
   let stored:
@@ -413,30 +415,28 @@ test('reviews generated edits, additions and deletions individually before savin
 
     return route.fulfill({ json: { test: stored } });
   });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  await page.getByRole('button', { name: '描述生成', exact: true }).click();
-  await page.getByLabel('测试步骤与预期结果').fill('打开 https://example.com，验证登录');
-  await page.getByRole('button', { name: '生成', exact: true }).click();
-  await page.getByRole('button', { name: '全部接受', exact: true }).click();
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  await caseEditor.describeButton.click();
+  await caseEditor.promptInput.fill('打开 https://example.com，验证登录');
+  await caseEditor.generateButton.click();
+  await caseEditor.acceptAllButton.click();
   await page.getByRole('button', { name: '描述调整', exact: true }).click();
-  await page.getByLabel('测试步骤与预期结果').fill('调整操作');
+  await caseEditor.promptInput.fill('调整操作');
   await page.getByRole('button', { name: '预览', exact: true }).click();
   await expect(page.locator('[data-plan-node=a]')).toHaveAttribute('data-review', 'modified');
   await expect(page.locator('[data-plan-node=b]')).toHaveAttribute('data-review', 'removed');
   await expect(page.locator('[data-plan-node=c]')).toHaveAttribute('data-review', 'added');
-  await page
-    .locator('[data-ui~="case-canvas-page"]')
-    .screenshot({ path: 'artifacts/ui/case-plan-review.png' });
+  await caseEditor.canvas.screenshot({ path: 'artifacts/ui/case-plan-review.png' });
   await page.getByRole('button', { name: '接受变更 a', exact: true }).click();
   await page.getByRole('button', { name: '拒绝变更 c', exact: true }).click();
   await page.getByRole('button', { name: '拒绝变更 b', exact: true }).click();
   await expect(page.locator('[data-plan-node=b]')).toContainText('点击登录');
-  await expect(page.getByRole('button', { name: '保存', exact: true })).toBeDisabled();
+  await expect(caseEditor.saveButton).toBeDisabled();
   await page.getByRole('button', { name: '接受变更 d', exact: true }).click();
-  await expect(page.getByRole('button', { name: '保存', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: '保存', exact: true }).click();
-  await expect(page.locator('[data-ui~="case-canvas-page"]')).toHaveCount(0);
+  await expect(caseEditor.saveButton).toBeEnabled();
+  await caseEditor.saveButton.click();
+  await expect(caseEditor.canvas).toHaveCount(0);
   expect(stored?.plan.nodes.root.children).toEqual(['a', 'b', 'd']);
   expect(stored?.plan.nodes.a.goal).toBe('打开账号页');
   expect(stored?.plan.nodes.c).toBeUndefined();

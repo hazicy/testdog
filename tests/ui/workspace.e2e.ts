@@ -1,4 +1,5 @@
-import { expect, test, type Locator } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
+import { type Locator } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { makeCase, makeRun, makeStep, makeScreenshot, summarizeRun } from './fixtures/workspace';
 import { mockWorkspaceSupport, mockRun, mockLists, mockScreenshots } from './fixtures/routes';
@@ -21,7 +22,10 @@ const saved = makeCase();
 const run = makeRun({}, saved);
 const summary = summarizeRun(run);
 
-test('frame playback and step selection keep the matching evidence visible', async ({ page }) => {
+test('frame playback and step selection keep the matching evidence visible', async ({
+  page,
+  runPage,
+}) => {
   const secondStep = makeStep(run, { id: 'second-step', sequence: 2, title: '检查页面' });
   const artifacts = [run.steps[0], secondStep].flatMap((step, index) =>
     (['before', 'after'] as const).map((stage, offset) =>
@@ -37,7 +41,7 @@ test('frame playback and step selection keep the matching evidence visible', asy
 
   await mockRun(page, makeRun({ steps: [...run.steps, secondStep], artifacts }));
   await mockScreenshots(page, run.id);
-  await page.goto(`/runs/${run.id}`);
+  await runPage.goto(run.id);
   const image = page.getByRole('img', { name: /^执行画面/ });
 
   await expect(image).toHaveAttribute('src', /frame-1-after$/);
@@ -46,33 +50,31 @@ test('frame playback and step selection keep the matching evidence visible', asy
   await expect(mark).toHaveAttribute('title', '00:02 · 检查页面');
   await mark.click();
   await expect(image).toHaveAttribute('src', /frame-1-before$/);
-  await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
+  await expect(runPage.playButton).toBeVisible();
 
-  await page
-    .getByRole('region', { name: '步骤' })
-    .getByRole('button', { name: /打开网站/ })
-    .click();
+  await runPage.steps.getByRole('button', { name: /打开网站/ }).click();
   await expect(image).toHaveAttribute('src', /frame-0-after$/);
   await expect(
     page
       .locator('section[aria-label="步骤"]')
       .getByRole('heading', { name: '打开网站', exact: true }),
   ).toBeVisible();
-  await page.getByRole('slider', { name: '画面时间轴' }).fill('0');
+  await runPage.timeline.fill('0');
   await expect(image).toHaveAttribute('src', /frame-0-before$/);
-  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:00 / 00:03');
-  await page.getByRole('slider', { name: '画面时间轴' }).fill('2500');
+  await expect(runPage.playbackTime).toHaveText('00:00 / 00:03');
+  await runPage.timeline.fill('2500');
   await expect(image).toHaveAttribute('src', /frame-1-before$/);
-  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:02 / 00:03');
-  await page.getByRole('slider', { name: '画面时间轴' }).fill('0');
+  await expect(runPage.playbackTime).toHaveText('00:02 / 00:03');
+  await runPage.timeline.fill('0');
 
-  await page.getByRole('button', { name: '播放回看', exact: true }).click();
+  await runPage.play();
   await expect(image).toHaveAttribute('src', /frame-1-after$/);
   await expect(page.getByRole('heading', { name: '打开网站', exact: true })).toBeVisible();
 });
 
 test('resumes live replay at the right edge and keeps historical seeks paused', async ({
   page,
+  runPage,
 }) => {
   const frames = [0, 5000].map((elapsedMs) =>
     makeScreenshot(run, { id: `live-frame-${elapsedMs}`, elapsedMs }),
@@ -98,8 +100,8 @@ test('resumes live replay at the right edge and keeps historical seeks paused', 
     }
     Object.assign(window, { EventSource: FakeEventSource });
   });
-  await page.goto(`/runs/${run.id}`);
-  const slider = page.getByRole('slider', { name: '画面时间轴' });
+  await runPage.goto(run.id);
+  const slider = runPage.timeline;
   const live = page.getByText(/● LIVE/);
 
   await expect(page.getByRole('button', { name: '跟随实时画面' })).toHaveCount(0);
@@ -107,7 +109,7 @@ test('resumes live replay at the right edge and keeps historical seeks paused', 
   await expect(slider).toHaveAttribute('aria-valuenow', '5000');
   await slider.fill('1000');
   await expect(live).toHaveCount(0);
-  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:01 / 00:05');
+  await expect(runPage.playbackTime).toHaveText('00:01 / 00:05');
   await slider.fill('5000');
   await expect(live).toBeVisible();
 
@@ -130,12 +132,13 @@ test('resumes live replay at the right edge and keeps historical seeks paused', 
   );
   await slider.fill('1000');
   await expect(live).toHaveCount(0);
-  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:01 / 00:07');
+  await expect(runPage.playbackTime).toHaveText('00:01 / 00:07');
 });
 
 test('uses one replay player and pauses video when leaving execution', async ({
   page,
   browser,
+  runPage,
 }) => {
   const frames = [0, 1, 2].map((index) =>
     makeScreenshot(run, {
@@ -186,15 +189,15 @@ test('uses one replay player and pauses video when leaving execution', async ({
       body: recording.subarray(start, end + 1),
     });
   });
-  await page.goto(`/runs/${run.id}`);
-  await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeEnabled();
-  const media = page.getByLabel('执行录像');
+  await runPage.goto(run.id);
+  await expect(runPage.playButton).toBeEnabled();
+  const media = runPage.recording;
 
   await expect
     .poll(() => media.evaluate((element) => (element as HTMLVideoElement).readyState))
     .toBeGreaterThan(1);
-  await page.getByRole('button', { name: '播放回看', exact: true }).click();
-  await expect(page.getByRole('button', { name: '暂停回看', exact: true })).toBeVisible();
+  await runPage.play();
+  await expect(runPage.pauseButton).toBeVisible();
   const timeline = await page.getByTestId('replay-timeline').boundingBox();
 
   expect(timeline).not.toBeNull();
@@ -204,7 +207,7 @@ test('uses one replay player and pauses video when leaving execution', async ({
     steps: 5,
   });
   await page.mouse.up();
-  await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
+  await expect(runPage.playButton).toBeVisible();
   await expect
     .poll(() => media.evaluate((element) => (element as HTMLVideoElement).paused))
     .toBe(true);
@@ -214,26 +217,26 @@ test('uses one replay player and pauses video when leaving execution', async ({
   await expect
     .poll(() => media.evaluate((element) => (element as HTMLVideoElement).currentTime))
     .toBeCloseTo(pausedTime);
-  await page.getByRole('slider', { name: '画面时间轴' }).fill('1000');
+  await runPage.timeline.fill('1000');
   await expect
     .poll(() => media.evaluate((element) => (element as HTMLVideoElement).currentTime))
     .toBeCloseTo(1);
-  await page.getByRole('slider', { name: '画面时间轴' }).fill('0');
+  await runPage.timeline.fill('0');
   await expect(page.getByRole('button', { name: '完整录像', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '画面回看', exact: true })).toHaveCount(0);
-  const video = page.getByLabel('执行录像');
+  const video = runPage.recording;
 
   await video.evaluate((element) => {
     (element as HTMLVideoElement).pause = () => {
       element.dataset.pausedByView = 'true';
     };
   });
-  await page.getByRole('button', { name: '计划', exact: true }).click();
+  await runPage.planButton.click();
   await expect(video).toHaveAttribute('data-paused-by-view', 'true');
-  await page.getByRole('button', { name: '回放', exact: true }).click();
+  await runPage.playbackButton.click();
 
-  await expect(page.getByRole('slider', { name: '画面时间轴' })).toHaveValue('0');
-  await expect(page.getByRole('button', { name: '播放回看', exact: true })).toBeVisible();
+  await expect(runPage.timeline).toHaveValue('0');
+  await expect(runPage.playButton).toBeVisible();
 });
 
 test('fallback polling keeps unchanged details and receives the completed execution', async ({
@@ -332,6 +335,7 @@ test('invalid execution addresses render the custom 404 page', async ({ page }) 
 
 test('case search combines tags and latest status while history uses each execution status', async ({
   page,
+  listPage,
 }) => {
   const untouched = makeCase({
     id: '62534c46-a8eb-4991-993e-af6df14bece8',
@@ -388,13 +392,16 @@ test('case search combines tags and latest status while history uses each execut
   await expect(page.getByRole('textbox', { name: '搜索结果', exact: true })).toBeVisible();
   await page.getByLabel('状态筛选').click();
   await page.getByRole('option', { name: '失败', exact: true }).click();
-  const result = page.getByRole('table').getByRole('link', { name: saved.name, exact: true });
+  const result = listPage.table.getByRole('link', { name: saved.name, exact: true });
 
   await expect(result).toHaveCount(1);
   await expect(result).toHaveAttribute('href', `/runs/${older.id}`);
 });
 
-test('history loads and refreshes without depending on the case library', async ({ page }) => {
+test('history loads and refreshes without depending on the case library', async ({
+  page,
+  listPage,
+}) => {
   let caseReads = 0;
   let runReads = 0;
 
@@ -409,9 +416,7 @@ test('history loads and refreshes without depending on the case library', async 
     return route.fulfill({ json: { runs: [summary] } });
   });
   await page.goto('/runs');
-  await expect(
-    page.getByRole('table').getByRole('link', { name: saved.name, exact: true }),
-  ).toBeVisible();
+  await expect(listPage.table.getByRole('link', { name: saved.name, exact: true })).toBeVisible();
   await page.reload();
   await expect.poll(() => runReads).toBeGreaterThan(1);
   expect(caseReads).toBe(0);
@@ -517,6 +522,8 @@ test('exports complete reports from both history and detail, and allows retry af
 
 test('quick creation preserves failed prompts and opens generated nodes in the canvas', async ({
   page,
+  caseEditor,
+  workspacePage,
 }) => {
   await mockLists(page, { tests: [saved] });
   let fail = true;
@@ -563,9 +570,9 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
           },
     );
   });
-  await page.goto('/cases');
-  await expect(page.getByRole('button', { name: '新建测试', exact: true })).toBeVisible();
-  const trigger = page.getByRole('button', { name: '快速创建', exact: true });
+  await caseEditor.goto();
+  await expect(caseEditor.newTestButton).toBeVisible();
+  const trigger = caseEditor.quickCreateButton;
 
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: '快速创建' });
@@ -575,9 +582,9 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   await expect(dialog).toHaveAttribute('data-ui', 'case-prompt-overlay');
   await expect(input).toHaveAttribute('data-ui', 'case-prompt-input');
   const popupBounds = await dialog.boundingBox();
-  const contentBounds = await page.locator('#main-content').boundingBox();
+  const contentBounds = await workspacePage.main.boundingBox();
 
-  const contentInsets = await page.locator('#main-content').evaluate((element) => ({
+  const contentInsets = await workspacePage.main.evaluate((element) => ({
     left: element.clientLeft,
     top: element.clientTop,
     width: element.clientWidth,
@@ -604,7 +611,7 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   fail = false;
   await input.press('Control+Enter');
   await expect(page).toHaveURL(/\/cases\/editor\//);
-  const canvas = page.getByRole('region', { name: '测试画板' });
+  const canvas = caseEditor.board;
 
   await expect(canvas.locator('[data-step-type=act]')).toContainText('点击登录');
   await expect(canvas.locator('[data-step-type=assert]')).toContainText('显示邮箱表单');
@@ -618,6 +625,7 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
 for (const mode of ['quick', 'canvas'] as const) {
   test(`${mode} generation can be cancelled and retried without applying a late response`, async ({
     page,
+    caseEditor,
   }) => {
     await mockLists(page, { tests: [], nextCursor: null });
     let release!: () => void;
@@ -650,11 +658,11 @@ for (const mode of ['quick', 'canvas'] as const) {
         })
         .catch(() => {});
     });
-    await page.goto('/cases');
-    if (mode === 'quick') await page.getByRole('button', { name: '快速创建', exact: true }).click();
+    await caseEditor.goto();
+    if (mode === 'quick') await caseEditor.quickCreateButton.click();
     else {
-      await page.getByRole('button', { name: '新建测试', exact: true }).click();
-      await page.getByRole('button', { name: '描述生成', exact: true }).click();
+      await caseEditor.create();
+      await caseEditor.describeButton.click();
     }
 
     const prompt = page.getByRole('dialog');
@@ -674,17 +682,20 @@ for (const mode of ['quick', 'canvas'] as const) {
     await prompt.getByRole('button', { name: '生成', exact: true }).click();
     await expect.poll(() => requests).toBe(2);
     release();
-    await expect(page.getByRole('region', { name: '测试画板' })).toContainText('当前生成结果');
+    await expect(caseEditor.board).toContainText('当前生成结果');
     await expect(page.getByText('过期生成结果', { exact: true })).toHaveCount(0);
     if (mode === 'canvas') {
       await page.getByRole('button', { name: '全部拒绝', exact: true }).click();
-      await page.getByRole('button', { name: '描述生成', exact: true }).click();
+      await caseEditor.describeButton.click();
       await expect(input).toHaveValue(goal);
     }
   });
 }
 
-test('canvas trials run the draft without saving and reopen an active run', async ({ page }) => {
+test('canvas trials run the draft without saving and reopen an active run', async ({
+  page,
+  caseEditor,
+}) => {
   const draftId = 'trial-draft';
   const plan: NonNullable<TestRun['plan']> = {
     rootId: 'root',
@@ -766,7 +777,7 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
     return route.fulfill({ json: { run: trial } });
   });
   await page.goto(`/cases/editor/${draftId}`);
-  const canvas = page.getByRole('region', { name: '测试画板' });
+  const canvas = caseEditor.board;
   const start = canvas.getByRole('button', { name: '试跑', exact: true });
 
   await openSettings(canvas);
@@ -823,11 +834,12 @@ test('canvas trials run the draft without saving and reopen an active run', asyn
 
 test('web settings choose desktop and mobile devices without changing platform', async ({
   page,
+  caseEditor,
 }) => {
   await mockLists(page, { tests: [] });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).click();
-  const canvas = page.getByRole('region', { name: '测试画板' });
+  await caseEditor.goto();
+  await caseEditor.create();
+  const canvas = caseEditor.board;
 
   await openSettings(canvas);
   const ua = canvas.getByRole('textbox', { name: 'User-Agent', exact: true });
@@ -897,16 +909,19 @@ test('replay contains portrait landscape square and ultrawide media within the p
   }
 });
 
-test('dialogs support keyboard entry, Escape dismissal and focus restoration', async ({ page }) => {
+test('dialogs support keyboard entry, Escape dismissal and focus restoration', async ({
+  page,
+  caseEditor,
+}) => {
   await mockLists(page, { tests: [saved] });
   await mockLists(page, { runs: [summary] });
-  await page.goto('/cases');
-  const create = page.getByRole('button', { name: '新建测试', exact: true });
+  await caseEditor.goto();
+  const create = caseEditor.newTestButton;
 
   await create.focus();
   await create.press('Enter');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.locator('[data-ui~="case-canvas-page"]')).toBeVisible();
+  await expect(caseEditor.canvas).toBeVisible();
   await page.getByRole('link', { name: '测试用例', exact: true }).first().click();
   const more = page.getByRole('button', { name: `更多操作：${saved.name}`, exact: true });
 
@@ -930,6 +945,8 @@ test('dialogs support keyboard entry, Escape dismissal and focus restoration', a
 
 test('creates, edits and duplicates in the persistent canvas and preserves run history when deleting', async ({
   page,
+  listPage,
+  caseEditor,
 }) => {
   let tests = [saved];
   let rejectSave = true;
@@ -1004,8 +1021,8 @@ test('creates, edits and duplicates in the persistent canvas and preserves run h
     });
   });
   await mockLists(page, { runs: [summary] });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).click();
+  await caseEditor.goto();
+  await caseEditor.create();
   const dialog = page.locator(
     '[data-ui~="case-canvas-page"], [role=dialog]:not(#case-prompt-section)',
   );
@@ -1023,7 +1040,7 @@ test('creates, edits and duplicates in the persistent canvas and preserves run h
   await expect(page).toHaveURL(/\/cases\?case=/);
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('aria-busy', 'false');
-  await page.getByRole('button', { name: '全部用例', exact: true }).click();
+  await caseEditor.allCasesButton.click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '更多操作：验证登录', exact: true }).click();
   await page.getByRole('menuitem', { name: '编辑 验证登录', exact: true }).click();
@@ -1036,7 +1053,7 @@ test('creates, edits and duplicates in the persistent canvas and preserves run h
   await expect(page).toHaveURL(/\/cases\?case=/);
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('aria-busy', 'false');
-  await page.getByRole('button', { name: '全部用例', exact: true }).click();
+  await caseEditor.allCasesButton.click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '更多操作：更新登录', exact: true }).click();
   await page.getByRole('menuitem', { name: '复制 更新登录', exact: true }).click();
@@ -1047,7 +1064,7 @@ test('creates, edits and duplicates in the persistent canvas and preserves run h
   await expect(page).toHaveURL(/\/cases\?case=/);
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('aria-busy', 'false');
-  await page.getByRole('button', { name: '全部用例', exact: true }).click();
+  await caseEditor.allCasesButton.click();
   await expect(dialog).toHaveCount(0);
   expect(writes.map((item) => item.method)).toEqual(['POST', 'PATCH', 'POST']);
   expect(writes[2].body.tags).toEqual(['登录']);
@@ -1061,13 +1078,12 @@ test('creates, edits and duplicates in the persistent canvas and preserves run h
   await expect(page.getByRole('button', { name: '更新登录', exact: true })).toHaveCount(0);
   await expect(page.getByRole('main')).toBeFocused();
   await page.goto('/runs');
-  await expect(
-    page.getByRole('table').getByRole('link', { name: saved.name, exact: true }),
-  ).toBeVisible();
+  await expect(listPage.table.getByRole('link', { name: saved.name, exact: true })).toBeVisible();
 });
 
 test('nested plans keep node evidence and dependency navigation through zoom and pan', async ({
   page,
+  runPage,
 }) => {
   const plan: TestRun['plan'] = {
     rootId: 'root',
@@ -1099,8 +1115,8 @@ test('nested plans keep node evidence and dependency navigation through zoom and
   };
 
   await mockRun(page, makeRun({ plan, steps: [{ ...run.steps[0], planNodeId: 'open' }] }));
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '计划', exact: true }).click();
+  await runPage.goto(run.id);
+  await runPage.planButton.click();
   const dependency = page.locator('.react-flow__edge[aria-label="依赖：open → check"]');
 
   // A straight vertical SVG path has zero bounding-box width. Verify the drawn
@@ -1118,35 +1134,36 @@ test('nested plans keep node evidence and dependency navigation through zoom and
 
   await expectDependency();
   for (let attempt = 0; attempt < 2; attempt++) {
-    await page.getByRole('button', { name: '步骤', exact: true }).click();
+    await runPage.stepsButton.click();
     await expect(page.locator('.react-flow__node').first()).toBeHidden();
-    await expect(page.locator('[data-ui~="plan-viewport"]')).toBeHidden();
-    await page.getByRole('button', { name: '计划', exact: true }).click();
+    await expect(runPage.planViewport).toBeHidden();
+    await runPage.planButton.click();
     await expectDependency();
   }
 
   await expect(page.getByRole('button', { name: '依赖连线', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '查看节点 open', exact: true }).click();
   const detail = page.locator('[data-plan-node="open"] [data-ui~="plan-inline-evidence"]');
-  const viewport = page.locator('[data-ui~="plan-viewport"]');
+  const viewport = runPage.planViewport;
 
   await viewport.focus();
   await viewport.press('ArrowRight');
   await expect(detail.getByRole('button', { name: /打开网站/ })).toBeVisible();
   await detail.getByRole('button', { name: /打开网站/ }).click();
-  await page.getByRole('button', { name: '步骤', exact: true }).click();
+  await runPage.stepsButton.click();
   await expect(
     page
       .locator('section[aria-label="步骤"]')
       .getByRole('heading', { name: '打开网站', exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('button', { name: '回放', exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(runPage.playbackButton).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('validates the current draft and locks editing while saving a version', async ({ page }) => {
+test('validates the current draft and locks editing while saving a version', async ({
+  page,
+  runPage,
+  workspacePage,
+}) => {
   let release!: () => void;
   const response = new Promise<void>((resolve) => {
     release = resolve;
@@ -1170,9 +1187,9 @@ test('validates the current draft and locks editing while saving a version', asy
     });
   });
   await page.clock.install();
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '录制脚本', exact: true }).click();
-  const editor = page.getByRole('textbox', { name: 'Playwright 录制脚本' });
+  await runPage.goto(run.id);
+  await runPage.scriptButton.click();
+  const editor = runPage.scriptInput;
   const save = page.getByRole('button', { name: '保存版本', exact: true });
 
   await expect(save).toBeEnabled();
@@ -1195,9 +1212,7 @@ test('validates the current draft and locks editing while saving a version', asy
   await expect(editor).toHaveAttribute('contenteditable', 'false');
   await expect(save).toBeDisabled();
   release();
-  await expect(
-    page.getByRole('region', { name: '通知', exact: true }).getByText('新版本已保存。'),
-  ).toBeVisible();
+  await expect(workspacePage.notifications.getByText('新版本已保存。')).toBeVisible();
   await expect(editor).toHaveAttribute('contenteditable', 'true');
   await expect(editor).toHaveText(draft);
   expect(submitted).toBe(draft);
@@ -1205,6 +1220,7 @@ test('validates the current draft and locks editing while saving a version', asy
 
 test('loads recording versions only when opened and keeps the draft across view changes', async ({
   page,
+  runPage,
 }) => {
   let versionReads = 0;
 
@@ -1214,27 +1230,28 @@ test('loads recording versions only when opened and keeps the draft across view 
 
     return route.fulfill({ json: { versions: [] } });
   });
-  await page.goto(`/runs/${run.id}`);
+  await runPage.goto(run.id);
   await expect(
     page.getByRole('heading', { name: saved.name, exact: true, level: 1 }),
   ).toBeVisible();
   expect(versionReads).toBe(0);
-  await page.getByRole('button', { name: '录制脚本', exact: true }).click();
-  const editor = page.getByRole('textbox', { name: 'Playwright 录制脚本' });
+  await runPage.scriptButton.click();
+  const editor = runPage.scriptInput;
 
   await expect(editor).toBeVisible();
   const draft = 'await page1.goto("https://example.com/changed");';
 
   await editor.fill(draft);
-  await page.getByRole('button', { name: '回放', exact: true }).click();
+  await runPage.playbackButton.click();
   await expect(editor).toBeHidden();
-  await page.getByRole('button', { name: '录制脚本', exact: true }).click();
+  await runPage.scriptButton.click();
   await expect(editor).toHaveText(draft);
   expect(versionReads).toBe(1);
 });
 
 test('plan subflows retain both branch paths, shared references and external dependencies', async ({
   page,
+  runPage,
 }) => {
   const task = (id: string) => ({
     id,
@@ -1281,8 +1298,8 @@ test('plan subflows retain both branch paths, shared references and external dep
     page,
     makeRun({ plan, steps: [{ ...run.steps[0], planNodeId: 'shared', status: 'failed' }] }),
   );
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '计划', exact: true }).click();
+  await runPage.goto(run.id);
+  await runPage.planButton.click();
   await expect(
     page.locator('.react-flow').getByText('YES / 条件成立', { exact: true }),
   ).toBeVisible();
@@ -1333,12 +1350,13 @@ test('plan subflows retain both branch paths, shared references and external dep
 
   await expect(detail.getByRole('button', { name: /打开网站/ })).toBeVisible();
   await expect(page.getByRole('button', { name: '重置', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('complementary', { name: '计划节点详情' })).toHaveCount(0);
+  await expect(runPage.nodeDetails).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
 test('preserves SSE updates across stale reads and resumes polling after disconnect', async ({
   page,
+  runPage,
 }) => {
   const activeRun = makeRun({
     status: 'running' as const,
@@ -1381,7 +1399,7 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
     }
     Object.assign(window, { EventSource: FakeEventSource });
   }, activeRun);
-  await page.goto(`/runs/${run.id}`);
+  await runPage.goto(run.id);
   await expect(page.getByText('执行中', { exact: true })).toBeVisible();
   await page.waitForFunction(
     () => (window as unknown as { __testdogStreams: EventTarget[] }).__testdogStreams.length > 0,
@@ -1389,7 +1407,7 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
   // A healthy stream disables periodic reads even as the elapsed-time clock ticks.
   await page.clock.fastForward(5500);
   expect(reads).toBe(1);
-  await page.getByRole('button', { name: '停止执行', exact: true }).click();
+  await runPage.stopButton.click();
   await expect.poll(() => reads).toBe(2);
   await page.evaluate((step) => {
     const streams = (window as unknown as { __testdogStreams: EventTarget[] }).__testdogStreams;
@@ -1402,21 +1420,15 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
       }),
     );
   }, run.steps[0]);
-  await expect(
-    page.getByRole('region', { name: '步骤' }).getByRole('button', { name: /推送新增步骤/ }),
-  ).toBeVisible();
+  await expect(runPage.steps.getByRole('button', { name: /推送新增步骤/ })).toBeVisible();
   release();
-  await expect(page.getByRole('button', { name: '停止执行', exact: true })).toBeEnabled();
-  await expect(
-    page.getByRole('region', { name: '步骤' }).getByRole('button', { name: /推送新增步骤/ }),
-  ).toBeVisible();
+  await expect(runPage.stopButton).toBeEnabled();
+  await expect(runPage.steps.getByRole('button', { name: /推送新增步骤/ })).toBeVisible();
   // A subsequent HTTP request is also older than the version already in the cache.
-  await page.getByRole('button', { name: '停止执行', exact: true }).click();
+  await runPage.stopButton.click();
   await expect.poll(() => reads).toBe(3);
-  await expect(page.getByRole('button', { name: '停止执行', exact: true })).toBeEnabled();
-  await expect(
-    page.getByRole('region', { name: '步骤' }).getByRole('button', { name: /推送新增步骤/ }),
-  ).toBeVisible();
+  await expect(runPage.stopButton).toBeEnabled();
+  await expect(runPage.steps.getByRole('button', { name: /推送新增步骤/ })).toBeVisible();
   await page.evaluate(() => {
     const streams = (
       window as unknown as { __testdogStreams: (EventTarget & { onerror: () => void })[] }
@@ -1426,12 +1438,10 @@ test('preserves SSE updates across stale reads and resumes polling after disconn
   });
   await page.clock.runFor(5500);
   await expect.poll(() => reads).toBe(4);
-  await expect(
-    page.getByRole('region', { name: '步骤' }).getByRole('button', { name: /推送新增步骤/ }),
-  ).toBeVisible();
+  await expect(runPage.steps.getByRole('button', { name: /推送新增步骤/ })).toBeVisible();
 });
 
-test('dockview manages tab ordering and browser log activation', async ({ page }) => {
+test('dockview manages tab ordering and browser log activation', async ({ page, runPage }) => {
   const errors: string[] = [];
   const logReads: string[] = [];
 
@@ -1442,8 +1452,8 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
 
     return route.fulfill({ json: { logs: [], nextCursor: null } });
   });
-  await page.goto(`/runs/${run.id}`);
-  const dock = page.getByLabel('执行工作台', { exact: true });
+  await runPage.goto(run.id);
+  const dock = runPage.workbench;
 
   await expect(dock.locator('.dv-tabs-container').first().locator('.dv-tab')).toHaveCount(3);
   expect(logReads).toEqual([]);
@@ -1453,22 +1463,22 @@ test('dockview manages tab ordering and browser log activation', async ({ page }
 
   await plan.dragTo(execution, { targetPosition: { x: 2, y: 20 } });
   await expect(tabs.locator('.dv-tab').first()).toContainText('计划');
-  await page.getByRole('button', { name: '回放', exact: true }).click();
-  await page.getByRole('button', { name: '控制台', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeVisible();
+  await runPage.playbackButton.click();
+  await runPage.openConsole();
+  await expect(runPage.consoleLogs).toBeVisible();
   expect(logReads).toContain('console');
   expect(logReads).not.toContain('network');
-  await page.getByRole('button', { name: '网络', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeVisible();
+  await runPage.openNetwork();
+  await expect(runPage.networkLogs).toBeVisible();
   expect(logReads).toContain('network');
-  await page.getByRole('button', { name: 'AI 调用', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeHidden();
-  await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeVisible();
+  await runPage.openAiLogs();
+  await expect(runPage.consoleLogs).toBeHidden();
+  await expect(runPage.networkLogs).toBeVisible();
   await expect(dock.locator('[data-ui~="dock"]')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
-test('layout popover switches presets and restores the default', async ({ page }) => {
+test('layout popover switches presets and restores the default', async ({ page, runPage }) => {
   const errors: string[] = [];
 
   page.on('pageerror', (error) => errors.push(error.message));
@@ -1476,8 +1486,8 @@ test('layout popover switches presets and restores the default', async ({ page }
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
     route.fulfill({ json: { logs: [], nextCursor: null } }),
   );
-  await page.goto(`/runs/${run.id}`);
-  const studio = page.getByLabel('执行工作台', { exact: true });
+  await runPage.goto(run.id);
+  const studio = runPage.workbench;
   const trigger = page.getByRole('button', { name: '布局', exact: true });
 
   for (const preset of ['审阅', '问题', '调试']) {
@@ -1500,25 +1510,23 @@ test('layout popover switches presets and restores the default', async ({ page }
   expect(errors).toEqual([]);
 });
 
-test('execution studio opens a full height three pane layout', async ({ page }) => {
+test('execution studio opens a full height three pane layout', async ({ page, runPage }) => {
   await mockRun(page, run);
-  await page.goto(`/runs/${run.id}`);
-  const studio = page.getByLabel('执行工作台', { exact: true });
+  await runPage.goto(run.id);
+  const studio = runPage.workbench;
 
   await expect(studio).toBeVisible();
   await expect(page.locator('section[aria-label="步骤"]')).toBeVisible();
-  const left = await page.getByRole('button', { name: '步骤', exact: true }).boundingBox();
-  const right = await page.getByRole('button', { name: '回放', exact: true }).boundingBox();
-  const trace = page.getByRole('button', { name: 'AI 调用', exact: true });
-  const bottom = await page.getByRole('button', { name: '控制台', exact: true }).boundingBox();
+  const left = await runPage.stepsButton.boundingBox();
+  const right = await runPage.playbackButton.boundingBox();
+  const trace = runPage.aiButton;
+  const bottom = await runPage.consoleButton.boundingBox();
 
-  const consoleTab = await page.getByRole('button', { name: '控制台', exact: true }).boundingBox();
-  const networkTab = await page.getByRole('button', { name: '网络', exact: true }).boundingBox();
+  const consoleTab = await runPage.consoleButton.boundingBox();
+  const networkTab = await runPage.networkButton.boundingBox();
 
   const bounds = await studio.boundingBox();
-  const replayGroup = studio
-    .locator('.dv-groupview')
-    .filter({ has: page.getByRole('button', { name: '回放', exact: true }) });
+  const replayGroup = studio.locator('.dv-groupview').filter({ has: runPage.playbackButton });
   const groupBounds = await replayGroup.boundingBox();
 
   await expect(replayGroup.getByRole('button', { name: 'AI 调用', exact: true })).toBeVisible();
@@ -1553,6 +1561,7 @@ test('execution studio opens a full height three pane layout', async ({ page }) 
 
 test('planned steps contain execution actions and preserve details across views', async ({
   page,
+  runPage,
 }) => {
   const task = (id: string, goal: string) => ({
     id,
@@ -1587,7 +1596,7 @@ test('planned steps contain execution actions and preserve details across views'
       ],
     }),
   );
-  await page.goto(`/runs/${run.id}`);
+  await runPage.goto(run.id);
   const steps = page.locator('section[aria-label="步骤"]');
 
   await expect(steps.getByText('用例快照', { exact: true })).toHaveCount(0);
@@ -1605,12 +1614,12 @@ test('planned steps contain execution actions and preserve details across views'
   await expect(action).toHaveAttribute('aria-expanded', 'false');
   await action.click();
   await expect(planned.getByText('action: navigate', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '计划', exact: true }).click();
+  await runPage.planButton.click();
   const node = page.locator('[data-plan-node="open"]');
 
   await node.getByRole('button', { name: '展开动作', exact: true }).click();
   await expect(node.getByRole('button', { name: /打开网站/ })).toBeVisible();
-  await page.getByRole('button', { name: '步骤', exact: true }).click();
+  await runPage.stepsButton.click();
   await expect(plannedTrigger).toHaveAttribute('aria-expanded', 'true');
   await expect(action).toHaveAttribute('aria-expanded', 'true');
 });
@@ -1686,28 +1695,31 @@ test('nested execution groups preserve action state and references reveal collap
   await expect(action).toHaveAttribute('aria-expanded', 'true');
 });
 
-test('bottom browser logs start collapsed and expand on tab selection', async ({ page }) => {
+test('bottom browser logs start collapsed and expand on tab selection', async ({
+  page,
+  runPage,
+}) => {
   await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
     route.fulfill({ json: { logs: [], nextCursor: null } }),
   );
-  await page.goto(`/runs/${run.id}`);
-  const logs = page.getByRole('button', { name: '控制台', exact: true });
+  await runPage.goto(run.id);
+  const logs = runPage.consoleButton;
   const group = page.locator('.dv-groupview').filter({ has: logs });
 
   await expect(logs).toHaveAttribute('aria-expanded', 'false');
-  await expect(page.getByLabel('AI 调用内容', { exact: true })).toHaveCount(0);
+  await expect(runPage.aiContent).toHaveCount(0);
   expect((await group.boundingBox())!.height).toBeLessThanOrEqual(41);
   await logs.click();
   await expect(logs).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeVisible();
+  await expect(runPage.consoleLogs).toBeVisible();
   expect((await group.boundingBox())!.height).toBeGreaterThan(200);
   await logs.click();
   await expect(logs).toHaveAttribute('aria-expanded', 'false');
-  await page.getByRole('button', { name: '控制台', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Console 记录', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '网络', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Network 记录', exact: true })).toBeVisible();
+  await runPage.openConsole();
+  await expect(runPage.consoleLogs).toBeVisible();
+  await runPage.openNetwork();
+  await expect(runPage.networkLogs).toBeVisible();
   for (const name of ['控制台', '网络', '控制台', '网络']) {
     const tab = page.getByRole('button', { name, exact: true });
 
@@ -1770,6 +1782,9 @@ test('group header actions maximize restore and collapse each group', async ({ p
 
 test('creates typed steps through canvas insertion points in a dedicated canvas', async ({
   page,
+  caseEditor,
+  workspacePage,
+  runPage,
 }) => {
   let stored: TestCase | undefined;
 
@@ -1788,8 +1803,8 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
 
   page.on('pageerror', (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
   const dialog = page.locator(
     '[data-ui~="case-canvas-page"], [role=dialog]:not(#case-prompt-section)',
   );
@@ -1850,20 +1865,20 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await dialog.getByRole('textbox', { name: /^节点内容/ }).fill('检查前置环境');
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
   await expect(page).toHaveURL(/\/cases\/editor\//);
-  await expect(page.getByRole('navigation', { name: '工作区导航' })).toBeVisible();
-  const navigation = page.getByRole('navigation', { name: '工作区导航' });
+  await expect(workspacePage.navigation).toBeVisible();
+  const navigation = workspacePage.navigation;
 
   await expect(navigation.getByRole('link', { name: '测试用例', exact: true })).toHaveAttribute(
     'href',
     '/cases',
   );
-  await expect(page.getByRole('button', { name: '全部用例', exact: true })).toBeVisible();
+  await expect(caseEditor.allCasesButton).toBeVisible();
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight),
   ).toBe(true);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(dialog.locator('.plan-board-toolbar')).toHaveCount(0);
-  await expect(page.getByRole('complementary', { name: '计划节点详情' })).toHaveCount(0);
+  await expect(runPage.nodeDetails).toHaveCount(0);
   const first = dialog.locator('[data-step-type=act]').first();
   const firstId = (await first.getAttribute('data-plan-node'))!;
 
@@ -1903,7 +1918,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
 
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toBeVisible();
-  await page.getByRole('button', { name: '全部用例', exact: true }).click();
+  await caseEditor.allCasesButton.click();
   await expect(dialog).toBeHidden();
   const root = stored!.plan!.nodes.root;
 
@@ -1934,6 +1949,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
 
 test('converts text to independent action and assertion cards and preserves failed drafts', async ({
   page,
+  caseEditor,
 }) => {
   await page.route('**/api/tests*', (route) =>
     route.fulfill({ json: { tests: [], nextCursor: null } }),
@@ -1963,8 +1979,8 @@ test('converts text to independent action and assertion cards and preserves fail
           },
     ),
   );
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
   const dialog = page.locator(
     '[data-ui~="case-canvas-page"], [role=dialog]:not(#case-prompt-section)',
   );
@@ -2030,6 +2046,7 @@ test('converts text to independent action and assertion cards and preserves fail
 
 test('adds adjacent groups as columns with independent insertion points', async ({
   page,
+  caseEditor,
 }, testInfo) => {
   await page.route('**/api/tests*', (route) =>
     route.fulfill({ json: { tests: [], nextCursor: null } }),
@@ -2038,9 +2055,9 @@ test('adds adjacent groups as columns with independent insertion points', async 
 
   page.on('pageerror', (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const canvas = page.locator('[data-ui~="case-canvas-page"]');
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  const canvas = caseEditor.canvas;
 
   const groups = canvas.locator('[data-step-type=group]:not([data-plan-node=root])');
   const groupIds: string[] = [];
@@ -2151,7 +2168,7 @@ test('adds adjacent groups as columns with independent insertion points', async 
   expect(errors).toEqual([]);
 });
 
-test('left mouse selects nodes and middle mouse pans the board', async ({ page }) => {
+test('left mouse selects nodes and middle mouse pans the board', async ({ page, runPage }) => {
   const task = (id: string) => ({
     id,
     kind: 'task' as const,
@@ -2170,9 +2187,9 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
   };
 
   await mockRun(page, makeRun({ plan }));
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '计划', exact: true }).click();
-  const board = page.locator('[data-ui~="plan-viewport"]');
+  await runPage.goto(run.id);
+  await runPage.planButton.click();
+  const board = runPage.planViewport;
   const flowViewport = board.locator('.react-flow__viewport');
   const a = board.locator('[data-testid="rf__node-plan:a"]');
   const b = board.locator('[data-testid="rf__node-plan:b"]');
@@ -2249,6 +2266,7 @@ test('left mouse selects nodes and middle mouse pans the board', async ({ page }
 
 test('result board shows assertion evidence and links screenshots to the existing timeline', async ({
   page,
+  runPage,
 }) => {
   const screenshotStep = makeStep(run, {
     id: 'capture-step',
@@ -2323,8 +2341,8 @@ test('result board shows assertion evidence and links screenshots to the existin
     }),
   );
   await mockScreenshots(page, run.id);
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '计划', exact: true }).click();
+  await runPage.goto(run.id);
+  await runPage.planButton.click();
   const assertion = page.locator('[data-plan-node="check"]');
   const capture = page.locator('[data-plan-node="capture"]');
 
@@ -2337,16 +2355,16 @@ test('result board shows assertion evidence and links screenshots to the existin
     'src',
     /board-frame-0$/,
   );
-  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:02 / 00:05');
+  await expect(runPage.playbackTime).toHaveText('00:02 / 00:05');
   await expect(capture).toHaveAttribute('data-current', 'true');
-  await page.getByRole('button', { name: '播放回看', exact: true }).click();
-  await expect(page.getByRole('button', { name: '暂停回看', exact: true })).toBeVisible();
-  await expect(page.getByLabel('回放时间', { exact: true })).toHaveText('00:03 / 00:05');
-  await page.getByRole('button', { name: '暂停回看', exact: true }).click();
-  await page.getByRole('slider', { name: '画面时间轴' }).fill('3500');
+  await runPage.play();
+  await expect(runPage.pauseButton).toBeVisible();
+  await expect(runPage.playbackTime).toHaveText('00:03 / 00:05');
+  await runPage.pause();
+  await runPage.timeline.fill('3500');
   await expect(assertion).toHaveAttribute('data-current', 'true');
   await expect(assertion).toHaveAttribute('data-result', 'failed');
-  await page.getByRole('slider', { name: '画面时间轴' }).fill('1000');
+  await runPage.timeline.fill('1000');
   await expect(capture).toHaveAttribute('data-current', 'true');
   await expect(assertion).toHaveAttribute('data-result', 'failed');
   await assertion.getByRole('button', { name: '展开动作', exact: true }).click();

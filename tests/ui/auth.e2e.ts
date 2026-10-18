@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 
-test('registers with email and opens the workspace', async ({ page }) => {
+test('registers with email and opens the workspace', async ({ page, registerPage }) => {
   await page.route('**/api/auth/sign-up/email', async (route) => {
     expect(route.request().postDataJSON()).toMatchObject({
       name: '测试用户',
@@ -21,33 +21,31 @@ test('registers with email and opens the workspace', async ({ page }) => {
   await page.route('**/api/workspace/stats', (route) =>
     route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
   );
-  await page.goto('/register');
-  await page.getByLabel('姓名', { exact: true }).fill('测试用户');
-  await page.getByLabel('邮箱', { exact: true }).fill('user@example.com');
-  await page.getByLabel('密码', { exact: true }).fill('correct-password');
-  await page.getByRole('button', { name: '注册', exact: true }).click();
+
+  await registerPage.goto();
+  await registerPage.register('测试用户', 'user@example.com', 'correct-password');
   await expect(page).toHaveURL('/cases');
 });
 
-test('shows login errors and keeps a safe registration destination', async ({ page }) => {
+test('shows login errors and keeps a safe registration destination', async ({
+  page,
+  loginPage,
+}) => {
   await page.route('**/api/auth/sign-in/email', (route) =>
     route.fulfill({
       status: 401,
       json: { code: 'INVALID_EMAIL_OR_PASSWORD', message: 'Invalid email or password' },
     }),
   );
-  await page.goto('/login?callbackURL=%2Fruns');
-  await page.getByLabel('邮箱', { exact: true }).fill('user@example.com');
-  await page.getByLabel('密码', { exact: true }).fill('wrong-password');
-  await page.getByRole('button', { name: '登录', exact: true }).click();
-  await expect(page.getByRole('main').getByRole('alert')).toHaveText(
-    '登录失败，请检查邮箱和密码。',
-  );
-  await page.getByRole('link', { name: '注册', exact: true }).click();
+
+  await loginPage.goto('/runs');
+  await loginPage.login('user@example.com', 'wrong-password');
+  await expect(loginPage.errorAlert).toHaveText('登录失败，请检查邮箱和密码。');
+  await loginPage.registerLink.click();
   await expect(page).toHaveURL('/register?callbackURL=%2Fruns');
 });
 
-test('shows the current user and signs out', async ({ page }) => {
+test('shows the current user and signs out', async ({ page, accountMenu }) => {
   await page.route('**/api/auth/get-session', (route) =>
     route.fulfill({
       json: {
@@ -65,13 +63,18 @@ test('shows the current user and signs out', async ({ page }) => {
   );
   await page.goto('/cases');
   await expect(page.getByText('测试用户', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '账户菜单', exact: true }).click();
-  await expect(page.getByRole('menu', { name: '账户菜单' })).toBeVisible();
-  await page.getByRole('menuitem', { name: '退出', exact: true }).click();
+
+  await accountMenu.open();
+  await expect(accountMenu.menu).toBeVisible();
+  await accountMenu.signOut();
   await expect(page).toHaveURL('/login');
 });
 
-test('clears cached case data when signing out and entering another account', async ({ page }) => {
+test('clears cached case data when signing out and entering another account', async ({
+  page,
+  accountMenu,
+  loginPage,
+}) => {
   let account: 'alice' | 'bob' | null = 'alice';
   const session = () =>
     account
@@ -126,13 +129,13 @@ test('clears cached case data when signing out and entering another account', as
   );
   await page.goto('/cases');
   await expect(page.getByText('Alice secret case', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '账户菜单', exact: true }).click();
-  await expect(page.getByRole('menu', { name: '账户菜单' })).toBeVisible();
-  await page.getByRole('menuitem', { name: '退出', exact: true }).click();
+
+  await accountMenu.open();
+  await expect(accountMenu.menu).toBeVisible();
+  await accountMenu.signOut();
   await expect(page).toHaveURL('/login');
-  await page.getByLabel('邮箱', { exact: true }).fill('bob@example.com');
-  await page.getByLabel('密码', { exact: true }).fill('correct-password');
-  await page.getByRole('button', { name: '登录', exact: true }).click();
+
+  await loginPage.login('bob@example.com', 'correct-password');
   await expect(page).toHaveURL('/cases');
   await expect(page.getByText('Bob private case', { exact: true })).toBeVisible();
   await expect(page.getByText('Alice secret case', { exact: true })).toHaveCount(0);

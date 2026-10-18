@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 import type { Issue } from '@testdog/contracts/issues/types';
 import { mockWorkspaceSupport } from './fixtures/routes';
 import { makeCase, makeRun, summarizeRun } from './fixtures/workspace';
@@ -25,6 +25,7 @@ for (const list of [
 ]) {
   test(`${list.path} hides loading counts and paginates without accumulating rows`, async ({
     page,
+    listPage,
   }) => {
     await mockWorkspaceSupport(page);
     let release!: () => void;
@@ -57,37 +58,37 @@ for (const list of [
     });
     await page.goto(list.path);
     await expect(page.getByRole('status', { name: /正在加载/ })).toBeVisible();
-    const footer = page.locator('[data-ui="workspace-index-footer"]');
+    const footer = listPage.footer;
 
     await expect(footer).toHaveCount(0);
     release();
-    await expect(page.getByRole('table').getByText(saved.name, { exact: true })).toBeVisible();
+    await expect(listPage.table.getByText(saved.name, { exact: true })).toBeVisible();
     await expect(footer).not.toContainText('条记录');
     await expect(footer).toContainText('第 1 页');
-    await expect(page.getByRole('button', { name: '上一页', exact: true })).toBeDisabled();
-    await page.getByRole('button', { name: '下一页', exact: true }).click();
+    await expect(listPage.previousButton).toBeDisabled();
+    await listPage.nextButton.click();
     await expect(footer).toContainText('第 2 页');
     await expect(footer).not.toContainText('条记录');
-    await expect(page.getByRole('button', { name: '上一页', exact: true })).toBeDisabled();
-    await expect(page.getByRole('button', { name: '下一页', exact: true })).toBeDisabled();
+    await expect(listPage.previousButton).toBeDisabled();
+    await expect(listPage.nextButton).toBeDisabled();
     releaseSecond();
-    await expect(page.getByRole('table').getByText(second.name, { exact: true })).toBeVisible();
-    await expect(page.getByRole('table').getByText(saved.name, { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: '下一页', exact: true })).toBeDisabled();
+    await expect(listPage.table.getByText(second.name, { exact: true })).toBeVisible();
+    await expect(listPage.table.getByText(saved.name, { exact: true })).toHaveCount(0);
+    await expect(listPage.nextButton).toBeDisabled();
     expect(requests.at(-1)?.get('cursor')).toBe('second-page');
-    await page.getByRole('button', { name: '上一页', exact: true }).click();
+    await listPage.previousButton.click();
     await expect(footer).toContainText('第 1 页');
-    await expect(page.getByRole('table').getByText(saved.name, { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: '下一页', exact: true }).click();
-    await expect(page.getByRole('table').getByText(second.name, { exact: true })).toBeVisible();
-    await page.getByRole('textbox', { name: list.search, exact: true }).fill('搜索');
+    await expect(listPage.table.getByText(saved.name, { exact: true })).toBeVisible();
+    await listPage.nextButton.click();
+    await expect(listPage.table.getByText(second.name, { exact: true })).toBeVisible();
+    await listPage.searchInput(list.search).fill('搜索');
     await expect.poll(() => requests.at(-1)?.get('q')).toBe('搜索');
     expect(requests.at(-1)?.has('cursor')).toBe(false);
     await expect(footer).toContainText('第 1 页');
 
-    await page.getByRole('button', { name: '下一页', exact: true }).click();
-    await expect(page.getByRole('table').getByText(second.name, { exact: true })).toBeVisible();
-    await page.getByLabel(list.api === 'issues' ? '筛选问题状态' : '状态筛选').click();
+    await listPage.nextButton.click();
+    await expect(listPage.table.getByText(second.name, { exact: true })).toBeVisible();
+    await listPage.statusFilter(list.api === 'issues').click();
     const filterLabel = list.api === 'issues' ? '处理中' : '失败';
 
     await page.getByRole('option', { name: filterLabel, exact: true }).click();
@@ -97,11 +98,11 @@ for (const list of [
     expect(requests.at(-1)?.has('cursor')).toBe(false);
     await expect(footer).toContainText('第 1 页');
 
-    await page.getByLabel(list.api === 'issues' ? '筛选问题状态' : '状态筛选').click();
+    await listPage.statusFilter(list.api === 'issues').click();
     await page.getByRole('option', { name: '全部状态', exact: true }).click();
     await expect(footer).toContainText('第 1 页');
-    await expect(page.getByRole('table').getByText(saved.name, { exact: true })).toBeVisible();
-    await expect(page.getByRole('table').getByText(second.name, { exact: true })).toHaveCount(0);
+    await expect(listPage.table.getByText(saved.name, { exact: true })).toBeVisible();
+    await expect(listPage.table.getByText(second.name, { exact: true })).toHaveCount(0);
 
     empty = true;
     await page.reload();

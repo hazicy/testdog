@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 import type { Integration, IntegrationsResponse } from '@testdog/contracts/integrations/types';
 
 const defaults: Integration[] = [
@@ -22,6 +22,8 @@ const defaults: Integration[] = [
 
 test('configures Feishu, keeps saved secrets hidden and shows queued test delivery', async ({
   page,
+  integrationsPage,
+  workspacePage,
 }) => {
   const data: IntegrationsResponse = {
     integrations: structuredClone(defaults),
@@ -73,12 +75,12 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
 
     return route.fulfill({ json: { deliveryId: 'test-delivery' } });
   });
-  await page.goto('/integrations');
+  await integrationsPage.goto();
   await expect(page.getByLabel('Webhook 地址', { exact: true })).toHaveCount(0);
-  const configure = page.getByRole('button', { name: '配置飞书群机器人', exact: true });
+  const configure = integrationsPage.configureFeishuButton;
 
   await configure.click();
-  const feishu = page.getByRole('dialog', { name: '飞书群机器人', exact: true });
+  const feishu = integrationsPage.feishuDialog;
 
   await expect(feishu).toBeVisible();
 
@@ -91,10 +93,7 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
   await feishu.getByRole('checkbox', { name: '问题状态变化', exact: true }).check();
   await feishu.getByRole('button', { name: '保存配置', exact: true }).click();
   await expect(
-    page
-      .getByRole('region', { name: '通知', exact: true })
-      .getByText('配置已保存。', { exact: true })
-      .last(),
+    workspacePage.notifications.getByText('配置已保存。', { exact: true }).last(),
   ).toBeVisible();
   await expect(feishu.getByLabel('Webhook 地址', { exact: true })).toHaveValue('');
   await expect(feishu.getByLabel('签名密钥（可选）')).toHaveValue('');
@@ -104,15 +103,13 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
     signingSecret: 'test-secret',
   });
   await feishu.getByRole('button', { name: '发送测试通知' }).click();
-  await expect(
-    page.getByRole('region', { name: '通知', exact: true }).getByText('测试通知已提交').last(),
-  ).toBeVisible();
+  await expect(workspacePage.notifications.getByText('测试通知已提交').last()).toBeVisible();
   await feishu.getByRole('button', { name: '关闭配置' }).click();
   await expect(feishu).toHaveCount(0);
   await expect(configure).toBeFocused();
-  await expect(page.getByRole('dialog', { name: '发送记录', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: '发送记录', exact: true }).click();
-  const history = page.getByRole('dialog', { name: '发送记录', exact: true });
+  await expect(integrationsPage.deliveriesDialog).toHaveCount(0);
+  await integrationsPage.openDeliveries();
+  const history = integrationsPage.deliveriesDialog;
 
   await expect(history.getByText('已发送 · 1 次尝试')).toBeVisible();
   await history.getByRole('button', { name: '关闭发送记录' }).click();
@@ -132,6 +129,8 @@ test('configures Feishu, keeps saved secrets hidden and shows queued test delive
 
 test('configures email recipients without SMTP fields and retries failed deliveries', async ({
   page,
+  integrationsPage,
+  workspacePage,
 }) => {
   const data: IntegrationsResponse = {
     integrations: structuredClone(defaults),
@@ -192,20 +191,17 @@ test('configures email recipients without SMTP fields and retries failed deliver
 
     return route.fulfill({ json: { deliveryId: 'failed-delivery' } });
   });
-  await page.goto('/integrations');
-  const configure = page.getByRole('button', { name: '配置Email 邮件', exact: true });
+  await integrationsPage.goto();
+  const configure = integrationsPage.configureEmailButton;
 
   await configure.click();
-  const email = page.getByRole('dialog', { name: 'Email 邮件', exact: true });
+  const email = integrationsPage.emailDialog;
 
   await expect(email.getByLabel(/SMTP|发件邮箱/)).toHaveCount(0);
   await email.getByLabel('收件邮箱', { exact: true }).fill('one@example.com, two@example.com');
   await email.getByRole('button', { name: '保存配置', exact: true }).click();
   await expect(
-    page
-      .getByRole('region', { name: '通知', exact: true })
-      .getByText('配置已保存。', { exact: true })
-      .last(),
+    workspacePage.notifications.getByText('配置已保存。', { exact: true }).last(),
   ).toBeVisible();
   expect(lastInput).toEqual({
     version: 0,
@@ -214,16 +210,14 @@ test('configures email recipients without SMTP fields and retries failed deliver
     recipients: ['one@example.com', 'two@example.com'],
   });
   await email.getByRole('button', { name: '发送测试通知' }).click();
-  await expect(
-    page.getByRole('region', { name: '通知', exact: true }).getByText('测试通知已提交').last(),
-  ).toBeVisible();
+  await expect(workspacePage.notifications.getByText('测试通知已提交').last()).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(email).toHaveCount(0);
   await expect(configure).toBeFocused();
-  const historyButton = page.getByRole('button', { name: '发送记录', exact: true });
+  const historyButton = integrationsPage.deliveriesButton;
 
   await historyButton.click();
-  const history = page.getByRole('dialog', { name: '发送记录', exact: true });
+  const history = integrationsPage.deliveriesDialog;
 
   await expect(history.getByText('邮件发送失败，请检查收件邮箱或稍后重试。')).toBeVisible();
   await history.getByRole('button', { name: '重试', exact: true }).click();
@@ -235,16 +229,15 @@ test('configures email recipients without SMTP fields and retries failed deliver
   await email.getByLabel('收件邮箱', { exact: true }).fill('three@example.com');
   await email.getByRole('button', { name: '保存配置', exact: true }).click();
   await expect(
-    page
-      .getByRole('region', { name: '通知', exact: true })
-      .getByText('配置已保存。', { exact: true })
-      .last(),
+    workspacePage.notifications.getByText('配置已保存。', { exact: true }).last(),
   ).toBeVisible();
   expect(lastInput).not.toHaveProperty('password');
 });
 
 test('saves email preferences while platform mail is unavailable and disables test notifications', async ({
   page,
+  workspacePage,
+  integrationsPage,
 }) => {
   const data: IntegrationsResponse = {
     integrations: structuredClone(defaults),
@@ -280,36 +273,36 @@ test('saves email preferences while platform mail is unavailable and disables te
     return route.fulfill({ json: { integration: data.integrations[1] } });
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/integrations');
+  await integrationsPage.goto();
   await expect(page.getByRole('button', { name: '刷新', exact: true })).toHaveCount(0);
   await expect(page.getByText('将执行结果和问题动态发送到团队的沟通渠道。')).toHaveCount(0);
-  const historyButton = page.getByRole('button', { name: '发送记录', exact: true });
+  const historyButton = integrationsPage.deliveriesButton;
 
   await historyButton.click();
-  const history = page.getByRole('dialog', { name: '发送记录', exact: true });
+  const history = integrationsPage.deliveriesDialog;
 
   await expect(history.getByText('暂无发送记录。')).toBeVisible();
   await history.getByRole('button', { name: '关闭发送记录' }).click();
   await expect(historyButton).toBeFocused();
-  await page.getByRole('button', { name: '配置Email 邮件', exact: true }).click();
-  const email = page.getByRole('dialog', { name: 'Email 邮件', exact: true });
+  await integrationsPage.configureEmailButton.click();
+  const email = integrationsPage.emailDialog;
 
   await expect(email.getByText('邮件通知暂不可用，请联系管理员。')).toBeVisible();
   await email.getByLabel('收件邮箱', { exact: true }).fill('recipient@example.com');
   await email.getByRole('button', { name: '保存配置', exact: true }).click();
   await expect(
-    page
-      .getByRole('region', { name: '通知', exact: true })
-      .getByText('配置已保存。', { exact: true })
-      .last(),
+    workspacePage.notifications.getByText('配置已保存。', { exact: true }).last(),
   ).toBeVisible();
   await expect(email.getByRole('button', { name: '发送测试通知' })).toBeDisabled();
   await email.getByRole('button', { name: '关闭配置' }).click();
-  await page.getByRole('button', { name: '配置Email 邮件', exact: true }).click();
+  await integrationsPage.configureEmailButton.click();
   await expect(email.getByLabel('收件邮箱', { exact: true })).toHaveValue('recipient@example.com');
 });
 
-test('outline buttons use the theme border without a persistent outline', async ({ page }) => {
+test('outline buttons use the theme border without a persistent outline', async ({
+  page,
+  integrationsPage,
+}) => {
   await page.route('**/api/integrations', (route) =>
     route.fulfill({
       json: {
@@ -331,9 +324,9 @@ test('outline buttons use the theme border without a persistent outline', async 
       },
     }),
   );
-  await page.goto('/integrations');
-  await page.getByRole('button', { name: '配置飞书群机器人', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: '飞书群机器人', exact: true });
+  await integrationsPage.goto();
+  await integrationsPage.configureFeishuButton.click();
+  const dialog = integrationsPage.feishuDialog;
   const button = dialog.getByRole('button', { name: '发送测试通知', exact: true });
   const border = await button.evaluate((element) => {
     const token = getComputedStyle(element).getPropertyValue('--control-line');
@@ -351,6 +344,8 @@ test('outline buttons use the theme border without a persistent outline', async 
 
 test('configures Browserless through generic provider APIs and keeps credentials hidden', async ({
   page,
+  integrationsPage,
+  workspacePage,
 }) => {
   const data: IntegrationsResponse = {
     integrations: structuredClone(defaults),
@@ -390,18 +385,16 @@ test('configures Browserless through generic provider APIs and keeps credentials
   await page.route('**/api/integrations/browser-providers/browserless/test', (route) =>
     route.fulfill({ json: { success: true, browserVersion: '123.0.0' } }),
   );
-  await page.goto('/integrations');
-  await page.getByRole('button', { name: '配置Browserless', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Browserless', exact: true });
+  await integrationsPage.goto();
+  await integrationsPage.configureBrowserlessButton.click();
+  const dialog = integrationsPage.browserlessDialog;
 
   await expect(dialog.getByRole('button', { name: '测试连接' })).toBeDisabled();
   await dialog.getByLabel('WebSocket 地址', { exact: true }).fill('wss://host/chromium/playwright');
   await dialog.getByLabel('Token（可选）').fill('private-token');
   await dialog.getByRole('checkbox', { name: '启用 Browserless' }).check();
   await dialog.getByRole('button', { name: '保存配置' }).click();
-  await expect(
-    page.getByRole('region', { name: '通知', exact: true }).getByText('配置已保存。').last(),
-  ).toBeVisible();
+  await expect(workspacePage.notifications.getByText('配置已保存。').last()).toBeVisible();
   await expect(dialog.getByLabel('WebSocket 地址', { exact: true })).toHaveValue('');
   await expect(dialog.getByLabel('Token（可选）')).toHaveValue('');
   expect(payloads[0]).toMatchObject({
@@ -410,26 +403,23 @@ test('configures Browserless through generic provider APIs and keeps credentials
     endpoint: 'wss://host/chromium/playwright',
   });
   await dialog.getByRole('button', { name: '测试连接' }).click();
-  await expect(
-    page.getByRole('region', { name: '通知', exact: true }).getByText('连接测试成功').last(),
-  ).toBeVisible();
+  await expect(workspacePage.notifications.getByText('连接测试成功').last()).toBeVisible();
   await dialog.getByRole('checkbox', { name: '启用 Browserless' }).uncheck();
   await expect(dialog.getByRole('button', { name: '测试连接' })).toBeDisabled();
   await dialog.getByRole('button', { name: '保存配置' }).click();
-  await expect(
-    page.getByRole('region', { name: '通知', exact: true }).getByText('配置已保存。').last(),
-  ).toBeVisible();
+  await expect(workspacePage.notifications.getByText('配置已保存。').last()).toBeVisible();
   expect(payloads[1]).not.toHaveProperty('endpoint');
   expect(payloads[1]).not.toHaveProperty('token');
   await dialog.getByRole('checkbox', { name: '清除已保存的 Token' }).check();
   await dialog.getByRole('button', { name: '保存配置' }).click();
   await expect(dialog.getByRole('checkbox', { name: '清除已保存的 Token' })).toHaveCount(0);
   await dialog.getByRole('button', { name: '关闭配置' }).click();
-  await expect(page.getByRole('button', { name: '配置Browserless', exact: true })).toBeFocused();
+  await expect(integrationsPage.configureBrowserlessButton).toBeFocused();
 });
 
 test('shows Browserless connection errors and leaves saved configuration editable', async ({
   page,
+  integrationsPage,
 }) => {
   await page.route('**/api/integrations', (route) =>
     route.fulfill({
@@ -455,9 +445,9 @@ test('shows Browserless connection errors and leaves saved configuration editabl
   await page.route('**/api/integrations/browser-providers/browserless/test', (route) =>
     route.fulfill({ status: 502, json: { message: '浏览器服务连接测试失败。' } }),
   );
-  await page.goto('/integrations');
-  await page.getByRole('button', { name: '配置Browserless', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Browserless', exact: true });
+  await integrationsPage.goto();
+  await integrationsPage.configureBrowserlessButton.click();
+  const dialog = integrationsPage.browserlessDialog;
 
   await dialog.getByRole('button', { name: '测试连接' }).click();
   await expect(dialog.getByRole('alert')).toHaveText('浏览器服务连接测试失败。');

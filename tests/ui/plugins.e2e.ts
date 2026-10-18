@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 import { createRequire } from 'node:module';
 
 const { Workbook } = createRequire(new URL('../../apps/web/package.json', import.meta.url))(
@@ -83,6 +83,9 @@ test('groups screenshot nodes and downloads an Excel workbook with embedded evid
 
 test('configures the plugin centrally and keeps canvas nodes to key and group', async ({
   page,
+  workspacePage,
+  pluginsPage,
+  caseEditor,
 }, testInfo) => {
   let settings = {
     id: 'volcengine-abtest',
@@ -113,29 +116,26 @@ test('configures the plugin centrally and keeps canvas nodes to key and group', 
     route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/plugins');
-  await expect(page.getByRole('button', { name: /火山引擎 A\/B 测试/ })).toBeVisible();
+  await pluginsPage.goto();
+  await expect(pluginsPage.abTestButton).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('plugins-directory.png') });
-  await page.getByRole('button', { name: /火山引擎 A\/B 测试/ }).click();
+  await pluginsPage.abTestButton.click();
   await expect(page).toHaveURL(/plugin=volcengine-abtest/);
   const saveSettings = page.getByRole('button', { name: '保存配置', exact: true });
 
   await expect(saveSettings).toBeDisabled();
-  await page.getByRole('textbox', { name: '接口地址包含', exact: true }).fill('/abtest_config');
+  await pluginsPage.urlIncludesInput.fill('/abtest_config');
   await page.getByRole('button', { name: '添加实验', exact: true }).click();
   await page.getByRole('textbox', { name: '实验 key', exact: true }).fill('checkout_layout');
-  await page.getByRole('textbox', { name: '组名', exact: true }).fill('B 组');
-  await page.getByRole('textbox', { name: '实验值（JSON）', exact: true }).fill('invalid json');
+  await pluginsPage.groupNameInput.fill('B 组');
+  await pluginsPage.experimentValueInput.fill('invalid json');
   await saveSettings.click();
   await expect(page.locator('main').getByRole('alert')).toContainText('返回值需为有效 JSON');
-  await page.getByRole('textbox', { name: '实验值（JSON）', exact: true }).fill('{"group":"B"}');
+  await pluginsPage.experimentValueInput.fill('{"group":"B"}');
   await page.getByRole('textbox', { name: '版本 vid', exact: true }).fill('variant-b');
   await saveSettings.click();
   await expect(
-    page
-      .getByRole('region', { name: '通知', exact: true })
-      .getByText('已保存', { exact: true })
-      .last(),
+    workspacePage.notifications.getByText('已保存', { exact: true }).last(),
   ).toBeVisible();
   await expect(saveSettings).toBeDisabled();
   expect(settings.config.experiments[0]).toMatchObject({
@@ -143,10 +143,8 @@ test('configures the plugin centrally and keeps canvas nodes to key and group', 
     groups: [{ name: 'B 组', value: { group: 'B' }, variantId: 'variant-b' }],
   });
   await page.reload();
-  await expect(page.getByRole('textbox', { name: '接口地址包含', exact: true })).toHaveValue(
-    '/abtest_config',
-  );
-  await expect(page.getByRole('textbox', { name: '组名', exact: true })).toHaveValue('B 组');
+  await expect(pluginsPage.urlIncludesInput).toHaveValue('/abtest_config');
+  await expect(pluginsPage.groupNameInput).toHaveValue('B 组');
   await page.screenshot({ path: testInfo.outputPath('plugin-settings-desktop.png') });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect
@@ -157,9 +155,9 @@ test('configures the plugin centrally and keeps canvas nodes to key and group', 
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/cases');
-  await page.getByRole('button', { name: '新建测试', exact: true }).first().click();
-  const canvas = page.locator('[data-ui~="case-canvas-page"]');
+  await caseEditor.goto();
+  await caseEditor.newTestButton.first().click();
+  const canvas = caseEditor.canvas;
 
   await canvas.getByRole('button', { name: '在 root 的第 1 个位置添加节点', exact: true }).click();
   await page

@@ -1,10 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 
 const teamId = '36e2d100-8669-4e42-9884-fc2af0a00111';
 const member = { userId: 'alice', name: 'Alice', email: 'alice@example.com', role: 'admin' };
 
 test('creates a team, invites members and switches back to a clean personal workspace', async ({
   page,
+  teamsPage,
+  workspacePage,
 }) => {
   let activeTeamId: string | null = null;
   let created = false;
@@ -60,36 +62,32 @@ test('creates a team, invites members and switches back to a clean personal work
     route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
   );
   await page.setViewportSize({ width: 320, height: 844 });
-  await page.goto('/settings?team=1');
-  await page.getByLabel('团队名称', { exact: true }).fill('QA Team');
-  await page.getByRole('button', { name: '创建团队', exact: true }).click();
-  await expect(page.getByLabel('切换工作区')).toHaveText('QA Team');
-  await expect(
-    page.locator('#main-content').getByText(member.email, { exact: true }),
-  ).toBeVisible();
-  await page.getByLabel('成员邮箱').fill('bob@example.com');
-  await page.getByRole('button', { name: '创建邀请', exact: true }).click();
+  await teamsPage.goto();
+  await teamsPage.teamNameInput.fill('QA Team');
+  await teamsPage.createButton.click();
+  await expect(teamsPage.workspaceSelect).toHaveText('QA Team');
+  await expect(workspacePage.main.getByText(member.email, { exact: true })).toBeVisible();
+  await teamsPage.memberEmailInput.fill('bob@example.com');
+  await teamsPage.inviteButton.click();
   await expect(page.getByLabel('邀请链接', { exact: false })).toHaveValue(
     new RegExp('/settings\\?invite=' + 'a'.repeat(64)),
   );
   expect(
-    await page
-      .locator('#main-content')
-      .evaluate((element) => element.scrollWidth <= element.clientWidth),
+    await workspacePage.main.evaluate((element) => element.scrollWidth <= element.clientWidth),
   ).toBe(true);
-  await expect(page.locator('aside').getByLabel('切换工作区')).toBeVisible();
+  await expect(workspacePage.sidebar.getByLabel('切换工作区')).toBeVisible();
   await expect(page.locator('header').getByLabel('切换工作区')).toHaveCount(0);
-  await page.getByLabel('切换工作区').click();
+  await teamsPage.workspaceSelect.click();
   await expect(page.getByRole('option', { name: 'QA Team', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   );
-  await page.getByRole('option', { name: '个人空间', exact: true }).click();
+  await teamsPage.personalWorkspaceOption.click();
   await expect(page).toHaveURL('/cases');
-  await expect(page.getByLabel('切换工作区')).toHaveText('个人空间');
+  await expect(teamsPage.workspaceSelect).toHaveText('个人空间');
 });
 
-test('refreshes other tabs when switching workspaces', async ({ page, context }) => {
+test('refreshes other tabs when switching workspaces', async ({ page, context, teamsPage }) => {
   let activeTeamId: string | null = teamId;
 
   await context.route('**/api/auth/get-session', (route) =>
@@ -123,16 +121,18 @@ test('refreshes other tabs when switching workspaces', async ({ page, context })
 
   await other.goto('/cases');
   await expect(other.getByLabel('切换工作区')).toHaveText('QA Team');
-  await page.getByLabel('切换工作区').click();
+  await teamsPage.workspaceSelect.click();
   const refreshed = other.waitForEvent('domcontentloaded');
 
-  await page.getByRole('option', { name: '个人空间', exact: true }).click();
+  await teamsPage.personalWorkspaceOption.click();
   await refreshed;
   await expect(other.getByLabel('切换工作区')).toHaveText('个人空间');
 });
 
 test('keeps the workspace picker usable when collapsed, with long names and failed switches', async ({
   page,
+  workspacePage,
+  teamsPage,
 }, testInfo) => {
   const name = 'Quality Engineering · 质量保障与自动化测试工作区';
   let attempts = 0;
@@ -168,7 +168,7 @@ test('keeps the workspace picker usable when collapsed, with long names and fail
     route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
   );
   await page.goto('/cases');
-  const picker = page.locator('aside').getByLabel('切换工作区');
+  const picker = workspacePage.sidebar.getByLabel('切换工作区');
 
   await expect(picker).toHaveText(name);
   await picker.focus();
@@ -177,13 +177,13 @@ test('keeps the workspace picker usable when collapsed, with long names and fail
   await page.keyboard.press('Escape');
   await expect(picker).toBeFocused();
   await page.screenshot({ path: testInfo.outputPath('workspace-desktop.png') });
-  await page.getByRole('button', { name: '收起侧栏' }).click();
+  await workspacePage.collapseSidebarButton.click();
   await expect(picker).toBeInViewport();
   await picker.click();
   await expect(page.getByRole('option', { name, exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('workspace-collapsed.png') });
-  await page.getByRole('option', { name: '个人空间', exact: true }).click();
-  await expect(page.locator('aside').getByRole('alert')).toContainText('请求失败');
+  await teamsPage.personalWorkspaceOption.click();
+  await expect(workspacePage.sidebar.getByRole('alert')).toContainText('请求失败');
   await expect(picker).toBeEnabled();
   await expect(picker).toHaveText(name);
   expect(attempts).toBe(1);

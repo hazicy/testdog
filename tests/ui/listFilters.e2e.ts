@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 import { mockWorkspaceSupport } from './fixtures/routes';
 
 for (const list of [
@@ -6,7 +6,10 @@ for (const list of [
   { path: '/runs', api: 'runs', search: '搜索结果' },
   { path: '/issues', api: 'issues', search: '搜索问题' },
 ]) {
-  test(`${list.path} restores URL filters on reload and browser navigation`, async ({ page }) => {
+  test(`${list.path} restores URL filters on reload and browser navigation`, async ({
+    page,
+    listPage,
+  }) => {
     await mockWorkspaceSupport(page);
     const requests: URLSearchParams[] = [];
 
@@ -20,8 +23,8 @@ for (const list of [
     await page.goto(
       `${list.path}?q=checkout&status=${issues ? 'open' : 'failed'}${issues ? '&platform=web&days=7&sort=updated' : ''}`,
     );
-    const search = page.getByRole('textbox', { name: list.search, exact: true });
-    const status = page.getByLabel(issues ? '筛选问题状态' : '状态筛选', { exact: true });
+    const search = listPage.searchInput(list.search);
+    const status = listPage.statusFilter(issues);
 
     await expect(search).toHaveValue('checkout');
     await expect.poll(() => requests.at(-1)?.get('q')).toBe('checkout');

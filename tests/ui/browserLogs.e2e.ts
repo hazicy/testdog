@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from './fixtures/test.fixture';
 import { makeRun } from './fixtures/workspace';
 import { mockRun, mockWorkspaceSupport } from './fixtures/routes';
 import type { BrowserLog } from '@testdog/contracts/runs/types';
@@ -74,11 +74,13 @@ test.beforeEach(async ({ page }) => {
 
 test('network supports sorting, resource filtering and structured request inspection', async ({
   page,
+  runPage,
+  workspacePage,
 }, testInfo) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '网络', exact: true }).click();
-  const panel = page.getByRole('region', { name: 'Network 记录', exact: true });
+  await runPage.goto(run.id);
+  await runPage.openNetwork();
+  const panel = runPage.networkLogs;
   const table = panel.getByRole('table', { name: '网络请求' });
 
   await expect(table.getByRole('row')).toHaveCount(4);
@@ -105,7 +107,7 @@ test('network supports sorting, resource filtering and structured request inspec
   await panel.screenshot({ path: testInfo.outputPath('network-narrow.png') });
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await detail.getByRole('button', { name: '复制 URL', exact: true }).click();
-  const notifications = page.getByRole('region', { name: '通知', exact: true });
+  const notifications = workspacePage.notifications;
 
   await expect(notifications.getByText('URL 已复制', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('users');
@@ -129,11 +131,11 @@ test('network supports sorting, resource filtering and structured request inspec
 });
 
 test('console distinguishes levels, expands sources and searches across records', async ({
-  page,
+  runPage,
 }, testInfo) => {
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '控制台', exact: true }).click();
-  const panel = page.getByRole('region', { name: 'Console 记录', exact: true });
+  await runPage.goto(run.id);
+  await runPage.openConsole();
+  const panel = runPage.consoleLogs;
 
   await expect(panel.locator('details')).toHaveCount(3);
   await panel.getByRole('button', { name: /^Warning/ }).click();
@@ -154,6 +156,7 @@ test('console distinguishes levels, expands sources and searches across records'
 
 test('large log lists render a window and retain expanded details after scrolling', async ({
   page,
+  runPage,
 }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) => {
@@ -173,9 +176,9 @@ test('large log lists render a window and retain expanded details after scrollin
 
     return route.fulfill({ json: { logs, nextCursor: null } });
   });
-  await page.goto(`/runs/${run.id}`);
-  await page.getByRole('button', { name: '控制台', exact: true }).click();
-  const consolePanel = page.getByRole('region', { name: 'Console 记录', exact: true });
+  await runPage.goto(run.id);
+  await runPage.openConsole();
+  const consolePanel = runPage.consoleLogs;
 
   await expect(consolePanel.locator('details').first()).toBeVisible();
   expect(await consolePanel.locator('details').count()).toBeLessThan(100);
@@ -200,8 +203,8 @@ test('large log lists render a window and retain expanded details after scrollin
   await expect(consolePanel.locator('details').first()).toHaveAttribute('open', '');
   await expect(consolePanel.locator('pre').first()).toBeVisible();
 
-  await page.getByRole('button', { name: '网络', exact: true }).click();
-  const networkPanel = page.getByRole('region', { name: 'Network 记录', exact: true });
+  await runPage.openNetwork();
+  const networkPanel = runPage.networkLogs;
   const table = networkPanel.getByRole('table', { name: '网络请求' });
 
   await expect(table.getByRole('button', { name: /查看请求 GET .*request-0$/ })).toBeVisible();
