@@ -1,5 +1,6 @@
 {
   "ui": {
+    "account_menu": "Account menu",
     "dismiss_notification": "Dismiss notification",
     "notifications": "Notifications",
     "skip_to_main_content": "Skip to main content",
@@ -967,6 +968,8 @@
     "create": "Create team"
   },
   "suites": {
+    "collapseDirectory": "Collapse case directory",
+    "expandDirectory": "Expand case directory",
     "allCases": "All cases",
     "title": "Test suites",
     "history": "Suite runs",

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Icon } from '@iconify/react/offline';
+import panelCloseIcon from '@iconify-icons/lucide/panel-left-close';
+import panelOpenIcon from '@iconify-icons/lucide/panel-left-open';
 import filesIcon from '@iconify-icons/lucide/files';
 import folderIcon from '@iconify-icons/lucide/folder';
 import fileIcon from '@iconify-icons/lucide/file-check';
@@ -44,6 +46,7 @@ export function SuiteExplorer({ children }: { children: ReactNode }) {
   }, [selectedFolder]);
   const { emptyPlan, caseName } = useAuthoring();
   const submit = useRunSubmission();
+  const [directoryCollapsed, setDirectoryCollapsed] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [action, setAction] = useState<DirectoryAction | null>(null);
   const edit = action?.kind === 'create' || action?.kind === 'rename' ? action : null;
@@ -255,115 +258,139 @@ export function SuiteExplorer({ children }: { children: ReactNode }) {
   return (
     <WorkspaceRealtimeContext value={connected}>
       <FolderTreeContext value={data}>
-        <div className={styles.explorer}>
+        <div className={styles.explorer} data-directory-collapsed={directoryCollapsed || undefined}>
           <aside className={styles.directory} aria-label={t('directory')}>
             <div className={styles.treeHeader}>
-              <h2 className={styles.treeTitle}>{ui('test_cases')}</h2>
-              <WorkspaceRowMenu
-                label={t('createItem')}
-                icon={plusIcon}
-                actions={[
-                  {
-                    label: t('newCase'),
-                    disabled: pending,
-                    accessibleLabel: t('newCase'),
-                    icon: fileIcon,
-                    onSelect: () => createCase(targetFolder.current),
-                  },
-                  {
-                    label: t('create'),
-                    disabled: pending,
-                    accessibleLabel: t('create'),
-                    icon: folderIcon,
-                    onSelect: () => createFolder(targetFolder.current),
-                  },
-                ]}
-              />
-            </div>
-            {moving && (
-              <section
-                className={styles.movePanel}
-                aria-label={t('moveTitle', { name: moving.value.name })}
+              <h2 className={styles.treeTitle} hidden={directoryCollapsed}>
+                {ui('test_cases')}
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className={styles.directoryToggle}
+                aria-label={t(directoryCollapsed ? 'expandDirectory' : 'collapseDirectory')}
+                title={t(directoryCollapsed ? 'expandDirectory' : 'collapseDirectory')}
+                aria-expanded={!directoryCollapsed}
+                aria-controls="case-directory"
+                onClick={() => setDirectoryCollapsed((current) => !current)}
               >
-                <strong>{t('moveTitle', { name: moving.value.name })}</strong>
-                <Select
-                  aria-label={t('parentFolder')}
-                  value={destination ?? 'root'}
-                  onValueChange={(value) =>
-                    setAction({
-                      kind: 'move',
-                      item: moving,
-                      destination: value === 'root' ? null : value,
-                    })
-                  }
-                  disabled={pending}
-                  items={[
-                    { value: 'root', label: t('rootFolder') },
-                    ...folders
-                      .filter((folder) => !excluded.has(folder.id))
-                      .map((folder) => ({
-                        value: folder.id,
-                        label: suiteFolderPath(folders, folder.id),
-                      })),
+                <Icon
+                  icon={directoryCollapsed ? panelOpenIcon : panelCloseIcon}
+                  width="16"
+                  aria-hidden="true"
+                />
+              </Button>
+              <span hidden={directoryCollapsed}>
+                <WorkspaceRowMenu
+                  label={t('createItem')}
+                  icon={plusIcon}
+                  actions={[
+                    {
+                      label: t('newCase'),
+                      disabled: pending,
+                      accessibleLabel: t('newCase'),
+                      icon: fileIcon,
+                      onSelect: () => createCase(targetFolder.current),
+                    },
+                    {
+                      label: t('create'),
+                      disabled: pending,
+                      accessibleLabel: t('create'),
+                      icon: folderIcon,
+                      onSelect: () => createFolder(targetFolder.current),
+                    },
                   ]}
                 />
-                <div className={styles.toolbar}>
-                  <Button size="sm" disabled={pending} onClick={() => setAction(null)}>
-                    {t('cancel')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
+              </span>
+            </div>
+            <div id="case-directory" className={styles.directoryBody} hidden={directoryCollapsed}>
+              {moving && (
+                <section
+                  className={styles.movePanel}
+                  aria-label={t('moveTitle', { name: moving.value.name })}
+                >
+                  <strong>{t('moveTitle', { name: moving.value.name })}</strong>
+                  <Select
+                    aria-label={t('parentFolder')}
+                    value={destination ?? 'root'}
+                    onValueChange={(value) =>
+                      setAction({
+                        kind: 'move',
+                        item: moving,
+                        destination: value === 'root' ? null : value,
+                      })
+                    }
                     disabled={pending}
-                    onClick={() => void moveItem()}
+                    items={[
+                      { value: 'root', label: t('rootFolder') },
+                      ...folders
+                        .filter((folder) => !excluded.has(folder.id))
+                        .map((folder) => ({
+                          value: folder.id,
+                          label: suiteFolderPath(folders, folder.id),
+                        })),
+                    ]}
+                  />
+                  <div className={styles.toolbar}>
+                    <Button size="sm" disabled={pending} onClick={() => setAction(null)}>
+                      {t('cancel')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      disabled={pending}
+                      onClick={() => void moveItem()}
+                    >
+                      {t('move')}
+                    </Button>
+                  </div>
+                </section>
+              )}
+              {error && !deleting && (
+                <p role="alert" className={styles.treeError}>
+                  {error}
+                </p>
+              )}
+              <nav aria-label={t('directory')} className={styles.treeNavigation}>
+                <div
+                  className={styles.treeRow}
+                  data-selected={
+                    (!selectedFolder && !selectedCase && path === '/cases') || undefined
+                  }
+                >
+                  <Button
+                    variant="ghost"
+                    className={styles.treeLink}
+                    aria-current={
+                      !selectedFolder && !selectedCase && path === '/cases' ? 'page' : undefined
+                    }
+                    onClick={() => selectFolder(null)}
                   >
-                    {t('move')}
+                    <Icon icon={filesIcon} width="16" aria-hidden="true" />
+                    <span>{t('allCases')}</span>
                   </Button>
                 </div>
-              </section>
-            )}
-            {error && !deleting && (
-              <p role="alert" className={styles.treeError}>
-                {error}
-              </p>
-            )}
-            <nav aria-label={t('directory')} className={styles.treeNavigation}>
-              <div
-                className={styles.treeRow}
-                data-selected={(!selectedFolder && !selectedCase && path === '/cases') || undefined}
-              >
-                <Button
-                  variant="ghost"
-                  className={styles.treeLink}
-                  aria-current={
-                    !selectedFolder && !selectedCase && path === '/cases' ? 'page' : undefined
-                  }
-                  onClick={() => selectFolder(null)}
-                >
-                  <Icon icon={filesIcon} width="16" aria-hidden="true" />
-                  <span>{t('allCases')}</span>
-                </Button>
-              </div>
-              <div role="separator" className={styles.treeDivider} />
-              {treeError ? (
-                <Button onClick={() => mutate()}>{t('retry')}</Button>
-              ) : (
-                <DirectoryTree
-                  folders={folders}
-                  rootTests={data?.rootTests ?? []}
-                  selectedCase={selectedCase}
-                  selectedFolder={selectedFolder}
-                  edit={edit}
-                  collapsed={collapsed}
-                  setCollapsed={setCollapsed}
-                  openCase={openCase}
-                  selectFolder={selectFolder}
-                  saveName={saveName}
-                  onCancelEdit={() => setAction(null)}
-                  getActions={actions}
-                />
-              )}
-            </nav>
+                <div role="separator" className={styles.treeDivider} />
+                {treeError ? (
+                  <Button onClick={() => mutate()}>{t('retry')}</Button>
+                ) : (
+                  <DirectoryTree
+                    folders={folders}
+                    rootTests={data?.rootTests ?? []}
+                    selectedCase={selectedCase}
+                    selectedFolder={selectedFolder}
+                    edit={edit}
+                    collapsed={collapsed}
+                    setCollapsed={setCollapsed}
+                    openCase={openCase}
+                    selectFolder={selectFolder}
+                    saveName={saveName}
+                    onCancelEdit={() => setAction(null)}
+                    getActions={actions}
+                  />
+                )}
+              </nav>
+            </div>
           </aside>
           <div
             className={styles.folderContent}

@@ -1,3 +1,5 @@
+@layer reset, controls, components;
+
 @layer controls {
   .viewport {
     position: fixed;

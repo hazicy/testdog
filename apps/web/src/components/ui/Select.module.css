@@ -1,3 +1,5 @@
+@layer reset, controls, components;
+
 @layer controls {
   .select[data-slot='select'] {
     display: inline-flex;

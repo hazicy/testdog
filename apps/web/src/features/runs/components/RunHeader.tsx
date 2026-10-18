@@ -2,10 +2,9 @@
 
 import { useTranslations } from 'next-intl';
 
-import clsx from 'clsx';
 import { Tooltip } from '@/components/ui/Tooltip';
 import styles from './RunHeader.module.css';
-import { statusStyles } from '@/components/ui/statusStyles';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
@@ -68,14 +67,22 @@ export function RunHeader({
             </h1>
           </Tooltip>
           {run && (
-            <span
-              data-slot="status"
+            <StatusBadge
               data-status={run.status}
-              className={clsx(statusStyles(run.status), styles.status)}
+              className={styles.status}
+              tone={
+                run.status === 'passed'
+                  ? 'success'
+                  : run.status === 'failed'
+                    ? 'danger'
+                    : isActiveRun(run.status)
+                      ? 'warning'
+                      : 'neutral'
+              }
             >
               <span />
               {statusText(run.status)}
-            </span>
+            </StatusBadge>
           )}
         </div>
       </div>

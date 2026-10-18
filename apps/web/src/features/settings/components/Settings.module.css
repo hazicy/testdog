@@ -7,46 +7,28 @@
 .field {
   display: grid;
   gap: var(--space-2);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
 }
 .description {
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }
 .error {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--danger);
 }
 .loading {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--brand-active);
 }
 .container {
+  composes: controls from '../../../components/shared/FormControls.module.css';
   margin-inline: auto;
+  width: 100%;
   max-width: 93.75rem;
-  & > :not(:last-child) {
-    margin-block-start: 0;
-    margin-block-end: var(--space-6);
-  }
-}
-.header {
-  & > :not(:last-child) {
-    margin-block-start: 0;
-    margin-block-end: var(--space-2);
-  }
-}
-.title {
-  font-size: var(--text-xl);
-  line-height: 1.5rem;
-  font-weight: 600;
 }
 .sessionLoading {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--page-muted);
 }
 .sessionError {
@@ -56,19 +38,13 @@
   }
 }
 .section {
-  & > :not(:last-child) {
-    margin-block-start: 0;
-    margin-block-end: var(--space-4);
-  }
-  border-radius: var(--radius-2xl);
-  border: var(--border-width) solid var(--page-line);
-  background-color: var(--page);
-  padding: var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width) solid var(--page-line);
 }
 .heading {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
-  font-weight: 600;
+  font: var(--type-panel-title);
 }
 .link {
   display: inline-flex;
@@ -78,7 +54,7 @@
   gap: var(--space-6);
   @media (width >= 48rem) {
     grid-template-columns: 11.25rem minmax(0, 1fr);
-    gap: var(--space-10);
+    gap: var(--space-8);
   }
 }
 .list {
@@ -114,10 +90,10 @@
   align-items: center;
   gap: var(--space-2);
   border-radius: var(--radius-md);
-  padding: var(--space-2-5) var(--space-3);
+  min-height: var(--navigation-row-height);
+  padding: var(--space-2) var(--space-3);
   text-align: left;
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-navigation);
   color: var(--page-muted);
   @media (hover: hover) {
     &:hover {
@@ -135,13 +111,14 @@
   max-width: 36rem;
 }
 .settingsSection {
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width) solid var(--page-line);
   & > :not(:last-child) {
     margin-block-start: 0;
-    margin-block-end: var(--space-6);
+    margin-block-end: var(--space-4);
   }
 }
 .providerHint {
-  font-size: var(--text-lg);
-  line-height: 1.5rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }

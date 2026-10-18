@@ -1,9 +1,8 @@
 .heading {
-  font-size: var(--text-xl);
-  line-height: 1.5rem;
-  font-weight: 600;
+  font: var(--type-panel-title);
 }
 .container {
+  composes: controls from '../../../components/shared/FormControls.module.css';
   @media (width <= 40rem) {
     padding: var(--space-4);
   }
@@ -14,8 +13,7 @@
   padding: var(--space-5) var(--space-6);
 }
 .description {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }
 .group {
@@ -24,6 +22,7 @@
   gap: var(--space-2);
 }
 .field {
+  font: var(--type-navigation);
   display: block;
 }
 .input {

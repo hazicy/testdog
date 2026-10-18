@@ -1,3 +1,5 @@
+@layer reset, controls, components;
+
 @layer components {
   .appShell {
     --sidebar-width: 3.75rem;
@@ -12,6 +14,54 @@
     color: var(--ink);
     font-size: var(--text-lg);
     line-height: 1.25rem;
+  }
+
+  .appShell[data-workspace-surface] {
+    --sidebar: var(--app-shell-background);
+    background: var(--app-shell-background);
+    & .appShellSidebar {
+      border-right: 0;
+    }
+    & .appShellBrand {
+      min-width: 0;
+      padding-inline: var(--space-3);
+      border-bottom: 0;
+    }
+    & .appShellBrandRow {
+      gap: var(--space-1);
+      padding-right: var(--space-2);
+    }
+    &[data-collapsed='true'] .appShellBrandRow {
+      flex-direction: column;
+      justify-content: center;
+      gap: 0;
+      padding: 0;
+      & .appShellBrand {
+        padding: 0;
+      }
+    }
+  }
+  .appShellBrandRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  .appShellContent.appShellWorkspace {
+    grid-template-rows: minmax(0, 1fr);
+    padding: var(--workspace-inset);
+  }
+  .workspacePage {
+    padding: var(--space-6) var(--space-8);
+    @media (width < 48rem) {
+      padding: var(--space-4);
+    }
+  }
+  .workspaceSurface {
+    border: var(--border-width) solid var(--page-line);
+    border-radius: var(--radius-2xl);
+    background: var(--surface);
+    isolation: isolate;
   }
 
   .appShellSidebar,
@@ -31,21 +81,12 @@
     grid-template-rows: var(--header-height) minmax(0, 1fr);
   }
 
-  .appShellBrand,
-  .appShellHeader {
+  .appShellBrand {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    border-bottom: var(--border-width) solid var(--page-line);
-  }
-
-  .appShellBrand {
+    height: 100%;
     padding-inline: var(--space-4);
-  }
-
-  .appShellHeader {
-    padding-inline: var(--space-5);
-    background: var(--sidebar);
   }
 
   .appShellNavigation,
@@ -56,26 +97,12 @@
   }
 
   .appShellNavigation {
-    padding: var(--space-6) var(--space-3) 0;
+    padding: var(--space-4) var(--space-3) 0;
   }
 
   .appShellAccount {
     padding: var(--space-2);
     border-top: var(--border-width) solid var(--page-line);
-  }
-
-  .appShellMainCanvas {
-    overflow: hidden;
-  }
-
-  .appShellMainPadded {
-    padding: var(--space-7) var(--space-4);
-  }
-
-  @media (min-width: 40rem) {
-    .appShellMainPadded {
-      padding-inline: var(--space-6);
-    }
   }
 
   @media (min-width: 48rem) {
@@ -89,14 +116,6 @@
       &[data-collapsed='false'] .appShellAccount {
         padding: var(--space-3);
       }
-    }
-
-    .appShellHeader {
-      padding-inline: var(--space-7);
-    }
-
-    .appShellMainPadded {
-      padding: 2.25rem var(--space-8);
     }
   }
 }

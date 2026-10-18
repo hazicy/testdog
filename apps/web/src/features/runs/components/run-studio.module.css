@@ -1,9 +1,4 @@
 /* Flat workspace: shared surfaces, panel spacing and one-pixel split separators. */
-.runStudioMain {
-  height: 100dvh;
-  overflow: hidden;
-  background: var(--page);
-}
 .runStudio,
 .studioPanel,
 .runReplayPanel {

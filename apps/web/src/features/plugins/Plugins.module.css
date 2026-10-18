@@ -1,17 +1,8 @@
 .panel {
+  composes: controls from '../../components/shared/FormControls.module.css';
   width: 100%;
   max-width: 93.75rem;
   margin-inline: auto;
-}
-.pageHeader {
-  margin-bottom: var(--space-6);
-}
-.pageHeader h1,
-.detailHeader h1 {
-  margin: 0;
-  font-size: var(--text-xl);
-  line-height: 1.5rem;
-  font-weight: 600;
 }
 .catalog {
   display: grid;
@@ -24,7 +15,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-2);
-  padding: var(--space-5);
+  padding: var(--space-4);
   border: var(--border-width) solid var(--page-line);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -32,8 +23,8 @@
   color: var(--ink);
   cursor: pointer;
   transition:
-    border-color 140ms,
-    background 140ms;
+    border-color var(--motion-duration-fast) var(--motion-easing),
+    background var(--motion-duration-fast) var(--motion-easing);
 }
 .catalogItem:hover {
   border-color: var(--control-line);
@@ -49,21 +40,21 @@
   align-items: center;
   width: 100%;
   gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 .appIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 1.375rem;
-  width: 1.375rem;
-  height: 1.375rem;
+  flex: 0 0 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
   color: var(--ink);
-  font-size: 1.375rem;
+  font-size: 1.125rem;
 }
 .kind {
   color: var(--text-subtle);
-  font-size: var(--text-sm);
+  font: var(--type-metadata);
 }
 .cardArrow {
   margin-inline-start: auto;
@@ -71,14 +62,11 @@
   font-size: var(--text-2xl);
 }
 .catalogItem strong {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
-  font-weight: 500;
+  font: var(--type-list-primary);
 }
 .summary {
-  font-size: var(--text-sm);
+  font: var(--type-metadata);
   color: var(--page-muted);
-  line-height: 1.25rem;
 }
 .back {
   display: inline-flex;
@@ -89,7 +77,7 @@
   border: 0;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: var(--text-lg);
+  font: var(--type-navigation);
   margin-bottom: var(--space-6);
 }
 .back:hover {
@@ -97,15 +85,19 @@
 }
 .detailHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
   padding-bottom: var(--space-4);
   border-bottom: var(--border-width) solid var(--page-line);
 }
+.detailHeader > header {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 0;
+}
 .detailHeader p {
   margin: var(--space-1) 0 0;
-  font-size: var(--text-sm);
-  line-height: 1.25rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }
 .detail {
@@ -137,8 +129,7 @@
 .screenshotSection h3,
 .exportGroups h3 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 600;
+  font: var(--type-panel-title);
 }
 .connectionFields {
   display: flex;
@@ -152,8 +143,8 @@
   align-items: center;
   gap: var(--space-5);
 }
-.monospace,
-.jsonInput {
+.panel .monospace,
+.panel .jsonInput {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: var(--text-md);
 }
@@ -201,8 +192,7 @@
 .groupTable th {
   padding: var(--space-2-5) var(--space-4);
   text-align: start;
-  font-size: var(--text-sm);
-  font-weight: 400;
+  font: var(--type-column-header);
   color: var(--table-heading);
   background: var(--surface-muted);
   border-block: var(--border-width) solid var(--page-line);
@@ -251,12 +241,12 @@
 .settingsFooter > span {
   margin-inline-end: auto;
   color: var(--text-secondary);
-  font-size: var(--text-lg);
+  font: var(--type-resource-item);
 }
 .error {
   margin: 0;
   color: var(--danger);
-  font-size: var(--text-lg);
+  font: var(--type-resource-item);
 }
 .runPicker {
   display: flex;
@@ -291,7 +281,7 @@
   padding: var(--space-3);
   border-bottom: var(--border-width) solid var(--line-subtle);
   cursor: pointer;
-  font-size: var(--text-lg);
+  font: var(--type-resource-item);
 }
 .node:last-child {
   border-bottom: 0;
@@ -323,7 +313,7 @@
   padding: var(--space-3) var(--space-4);
   border: var(--border-width) solid var(--page-line);
   border-radius: var(--radius-lg);
-  font-size: var(--text-lg);
+  font: var(--type-resource-item);
 }
 .group strong {
   font-weight: 500;
@@ -341,7 +331,7 @@
 .emptyGroups {
   margin: 0;
   color: var(--text-subtle);
-  font-size: var(--text-lg);
+  font: var(--type-resource-item);
 }
 @media (width <= 48rem) {
   .connectionFields > label {

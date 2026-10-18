@@ -1,20 +1,11 @@
 .settings,
 .section {
-  display: grid;
-  gap: var(--space-5);
-}
-.settings {
-  max-width: 48rem;
-}
-.section {
-  padding: var(--space-5);
-  border: var(--border-width) solid var(--page-line);
-  border-radius: var(--radius-2xl);
+  padding-block: var(--space-5);
+  border-bottom: var(--border-width) solid var(--page-line);
 }
 .heading {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 600;
+  font: var(--type-panel-title);
 }
 .row {
   display: flex;
@@ -37,6 +28,7 @@
   list-style: none;
 }
 .muted {
+  font: var(--type-metadata);
   color: var(--page-muted);
   overflow-wrap: anywhere;
 }
@@ -49,23 +41,23 @@
   display: grid;
   min-width: 0;
   gap: var(--space-2);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
   overflow-wrap: anywhere;
 }
 .workspaceTrigger {
   display: flex;
   align-items: center;
-  gap: var(--space-2-5);
+  gap: var(--space-3);
   width: 100%;
   min-width: 0;
   min-height: 2.5rem;
-  padding: var(--space-1);
-  border: 0;
+  padding: var(--space-1) var(--sidebar-control-inset);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--ink);
   text-align: left;
-  font: inherit;
+  font: var(--type-navigation);
   cursor: pointer;
   &:hover,
   &[data-popup-open] {
@@ -85,12 +77,12 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: var(--border-width) solid var(--brand-line);
+  width: var(--space-6);
+  height: var(--space-6);
+  border: var(--border-width) solid var(--page-line);
   border-radius: var(--radius-md);
-  background: var(--avatar-surface);
-  color: var(--avatar-ink);
+  background: var(--surface);
+  color: var(--text-secondary);
 }
 .workspaceName,
 .workspaceChevron {
@@ -102,8 +94,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--text-lg);
-  font-weight: 600;
+  font: var(--type-navigation);
 }
 .workspaceChevron {
   flex-shrink: 0;
@@ -130,13 +121,13 @@
   gap: var(--space-3);
   padding: var(--space-2);
   border-radius: var(--radius-md);
-  font-size: var(--text-lg);
+  font: var(--type-navigation);
   cursor: pointer;
   &[data-highlighted] {
     background: var(--sidebar-hover);
   }
   &[data-selected] {
-    font-weight: 600;
+    font-weight: 500;
   }
   &[data-disabled] {
     opacity: 0.5;

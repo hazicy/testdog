@@ -1,5 +1,7 @@
 'use client';
 
+import { StatusBadge } from '@/components/shared/StatusBadge';
+
 import { useTranslations, useFormatter } from 'next-intl';
 import { useIssueLabels, useIssuePresentation } from '@/features/issues/presentation';
 
@@ -253,7 +255,13 @@ export function IssueDetail({ id }: { id: string }) {
           {t('firstSeen', { time: relativeTime(occurrences.at(-1)?.createdAt ?? issue.createdAt) })}
         </span>
         <span>{t('lastSeen', { time: relativeTime(latest?.createdAt ?? issue.createdAt) })}</span>
-        <span>{issueStatuses[issue.status]}</span>
+        <StatusBadge
+          tone={
+            issue.status === 'closed' ? 'success' : issue.status === 'open' ? 'neutral' : 'warning'
+          }
+        >
+          {issueStatuses[issue.status]}
+        </StatusBadge>
         <span>{issueCategories[issue.category]}</span>
         <span>{issueSeverities[issue.severity]}</span>
         {issue.closeReason && (

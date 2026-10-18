@@ -275,6 +275,7 @@ test('moves a case between root and folder, opens the canvas directly and retain
   const list = page.getByRole('region', { name: '测试用例列表' });
 
   await expect(list.getByRole('button', { name: '搜索', exact: true })).toBeVisible();
+  await tree(page).getByRole('button', { name: '回归', exact: true }).click();
   await menu(page, '搜索', '移动');
   await page.getByRole('combobox', { name: '所属文件夹' }).click();
   await page.getByRole('option', { name: '根目录', exact: true }).click();
@@ -288,9 +289,12 @@ test('keeps expanded state, creates cases in the selected folder and runs batche
 }) => {
   await support(page);
   await page.goto('/cases');
-  await tree(page).getByRole('button', { name: '折叠 回归' }).click();
+  await tree(page).getByRole('button', { name: '回归', exact: true }).click();
   await tree(page).getByRole('button', { name: '搜索', exact: true }).click();
-  await expect(tree(page).getByRole('button', { name: '展开 回归' })).toBeVisible();
+  await expect(tree(page).getByRole('button', { name: '回归', exact: true })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
   await tree(page).getByRole('button', { name: '回归', exact: true }).click();
   await page.getByRole('button', { name: '新建', exact: true }).click();
   await page.getByRole('menuitem', { name: '新建用例', exact: true }).click();
@@ -340,4 +344,59 @@ test('renames a case with a name-only request and keeps its newer content', asyn
   await input.press('Enter');
   await expect(tree(page).getByRole('button', { name, exact: true })).toBeVisible();
   expect(state.tests[1].goal).toBe('A newer description from another editor');
+});
+
+test('keeps the case workspace contained, scrolls panels independently and collapses the directory', async ({
+  page,
+}) => {
+  const state = await support(page);
+
+  for (let index = 0; index < 40; index++) {
+    const item = makeCase({
+      id: `55ed2bde-b647-46d2-9289-${String(index).padStart(12, '0')}`,
+      name: `回归用例 ${index + 1}`,
+    });
+
+    state.tests.push(item);
+    state.locations.set(item.id, 'root');
+  }
+
+  await page.setViewportSize({ width: 1440, height: 800 });
+  await page.goto('/cases');
+  const content = page.locator('[data-ui="suite-content"]');
+  const directory = tree(page);
+
+  await expect(content.getByRole('button', { name: '回归用例 1', exact: true })).toBeVisible();
+  const surface = page.locator('#main-content');
+  const box = await surface.boundingBox();
+
+  expect(box!.y).toBeGreaterThan(0);
+  expect(box!.height).toBeGreaterThan(page.viewportSize()!.height * 0.8);
+  expect(await surface.evaluate((node) => getComputedStyle(node).borderRadius)).not.toBe('0px');
+  await content.evaluate((node) => {
+    node.scrollTop = 160;
+  });
+  expect(await content.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+  expect(await directory.evaluate((node) => node.scrollTop)).toBe(0);
+  await directory.evaluate((node) => {
+    node.scrollTop = 100;
+  });
+  expect(await directory.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+  const contentScroll = await content.evaluate((node) => node.scrollTop);
+
+  await page.getByRole('button', { name: '收起用例目录', exact: true }).click();
+  await expect(directory).toBeHidden();
+  expect(await content.evaluate((node) => node.scrollTop)).toBe(contentScroll);
+  await page.getByRole('button', { name: '展开用例目录', exact: true }).click();
+  await expect(directory).toBeVisible();
+  expect(await directory.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+  await page.getByRole('button', { name: '收起侧栏', exact: true }).click();
+  await expect(page.getByRole('button', { name: '展开侧栏', exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: '收起用例目录', exact: true }).click();
+  await expect(directory).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(844);
+  await page.getByRole('button', { name: '展开用例目录', exact: true }).click();
+  await expect(directory).toBeVisible();
 });

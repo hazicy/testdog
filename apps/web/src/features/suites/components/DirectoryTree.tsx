@@ -91,6 +91,7 @@ export function DirectoryTree({
             <Button
               variant="ghost"
               className={styles.treeLink}
+              title={item.name}
               aria-current={selectedCase === item.id ? 'page' : undefined}
               onClick={() => openCase(item.id, parentId)}
             >
@@ -138,6 +139,7 @@ export function DirectoryTree({
                   <Button
                     variant="ghost"
                     className={styles.treeLink}
+                    title={folder.name}
                     aria-current={selected ? 'page' : undefined}
                     aria-expanded={open}
                     onClick={() => {

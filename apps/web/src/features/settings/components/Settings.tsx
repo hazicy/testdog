@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl';
 
 import styles from './Settings.module.css';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
@@ -311,9 +313,7 @@ export function Settings({
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>{t('settings')}</h1>
-      </header>
+      <PageHeader title={t('settings')} />
       <Tabs.Root
         value={tab}
         onValueChange={(value) => setTab(String(value))}
@@ -348,9 +348,7 @@ export function Settings({
           <Tabs.Panel value="profile" keepMounted>
             {session ? (
               <section aria-labelledby="profile-title" className={styles.settingsSection}>
-                <h2 id="profile-title" className={styles.heading}>
-                  {t('profile')}
-                </h2>
+                <SectionHeader id="profile-title" title={t('profile')} />
                 <ProfileForm
                   key={session.user.id}
                   name={session.user.name}
@@ -364,9 +362,7 @@ export function Settings({
           <Tabs.Panel value="security" keepMounted>
             {session ? (
               <section aria-labelledby="security-title" className={styles.settingsSection}>
-                <h2 id="security-title" className={styles.heading}>
-                  {t('security')}
-                </h2>
+                <SectionHeader id="security-title" title={t('security')} />
                 {accounts.data && <SocialAccounts providers={providers} accounts={accounts.data} />}
                 {accounts.error ? (
                   <div className={styles.sessionError}>

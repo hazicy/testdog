@@ -9,21 +9,17 @@
   width: auto;
 }
 .error {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--error-ink);
 }
 .article {
+  composes: controls from '../../../components/shared/FormControls.module.css';
   width: 100%;
-  padding: var(--space-6);
-  @media (width >= 48rem) {
-    padding-inline: var(--space-10);
-    padding-block: var(--space-6);
-  }
+  max-width: 93.75rem;
+  margin-inline: auto;
 }
 .link {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--brand);
 }
 .header {
@@ -42,18 +38,16 @@
   gap: var(--space-3);
 }
 .category {
-  background-color: var(--danger);
+  background-color: var(--danger-soft);
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   font-weight: 600;
-  color: #fff;
+  color: var(--danger);
+  border-radius: var(--radius-md);
 }
 .title {
   min-width: 0;
-  font-size: var(--text-3xl);
-  line-height: 1.75rem;
-  font-weight: 600;
+  font: var(--type-page-title);
   overflow-wrap: anywhere;
 }
 .actions {
@@ -70,8 +64,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-4);
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }
 .environment {
@@ -88,8 +81,7 @@
 }
 .heading {
   margin-bottom: var(--space-3);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   font-weight: 600;
 }
 .latestOccurrence {
@@ -113,23 +105,20 @@
 .expectedHeading {
   background-color: var(--surface-muted);
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   font-weight: 600;
   color: var(--page-muted);
 }
 .description {
   overflow-wrap: anywhere;
   padding: var(--space-3);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   white-space: pre-wrap;
 }
 .actualHeading {
   background-color: var(--surface-muted);
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   font-weight: 600;
   color: var(--error-ink);
 }
@@ -138,8 +127,7 @@
   border-top-width: var(--border-width);
   border-color: var(--page-line);
   padding: var(--space-4);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
 }
 .targetLink {
   word-break: break-all;
@@ -151,8 +139,7 @@
 }
 .reproductionHeading {
   margin-top: var(--space-4);
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   font-weight: 600;
   color: var(--page-muted);
 }
@@ -169,8 +156,7 @@
 }
 .stepNumber {
   font-family: var(--font-geist-mono), monospace;
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }
 .issueDescription {
@@ -180,8 +166,7 @@
   border: var(--border-width) solid var(--page-line);
   background-color: var(--surface-raised);
   padding: var(--space-4);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
 }
 .historySection {
   margin-top: var(--space-8);
@@ -192,13 +177,11 @@
   justify-content: space-between;
 }
 .historyTitle {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   font-weight: 600;
 }
 .historySummary {
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }
 .occurrenceTable {
@@ -225,8 +208,7 @@
 .runStatus {
   border: var(--border-width) solid var(--page-line);
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
 }
 .runLink {
   font-weight: 600;
@@ -241,8 +223,7 @@
   white-space: nowrap;
 }
 .emptyMessage {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--page-muted);
 }
 .occurrence {
@@ -262,26 +243,22 @@
 }
 .occurrenceMetadata {
   margin-top: var(--space-2);
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }
 .assertion {
   margin-top: var(--space-3);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
 }
 .evidence {
   margin-top: var(--space-2);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
 }
 .occurrenceError {
   margin-top: var(--space-2);
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--error-ink);
 }
 .screenshots {
@@ -299,9 +276,7 @@
 }
 .verificationHeading {
   margin-bottom: var(--space-4);
-  font-size: var(--text-2xl);
-  line-height: calc(1.75 / 1.125);
-  font-weight: 600;
+  font: var(--type-panel-title);
 }
 .verification {
   margin-bottom: var(--space-3);
@@ -315,8 +290,7 @@
 }
 .verificationExplanation {
   margin-top: var(--space-2);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--page-muted);
 }
 .form {
@@ -347,12 +321,10 @@
 .eventMessage {
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
 }
 .eventTime {
   margin-top: var(--space-1);
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }

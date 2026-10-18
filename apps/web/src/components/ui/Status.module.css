@@ -1,3 +1,5 @@
+@layer reset, controls, components;
+
 @layer controls {
   .passed {
     color: var(--success);

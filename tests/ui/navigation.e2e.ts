@@ -19,12 +19,11 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test('sidebar destinations open with one selected item and matching breadcrumbs', async ({
+test('sidebar destinations open with one selected item and a matching workspace title', async ({
   page,
 }) => {
   await page.goto('/cases');
   const sidebar = page.getByRole('navigation', { name: '工作区导航' });
-  const breadcrumb = page.getByRole('navigation', { name: '面包屑' });
 
   for (const [href, name] of [
     ['/runs', '执行记录'],
@@ -40,7 +39,13 @@ test('sidebar destinations open with one selected item and matching breadcrumbs'
       'aria-current',
       'page',
     );
-    await expect(breadcrumb.locator('[aria-current="page"]')).toHaveText(name);
+    await expect(
+      page.getByRole('heading', {
+        level: 1,
+        name: href === '/cases' ? '全部用例' : name,
+        exact: true,
+      }),
+    ).toBeVisible();
     await expect(page.getByRole('heading', { name: '页面不存在', exact: true })).toHaveCount(0);
   }
 });
@@ -83,16 +88,16 @@ test('keeps workspace chrome fixed while long content scrolls inside the viewpor
       content.style.height = '2000px';
       element.append(content);
     });
-    const header = page.getByRole('navigation', { name: '面包屑' });
+    const brand = page.getByRole('link', { name: 'testdog 首页', exact: true });
     const navigation = page.getByRole('navigation', { name: '工作区导航' });
-    const headerBefore = await header.boundingBox();
+    const brandBefore = await brand.boundingBox();
     const navigationBefore = await navigation.boundingBox();
 
     await main.evaluate((element) => {
       element.scrollTop = 500;
     });
     expect(await main.evaluate((element) => element.scrollTop)).toBe(500);
-    expect(await header.boundingBox()).toEqual(headerBefore);
+    expect(await brand.boundingBox()).toEqual(brandBefore);
     expect(await navigation.boundingBox()).toEqual(navigationBefore);
     expect(
       await page.evaluate(() => ({
@@ -206,7 +211,7 @@ test('keeps sign out within the sidebar on short, narrow and collapsed layouts',
   ]) {
     await page.setViewportSize(viewport);
     await page.goto('/cases');
-    const signOut = page.getByRole('button', { name: '退出', exact: true });
+    const signOut = page.getByRole('button', { name: '账户菜单', exact: true });
 
     await expect(signOut).toBeInViewport();
     await page.locator('#main-content').evaluate((element) => {
@@ -230,6 +235,9 @@ test('keeps sign out within the sidebar on short, narrow and collapsed layouts',
     };
 
     await checkBounds();
+    await signOut.click();
+    await expect(page.getByRole('menuitem', { name: '退出', exact: true })).toBeInViewport();
+    await page.keyboard.press('Escape');
     if (viewport.width >= 768) {
       await page.getByRole('button', { name: '收起侧栏' }).click();
       await expect(signOut).toBeInViewport();

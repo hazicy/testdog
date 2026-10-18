@@ -44,27 +44,15 @@
 .navigationLink {
   position: relative;
   display: flex;
-  height: 2.5rem;
+  min-height: var(--navigation-row-height);
   align-items: center;
   gap: var(--space-3);
   border-radius: var(--radius-md);
   padding-inline: var(--space-3);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-navigation);
   transition:
     background-color 160ms ease,
     color 160ms ease;
-  &::before {
-    position: absolute;
-    inset-block: 0.75rem;
-    left: 0;
-    width: 0.125rem;
-    border-radius: var(--radius-xs);
-    background: var(--brand);
-    content: '';
-    opacity: 0;
-    transition: opacity 160ms ease;
-  }
   @media (hover: hover) {
     &:hover {
       background-color: var(--sidebar-hover);
@@ -75,8 +63,8 @@
   background-color: var(--badge-surface);
   font-weight: 500;
   color: var(--ink);
-  &::before {
-    opacity: 1;
+  & > svg {
+    color: var(--ink);
   }
   &:hover {
     background-color: var(--badge-surface);
@@ -84,6 +72,13 @@
 }
 .inactiveLink {
   color: var(--text-secondary);
+}
+.navigationLink:nth-child(4) {
+  margin-top: var(--space-4);
+}
+.navigationLink:focus-visible {
+  outline: var(--focus-width) solid var(--brand-line);
+  outline-offset: var(--space-0-5);
 }
 .navigationLabel {
   display: none;
@@ -96,30 +91,6 @@
   @media (width >= 48rem) {
     display: flex;
   }
-}
-.breadcrumbs {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
-}
-.breadcrumbLink {
-  color: var(--page-muted);
-  transition: color 160ms ease;
-  &:hover {
-    color: var(--ink);
-  }
-}
-.separator {
-  color: var(--text-faint);
-}
-.currentPage {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 500;
 }
 
 .suiteMain {

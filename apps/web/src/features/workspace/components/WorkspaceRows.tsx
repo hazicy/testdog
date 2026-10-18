@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
 import styles from './WorkspaceRows.module.css';
 import { TableRow, TableCell } from '@/components/ui/Table';
-import { statusStyles } from '@/components/ui/statusStyles';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
@@ -27,10 +27,17 @@ function Status({ status }: { status?: RunSummary['status'] }) {
   const t = useTranslations('workspace');
 
   return (
-    <span
-      data-slot="status"
+    <StatusBadge
       data-status={status || 'none'}
-      className={statusStyles(status || 'none')}
+      tone={
+        status === 'passed'
+          ? 'success'
+          : status === 'failed'
+            ? 'danger'
+            : status && status !== 'cancelled'
+              ? 'warning'
+              : 'neutral'
+      }
     >
       <Icon
         icon={
@@ -42,11 +49,11 @@ function Status({ status }: { status?: RunSummary['status'] }) {
                 ? stoppedIcon
                 : pendingIcon
         }
-        width="14"
+        width="16"
         aria-hidden="true"
       />
       {status ? t(status) : t('none')}
-    </span>
+    </StatusBadge>
   );
 }
 
@@ -123,8 +130,17 @@ export function WorkspaceRows({
                       variant="ghost"
                       className={clsx(workspaceStyles.workspaceIndexName, styles.action)}
                     >
-                      {test.name}
+                      <span className={workspaceStyles.workspaceIndexNameText} title={test.name}>
+                        {test.name}
+                      </span>
                     </Button>
+                  </div>
+                  <div className={workspaceStyles.workspaceIndexMeta}>
+                    <p className={workspaceStyles.workspaceIndexDescription} title={test.url}>
+                      {test.target && test.target.platform !== 'web'
+                        ? `${test.target.platform} · ${test.target.appId}`
+                        : address(test.url)}
+                    </p>
                     {test.tags.length > 0 && (
                       <div className={workspaceStyles.workspaceIndexTags}>
                         {test.tags.map((tag, index) => (
@@ -138,11 +154,6 @@ export function WorkspaceRows({
                       </div>
                     )}
                   </div>
-                  <p className={workspaceStyles.workspaceIndexDescription}>
-                    {test.target && test.target.platform !== 'web'
-                      ? `${test.target.platform} · ${test.target.appId}`
-                      : address(test.url)}
-                  </p>
                 </TableCell>
                 <TableCell>
                   <Status status={run?.status} />
@@ -168,11 +179,12 @@ export function WorkspaceRows({
                   <div className={styles.container}>
                     <Button
                       size="xs"
+                      variant="ghost"
                       title={running ? t('waitToRun') : t('runTest')}
                       disabled={starting}
                       onClick={() => void start(test.id)}
                     >
-                      <Icon icon={resultsIcon} width="14" aria-hidden="true" /> {t('run')}
+                      <Icon icon={resultsIcon} width="16" aria-hidden="true" /> {t('run')}
                     </Button>
                     <WorkspaceRowMenu
                       label={t('moreActions', { name: test.name })}
@@ -217,7 +229,9 @@ export function WorkspaceRows({
                   href={`/runs/${run.id}`}
                   className={clsx(workspaceStyles.workspaceIndexName, styles.runLink)}
                 >
-                  {run.name}
+                  <span className={workspaceStyles.workspaceIndexNameText} title={run.name}>
+                    {run.name}
+                  </span>
                 </Link>
                 <p className={workspaceStyles.workspaceIndexDescription}>
                   <span className={workspaceStyles.workspaceIndexId}>#{run.id.slice(0, 8)}</span>

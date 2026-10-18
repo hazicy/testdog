@@ -21,7 +21,9 @@ import {
   TableCell,
 } from '@/components/ui/Table';
 
-import { Input } from '@/components/ui/Input';
+import { SearchInput } from '@/components/shared/SearchInput';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useState } from 'react';
 import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 import Link from 'next/link';
@@ -35,7 +37,6 @@ import { Select } from '@/components/ui/Select';
 import { type IssuePage } from '@testdog/contracts/issues/types';
 import { IssueEditor, options } from '@/features/issues/components/IssueEditor';
 import { Icon } from '@iconify/react/offline';
-import searchIcon from '@iconify-icons/lucide/search';
 import plusIcon from '@iconify-icons/lucide/plus';
 
 export function IssueList() {
@@ -74,24 +75,33 @@ export function IssueList() {
 
   return (
     <section
-      className={clsx(workspaceStyles.workspaceIndex, styles.section)}
+      className={clsx(
+        workspaceStyles.workspaceIndex,
+        workspaceStyles.dataWorkspace,
+        styles.section,
+      )}
       aria-label={t('issues')}
     >
-      <h1 className={styles.accessibleLabel}>{t('issues')}</h1>
+      <PageHeader
+        title={t('issues')}
+        actions={
+          <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+            <Icon icon={plusIcon} width="16" aria-hidden="true" />
+            {t('newIssue')}
+          </Button>
+        }
+      />
       <div
         className={clsx(workspaceStyles.workspaceIndexToolbar, workspaceStyles.issueIndexToolbar)}
       >
-        <div className={clsx(workspaceStyles.workspaceIndexSearch, styles.container)}>
-          <Icon icon={searchIcon} width="16" className={styles.icon} aria-hidden="true" />
-          <Input
-            aria-label={t('search')}
-            className={styles.input}
-            placeholder={t('searchPlaceholder')}
-            maxLength={200}
-            value={q}
-            onChange={(event) => void setFilters({ q: event.target.value })}
-          />
-        </div>
+        <SearchInput
+          className={workspaceStyles.workspaceIndexSearch}
+          aria-label={t('search')}
+          placeholder={t('searchPlaceholder')}
+          maxLength={200}
+          value={q}
+          onChange={(event) => void setFilters({ q: event.target.value })}
+        />
         <div className={clsx(workspaceStyles.workspaceIndexFilter, styles.filters)}>
           <Select
             aria-label={t('filterStatus')}
@@ -143,12 +153,6 @@ export function IssueList() {
             ]}
           />
         </div>
-        <div className={workspaceStyles.workspaceIndexToolbarActions}>
-          <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
-            <Icon icon={plusIcon} width="16" aria-hidden="true" />
-            {t('newIssue')}
-          </Button>
-        </div>
       </div>
       {error && (
         <p role="alert" className={styles.error}>
@@ -186,12 +190,18 @@ export function IssueList() {
               {items.map((issue) => (
                 <TableRow key={issue.id}>
                   <TableCell>
-                    <span
-                      className={clsx(workspaceStyles.workspaceIndexTag, styles.categoryBadge)}
+                    <StatusBadge
+                      tone={
+                        issue.severity === 'critical' || issue.severity === 'high'
+                          ? 'danger'
+                          : issue.severity === 'medium'
+                            ? 'warning'
+                            : 'neutral'
+                      }
                       title={issueSeverities[issue.severity]}
                     >
                       {issue.category === 'product' ? 'BUG' : issue.category.toUpperCase()}
-                    </span>
+                    </StatusBadge>
                     <span className={styles.label}>{issueSeverities[issue.severity]}</span>
                   </TableCell>
                   <TableCell>
@@ -199,7 +209,9 @@ export function IssueList() {
                       className={clsx(workspaceStyles.workspaceIndexName, styles.issueLink)}
                       href={`/issues/${issue.id}`}
                     >
-                      {issue.title}
+                      <span className={workspaceStyles.workspaceIndexNameText} title={issue.title}>
+                        {issue.title}
+                      </span>
                     </Link>
                     <p className={workspaceStyles.workspaceIndexDescription}>
                       {issue.latestOccurrence?.snapshot.name ?? t('manual')} ·{' '}
@@ -221,7 +233,19 @@ export function IssueList() {
                   >
                     {relativeTime(issue.lastSeen ?? issue.createdAt)}
                   </TableCell>
-                  <TableCell className={styles.mutedText}>{issueStatuses[issue.status]}</TableCell>
+                  <TableCell>
+                    <StatusBadge
+                      tone={
+                        issue.status === 'closed'
+                          ? 'success'
+                          : issue.status === 'open'
+                            ? 'neutral'
+                            : 'warning'
+                      }
+                    >
+                      {issueStatuses[issue.status]}
+                    </StatusBadge>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

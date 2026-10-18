@@ -14,7 +14,7 @@
   }
   @media (width >= 64rem) {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    column-gap: 8rem;
+    column-gap: var(--space-6);
   }
 }
 .identity {
@@ -50,9 +50,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--text-md);
-  line-height: 1.25rem;
-  font-weight: 500;
+  font: var(--type-list-primary);
 }
 .status {
   flex-shrink: 0;

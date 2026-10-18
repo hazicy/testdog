@@ -24,6 +24,7 @@ import canvasIcon from '@iconify-icons/lucide/panels-top-left';
 import lightningIcon from '@iconify-icons/lucide/zap';
 import { useWorkspaceData } from '@/features/workspace/hooks/useWorkspaceData';
 import { WorkspaceList } from '@/features/workspace/components/WorkspaceList';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { ErrorState } from '@/components/shared/ErrorState';
 
 export function Workspace({
@@ -144,16 +145,41 @@ export function Workspace({
       />
     );
 
+  const testActions = isTests ? (
+    <>
+      {actions}
+      <Button
+        size="sm"
+        className={workspaceStyles.caseCreateButton}
+        onClick={() => setQuickCreateOpen(true)}
+      >
+        <Icon icon={lightningIcon} width="16" aria-hidden="true" />
+        {t('quickCreate')}
+      </Button>
+      <Button
+        size="sm"
+        variant="primary"
+        className={workspaceStyles.caseCreateButton}
+        onClick={() => openEditor()}
+      >
+        <Icon icon={canvasIcon} width="16" aria-hidden="true" />
+        {t('newTest')}
+      </Button>
+    </>
+  ) : undefined;
+
   return (
     <div
       ref={(element) => {
         promptContainer.current = element?.closest<HTMLElement>('#main-content') ?? null;
       }}
-      className={clsx(workspaceStyles.workspaceIndex, styles.container)}
+      className={clsx(
+        workspaceStyles.workspaceIndex,
+        styles.container,
+        workspaceStyles.dataWorkspace,
+      )}
     >
-      <h1 className={title ? styles.folderTitle : styles.accessibleLabel}>
-        {title ?? (isTests ? t('tests') : t('runs'))}
-      </h1>
+      <PageHeader title={title ?? (isTests ? t('tests') : t('runs'))} actions={testActions} />
       {error && !previewEmpty && !previewLoading && (
         <div role="alert" className={styles.error}>
           <span>{error}</span>
@@ -168,30 +194,6 @@ export function Workspace({
         </div>
       )}
       <WorkspaceList
-        actions={
-          isTests ? (
-            <>
-              {actions}
-              <Button
-                size="sm"
-                className={clsx(workspaceStyles.caseCreateButton, workspaceStyles.isQuick)}
-                onClick={() => setQuickCreateOpen(true)}
-              >
-                <Icon icon={lightningIcon} width="16" aria-hidden="true" />
-                {t('quickCreate')}
-              </Button>
-              <Button
-                size="sm"
-                variant="primary"
-                className={clsx(workspaceStyles.caseCreateButton, workspaceStyles.isCanvas)}
-                onClick={() => openEditor()}
-              >
-                <Icon icon={canvasIcon} width="16" aria-hidden="true" />
-                {t('newTest')}
-              </Button>
-            </>
-          ) : undefined
-        }
         query={data.query}
         setQuery={data.setQuery}
         filter={data.filter}

@@ -577,9 +577,15 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   const popupBounds = await dialog.boundingBox();
   const contentBounds = await page.locator('#main-content').boundingBox();
 
-  expect(popupBounds!.x).toBe(contentBounds!.x);
-  expect(popupBounds!.y).toBe(contentBounds!.y);
-  expect(popupBounds!.width).toBe(contentBounds!.width);
+  const contentInsets = await page.locator('#main-content').evaluate((element) => ({
+    left: element.clientLeft,
+    top: element.clientTop,
+    width: element.clientWidth,
+  }));
+
+  expect(popupBounds!.x).toBe(contentBounds!.x + contentInsets.left);
+  expect(popupBounds!.y).toBe(contentBounds!.y + contentInsets.top);
+  expect(popupBounds!.width).toBe(contentInsets.width);
   await expect(input).toHaveCSS('padding-left', '40px');
 
   await expect(input).toBeFocused();
@@ -1017,7 +1023,7 @@ test('creates, edits and duplicates in the persistent canvas and preserves run h
   await expect(page).toHaveURL(/\/cases\?case=/);
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('aria-busy', 'false');
-  await page.getByRole('button', { name: '测试用例', exact: true }).click();
+  await page.getByRole('button', { name: '全部用例', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '更多操作：验证登录', exact: true }).click();
   await page.getByRole('menuitem', { name: '编辑 验证登录', exact: true }).click();
@@ -1030,7 +1036,7 @@ test('creates, edits and duplicates in the persistent canvas and preserves run h
   await expect(page).toHaveURL(/\/cases\?case=/);
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('aria-busy', 'false');
-  await page.getByRole('button', { name: '测试用例', exact: true }).click();
+  await page.getByRole('button', { name: '全部用例', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '更多操作：更新登录', exact: true }).click();
   await page.getByRole('menuitem', { name: '复制 更新登录', exact: true }).click();
@@ -1041,7 +1047,7 @@ test('creates, edits and duplicates in the persistent canvas and preserves run h
   await expect(page).toHaveURL(/\/cases\?case=/);
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('aria-busy', 'false');
-  await page.getByRole('button', { name: '测试用例', exact: true }).click();
+  await page.getByRole('button', { name: '全部用例', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   expect(writes.map((item) => item.method)).toEqual(['POST', 'PATCH', 'POST']);
   expect(writes[2].body.tags).toEqual(['登录']);
@@ -1526,14 +1532,22 @@ test('execution studio opens a full height three pane layout', async ({ page }) 
   await page.screenshot({ path: 'artifacts/run-studio.png', fullPage: true });
   for (const width of [1600, 1000]) {
     await page.setViewportSize({ width, height: 900 });
-    await expect
-      .poll(async () => {
-        const workspace = await studio.boundingBox();
-        const replay = await replayGroup.boundingBox();
+    const workspaceWidth = await studio.evaluate((element) => element.clientWidth);
 
-        return (replay!.x - workspace!.x) / workspace!.width;
-      })
-      .toBeCloseTo(0.382, 2);
+    if (workspaceWidth < 768) {
+      await expect(studio).toHaveAttribute('data-compact', 'true');
+      await expect(studio.locator('.dv-groupview')).toHaveCount(1);
+    } else {
+      await expect(studio).toHaveAttribute('data-compact', 'false');
+      await expect
+        .poll(async () => {
+          const workspace = await studio.boundingBox();
+          const replay = await replayGroup.boundingBox();
+
+          return (replay!.x - workspace!.x) / workspace!.width;
+        })
+        .toBeCloseTo(0.382, 2);
+    }
   }
 });
 
@@ -1715,6 +1729,7 @@ test('group header actions maximize restore and collapse each group', async ({ p
     route.fulfill({ json: { logs: [], nextCursor: null } }),
   );
   await page.goto(`/runs/${run.id}`);
+  // Dockview can round one pixel per separator inside the bordered workspace.
   for (const name of ['步骤', '回放', '控制台']) {
     const tab = page.locator('[data-ui~="dock-tab-button"]').filter({ hasText: name });
     const group = page.locator('.dv-groupview').filter({ has: tab });
@@ -1734,7 +1749,7 @@ test('group header actions maximize restore and collapse each group', async ({ p
       .poll(async () => Math.abs((await group.boundingBox())!.height - before.height), {
         message: name + ' restore',
       })
-      .toBeLessThan(3);
+      .toBeLessThanOrEqual(3);
     await group.locator('.dv-tabs-and-actions-container').hover();
     await group.getByRole('button', { name: '最大化分组' }).click();
     await group.getByRole('button', { name: '折叠分组' }).click();
@@ -1745,11 +1760,11 @@ test('group header actions maximize restore and collapse each group', async ({ p
     await group.getByRole('button', { name: '展开分组' }).click();
     const after = (await group.boundingBox())!;
 
-    expect(Math.abs(after.width - before.width)).toBeLessThan(3);
+    expect(Math.abs(after.width - before.width)).toBeLessThanOrEqual(3);
     expect(
       Math.abs(after.height - before.height),
       `${name}: ${before.height} → ${after.height}`,
-    ).toBeLessThan(3);
+    ).toBeLessThanOrEqual(3);
   }
 });
 
@@ -1836,13 +1851,13 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   await dialog.getByRole('textbox', { name: /^节点内容/ }).press('Enter');
   await expect(page).toHaveURL(/\/cases\/editor\//);
   await expect(page.getByRole('navigation', { name: '工作区导航' })).toBeVisible();
-  const breadcrumb = page.getByRole('navigation', { name: '面包屑' });
+  const navigation = page.getByRole('navigation', { name: '工作区导航' });
 
-  await expect(breadcrumb.getByRole('link', { name: '测试用例', exact: true })).toHaveAttribute(
+  await expect(navigation.getByRole('link', { name: '测试用例', exact: true })).toHaveAttribute(
     'href',
     '/cases',
   );
-  await expect(breadcrumb).toContainText('画板');
+  await expect(page.getByRole('button', { name: '全部用例', exact: true })).toBeVisible();
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight),
   ).toBe(true);
@@ -1888,7 +1903,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
 
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toBeVisible();
-  await page.getByRole('button', { name: '测试用例', exact: true }).click();
+  await page.getByRole('button', { name: '全部用例', exact: true }).click();
   await expect(dialog).toBeHidden();
   const root = stored!.plan!.nodes.root;
 

@@ -1,19 +1,5 @@
-.searchField {
-  position: relative;
-}
-.searchIcon {
-  position: absolute;
-  top: 0.625rem;
-  left: 0.75rem;
-  color: var(--text-subtle);
-  pointer-events: none;
-  transition: color 160ms ease;
-}
 .searchField:focus-within .searchIcon {
   color: var(--brand);
-}
-.searchInput {
-  padding-left: 2.25rem;
 }
 .statusFilter {
   width: auto;
@@ -32,6 +18,10 @@
 }
 .tableViewport {
   overflow-x: auto;
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--brand-line);
+    outline-offset: var(--space-0-5);
+  }
 }
 .tableHeader {
   background-color: transparent;

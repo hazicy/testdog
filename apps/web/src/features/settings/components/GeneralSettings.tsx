@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Select } from '@/components/ui/Select';
 import styles from './Settings.module.css';
 
@@ -19,9 +20,7 @@ export function GeneralSettings({ initialTheme }: { initialTheme: string }) {
 
   return (
     <section className={styles.settingsSection} aria-labelledby="general-title">
-      <h2 id="general-title" className={styles.heading}>
-        {t('title')}
-      </h2>
+      <SectionHeader id="general-title" title={t('title')} />
       <label className={styles.field}>
         <span>{t('language')}</span>
         <Select

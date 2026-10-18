@@ -65,7 +65,9 @@ test('shows the current user and signs out', async ({ page }) => {
   );
   await page.goto('/cases');
   await expect(page.getByText('测试用户', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '退出', exact: true }).click();
+  await page.getByRole('button', { name: '账户菜单', exact: true }).click();
+  await expect(page.getByRole('menu', { name: '账户菜单' })).toBeVisible();
+  await page.getByRole('menuitem', { name: '退出', exact: true }).click();
   await expect(page).toHaveURL('/login');
 });
 
@@ -124,7 +126,9 @@ test('clears cached case data when signing out and entering another account', as
   );
   await page.goto('/cases');
   await expect(page.getByText('Alice secret case', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '退出', exact: true }).click();
+  await page.getByRole('button', { name: '账户菜单', exact: true }).click();
+  await expect(page.getByRole('menu', { name: '账户菜单' })).toBeVisible();
+  await page.getByRole('menuitem', { name: '退出', exact: true }).click();
   await expect(page).toHaveURL('/login');
   await page.getByLabel('邮箱', { exact: true }).fill('bob@example.com');
   await page.getByLabel('密码', { exact: true }).fill('correct-password');

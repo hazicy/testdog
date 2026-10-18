@@ -1,0 +1,28 @@
+.controls {
+  font: var(--type-resource-item);
+  & label,
+  & legend {
+    font: var(--type-navigation);
+  }
+  & [data-slot='input'],
+  & [data-slot='select'] {
+    min-height: var(--workspace-control-height);
+    padding-block: var(--space-1);
+    font: var(--type-resource-item);
+    &:focus {
+      border-color: var(--brand-line);
+      outline: var(--focus-width) solid var(--brand-line);
+      outline-offset: 0;
+    }
+  }
+  & textarea {
+    font: var(--type-resource-item);
+  }
+  @media (pointer: coarse) {
+    & [data-slot='input'],
+    & [data-slot='select'] {
+      min-height: var(--control-height-touch);
+      font-size: var(--text-xl);
+    }
+  }
+}

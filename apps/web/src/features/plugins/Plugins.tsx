@@ -7,6 +7,7 @@ import sheetIcon from '@iconify-icons/lucide/file-spreadsheet';
 import flameIcon from '@iconify-icons/lucide/flame';
 import arrowIcon from '@iconify-icons/lucide/arrow-up-right';
 import backIcon from '@iconify-icons/lucide/arrow-left';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { ExcelAcceptancePanel } from './ExcelAcceptancePanel';
 import { VolcengineSettingsPanel } from './VolcengineSettingsPanel';
 import styles from './Plugins.module.css';
@@ -42,15 +43,12 @@ export function Plugins() {
             <Icon icon={backIcon} aria-hidden="true" />
             {t('title')}
           </button>
-          <header className={styles.detailHeader}>
+          <div className={styles.detailHeader}>
             <span className={styles.appIcon} data-tone={plugin.tone}>
               <Icon icon={plugin.icon} aria-hidden="true" />
             </span>
-            <div>
-              <h1>{t(plugin.id)}</h1>
-              <p>{t(plugin.summary)}</p>
-            </div>
-          </header>
+            <PageHeader title={t(plugin.id)} description={t(plugin.summary)} />
+          </div>
           <div className={styles.detail}>
             {plugin.id === 'volcengine-abtest' ? (
               <VolcengineSettingsPanel />
@@ -61,9 +59,7 @@ export function Plugins() {
         </>
       ) : (
         <>
-          <header className={styles.pageHeader}>
-            <h1>{t('title')}</h1>
-          </header>
+          <PageHeader title={t('title')} />
           <div className={styles.catalog}>
             {catalog.map((item) => (
               <button

@@ -1,0 +1,34 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+}
+.identity {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.title {
+  margin: 0;
+  font: var(--type-page-title);
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.description {
+  margin-top: var(--space-1);
+  font: var(--type-metadata);
+  color: var(--page-muted);
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  & > button {
+    min-height: var(--workspace-control-height);
+    font: var(--type-navigation);
+  }
+}

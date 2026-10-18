@@ -12,10 +12,8 @@
   min-height: 100dvh;
 }
 .form h2 {
-  font-size: var(--text-xl);
-  line-height: 1.5rem;
+  font: var(--type-panel-title);
   margin: 0;
-  font-weight: 600;
 }
 .heading {
   display: flex;
@@ -28,11 +26,12 @@
   justify-content: center;
   flex-shrink: 0;
   color: var(--ink);
-  width: 1.375rem;
-  height: 1.375rem;
-  font-size: 1.375rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
 }
 .body {
+  composes: controls from '../../components/shared/FormControls.module.css';
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -45,6 +44,6 @@
   gap: var(--space-1);
   align-self: flex-start;
   color: var(--text-secondary);
-  font-size: var(--text-lg);
+  font: var(--type-navigation);
   text-underline-offset: var(--space-1);
 }

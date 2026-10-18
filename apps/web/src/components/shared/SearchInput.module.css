@@ -1,0 +1,19 @@
+.field {
+  position: relative;
+  min-width: 0;
+}
+.icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  transform: translateY(-50%);
+  color: var(--text-subtle);
+  pointer-events: none;
+  transition: color var(--motion-duration-fast) var(--motion-easing);
+}
+.field:focus-within .icon {
+  color: var(--brand);
+}
+.input {
+  padding-left: 2.25rem;
+}

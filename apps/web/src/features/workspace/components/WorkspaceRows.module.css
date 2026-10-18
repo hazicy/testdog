@@ -28,6 +28,7 @@
 }
 .container {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--space-1);
 }
@@ -47,6 +48,7 @@
 }
 .runActions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--space-2);
 }

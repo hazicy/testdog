@@ -39,13 +39,38 @@
   --space-16: 4rem;
   --space-20: 5rem;
 
-  /* White workspace, neutral supporting surfaces and the existing brand accent. */
-  --page: #ffffff;
-  --ink: #212121;
-  --brand: #b45736;
+  /* Typography roles share the same Latin and Chinese font stack. */
+  --font-ui:
+    var(--font-geist-sans), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --line-ui: 1.25rem;
+  --line-metadata: 1.125rem;
+  --line-page-title: 1.625rem;
+  --type-page-title: 600 var(--text-2xl) / var(--line-page-title) var(--font-ui);
+  --type-panel-title: 600 var(--text-md) / var(--line-ui) var(--font-ui);
+  --type-navigation: 500 var(--text-md) / var(--line-ui) var(--font-ui);
+  --type-list-primary: var(--type-navigation);
+  --type-column-header: 500 var(--text-sm) / var(--line-metadata) var(--font-ui);
+  --type-metadata: 400 var(--text-sm) / var(--line-metadata) var(--font-ui);
+  --type-status: var(--type-column-header);
+  --type-resource-item: 400 var(--text-md) / var(--line-ui) var(--font-ui);
+  --navigation-row-height: 2.25rem;
+  --resource-row-height: 2rem;
+  --list-row-min-height: 3rem;
+  --list-row-padding: var(--space-2-5);
+  --workspace-control-height: 2.25rem;
+  --sidebar-control-inset: var(--space-2);
+  --motion-duration-fast: 160ms;
+  --motion-easing: ease;
+  --shadow-popover: 0 var(--space-1) var(--space-3) var(--canvas-panel-shadow);
+
+  /* Warm neutral workspace with a restrained Testdog accent. */
+  --page: #fafaf9;
+  --ink: #202020;
+  --brand: #b45332;
   --brand-foreground: #ffffff;
   --brand-hover: #99482e;
-  --brand-link: #b45736;
+  --brand-link: #b45332;
   --brand-active: #a14b30;
   --brand-soft: #faf1eb;
   --brand-line: #d8b8a8;
@@ -53,24 +78,31 @@
   /* Surfaces, controls and text */
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-muted: #f2f2f2;
-  --surface-hover: #f9f9f9;
+  --surface-muted: #f3f3f1;
+  --surface-hover: #f7f7f5;
   --surface-disabled: #f2f2f2;
-  --control-hover: #ededed;
-  --control-line: #d6d6d6;
+  --control-hover: #efefec;
+  --control-line: #dededb;
   --control-ink: #3b3b3b;
   --control-muted: #6b6b6b;
   --control-placeholder: #6b6b6b;
-  --page-line: #e6e6e6;
-  --line-subtle: #f0f0f0;
+  --page-line: #eaeae8;
+  --line-subtle: #f0f0ee;
   --dialog-line: #e6e6e6;
-  --page-muted: #6b6b6b;
-  --text-secondary: #616161;
+  --page-muted: #737373;
+  --text-secondary: #737373;
   --text-subtle: #6b6b6b;
   --text-faint: #a6a6a6;
   --table-heading: #616161;
   --status-none: #6b6b6b;
-  --badge-surface: #e9e9e9;
+  --badge-surface: #eaeae7;
+
+  /* Quiet semantic badges and shared workspace control sizes. */
+  --danger-soft: #fbefed;
+  --warning-soft: #faf4e8;
+  --neutral-soft: #f2f2f0;
+  --control-height: 2rem;
+  --control-height-touch: 2.75rem;
 
   /* Status and feedback */
   --success: #49815a;
@@ -82,8 +114,11 @@
   --cancelled: #6b6b6b;
 
   /* Navigation and avatar */
-  --sidebar: #f9f9f9;
-  --sidebar-hover: #efefef;
+  --app-shell-background: #f3f3f1;
+  --workspace-inset: var(--space-2-5);
+  --sidebar: #f5f5f4;
+  --resource-panel: #fafaf9;
+  --sidebar-hover: #ebebe8;
   --sidebar-muted: #6b6b6b;
   --avatar-surface: var(--brand-soft);
   --avatar-ink: var(--brand-hover);
@@ -189,7 +224,7 @@
     line-height: 1.5;
     -webkit-text-size-adjust: 100%;
     tab-size: 4;
-    font-family: var(--font-geist-sans), 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+    font-family: var(--font-ui);
   }
 
   body {

@@ -1,15 +1,13 @@
 .heading {
-  font-size: var(--text-xl);
-  line-height: 1.5rem;
-  font-weight: 600;
+  font: var(--type-panel-title);
 }
 .subtitle {
   margin-top: var(--space-1);
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }
 .form {
+  composes: controls from '../../../components/shared/FormControls.module.css';
   & > :not(:last-child) {
     margin-block-start: 0;
     margin-block-end: var(--space-4);
@@ -17,27 +15,23 @@
   padding: var(--space-6);
 }
 .connectionHint {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--page-muted);
 }
 .error {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
   color: var(--error-ink);
 }
 .field {
   margin-bottom: var(--space-2);
   display: block;
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
 }
 .clearCredential {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
+  font: var(--type-resource-item);
 }
 .container {
   display: flex;
@@ -45,7 +39,6 @@
   gap: var(--space-2);
 }
 .unsavedHint {
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font: var(--type-metadata);
   color: var(--page-muted);
 }

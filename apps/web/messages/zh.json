@@ -1,5 +1,6 @@
 {
   "ui": {
+    "account_menu": "账户菜单",
     "dismiss_notification": "关闭通知",
     "notifications": "通知",
     "skip_to_main_content": "跳转到主内容",
@@ -967,6 +968,8 @@
     "create": "创建团队"
   },
   "suites": {
+    "collapseDirectory": "收起用例目录",
+    "expandDirectory": "展开用例目录",
     "allCases": "全部用例",
     "title": "测试套件",
     "history": "套件执行",

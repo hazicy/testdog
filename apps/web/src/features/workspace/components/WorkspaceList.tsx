@@ -16,11 +16,10 @@ import Link from 'next/link';
 import { type ComponentProps, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { buttonStyles } from '@/components/ui/buttonStyles';
-import { Input } from '@/components/ui/Input';
+import { SearchInput } from '@/components/shared/SearchInput';
 import { Select } from '@/components/ui/Select';
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
-import searchIcon from '@iconify-icons/lucide/search';
 import { WorkspaceRows } from '@/features/workspace/components/WorkspaceRows';
 
 type Props = Omit<ComponentProps<typeof WorkspaceRows>, 'visibleTests' | 'visibleRuns'> & {
@@ -72,16 +71,13 @@ export function WorkspaceList({
       aria-label={isTests ? t('testList') : t('runList')}
     >
       <div className={workspaceStyles.workspaceIndexToolbar}>
-        <div className={clsx(workspaceStyles.workspaceIndexSearch, styles.searchField)}>
-          <Icon icon={searchIcon} className={styles.searchIcon} width="16" aria-hidden="true" />
-          <Input
-            aria-label={isTests ? t('searchTests') : t('searchResults')}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={isTests ? t('testPlaceholder') : t('runPlaceholder')}
-            className={styles.searchInput}
-          />
-        </div>
+        <SearchInput
+          className={workspaceStyles.workspaceIndexSearch}
+          aria-label={isTests ? t('searchTests') : t('searchResults')}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={isTests ? t('testPlaceholder') : t('runPlaceholder')}
+        />
         <div className={workspaceStyles.workspaceIndexFilter}>
           <Select
             aria-label={t('statusFilter')}
@@ -101,10 +97,22 @@ export function WorkspaceList({
             ]}
           />
         </div>
-        <div className={workspaceStyles.workspaceIndexToolbarActions}>{actions}</div>
+        {actions && <div className={workspaceStyles.workspaceIndexToolbarActions}>{actions}</div>}
       </div>
       {loading ? (
-        <LoadingState className={workspaceStyles.workspaceIndexEmpty} message={t('loading')} />
+        isTests ? (
+          <div className={workspaceStyles.caseSkeleton} role="status" aria-label={t('loading')}>
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className={workspaceStyles.skeletonRow} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <LoadingState className={workspaceStyles.workspaceIndexEmpty} message={t('loading')} />
+        )
       ) : (isTests ? tests.length === 0 : runs.length === 0) ? (
         <EmptyState
           data-ui="workspace-index-empty"
