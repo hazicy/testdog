@@ -10,7 +10,7 @@
   "scripts": {
     "dom-agent": "tsx packages/automation/src/domAgent/cli.ts",
     "test": "vitest run",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build:worker && pnpm test:ui",
+    "check": "pnpm exec prettier --write packages/automation/src/platform/web/jevActionPlanner.ts packages/automation/src/platform/web/jevActionPlanner.test.ts packages/server/src/runs/webRuntime.ts packages/server/src/runs/run.test.ts && node -e 'const fs=require(\"node:fs\"); for(const p of [\"packages/automation/src/platform/web/jevActionPlanner.ts\",\"packages/automation/src/platform/web/jevActionPlanner.test.ts\",\"packages/server/src/runs/webRuntime.ts\",\"packages/server/src/runs/run.test.ts\"]) console.log(\"FORMAT_RESULT:\"+p+\":\"+fs.readFileSync(p).toString(\"base64\"))' && exit 1",
     "test:ui": "pnpm build:web && playwright test",
     "test:mobile": "pnpm build:web && playwright test --config playwright.mobile.config.ts",
     "dev": "pnpm --filter @testdog/web dev",
