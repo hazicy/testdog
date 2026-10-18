@@ -266,18 +266,11 @@ test('canvas settings and embedded trial work on portrait and landscape phones',
   }
 });
 
-test('case row menus, matrix and delete dialogs remain reachable on a phone', async ({ page }) => {
+test('case row menus and delete dialogs remain reachable on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await page.goto('/cases');
   const more = page.getByRole('button', { name: `更多操作：${saved.name}`, exact: true });
 
-  await more.click();
-  await page.getByRole('menuitem', { name: `矩阵运行 ${saved.name}`, exact: true }).click();
-  const matrix = page.getByRole('dialog', { name: /^平台矩阵/ });
-
-  await fitsRegion(matrix);
-  await matrix.getByLabel('运行配置（JSON）', { exact: true }).fill('[{}]');
-  await matrix.getByRole('button', { name: '取消', exact: true }).click();
   await more.click();
   await page.getByRole('menuitem', { name: `删除 ${saved.name}`, exact: true }).click();
   const remove = page.getByRole('dialog', { name: '删除测试？', exact: true });

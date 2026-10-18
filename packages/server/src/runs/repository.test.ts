@@ -507,7 +507,7 @@ describe('PostgreSQL workspace repository', () => {
   });
 });
 
-it('snapshots an authored tree and clears it for a text goal override', async () => {
+it('preserves the authored plan snapshot after the case is updated', async () => {
   const plan = {
     rootId: 'task',
     nodes: {
@@ -541,13 +541,6 @@ it('snapshots an authored tree and clears it for a text goal override', async ()
     null,
   );
   expect((await getRun(first.id, { userId: null }))?.plan).toEqual(plan);
-  const overridden = await createQueuedRun(
-    { testId: saved.id, goalOverride: '只检查首页' },
-    undefined,
-    null,
-  );
-
-  expect(overridden.plan).toBeUndefined();
 });
 
 it('uses the validated target URL for new cases and native temporary runs', async () => {

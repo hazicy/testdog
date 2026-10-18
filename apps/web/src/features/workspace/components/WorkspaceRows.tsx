@@ -14,7 +14,6 @@ import downloadIcon from '@iconify-icons/lucide/download';
 import editIcon from '@iconify-icons/lucide/pencil';
 import resultsIcon from '@iconify-icons/lucide/play';
 import trashIcon from '@iconify-icons/lucide/trash-2';
-import matrixIcon from '@iconify-icons/lucide/grid-2x2';
 import checkIcon from '@iconify-icons/lucide/circle-check';
 import failIcon from '@iconify-icons/lucide/circle-x';
 import pendingIcon from '@iconify-icons/lucide/circle-dashed';
@@ -84,7 +83,6 @@ type Props = {
   starting: boolean;
   exporting: boolean;
   openEditor: (test?: TestCase, duplicate?: boolean) => void;
-  openMatrix: (test: TestCase) => void;
   setDeleting: (test: TestCase) => void;
   start: (testId: string) => Promise<void>;
   exportRun: (run: RunSummary) => Promise<void>;
@@ -99,7 +97,6 @@ export function WorkspaceRows({
   starting,
   exporting,
   openEditor,
-  openMatrix,
   setDeleting,
   start,
   exportRun,
@@ -200,13 +197,6 @@ export function WorkspaceRows({
                           accessibleLabel: t('duplicate', { name: test.name }),
                           icon: copyIcon,
                           onSelect: () => openEditor(test, true),
-                        },
-                        {
-                          label: t('runMatrix'),
-                          accessibleLabel: t('matrix', { name: test.name }),
-                          icon: matrixIcon,
-                          disabled: starting,
-                          onSelect: () => openMatrix(test),
                         },
                         {
                           label: t('deleteCase'),

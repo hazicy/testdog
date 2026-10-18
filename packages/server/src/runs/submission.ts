@@ -20,7 +20,7 @@ import { recordingOperation } from '@testdog/contracts/runs/lib/recordingOperati
 import { runRecord, stepRecord } from '@testdog/server/runs/records';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-type RunOptions = { batchId?: string; goalOverride?: string };
+type RunOptions = { batchId?: string };
 
 function parseRunRequest(raw: unknown) {
   const parsed = runRequestSchema.safeParse(raw);
@@ -47,14 +47,14 @@ export async function createRun(
   userId: UserScope,
 ) {
   assertUserScope(userId);
-  const { batchId, goalOverride, ...raw } = request;
+  const { batchId, ...raw } = request;
 
-  return persistRun(parseRunRequest(raw), { batchId, goalOverride }, transaction, userId);
+  return persistRun(parseRunRequest(raw), { batchId }, transaction, userId);
 }
 
 async function persistRun(
   input: z.output<typeof runRequestSchema>,
-  { batchId, goalOverride }: RunOptions,
+  { batchId }: RunOptions,
   transaction: Tx | undefined,
   userId: UserScope,
 ) {
@@ -140,8 +140,8 @@ async function persistRun(
         targetSnapshot: target,
         testId: test.id,
         name: test.name,
-        goal: goalOverride ?? test.goal,
-        plan: goalOverride ? undefined : test.plan,
+        goal: test.goal,
+        plan: test.plan,
         mode: 'record',
       };
     } else {

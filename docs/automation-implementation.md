@@ -10,7 +10,7 @@
 | 构建       | APK/.app 身份与摘要、实际安装摘要、初始化策略、OS/driver/build/profile 检查。Android 三种策略与 iOS 安装/清数据实测通过，篡改与不兼容合同测试通过                                                                       |
 | 调度       | 持久化队列、独立并发 worker、行锁、心跳、fencing、阶段 deadline、隔离和显式恢复。隔离 PostgreSQL 18 多连接领取、过期写入拒绝和真实 Android SDK 健康恢复共 3 项通过                                                      |
 | 证据与故障 | before/after/final 截图/快照、完整性标记、归档错误保留主要错误、条件诊断、清理不明确时隔离。SDK 部分启动失败、模型失败、取消、归档失败与录制器停止不明测试；Android 真实 MP4/应用日志采集通过                           |
-| 工作台     | 平台、资源、构建、重置、deep link、原生 JSON/结构化断言编辑、矩阵、诊断与完整性提示。生产构建的 Chromium UI 验收通过，API 使用隔离 fixture                                                                              |
+| 工作台     | 平台、资源、构建、重置、deep link、原生 JSON/结构化断言编辑、诊断与完整性提示。生产构建的 Chromium UI 验收通过，API 使用隔离 fixture                                                                                    |
 | 存储和授权 | 私有本地/S3 附件、归属校验、Range、生产认证默认开启、请求头脱敏。S3 协议 fixture Put/Get/Delete 与归属测试、认证和密钥测试通过                                                                                          |
 | 迁移       | expand/backfill/cutover、历史 legacy desktop/录制/附件保留、旧未完成执行安全终结。隔离迁移与 PostgreSQL 全迁移通过，未操作生产数据库                                                                                    |
 

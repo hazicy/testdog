@@ -5,7 +5,7 @@ import type { TestCase } from '@testdog/contracts/test-cases/types';
 import type { TestRun } from '@testdog/contracts/runs/types';
 
 it.skipIf(!process.env.TESTDOG_UI_URL)(
-  'edits native setup and submits a platform matrix in the real workspace UI',
+  'edits native setup and displays run evidence in the real workspace UI',
   async () => {
     const browser = await chromium.launch();
     const page = await browser.newPage();
@@ -14,7 +14,6 @@ it.skipIf(!process.env.TESTDOG_UI_URL)(
     page.on('pageerror', (error) => errors.push(error.message));
     const tests: TestCase[] = [];
     const buildId = randomUUID();
-    let batch: { testId: string; variants: unknown[] } | undefined;
     const now = new Date().toISOString();
     const runId = randomUUID();
     let run: TestRun | undefined;
@@ -49,10 +48,7 @@ it.skipIf(!process.env.TESTDOG_UI_URL)(
             { id: buildId, platform: 'ios', appId: 'com.example.fixture', sha256: 'a'.repeat(64) },
           ],
         };
-      else if (url.pathname === '/api/run-batches') {
-        batch = route.request().postDataJSON();
-        body = { batchId: randomUUID(), runs: [] };
-      } else if (url.pathname === `/api/runs/${runId}/recording`) body = { versions: [] };
+      else if (url.pathname === `/api/runs/${runId}/recording`) body = { versions: [] };
       else if (url.pathname === `/api/runs/${runId}`) body = { run };
       else if (url.pathname === '/api/runs') body = { runs: [] };
       else body = {};
@@ -87,24 +83,6 @@ it.skipIf(!process.env.TESTDOG_UI_URL)(
         resetPolicy: 'reinstall',
         launchUrl: 'fixture://login',
       });
-      await page.getByRole('button', { name: '矩阵', exact: true }).click();
-      const variants = [
-        { target: tests[0].target },
-        {
-          target: {
-            platform: 'web',
-            url: 'https://example.com',
-            browser: 'webkit',
-            deviceProfile: 'iPhone 13',
-          },
-          goal: 'Web welcome',
-        },
-      ];
-
-      await page.getByLabel('运行配置（JSON）', { exact: true }).fill(JSON.stringify(variants));
-      await page.getByRole('button', { name: '运行矩阵', exact: true }).click();
-      await browserExpect(page).toHaveURL(/\/runs$/);
-      expect(batch).toEqual({ testId: tests[0].id, variants });
       run = {
         id: runId,
         name: 'Native fixture',

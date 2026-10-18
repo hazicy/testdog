@@ -55,7 +55,6 @@ import { GET as getRecording, POST as saveRecording } from '@/app/api/runs/[id]/
 import { GET as getRunEvents } from '@/app/api/runs/[id]/events/route';
 import { GET as getWorkspaceEvents } from '@/app/api/events/route';
 import { GET as getStats } from '@/app/api/workspace/stats/route';
-import { POST as createBatch } from '@/app/api/run-batches/route';
 import { workspaceVersion } from '@/server/realtime/eventStream';
 import { eq } from 'drizzle-orm';
 import { requireUserId } from '@/server/shared/auth';
@@ -262,25 +261,6 @@ test('returns 404 for cross-user reads, writes, evidence, logs, recording versio
     ).status,
   ).toBe(404);
   expect((await createRun(request('/api/runs', bob, { testId: saved.id }))).status).toBe(404);
-  expect(
-    (
-      await createBatch(
-        request('/api/run-batches', bob, {
-          testId: saved.id,
-          variants: [
-            {
-              target: {
-                platform: 'web',
-                url: input.url,
-                browser: 'chromium',
-                deviceProfile: 'Pixel 7',
-              },
-            },
-          ],
-        }),
-      )
-    ).status,
-  ).toBe(404);
   await db.update(testRuns).set({ status: 'failed' }).where(eq(testRuns.id, run.id));
   const ownVersion = await saveRecording(
     request('/api/runs/' + run.id + '/recording', alice, {

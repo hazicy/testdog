@@ -17,7 +17,6 @@ import { downloadRunReport } from '@/client/download';
 import { writeCaseDraft } from '@/features/test-cases/lib/caseDraft';
 import { useAuthoring } from '@/features/test-cases/hooks/useAuthoring';
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
-import { RunMatrixDialog } from '@/features/test-cases/components/RunMatrixDialog';
 import { QuickCreateDialog } from '@/features/test-cases/components/QuickCreateDialog';
 import { Icon } from '@iconify/react/offline';
 import canvasIcon from '@iconify-icons/lucide/panels-top-left';
@@ -53,8 +52,6 @@ export function Workspace({
   const [starting, setStarting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState<TestCase | null>(null);
-  const [matrixTest, setMatrixTest] = useState<TestCase | null>(null);
-  const [matrixError, setMatrixError] = useState('');
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const selectedId = params.get('run');
 
@@ -95,28 +92,6 @@ export function Workspace({
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('startFailed'));
-    } finally {
-      setStarting(false);
-    }
-  }
-
-  function openMatrix(test: TestCase) {
-    setMatrixTest(test);
-    setMatrixError('');
-  }
-
-  async function startMatrix(event: React.FormEvent, matrixCode: string) {
-    event.preventDefault();
-    if (!matrixTest) return;
-    setStarting(true);
-    setMatrixError('');
-    try {
-      await submit('/api/run-batches', { testId: matrixTest.id, variants: JSON.parse(matrixCode) });
-      setMatrixTest(null);
-      router.push('/runs');
-      await refresh();
-    } catch (cause) {
-      setMatrixError(cause instanceof Error ? cause.message : t('matrixFailed'));
     } finally {
       setStarting(false);
     }
@@ -212,7 +187,6 @@ export function Workspace({
         starting={starting}
         exporting={exporting}
         openEditor={openEditor}
-        openMatrix={openMatrix}
         setDeleting={setDeleting}
         start={start}
         exportRun={exportRun}
@@ -222,15 +196,6 @@ export function Workspace({
           folderId={folderId}
           container={promptContainer}
           onClose={() => setQuickCreateOpen(false)}
-        />
-      )}
-      {matrixTest && (
-        <RunMatrixDialog
-          test={matrixTest}
-          busy={starting}
-          error={matrixError}
-          onClose={() => setMatrixTest(null)}
-          onSubmit={startMatrix}
         />
       )}
       {deleting && (

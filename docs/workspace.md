@@ -36,7 +36,7 @@ target 是目标配置的事实来源，Web URL 由 target.url 推导，原生 U
 
 平台使用版本化 target：Web 包含 URL/browser/deviceProfile，原生包含 appId/deviceProfileId/buildArtifactId/resetPolicy/launchUrl。原生 evidence 按能力请求 video/trace/logs。运行详情提供冻结 target、实际 environment、capabilities 和 evidenceComplete。
 
-`POST /api/run-batches` 接收 testId 与 variants（每项 target 和可选 goal），事务内创建独立 run 并返回 batchId。`GET /api/resources` 返回共享资源容量目录（不含任务归属、执行 ID、租约及 worker 详情），`GET /api/builds` 返回构建身份与摘要，均不暴露私有路径。原生录制编辑保存版本化 JSON IR，支持 structured check、semantic assertion 和分支。
+`GET /api/resources` 返回共享资源容量目录（不含任务归属、执行 ID、租约及 worker 详情），`GET /api/builds` 返回构建身份与摘要，均不暴露私有路径。原生录制编辑保存版本化 JSON IR，支持 structured check、semantic assertion 和分支。
 
 生产模式默认要求认证，附件也受认证与运行归属校验保护。跨主机附件可使用私有 S3。部署切换见 [部署指南](deployment.md)，首期实测的历史证据见 [实施记录](automation-implementation.md)。
 
@@ -216,7 +216,6 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 
 - `GET /api/resources`：已登记资源的容量目录，包含 available/busy/quarantined 状态，不包含任务和 worker 的内部信息。
 - `GET /api/builds`：构建元数据与摘要，私有路径不输出。
-- `POST /api/run-batches`：`{testId, variants:[{target, goal?}]}`，在同一事务创建各平台独立执行并以 batchId 关联。
 - 原生录制版本使用 `{schemaVersion:1, platform, steps}` JSON，保留语义断言与分支，拒绝临时 refs 和坐标手势。
 
 执行详情增加 targetSnapshot、environmentSnapshot、capabilities、resourceId、batchId 和 evidenceComplete。Web 与原生步骤统一使用带平台标记的 action 和 platformAssertion，保留 pageId/pageUrl 用于证据展示；旧字段经迁移后删除。原生截图 MIME 为 image/png，附件下载保留正确扩展名。
@@ -241,7 +240,7 @@ Console 与 Network 日志在录制和重放中均会采集，失败或停止后
 
 ### 执行提交幂等
 
-`POST /api/runs` 和 `POST /api/run-batches` 支持 `Idempotency-Key: <UUID>`。数据库主键约束与创建事务共同保证同一提交只创建一次；重试相同请求返回首次成功响应，参数或接口不同则返回 409。创建失败会回滚请求预留，允许重试。页面遇到网络错误或服务端错误时保留请求 ID，成功后下次提交生成新 ID。未提供 ID 的旧调用方保留每次新建的行为。幂等记录持久保留，不自动过期。
+`POST /api/runs` 支持 `Idempotency-Key: <UUID>`。数据库主键约束与创建事务共同保证同一提交只创建一次；重试相同请求返回首次成功响应，参数或接口不同则返回 409。创建失败会回滚请求预留，允许重试。页面遇到网络错误或服务端错误时保留请求 ID，成功后下次提交生成新 ID。未提供 ID 的旧调用方保留每次新建的行为。幂等记录持久保留，不自动过期。
 
 ### 租约维护与模型预算
 

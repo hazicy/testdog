@@ -58,7 +58,6 @@ export function WorkspaceList({
   starting,
   exporting,
   openEditor,
-  openMatrix,
   setDeleting,
   start,
   exportRun,
@@ -166,7 +165,6 @@ export function WorkspaceList({
                   starting={starting}
                   exporting={exporting}
                   openEditor={openEditor}
-                  openMatrix={openMatrix}
                   setDeleting={setDeleting}
                   start={start}
                   exportRun={exportRun}
