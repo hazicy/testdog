@@ -1,8 +1,8 @@
 .panel {
   opacity: 1;
   transition: opacity 120ms ease;
-}
-.panel[data-starting-style],
-.panel[data-ending-style] {
-  opacity: 0;
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+  }
 }

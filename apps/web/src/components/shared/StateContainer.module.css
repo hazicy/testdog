@@ -9,11 +9,11 @@
   height: 100%;
   padding: var(--space-12) var(--space-5);
   text-align: center;
-}
-.container[role='status'] {
-  font-size: var(--text-lg);
-  line-height: 1.25rem;
-  color: var(--page-muted);
+  &[role='status'] {
+    font-size: var(--text-lg);
+    line-height: 1.25rem;
+    color: var(--page-muted);
+  }
 }
 .message {
   font-size: var(--text-lg);

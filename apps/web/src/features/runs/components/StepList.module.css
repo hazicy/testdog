@@ -27,23 +27,23 @@
   font-size: var(--text-xs);
   text-align: left;
   cursor: pointer;
-}
-.reference:hover {
-  background: var(--surface-hover);
-  color: var(--brand);
-}
-.reference > svg {
-  flex-shrink: 0;
-}
-.reference > span {
-  overflow-wrap: anywhere;
+  &:hover {
+    background: var(--surface-hover);
+    color: var(--brand);
+  }
+  & > svg {
+    flex-shrink: 0;
+  }
+  & > span {
+    overflow-wrap: anywhere;
+  }
 }
 .plannedStep {
   padding-block: var(--space-1);
   border-bottom: var(--border-width) solid var(--line-subtle);
-}
-.plannedStep:last-child {
-  border-bottom: 0;
+  &:last-child {
+    border-bottom: 0;
+  }
 }
 .planSummary {
   display: flex;
@@ -56,17 +56,17 @@
   text-align: left;
   cursor: pointer;
   transition: background-color 150ms ease;
-}
-.planSummary:hover {
-  background: var(--surface-hover);
-}
-.planSummary:focus-visible {
-  outline: var(--focus-width) solid var(--brand);
-  outline-offset: -0.125rem;
-}
-.planSummary [data-slot='status'] {
-  flex-shrink: 0;
-  font-size: var(--text-xs);
+  &:hover {
+    background: var(--surface-hover);
+  }
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--brand);
+    outline-offset: -0.125rem;
+  }
+  & [data-slot='status'] {
+    flex-shrink: 0;
+    font-size: var(--text-xs);
+  }
 }
 .stepNumber {
   display: grid;
@@ -106,13 +106,15 @@
 .planSummary[aria-expanded='true'] .chevron {
   rotate: 90deg;
 }
-.plannedStep[data-current='true'] > [data-slot='collapsible'] > .planSummary {
-  background: var(--brand-soft);
-  box-shadow: inset 0.125rem 0 var(--brand);
-}
-.plannedStep[data-current='true'] .stepNumber {
-  background: var(--surface);
-  color: var(--brand);
+.plannedStep {
+  &[data-current='true'] > [data-slot='collapsible'] > .planSummary {
+    background: var(--brand-soft);
+    box-shadow: inset 0.125rem 0 var(--brand);
+  }
+  &[data-current='true'] .stepNumber {
+    background: var(--surface);
+    color: var(--brand);
+  }
 }
 .planActions {
   margin: var(--space-1) 0 0 2.25rem;

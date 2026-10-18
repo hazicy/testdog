@@ -72,12 +72,14 @@
 .inactiveLink {
   color: var(--text-secondary);
 }
-.navigationLink:nth-child(4) {
-  margin-top: var(--space-4);
-}
-.navigationLink:focus-visible {
-  outline: var(--focus-width) solid var(--brand-line);
-  outline-offset: var(--space-0-5);
+.navigationLink {
+  &:nth-child(4) {
+    margin-top: var(--space-4);
+  }
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--brand-line);
+    outline-offset: var(--space-0-5);
+  }
 }
 .navigationLabel {
   display: none;

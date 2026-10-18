@@ -45,14 +45,14 @@
   place-items: center;
   overflow: hidden;
   background: var(--surface-muted);
-}
-.runReplaySurface > video,
-.runReplaySurface > img {
-  position: absolute;
-  inset: 1rem;
-  width: calc(100% - 2rem);
-  height: calc(100% - 2rem);
-  object-fit: contain;
+  & > video,
+  & > img {
+    position: absolute;
+    inset: 1rem;
+    width: calc(100% - 2rem);
+    height: calc(100% - 2rem);
+    object-fit: contain;
+  }
 }
 .runReplayControls {
   border-top: var(--border-width) solid var(--page-line);

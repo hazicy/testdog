@@ -16,10 +16,7 @@
     transition-timing-function: ease;
     transition-duration: 200ms;
     cursor: pointer;
-    &:disabled {
-      cursor: not-allowed;
-      opacity: 45%;
-    }
+    &:disabled,
     &[data-disabled] {
       cursor: not-allowed;
       opacity: 45%;

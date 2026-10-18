@@ -26,9 +26,7 @@
       outline: var(--focus-width) solid var(--brand);
       outline-offset: 0;
     }
-    &:disabled {
-      background-color: var(--surface-disabled);
-    }
+    &:disabled,
     &[data-disabled] {
       background-color: var(--surface-disabled);
     }

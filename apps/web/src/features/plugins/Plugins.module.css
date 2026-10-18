@@ -25,10 +25,10 @@
   transition:
     border-color var(--motion-duration-fast) var(--motion-easing),
     background var(--motion-duration-fast) var(--motion-easing);
-}
-.catalogItem:hover {
-  border-color: var(--control-line);
-  background: var(--surface-hover);
+  &:hover {
+    border-color: var(--control-line);
+    background: var(--surface-hover);
+  }
 }
 .catalogItem:focus-visible,
 .back:focus-visible {
@@ -79,9 +79,9 @@
   cursor: pointer;
   font: var(--type-navigation);
   margin-bottom: var(--space-6);
-}
-.back:hover {
-  color: var(--ink);
+  &:hover {
+    color: var(--ink);
+  }
 }
 .detailHeader {
   display: flex;
@@ -89,16 +89,16 @@
   gap: var(--space-3);
   padding-bottom: var(--space-4);
   border-bottom: var(--border-width) solid var(--page-line);
-}
-.detailHeader > header {
-  flex: 1;
-  min-width: 0;
-  padding-bottom: 0;
-}
-.detailHeader p {
-  margin: var(--space-1) 0 0;
-  font: var(--type-metadata);
-  color: var(--page-muted);
+  & > header {
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 0;
+  }
+  & p {
+    margin: var(--space-1) 0 0;
+    font: var(--type-metadata);
+    color: var(--page-muted);
+  }
 }
 .detail {
   min-width: 0;
@@ -136,12 +136,12 @@
   flex-direction: column;
   gap: var(--space-4);
   max-width: 45rem;
-}
-.connectionFields > label {
-  display: grid;
-  grid-template-columns: 11rem minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-5);
+  & > label {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-5);
+  }
 }
 .panel .monospace,
 .panel .jsonInput {
@@ -165,21 +165,21 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
-}
-.experimentHeader > label {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  gap: var(--space-3);
-  margin: 0;
-  white-space: nowrap;
-}
-.experimentHeader input {
-  max-width: 22rem;
-  background: transparent;
-}
-.experimentHeader > button {
-  color: var(--text-subtle);
+  & > label {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: var(--space-3);
+    margin: 0;
+    white-space: nowrap;
+  }
+  & input {
+    max-width: 22rem;
+    background: transparent;
+  }
+  & > button {
+    color: var(--text-subtle);
+  }
 }
 .groupTableWrap {
   overflow-x: auto;
@@ -188,40 +188,40 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-}
-.groupTable th {
-  padding: var(--space-2-5) var(--space-4);
-  text-align: start;
-  font: var(--type-column-header);
-  color: var(--table-heading);
-  background: var(--surface-muted);
-  border-block: var(--border-width) solid var(--page-line);
-}
-.groupTable th:nth-child(1) {
-  width: 25%;
-}
-.groupTable th:nth-child(2) {
-  width: 43%;
-}
-.groupTable th:nth-child(3) {
-  width: 25%;
-}
-.groupTable th:nth-child(4) {
-  width: 3rem;
-  padding-inline: 0;
-}
-.groupTable td {
-  padding: var(--space-2) var(--space-2-5);
-  vertical-align: top;
-  border-bottom: var(--border-width) solid var(--line-subtle);
-}
-.groupTable td:last-child {
-  padding-inline: var(--space-1);
-}
-.groupTable textarea {
-  field-sizing: content;
-  max-height: 12rem;
-  resize: vertical;
+  & th {
+    padding: var(--space-2-5) var(--space-4);
+    text-align: start;
+    font: var(--type-column-header);
+    color: var(--table-heading);
+    background: var(--surface-muted);
+    border-block: var(--border-width) solid var(--page-line);
+  }
+  & th:nth-child(1) {
+    width: 25%;
+  }
+  & th:nth-child(2) {
+    width: 43%;
+  }
+  & th:nth-child(3) {
+    width: 25%;
+  }
+  & th:nth-child(4) {
+    width: 3rem;
+    padding-inline: 0;
+  }
+  & td {
+    padding: var(--space-2) var(--space-2-5);
+    vertical-align: top;
+    border-bottom: var(--border-width) solid var(--line-subtle);
+  }
+  & td:last-child {
+    padding-inline: var(--space-1);
+  }
+  & textarea {
+    field-sizing: content;
+    max-height: 12rem;
+    resize: vertical;
+  }
 }
 .experiment > button {
   margin: var(--space-2) var(--space-2-5);
@@ -237,11 +237,11 @@
   padding-block: var(--space-4);
   background: var(--surface);
   border-top: var(--border-width) solid var(--page-line);
-}
-.settingsFooter > span {
-  margin-inline-end: auto;
-  color: var(--text-secondary);
-  font: var(--type-resource-item);
+  & > span {
+    margin-inline-end: auto;
+    color: var(--text-secondary);
+    font: var(--type-resource-item);
+  }
 }
 .error {
   margin: 0;
@@ -253,9 +253,9 @@
   gap: var(--space-3);
   align-items: center;
   max-width: 36rem;
-}
-.runPicker > :first-child {
-  width: 100%;
+  & > :first-child {
+    width: 100%;
+  }
 }
 .exportColumns {
   display: grid;
@@ -282,12 +282,12 @@
   border-bottom: var(--border-width) solid var(--line-subtle);
   cursor: pointer;
   font: var(--type-resource-item);
-}
-.node:last-child {
-  border-bottom: 0;
-}
-.node:has([aria-checked='true']) {
-  background: var(--surface-hover);
+  &:last-child {
+    border-bottom: 0;
+  }
+  &:has([aria-checked='true']) {
+    background: var(--surface-hover);
+  }
 }
 .thumbnail {
   width: 4.5rem;
@@ -301,9 +301,9 @@
 .groupComposer {
   display: flex;
   gap: var(--space-2);
-}
-.groupComposer > input {
-  min-width: 0;
+  & > input {
+    min-width: 0;
+  }
 }
 .group {
   display: flex;
@@ -314,15 +314,15 @@
   border: var(--border-width) solid var(--page-line);
   border-radius: var(--radius-lg);
   font: var(--type-resource-item);
-}
-.group strong {
-  font-weight: 500;
-}
-.group ul {
-  margin: var(--space-2) 0 0;
-  padding-inline-start: var(--space-4);
-  color: var(--text-secondary);
-  font-size: var(--text-md);
+  & strong {
+    font-weight: 500;
+  }
+  & ul {
+    margin: var(--space-2) 0 0;
+    padding-inline-start: var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+  }
 }
 .exportGroups > button {
   align-self: flex-end;
@@ -357,57 +357,59 @@
     display: block;
     width: 100%;
   }
-  .groupTable thead {
-    display: none;
-  }
-  .groupTable tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: var(--space-3) var(--space-2);
-    padding: var(--space-4) var(--space-3);
-    border-top: var(--border-width) solid var(--page-line);
-  }
-  .groupTable td {
-    display: block;
-    padding: 0;
-    border: 0;
-    min-width: 0;
-  }
-  .groupTable td::before {
-    display: block;
-    content: attr(data-label);
-    color: var(--text-subtle);
-    font-size: var(--text-sm);
-    margin-bottom: var(--space-2);
-  }
-  .groupTable td:nth-child(1),
-  .groupTable td:nth-child(2) {
-    grid-column: 1 / -1;
-  }
-  .groupTable td:nth-child(4) {
-    align-self: end;
-    padding: 0;
-  }
-  .groupTable td:last-child::before {
-    display: none;
-  }
-  .groupTable input,
-  .groupTable textarea {
-    border-color: var(--control-line);
-  }
-  .groupTable th {
-    width: auto;
+  .groupTable {
+    & thead {
+      display: none;
+    }
+    & tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-3) var(--space-2);
+      padding: var(--space-4) var(--space-3);
+      border-top: var(--border-width) solid var(--page-line);
+    }
+    & td {
+      display: block;
+      padding: 0;
+      border: 0;
+      min-width: 0;
+    }
+    & td::before {
+      display: block;
+      content: attr(data-label);
+      color: var(--text-subtle);
+      font-size: var(--text-sm);
+      margin-bottom: var(--space-2);
+    }
+    & td:nth-child(1),
+    & td:nth-child(2) {
+      grid-column: 1 / -1;
+    }
+    & td:nth-child(4) {
+      align-self: end;
+      padding: 0;
+    }
+    & td:last-child::before {
+      display: none;
+    }
+    & input,
+    & textarea {
+      border-color: var(--control-line);
+    }
+    & th {
+      width: auto;
+    }
   }
   .experimentHeader {
     padding-inline: var(--space-3);
-  }
-  .experimentHeader > label {
-    min-width: 0;
-    display: grid;
-    gap: var(--space-2);
-  }
-  .experimentHeader > button {
-    align-self: flex-end;
+    & > label {
+      min-width: 0;
+      display: grid;
+      gap: var(--space-2);
+    }
+    & > button {
+      align-self: flex-end;
+    }
   }
   .settingsFooter {
     padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));

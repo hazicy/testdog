@@ -5,9 +5,7 @@
     display: block;
     font-size: var(--text-md);
     font-weight: 500;
-    & > [data-slot='input'] {
-      margin-top: var(--space-2);
-    }
+    & > [data-slot='input'],
     & > [data-slot='select'] {
       margin-top: var(--space-2);
     }

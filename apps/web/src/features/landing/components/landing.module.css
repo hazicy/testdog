@@ -131,22 +131,24 @@
 .footer > :first-child {
   font-family: var(--font-ui);
 }
-.landing ::selection {
-  background: #b4573626;
-  color: var(--ink);
-}
-.landing :focus-visible {
-  outline: var(--focus-width) solid var(--brand-active);
-  outline-offset: var(--space-1);
-}
-.landing h1,
-.landing h2,
-.landing h3 {
-  text-wrap: balance;
-}
-.landing a,
-.landing button {
-  -webkit-tap-highlight-color: transparent;
+.landing {
+  & ::selection {
+    background: #b4573626;
+    color: var(--ink);
+  }
+  & :focus-visible {
+    outline: var(--focus-width) solid var(--brand-active);
+    outline-offset: var(--space-1);
+  }
+  & h1,
+  & h2,
+  & h3 {
+    text-wrap: balance;
+  }
+  & a,
+  & button {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 .skip {
   position: absolute;
@@ -311,15 +313,15 @@
 .heroCopy {
   position: relative;
   z-index: 1;
-}
-.heroCopy h1 {
-  font-family: var(--font-landing-pixel), var(--landing-text-font);
-  font-synthesis: none;
-  max-width: 100%;
-  font-size: clamp(3rem, 5.2vw, 5rem);
-  line-height: var(--landing-hero-leading);
-  letter-spacing: var(--landing-hero-tracking);
-  font-weight: 400;
+  & h1 {
+    font-family: var(--font-landing-pixel), var(--landing-text-font);
+    font-synthesis: none;
+    max-width: 100%;
+    font-size: clamp(3rem, 5.2vw, 5rem);
+    line-height: var(--landing-hero-leading);
+    letter-spacing: var(--landing-hero-tracking);
+    font-weight: 400;
+  }
 }
 .heroLine {
   display: block;
@@ -484,14 +486,14 @@
     fill: #ffffff;
     filter: drop-shadow(0 0.125rem 0.125rem #ffffff);
   }
-}
-.heroCursor,
-.heroCursor > span,
-.heroCursor > span::before {
-  animation-duration: var(--cursor-cycle);
-  animation-delay: 0.5s;
-  animation-iteration-count: infinite;
-  animation-play-state: var(--cursor-play-state, running);
+  &,
+  & > span,
+  & > span::before {
+    animation-duration: var(--cursor-cycle);
+    animation-delay: 0.5s;
+    animation-iteration-count: infinite;
+    animation-play-state: var(--cursor-play-state, running);
+  }
 }
 .hero[data-motion-paused] {
   --cursor-play-state: paused;

@@ -288,10 +288,10 @@
   & tr[data-failed='true'] {
     color: var(--error-ink);
   }
-}
-.requestTable td.virtualSpacer {
-  padding: 0;
-  border: 0;
+  & td.virtualSpacer {
+    padding: 0;
+    border: 0;
+  }
 }
 .requestName {
   display: flex;
@@ -454,9 +454,9 @@
   .hasSelection {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
-  }
-  .hasSelection .requestList {
-    display: none;
+    & .requestList {
+      display: none;
+    }
   }
   .requestDetails {
     border-left: 0;
