@@ -10,12 +10,8 @@ import { useTranslations } from 'next-intl';
 import clsx from 'clsx';
 
 import boardStyles from '@/features/runs/components/plan-board.module.css';
-import styles from './PlanNodes.module.css';
 
 import { statusStyles } from '@/components/ui/statusStyles';
-import { Button } from '@/components/ui/Button';
-import Image from 'next/image';
-import { asset } from '@/features/runs/presentation';
 import { type boardResult, planNodeTitle, stepResult } from '@/features/runs/lib/boardResults';
 import { ExecutionPluginEditor } from '@/features/plugins/ExecutionPluginEditor';
 import type { PluginInvocation } from '@testdog/contracts/plugins/execution';
@@ -24,6 +20,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
 import { ExecutionActions } from './ExecutionActions';
+import { PlanNodeResult } from './PlanNodeResult';
 import { StepBadge } from '@/features/test-cases/components/StepType';
 
 export const nodeDragType = 'application/x-testdog-node';
@@ -60,6 +57,39 @@ export type PlanFlowNode = Node<
   },
   'plan'
 >;
+
+function PlanReviewActions({ review, nodeId }: { review: NodeReview; nodeId: string }) {
+  const t = useTranslations('runs');
+
+  return (
+    <div className={clsx(boardStyles.planReviewActions, 'nodrag', 'nopan')}>
+      <span>
+        {review.kind === 'added'
+          ? t('added')
+          : review.kind === 'removed'
+            ? t('delete')
+            : t('modified')}
+        {review.count > 1 ? ` · ${t('relatedChanges', { count: review.count })}` : ''}
+      </span>
+      <button
+        type="button"
+        aria-label={t('acceptChange', { id: nodeId })}
+        title={t('accept')}
+        onClick={review.onAccept}
+      >
+        <Icon icon={checkIcon} width="14" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-label={t('rejectChange', { id: nodeId })}
+        title={t('reject')}
+        onClick={review.onReject}
+      >
+        <Icon icon={closeIcon} width="14" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
 
 export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNode>) {
   const t = useTranslations('runs');
@@ -120,34 +150,7 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
       <Handle id="sequence-out" type="source" position={Position.Bottom} isConnectable={false} />
       <Handle id="node-in" type="target" position={Position.Left} isConnectable={false} />
       <Handle id="node-out" type="source" position={Position.Right} isConnectable={false} />
-      {data.review && (
-        <div className={clsx(boardStyles.planReviewActions, 'nodrag', 'nopan')}>
-          <span>
-            {data.review.kind === 'added'
-              ? t('added')
-              : data.review.kind === 'removed'
-                ? t('delete')
-                : t('modified')}
-            {data.review.count > 1 ? ` · ${t('relatedChanges', { count: data.review.count })}` : ''}
-          </span>
-          <button
-            type="button"
-            aria-label={t('acceptChange', { id: node.id })}
-            title={t('accept')}
-            onClick={data.review.onAccept}
-          >
-            <Icon icon={checkIcon} width="14" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label={t('rejectChange', { id: node.id })}
-            title={t('reject')}
-            onClick={data.review.onReject}
-          >
-            <Icon icon={closeIcon} width="14" aria-hidden="true" />
-          </button>
-        </div>
-      )}
+      {data.review && <PlanReviewActions review={data.review} nodeId={node.id} />}
       {data.editable && data.mutable && (
         <div className={clsx(boardStyles.planNodeActions, 'nodrag', 'nopan')}>
           <button
@@ -259,78 +262,15 @@ export const PlanNodes = memo(function PlanNodes({ data }: NodeProps<PlanFlowNod
         )}
       </div>
       {data.result && (
-        <div className={clsx(boardStyles.planResult, 'nodrag', 'nopan')}>
-          <div className={boardStyles.planResultSummary}>
-            {data.current && (
-              <span className={boardStyles.planPlaybackMarker}>{t('playbackPosition')}</span>
-            )}
-            {data.result.durationMs !== undefined && (
-              <span>
-                {(data.result.durationMs / 1000).toFixed(1)}s ·{' '}
-                {t('stepCount', { count: steps.length })}
-              </span>
-            )}
-            {type === 'assert' && <p>{t('expected', { value: content })}</p>}
-            {data.result.primary?.evidence && (
-              <p>{t('evidence', { value: data.result.primary.evidence })}</p>
-            )}
-            {data.result.primary?.error && (
-              <p className={boardStyles.planResultError}>{data.result.primary.error}</p>
-            )}
-            {node.kind === 'branch' && data.result.primary?.decision !== undefined && (
-              <p>
-                {t('decision', {
-                  value: data.result.primary.decision ? t('yesCondition') : t('noCondition'),
-                })}
-              </p>
-            )}
-            {!steps.length && <p>{t('noResult')}</p>}
-            {steps.length > 0 && !data.result.frame && <p>{t('noScreenshot')}</p>}
-            {data.result.primary && (
-              <Button
-                type="button"
-                aria-expanded={expanded}
-                aria-controls={actionsId}
-                onClick={() => setExpanded(!expanded)}
-              >
-                {expanded ? t('collapseActions') : t('expandActions')}
-              </Button>
-            )}
-            {data.result.primary && data.onIssue && (
-              <Button
-                type="button"
-                className={styles.action}
-                onClick={() => data.onIssue?.(data.result!.primary!)}
-              >
-                {t('createIssue')}
-              </Button>
-            )}
-          </div>
-          {data.result.frame && (
-            <button
-              type="button"
-              className={boardStyles.planResultThumbnail}
-              aria-label={t('viewScreenshot', { content })}
-              onClick={() => data.onFrame?.(data.result!.frame!)}
-            >
-              <Image
-                src={asset(data.result.frame.runId, data.result.frame)}
-                alt={t('evidenceScreenshot', { content })}
-                width={240}
-                height={140}
-                unoptimized
-              />
-              <span>
-                {t('clickToReplay', {
-                  stage:
-                    data.result.frame.stage === 'before'
-                      ? t('beforeScreenshot')
-                      : t('runScreenshot'),
-                })}
-              </span>
-            </button>
-          )}
-        </div>
+        <PlanNodeResult
+          data={data}
+          result={data.result}
+          content={content}
+          assertion={type === 'assert'}
+          expanded={expanded}
+          actionsId={actionsId}
+          onToggle={() => setExpanded(!expanded)}
+        />
       )}
       {!data.editable && expanded && (
         <div
