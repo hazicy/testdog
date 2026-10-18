@@ -95,11 +95,12 @@ export function createJevActionChooser(
 /** Only reuse a literal value if the task explicitly provides an unambiguous one. */
 export function explicitFillValue(goal: string): string | undefined {
   const pattern =
-    /(?:输入|填写|填入|搜索|search(?: for)?|type|fill(?: in)?)(?:\s*(?:为|：|:)\s*|\s+|\s*(?=["“']))(?:"([^"]+)"|“([^”]+)”|'([^']+)'|([^\s，。；,;]{1,100}))/gi;
+    /(?:输入|填写|填入|搜索|search(?: for)?)(?:\s*(?:为|：|:)\s*|\s+|\s*(?=["“']))(?:"([^"]+)"|“([^”]+)”|'([^']+)'|([^\s，。；,;]{1,100}))/gi;
   const matches = [...goal.matchAll(pattern)];
   if (matches.length !== 1) return;
   const value = (matches[0][1] ?? matches[0][2] ?? matches[0][3] ?? matches[0][4])?.trim();
-  return value && value.length <= 100 ? value : undefined;
+  return value && value.length <= 100 && !/^(?:box|field|button|input|框|按钮)$/.test(value.toLowerCase())
+    ? value : undefined;
 }
 
 function candidateScore(candidate: Candidate, goal: string) {
@@ -144,8 +145,9 @@ export function jevActionOptions(input: Input): Map<string, Option> {
             !('target' in step.action) || step.action.target.kind !== 'ariaRef') return false;
         const source = input.completedObservations?.[index];
         if (!source || source.surface.url !== url) return false;
+        const previousRef = step.action.target.value;
         const previous = hybridCandidates(source.tree as AriaNode[], url)
-          .find((item) => item.id === step.action.target.value);
+          .find((item) => item.id === previousRef);
         return previous?.name === candidate.name &&
           previous.role === candidate.role &&
           previous.context === candidate.context &&
