@@ -90,7 +90,7 @@ describe('Jev-first action planner', () => {
 
     expect(first.steps[0]).toMatchObject({ action: { type: 'fill', value: 'Ada' } });
     completed(state, first.steps[0]);
-    state.observation.page.focused = { value: 'Ada' };
+    state.observation = { ...state.observation, page: { focused: { value: 'Ada' } } };
     expect(await planner.plan(state)).toMatchObject({ done: true });
     expect(back.plan).not.toHaveBeenCalled();
   });
