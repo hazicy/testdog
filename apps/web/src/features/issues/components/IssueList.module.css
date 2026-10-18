@@ -2,12 +2,6 @@
   margin-inline: auto;
   max-width: 93.75rem;
 }
-.container {
-  position: relative;
-}
-.input {
-  padding-left: 2.25rem;
-}
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -51,7 +45,4 @@
 }
 .tableCell {
   white-space: nowrap;
-}
-.mutedText {
-  color: var(--page-muted);
 }

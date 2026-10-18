@@ -1,6 +1,3 @@
-.searchField:focus-within .searchIcon {
-  color: var(--brand);
-}
 .statusFilter {
   width: auto;
 }

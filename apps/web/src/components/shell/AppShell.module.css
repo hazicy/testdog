@@ -11,7 +11,6 @@
   background-color: var(--page);
   padding: var(--space-3);
   &:focus {
-    position: static;
     width: auto;
     height: auto;
     padding: 0;
@@ -93,7 +92,7 @@
   }
 }
 
-.suiteMain {
+.workbenchMain {
   position: relative;
   display: grid;
   padding: 0;

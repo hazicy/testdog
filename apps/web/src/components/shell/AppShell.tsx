@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     pathname.startsWith('/suites/');
 
   return (
-    <div className={shellStyles.appShell} data-collapsed={collapsed} data-workspace-surface>
+    <div className={shellStyles.appShell} data-collapsed={collapsed}>
       <a href="#main-content" className={styles.skipLink}>
         {t('skip_to_main_content')}
       </a>
@@ -90,19 +90,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           <UserMenu collapsed={collapsed} />
         </div>
       </aside>
-      <div className={clsx(shellStyles.appShellContent, shellStyles.appShellWorkspace)}>
+      <div className={shellStyles.appShellContent}>
         <main
           id="main-content"
           tabIndex={-1}
-          className={
-            suites || studio
-              ? clsx(shellStyles.appShellMain, shellStyles.workspaceSurface, styles.suiteMain)
-              : clsx(
-                  shellStyles.appShellMain,
-                  shellStyles.workspaceSurface,
-                  shellStyles.workspacePage,
-                )
-          }
+          className={clsx(
+            shellStyles.appShellMain,
+            shellStyles.workspaceSurface,
+            suites || studio ? styles.workbenchMain : shellStyles.workspacePage,
+          )}
         >
           {children}
         </main>

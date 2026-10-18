@@ -4,41 +4,26 @@
   .appShell {
     --sidebar-width: 3.75rem;
     --header-height: 3.5rem;
+    --sidebar: var(--app-shell-background);
 
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     height: 100dvh;
     overflow: hidden;
-    background: var(--page);
+    background: var(--app-shell-background);
     color: var(--ink);
     font-size: var(--text-lg);
     line-height: 1.25rem;
   }
 
-  .appShell[data-workspace-surface] {
-    --sidebar: var(--app-shell-background);
-    background: var(--app-shell-background);
-    & .appShellSidebar {
-      border-right: 0;
-    }
+  .appShell[data-collapsed='true'] .appShellBrandRow {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
     & .appShellBrand {
-      min-width: 0;
-      padding-inline: var(--space-3);
-      border-bottom: 0;
-    }
-    & .appShellBrandRow {
-      gap: var(--space-1);
-      padding-right: var(--space-2);
-    }
-    &[data-collapsed='true'] .appShellBrandRow {
-      flex-direction: column;
-      justify-content: center;
-      gap: 0;
       padding: 0;
-      & .appShellBrand {
-        padding: 0;
-      }
     }
   }
   .appShellBrandRow {
@@ -46,10 +31,8 @@
     align-items: center;
     justify-content: space-between;
     min-width: 0;
-  }
-  .appShellContent.appShellWorkspace {
-    grid-template-rows: minmax(0, 1fr);
-    padding: var(--workspace-inset);
+    gap: var(--space-1);
+    padding-right: var(--space-2);
   }
   .workspacePage {
     padding: var(--space-6) var(--space-8);
@@ -73,12 +56,12 @@
 
   .appShellSidebar {
     grid-template-rows: var(--header-height) minmax(0, 1fr) auto;
-    border-right: var(--border-width) solid var(--page-line);
     background: var(--sidebar);
   }
 
   .appShellContent {
-    grid-template-rows: var(--header-height) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    padding: var(--workspace-inset);
   }
 
   .appShellBrand {
@@ -86,7 +69,8 @@
     align-items: center;
     gap: var(--space-3);
     height: 100%;
-    padding-inline: var(--space-4);
+    min-width: 0;
+    padding-inline: var(--space-3);
   }
 
   .appShellNavigation,
@@ -110,9 +94,6 @@
       &[data-collapsed='false'] {
         --sidebar-width: 13.5rem;
       }
-    }
-
-    .appShell {
       &[data-collapsed='false'] .appShellAccount {
         padding: var(--space-3);
       }

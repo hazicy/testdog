@@ -50,10 +50,6 @@
   font: var(--type-resource-item);
   color: var(--error-ink);
 }
-.loading {
-  font: var(--type-resource-item);
-  color: var(--step-success);
-}
 .container {
   display: flex;
   flex-wrap: wrap;

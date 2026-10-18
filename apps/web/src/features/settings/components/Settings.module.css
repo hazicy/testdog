@@ -17,10 +17,6 @@
   font: var(--type-resource-item);
   color: var(--danger);
 }
-.loading {
-  font: var(--type-resource-item);
-  color: var(--brand-active);
-}
 .container {
   composes: controls from '../../../components/shared/FormControls.module.css';
   margin-inline: auto;
