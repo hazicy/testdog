@@ -17,3 +17,6 @@ pnpm-lock.yaml
 drizzle/**/snapshot.json
 
 dist/
+
+# Preserve third-party license text verbatim.
+apps/web/src/features/landing/fonts/ChillBitmap-License.md
