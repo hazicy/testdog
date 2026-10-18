@@ -32,7 +32,7 @@
 }
 
 .folderTitle {
-  margin: 0 0 var(--space-5);
-  font-size: var(--text-xl);
+  margin: 0 0 var(--space-6);
+  font-size: var(--text-2xl);
   font-weight: 600;
 }

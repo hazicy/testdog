@@ -79,7 +79,7 @@
 
 .explorer {
   display: grid;
-  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -90,7 +90,7 @@
   min-width: 0;
   min-height: 0;
   border-right: var(--border-width) solid var(--page-line);
-  background: var(--sidebar);
+  background: var(--surface);
 }
 .treeHeader,
 .treeRow,
@@ -99,25 +99,27 @@
   align-items: center;
 }
 .treeDivider {
-  margin: var(--space-2) 0;
+  margin: var(--space-3) var(--space-2);
   border-top: var(--border-width) solid var(--page-line);
 }
 .treeHeader {
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-3);
+  min-height: 3.75rem;
+  padding: var(--space-4);
+  border-bottom: var(--border-width) solid var(--line-subtle);
 }
 .treeTitle {
   margin: 0;
   min-width: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 .treeNavigation {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: var(--space-2);
+  padding: var(--space-3);
 }
 .tree,
 .treeChildren {
@@ -133,8 +135,22 @@
   min-width: 0;
   min-height: 2rem;
   border-radius: var(--radius-md);
+  &:hover {
+    background: var(--surface-hover);
+  }
   &[data-selected] {
-    background: var(--surface-muted);
+    background: var(--brand-soft);
+    box-shadow: inset var(--focus-width) 0 var(--brand);
+    & > .treeLink {
+      color: var(--brand-active);
+      font-weight: 500;
+      & > svg {
+        color: var(--brand);
+      }
+      &:hover {
+        background: transparent;
+      }
+    }
   }
 }
 .treeLink {
@@ -142,7 +158,7 @@
   flex: 1;
   gap: var(--space-2);
   justify-content: flex-start;
-  height: 2rem;
+  height: 2.25rem;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--text-md);
@@ -202,10 +218,12 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  background: var(--surface);
   &[data-editor] {
     padding: 0;
     overflow: hidden;
+    background: var(--surface);
   }
 }
 @media (width < 48rem) {

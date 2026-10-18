@@ -57,7 +57,7 @@ export function CaseWorkbench() {
         key={folderId ?? 'root'}
         view="tests"
         folderId={folderId}
-        title={folder?.name}
+        title={folder?.name ?? t('allCases')}
         actions={
           folder ? (
             <RunSuiteButton id={folder.id} disabled={!folder.totalTestCount} onError={setError} />
