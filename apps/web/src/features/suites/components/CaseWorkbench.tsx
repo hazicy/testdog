@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import useSWR, { useSWRConfig } from 'swr';
@@ -13,7 +13,6 @@ import { ErrorState } from '@/components/shared/ErrorState';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 import { FolderTreeContext } from '../context';
 import { isCaseWorkspaceKey } from '../useFolderTree';
-import { RunSuiteButton } from './RunSuiteButton';
 
 function CaseEditor({ id }: { id: string }) {
   const { mutate } = useSWRConfig();
@@ -43,7 +42,6 @@ export function CaseWorkbench() {
   const folderId = params.get('folder');
   const caseId = params.get('case');
   const folder = tree?.folders.find((item) => item.id === folderId);
-  const [error, setError] = useState('');
   const t = useTranslations('suites');
 
   if (caseId) return <CaseEditor key={caseId} id={caseId} />;
@@ -52,17 +50,11 @@ export function CaseWorkbench() {
 
   return (
     <>
-      {error && <p role="alert">{error}</p>}
       <Workspace
         key={folderId ?? 'root'}
         view="tests"
         folderId={folderId}
         title={folder?.name ?? t('allCases')}
-        actions={
-          folder ? (
-            <RunSuiteButton id={folder.id} disabled={!folder.totalTestCount} onError={setError} />
-          ) : undefined
-        }
       />
     </>
   );

@@ -8,6 +8,7 @@ import clsx from 'clsx';
 export function Checkbox({ className = '', ...props }: BaseCheckbox.Root.Props) {
   return (
     <BaseCheckbox.Root
+      data-slot="checkbox"
       className={(state) =>
         clsx(styles.root, typeof className === 'function' ? className(state) : className)
       }

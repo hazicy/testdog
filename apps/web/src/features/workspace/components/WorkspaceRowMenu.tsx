@@ -8,6 +8,7 @@ import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Menu } from '@base-ui/react/menu';
 import { Icon } from '@iconify/react/offline';
 import moreIcon from '@iconify-icons/lucide/ellipsis';
+import chevronDownIcon from '@iconify-icons/lucide/chevron-down';
 import { useRef, type ComponentProps } from 'react';
 
 type Action = {
@@ -17,14 +18,17 @@ type Action = {
   onSelect: () => void;
   disabled?: boolean;
   danger?: boolean;
+  separatorBefore?: boolean;
 };
 
 export function WorkspaceRowMenu({
   label,
   actions,
   icon = moreIcon,
+  text,
 }: {
   label: string;
+  text?: string;
   actions: Action[];
   icon?: ComponentProps<typeof Icon>['icon'];
 }) {
@@ -48,13 +52,15 @@ export function WorkspaceRowMenu({
       <Menu.Trigger
         ref={trigger}
         className={buttonStyles({
-          variant: 'ghost',
-          size: 'icon-xs',
+          variant: text ? 'outline' : 'ghost',
+          size: text ? 'sm' : 'icon-xs',
           className: workspaceStyles.workspaceRowMenuTrigger,
         })}
         aria-label={label}
       >
         <Icon icon={icon} width="17" aria-hidden="true" />
+        {text}
+        {text && <Icon icon={chevronDownIcon} width="14" aria-hidden="true" />}
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner
@@ -70,6 +76,7 @@ export function WorkspaceRowMenu({
                 aria-label={action.accessibleLabel}
                 className={clsx(workspaceStyles.workspaceRowMenuItem, {
                   [workspaceStyles.isDanger]: action.danger,
+                  [workspaceStyles.hasSeparator]: action.separatorBefore,
                 })}
                 disabled={action.disabled}
                 onClick={() => {

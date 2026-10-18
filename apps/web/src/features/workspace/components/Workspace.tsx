@@ -10,7 +10,10 @@ import styles from './Workspace.module.css';
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { Button } from '@/components/ui/Button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { FolderActionsContext } from '@/features/suites/context';
+import folderPlusIcon from '@iconify-icons/lucide/folder-plus';
+import moveIcon from '@iconify-icons/lucide/folder-input';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 import type { TestRun, RunSummary } from '@testdog/contracts/runs/types';
 import { downloadRunReport } from '@/client/download';
@@ -19,8 +22,11 @@ import { useAuthoring } from '@/features/test-cases/hooks/useAuthoring';
 import { DeleteTestDialog } from '@/features/test-cases/components/DeleteTestDialog';
 import { QuickCreateDialog } from '@/features/test-cases/components/QuickCreateDialog';
 import { Icon } from '@iconify/react/offline';
-import canvasIcon from '@iconify-icons/lucide/panels-top-left';
-import lightningIcon from '@iconify-icons/lucide/zap';
+import plusIcon from '@iconify-icons/lucide/plus';
+import sparklesIcon from '@iconify-icons/lucide/sparkles';
+import playIcon from '@iconify-icons/lucide/play';
+import { WorkspaceRowMenu } from './WorkspaceRowMenu';
+import type { CaseBatchRequest } from '@testdog/contracts/test-cases/batchRuns';
 import { useWorkspaceData } from '@/features/workspace/hooks/useWorkspaceData';
 import { WorkspaceList } from '@/features/workspace/components/WorkspaceList';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -41,7 +47,9 @@ export function Workspace({
   const { editablePlan, emptyPlan, caseName } = useAuthoring();
   const promptContainer = useRef<HTMLElement>(null);
   const isTests = view === 'tests';
-  const data = useWorkspaceData(isTests, folderId);
+  const folderActions = useContext(FolderActionsContext);
+  const suites = useTranslations('suites');
+  const data = useWorkspaceData(isTests, folderId ?? undefined);
   const { tests, runs, loading, error, setError, latestRuns, running, refresh } = data;
   const submit = useRunSubmission();
   const router = useRouter();
@@ -120,28 +128,99 @@ export function Workspace({
       />
     );
 
-  const testActions = isTests ? (
-    <>
-      {actions}
-      <Button
-        size="sm"
-        className={workspaceStyles.caseCreateButton}
-        onClick={() => setQuickCreateOpen(true)}
-      >
-        <Icon icon={lightningIcon} width="16" aria-hidden="true" />
-        {t('quickCreate')}
-      </Button>
-      <Button
-        size="sm"
-        variant="primary"
-        className={workspaceStyles.caseCreateButton}
-        onClick={() => openEditor()}
-      >
-        <Icon icon={canvasIcon} width="16" aria-hidden="true" />
-        {t('newTest')}
-      </Button>
-    </>
-  ) : undefined;
+  async function startBatch(selectedIds: string[]) {
+    if (starting) return;
+    setStarting(true);
+    setError('');
+    const payload: CaseBatchRequest = selectedIds.length
+      ? { mode: 'selected', testIds: selectedIds }
+      : {
+          mode: 'filtered',
+          q: data.query.trim(),
+          status: data.filter as Extract<CaseBatchRequest, { mode: 'filtered' }>['status'],
+          ...(folderId ? { folderId } : {}),
+        };
+
+    try {
+      const { batchId } = await submit<{ batchId: string }>('/api/tests/runs', payload);
+
+      router.push(`/cases/batches/${batchId}`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t('startFailed'));
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  const testActions = isTests
+    ? (selectedIds: string[], clearSelection: () => void) => (
+        <>
+          {actions}
+          {selectedIds.length > 0 && (
+            <>
+              <span className={workspaceStyles.selectionCount}>
+                {t('selectedCount', { count: selectedIds.length })}
+              </span>
+              {folderActions && (
+                <Button
+                  size="sm"
+                  onClick={() => folderActions.moveCases(selectedIds, clearSelection)}
+                >
+                  <Icon icon={moveIcon} width="16" aria-hidden="true" />
+                  {suites('moveToCollection')}
+                </Button>
+              )}
+            </>
+          )}
+          {!selectedIds.length && (
+            <WorkspaceRowMenu
+              label={t('add')}
+              text={t('add')}
+              icon={plusIcon}
+              actions={[
+                {
+                  label: t('addTestsWithAI'),
+                  accessibleLabel: t('addTestsWithAI'),
+                  icon: sparklesIcon,
+                  onSelect: () => setQuickCreateOpen(true),
+                },
+                {
+                  label: t('addTestManually'),
+                  accessibleLabel: t('addTestManually'),
+                  icon: plusIcon,
+                  onSelect: () => openEditor(),
+                },
+                ...(folderActions
+                  ? [
+                      {
+                        label: suites('create'),
+                        accessibleLabel: suites('create'),
+                        icon: folderPlusIcon,
+                        separatorBefore: true,
+                        onSelect: folderActions.createFolder,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          )}
+          <Button
+            size="sm"
+            variant="primary"
+            className={workspaceStyles.caseCreateButton}
+            disabled={starting || loading || previewEmpty || previewLoading || !tests.length}
+            onClick={() => void startBatch(selectedIds)}
+          >
+            <Icon icon={playIcon} width="16" aria-hidden="true" />
+            {starting
+              ? suites('starting')
+              : selectedIds.length
+                ? t('runSelected', { count: selectedIds.length })
+                : t('runFiltered')}
+          </Button>
+        </>
+      )
+    : undefined;
 
   return (
     <div
@@ -154,7 +233,7 @@ export function Workspace({
         workspaceStyles.dataWorkspace,
       )}
     >
-      <PageHeader title={title ?? (isTests ? t('tests') : t('runs'))} actions={testActions} />
+      <PageHeader title={title ?? (isTests ? t('tests') : t('runs'))} />
       {error && !previewEmpty && !previewLoading && (
         <div role="alert" className={styles.error}>
           <span>{error}</span>
@@ -169,6 +248,8 @@ export function Workspace({
         </div>
       )}
       <WorkspaceList
+        actions={testActions}
+        folderId={folderId}
         query={data.query}
         setQuery={data.setQuery}
         filter={data.filter}

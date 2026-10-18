@@ -188,7 +188,7 @@ test('quick creation keeps prompt text and actions accessible on a phone', async
 }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 600 });
   await caseEditor.goto();
-  await caseEditor.quickCreateButton.click();
+  await caseEditor.quickCreate();
   const dialog = page.getByRole('dialog', { name: '快速创建' });
   const input = dialog.getByRole('textbox', { name: '测试步骤与预期结果' });
 

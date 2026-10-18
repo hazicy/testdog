@@ -4,11 +4,12 @@ export class CaseEditorPage {
   constructor(private readonly page: Page) {}
 
   get newTestButton() {
-    return this.page.getByRole('button', { name: '新建测试', exact: true });
+    return this.page.getByRole('button', { name: '添加', exact: true });
   }
 
-  get quickCreateButton() {
-    return this.page.getByRole('button', { name: '快速创建', exact: true });
+  async quickCreate() {
+    await this.newTestButton.click();
+    await this.page.getByRole('menuitem', { name: '使用 AI 添加测试', exact: true }).click();
   }
 
   get canvas() {
@@ -53,5 +54,6 @@ export class CaseEditorPage {
 
   async create() {
     await this.newTestButton.click();
+    await this.page.getByRole('menuitem', { name: '手动添加测试', exact: true }).click();
   }
 }

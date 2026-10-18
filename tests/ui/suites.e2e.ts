@@ -1,5 +1,3 @@
-import { SuitesPage } from './pages/suites.page';
-
 import { test, expect } from './fixtures/test.fixture';
 import { type Page } from '@playwright/test';
 import { makeCase } from './fixtures/workspace';
@@ -53,6 +51,8 @@ async function support(page: Page) {
     tests: cases.map((item) => ({ ...item })),
     creates: [] as { name: string; parentId: string | null; testIds: string[] }[],
     failCreate: false,
+    failMove: false,
+    moves: [] as { testIds: string[]; folderId: string | null }[],
     stopped: false,
   };
 
@@ -82,9 +82,15 @@ async function support(page: Page) {
 
     return route.fulfill({
       json: {
-        tests: state.tests.filter(
-          (item) => state.locations.get(item.id) === (params.get('folder') ?? 'root'),
-        ),
+        tests: state.tests
+          .filter(
+            (item) =>
+              !params.has('folder') || state.locations.get(item.id) === params.get('folder'),
+          )
+          .map((item) => ({
+            ...item,
+            folderId: state.locations.get(item.id) === 'root' ? null : state.locations.get(item.id),
+          })),
         latestRuns: [],
         nextCursor: null,
       },
@@ -114,6 +120,8 @@ async function support(page: Page) {
       totalTestCount: 0,
       tests: [],
     });
+
+    for (const testId of input.testIds) state.locations.set(testId, id);
 
     return route.fulfill({ status: 201, json: { id } });
   });
@@ -155,6 +163,16 @@ async function support(page: Page) {
 
     return route.fulfill({ json: { success: true } });
   });
+  await page.route('**/api/tests/collection', (route) => {
+    if (state.failMove)
+      return route.fulfill({ status: 503, json: { message: '移动失败，请重试' } });
+    const input = route.request().postDataJSON();
+
+    state.moves.push(input);
+    for (const testId of input.testIds) state.locations.set(testId, input.folderId ?? 'root');
+
+    return route.fulfill({ json: { success: true } });
+  });
   await page.route(`**/api/suites/${folderId}/runs`, (route) =>
     route.fulfill({ status: 202, json: { batchId } }),
   );
@@ -179,256 +197,341 @@ async function support(page: Page) {
   return state;
 }
 
-const tree = (page: Page) => page.getByRole('navigation', { name: '用例目录', exact: true });
-
 async function menu(page: Page, name: string, action: string) {
-  await tree(page)
-    .getByRole('button', { name: `${name} 的操作`, exact: true })
-    .click();
+  await page.getByRole('button', { name: `${name} 的操作`, exact: true }).click();
   await page.getByRole('menuitem', { name: action, exact: true }).click();
 }
 
-async function newFolder(page: Page) {
-  const suitesPage = new SuitesPage(page);
-
-  await suitesPage.createButton.click();
-  await page.getByRole('menuitem', { name: '新建文件夹', exact: true }).click();
-}
-
-test('creates folders inline, ignores IME Enter, cancels blanks and retries failures', async ({
-  page,
-  suitesPage,
-}) => {
-  const state = await support(page);
-
-  await page.goto('/cases');
-  await newFolder(page);
-  const input = tree(page).getByRole('textbox', { name: '名称', exact: true });
-
-  await expect(input).toBeFocused();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await input.press('Escape');
-  await expect(input).toHaveCount(0);
-  await newFolder(page);
-  await suitesPage.content.click({ position: { x: 10, y: 10 } });
-  await expect(input).toHaveCount(0);
-  await newFolder(page);
-  await input.fill('冒烟');
-  await input.dispatchEvent('keydown', { key: 'Enter', code: 'Enter', isComposing: true });
-  expect(state.creates).toHaveLength(0);
-  state.failCreate = true;
-  await input.press('Enter');
-  await expect(tree(page).getByRole('alert')).toHaveText('保存失败，请重试');
-  await expect(input).toHaveValue('冒烟');
-  state.failCreate = false;
-  await input.press('Enter');
-  await expect(page).toHaveURL(`/cases?folder=${childId}`);
-  expect(state.creates).toEqual([{ name: '冒烟', parentId: null, testIds: [] }]);
-  await expect(tree(page).getByRole('button', { name: '冒烟', exact: true })).toBeVisible();
-});
-
-test('folder menus create children and rename on blur without opening a dialog', async ({
-  page,
-  suitesPage,
-}) => {
-  const state = await support(page);
-
-  await page.goto('/cases');
-  await menu(page, '回归', '新建子文件夹');
-  const input = tree(page).getByRole('textbox', { name: '名称', exact: true });
-
-  await input.fill('冒烟');
-  await input.press('Enter');
-  await expect(page).toHaveURL(`/cases?folder=${childId}`);
-  expect(state.creates[0].parentId).toBe(folderId);
-  await menu(page, '冒烟', '重命名');
-  await input.fill('每日冒烟');
-  await input.press('Tab');
-  await expect(tree(page).getByRole('button', { name: '每日冒烟', exact: true })).toBeVisible();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await menu(page, '回归', '移动');
-  await suitesPage.folderSelect.click();
-  await expect(page.getByRole('option', { name: /回归/ })).toHaveCount(0);
-  await page.keyboard.press('Escape');
-});
-
-test('moves a case between root and folder, opens the canvas directly and retains drafts', async ({
-  page,
-  suitesPage,
-}) => {
-  const state = await support(page);
-
-  await page.goto('/cases');
-  await tree(page).getByRole('button', { name: '登录', exact: true }).click();
-  const canvas = page.locator('[data-ui="case-canvas-page"]');
-
-  await expect(canvas).toBeVisible();
-  await canvas.getByLabel('测试名称', { exact: true }).fill('未保存的登录草稿');
-  await tree(page).getByRole('button', { name: '搜索', exact: true }).click();
-  await expect(canvas.getByLabel('测试名称', { exact: true })).toHaveValue('搜索');
-  await tree(page).getByRole('button', { name: '登录', exact: true }).click();
-  await expect(canvas.getByLabel('测试名称', { exact: true })).toHaveValue('未保存的登录草稿');
-  await canvas.getByRole('button', { name: '保存', exact: true }).click();
-  await expect(
-    tree(page).getByRole('button', { name: '未保存的登录草稿', exact: true }),
-  ).toBeVisible();
-  await expect(canvas).toBeVisible();
-  await page.screenshot({ path: '/tmp/testdog-case-workbench.png' });
-  await menu(page, '搜索', '移动');
-  await suitesPage.folderSelect.click();
-  await page.getByRole('option', { name: '回归', exact: true }).click();
-  await suitesPage.moveButton.click();
-  await expect.poll(() => state.locations.get(cases[1].id)).toBe(folderId);
-  await tree(page).getByRole('button', { name: '回归', exact: true }).click();
-  const list = page.getByRole('region', { name: '测试用例列表' });
-
-  await expect(list.getByRole('button', { name: '搜索', exact: true })).toBeVisible();
-  await tree(page).getByRole('button', { name: '回归', exact: true }).click();
-  await menu(page, '搜索', '移动');
-  await suitesPage.folderSelect.click();
-  await page.getByRole('option', { name: '根目录', exact: true }).click();
-  await suitesPage.moveButton.click();
-  await expect(list.getByRole('button', { name: '搜索', exact: true })).toHaveCount(0);
-  await expect(tree(page).getByRole('button', { name: '搜索', exact: true })).toBeVisible();
-});
-
-test('keeps expanded state, creates cases in the selected folder and runs batches from its menu', async ({
-  page,
-  suitesPage,
-}) => {
+test('shows cases inside collapsible groups without a separate directory', async ({ page }) => {
   await support(page);
   await page.goto('/cases');
-  await tree(page).getByRole('button', { name: '回归', exact: true }).click();
-  await tree(page).getByRole('button', { name: '搜索', exact: true }).click();
-  await expect(tree(page).getByRole('button', { name: '回归', exact: true })).toHaveAttribute(
-    'aria-expanded',
-    'false',
-  );
-  await tree(page).getByRole('button', { name: '回归', exact: true }).click();
-  await suitesPage.createButton.click();
-  await page.getByRole('menuitem', { name: '新建用例', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/cases/editor/.*folder=${folderId}`));
-  const draft = await page.evaluate(() =>
-    Object.keys(sessionStorage)
-      .map((key) => sessionStorage.getItem(key))
-      .find((raw) => raw?.includes('folderId')),
-  );
+  await expect(page.getByRole('navigation', { name: '用例目录', exact: true })).toHaveCount(0);
+  const group = page.getByRole('button', { name: '折叠 回归', exact: true });
 
-  expect(JSON.parse(draft!).folderId).toBe(folderId);
-  await menu(page, '回归', '运行文件夹');
-  await expect(page).toHaveURL(`/cases/batches/${batchId}`);
-  await suitesPage.stopBatchButton.click();
-  await expect(suitesPage.stopBatchButton).toHaveCount(0);
-  await expect(page.getByRole('link', { name: '返回执行记录', exact: true })).toHaveAttribute(
-    'href',
-    '/runs',
-  );
+  await expect(group).toBeVisible();
+  await expect(page.getByRole('button', { name: '登录', exact: true })).toBeVisible();
+  await group.click();
+  await expect(page.getByRole('button', { name: '登录', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '搜索', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '展开 回归', exact: true }).click();
+  await expect(page.getByRole('button', { name: '登录', exact: true })).toBeVisible();
 });
 
-test('deleting a folder returns cases to root and fits small screens', async ({ page }) => {
-  await support(page);
-  await page.setViewportSize({ width: 320, height: 740 });
-  await page.goto(`/cases?folder=${folderId}`);
-  await menu(page, '回归', '删除');
+test('creates empty groups, validates names and retries a failed save', async ({ page }) => {
+  const state = await support(page);
+
+  await page.goto('/cases');
+  await page.getByRole('button', { name: '添加', exact: true }).click();
+  await page.getByRole('menuitem', { name: '新建合集', exact: true }).click();
   const dialog = page.getByRole('dialog');
+  const save = dialog.getByRole('button', { name: '保存合集', exact: true });
 
-  await expect(dialog).toContainText('用例会移至根目录');
-  await dialog.getByRole('button', { name: '删除', exact: true }).click();
-  await expect(page).toHaveURL('/cases');
-  await expect(tree(page).getByRole('button', { name: '登录', exact: true })).toBeVisible();
-  await expect(tree(page).getByRole('button', { name: '回归', exact: true })).toHaveCount(0);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+  await expect(save).toBeDisabled();
+  await dialog.getByRole('textbox', { name: '名称', exact: true }).fill('冒烟');
+  state.failCreate = true;
+  await save.click();
+  await expect(dialog.getByRole('alert')).toHaveText('保存失败，请重试');
+  state.failCreate = false;
+  await save.click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '折叠 冒烟', exact: true })).toBeVisible();
+  await expect(page.getByText('尚未添加用例', { exact: true })).toBeVisible();
+  expect(state.creates).toEqual([{ name: '冒烟', parentId: null, testIds: [] }]);
 });
 
-test('renames a case with a name-only request and keeps its newer content', async ({ page }) => {
+test('renames collections and creates tests directly inside a collection without nesting', async ({
+  page,
+}) => {
+  await support(page);
+  await page.goto('/cases');
+  await menu(page, '回归', '重命名');
+  await page.getByRole('textbox', { name: '名称', exact: true }).fill('核心回归');
+  await page.getByRole('button', { name: '保存合集', exact: true }).click();
+  await expect(page.getByRole('button', { name: '折叠 核心回归', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '核心回归 的操作', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: '新建子合集', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: '移动', exact: true })).toHaveCount(0);
+  await page.getByRole('menuitem', { name: '手动添加测试', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/cases/editor/.*folder=${folderId}`));
+});
+
+test('moves cases between groups and opens the editor with a return action', async ({ page }) => {
   const state = await support(page);
 
   await page.goto('/cases');
-  state.tests[1].goal = 'A newer description from another editor';
-  await menu(page, '搜索', '重命名');
-  const input = tree(page).getByRole('textbox', { name: '名称', exact: true });
-  const name = '搜'.repeat(110);
-
-  await input.fill(name);
-  await input.press('Enter');
-  await expect(tree(page).getByRole('button', { name, exact: true })).toBeVisible();
-  expect(state.tests[1].goal).toBe('A newer description from another editor');
+  await page.getByRole('button', { name: '更多操作：搜索', exact: true }).click();
+  await page.getByRole('menuitem', { name: '移至合集', exact: true }).click();
+  await page.getByRole('radio', { name: '回归', exact: true }).check();
+  await page.getByRole('dialog').getByRole('button', { name: '移动', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(state.locations.get(cases[1].id)).toBe(folderId);
+  await page.getByRole('button', { name: '折叠 回归', exact: true }).click();
+  await expect(page.getByRole('button', { name: '搜索', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '展开 回归', exact: true }).click();
+  await page.getByRole('button', { name: '登录', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`case=${cases[0].id}`));
+  await page.getByRole('button', { name: '全部用例', exact: true }).click();
+  await expect(page).toHaveURL('/cases');
 });
 
-test('keeps the case workspace contained, scrolls panels independently and collapses the directory', async ({
+test('runs batches from group menus and deletes groups without deleting cases', async ({
   page,
-  suitesPage,
-  workspacePage,
 }) => {
   const state = await support(page);
 
-  for (let index = 0; index < 40; index++) {
-    const item = makeCase({
-      id: `55ed2bde-b647-46d2-9289-${String(index).padStart(12, '0')}`,
-      name: `回归用例 ${index + 1}`,
+  await page.goto('/cases');
+  await menu(page, '回归', '运行合集');
+  await expect(page).toHaveURL(`/cases/batches/${batchId}`);
+  await page.goto('/cases');
+  await menu(page, '回归', '删除');
+  await page.getByRole('dialog').getByRole('button', { name: '删除', exact: true }).click();
+  await expect(page.getByRole('button', { name: '折叠 回归', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '登录', exact: true })).toBeVisible();
+  expect(state.locations.get(cases[0].id)).toBe('root');
+});
+
+test('keeps the two-column workspace contained on small screens', async ({ page }) => {
+  await support(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/cases');
+  await expect(page.getByRole('button', { name: '折叠 回归', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+});
+
+test('selects cases by row, group and header, and clears selection when switching status', async ({
+  page,
+}) => {
+  await support(page);
+  await page.goto('/cases');
+  const all = page.getByRole('checkbox', { name: '全选用例', exact: true });
+  const login = page.getByRole('checkbox', { name: '选择 登录', exact: true });
+  const search = page.getByRole('checkbox', { name: '选择 搜索', exact: true });
+  const group = page.getByRole('checkbox', { name: '选择分组 回归', exact: true });
+
+  await login.check();
+  await expect(group).toBeChecked();
+  await expect(all).toHaveAttribute('aria-checked', 'mixed');
+  await all.check();
+  await expect(search).toBeChecked();
+  await group.uncheck();
+  await expect(login).not.toBeChecked();
+  await expect(search).toBeChecked();
+  await all.check();
+  await all.uncheck();
+  await expect(search).not.toBeChecked();
+  await all.check();
+  const statuses = page.getByRole('group', { name: '状态筛选', exact: true });
+
+  await statuses.getByRole('button', { name: '失败', exact: true }).click();
+  await expect(page).toHaveURL(/status=failed/);
+  await expect(statuses.getByRole('button', { name: '失败', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(all).not.toBeChecked();
+  await statuses.getByRole('button', { name: '全部状态', exact: true }).click();
+  await expect(all).not.toBeChecked();
+});
+
+test('combines creation methods in one menu', async ({ page, caseEditor }) => {
+  await support(page);
+  await page.goto('/cases');
+  await expect(page.getByRole('button', { name: '快速创建', exact: true })).toHaveCount(0);
+  await caseEditor.quickCreate();
+  await expect(page.getByRole('dialog', { name: '快速创建', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(caseEditor.newTestButton).toBeFocused();
+  await caseEditor.create();
+  await expect(page).toHaveURL(/\/cases\/editor\//);
+});
+
+test('runs one or multiple selected cases as a batch', async ({ page }) => {
+  await support(page);
+  const submissions: unknown[] = [];
+
+  await page.route('**/api/tests/runs', (route) => {
+    submissions.push(route.request().postDataJSON());
+
+    return route.fulfill({ status: 202, json: { batchId } });
+  });
+  await page.goto('/cases');
+  await page.getByRole('checkbox', { name: '选择 登录', exact: true }).check();
+  await page.getByRole('button', { name: '运行所选 1', exact: true }).click();
+  await expect(page).toHaveURL(`/cases/batches/${batchId}`);
+  expect(submissions).toEqual([{ mode: 'selected', testIds: [cases[0].id] }]);
+  await page.goto('/cases');
+  await page.getByRole('checkbox', { name: '全选用例', exact: true }).check();
+  await page.getByRole('button', { name: '运行所选 2', exact: true }).click();
+  await expect(page).toHaveURL(`/cases/batches/${batchId}`);
+  expect((submissions[1] as { testIds: string[] }).testIds.sort()).toEqual(
+    cases.map((item) => item.id).sort(),
+  );
+});
+
+test('submits the full search, status and folder filter and retries without duplicating requests', async ({
+  page,
+}) => {
+  await support(page);
+  const submissions: { payload: unknown; key: string | undefined }[] = [];
+
+  await page.route('**/api/tests/runs', (route) => {
+    submissions.push({
+      payload: route.request().postDataJSON(),
+      key: route.request().headers()['idempotency-key'],
     });
 
-    state.tests.push(item);
-    state.locations.set(item.id, 'root');
-  }
-
-  await page.setViewportSize({ width: 1440, height: 800 });
-  await page.goto('/cases');
-  const content = suitesPage.content;
-  const directory = tree(page);
-
-  await expect(content.getByRole('button', { name: '回归用例 1', exact: true })).toBeVisible();
-  const surface = workspacePage.main;
-  const box = await surface.boundingBox();
-
-  expect(box!.y).toBeGreaterThan(0);
-  expect(box!.height).toBeGreaterThan(page.viewportSize()!.height * 0.8);
-  expect(await surface.evaluate((node) => getComputedStyle(node).borderRadius)).not.toBe('0px');
-  await content.evaluate((node) => {
-    node.scrollTop = 160;
+    return submissions.length === 1
+      ? route.fulfill({ status: 503, json: { message: '暂时无法执行' } })
+      : route.fulfill({ status: 202, json: { batchId } });
   });
-  expect(await content.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
-  expect(await directory.evaluate((node) => node.scrollTop)).toBe(0);
-  await directory.evaluate((node) => {
-    node.scrollTop = 100;
-  });
-  expect(await directory.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
-  const contentScroll = await content.evaluate((node) => node.scrollTop);
+  await page.goto(`/cases?folder=${folderId}&q=登录&status=failed`);
+  const run = page.getByRole('button', { name: '运行筛选结果', exact: true });
 
-  await suitesPage.collapseButton.click();
-  await expect(directory).toBeHidden();
-  expect(await content.evaluate((node) => node.scrollTop)).toBe(contentScroll);
-  await suitesPage.expandButton.click();
-  await expect(directory).toBeVisible();
-  expect(await directory.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
-  await page.getByRole('button', { name: '收起侧栏', exact: true }).click();
-  await expect(page.getByRole('button', { name: '展开侧栏', exact: true })).toBeVisible();
-  await page.setViewportSize({ width: 390, height: 844 });
-  await suitesPage.collapseButton.click();
-  await expect(directory).toBeHidden();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
-  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(844);
-  await suitesPage.expandButton.click();
-  await expect(directory).toBeVisible();
+  await run.click();
+  await expect(page.getByRole('alert').filter({ hasText: '暂时无法执行' })).toBeVisible();
+  await expect(run).toBeEnabled();
+  await run.click();
+  await expect(page).toHaveURL(`/cases/batches/${batchId}`);
+  expect(submissions[0].payload).toEqual({
+    mode: 'filtered',
+    q: '登录',
+    status: 'failed',
+    folderId,
+  });
+  expect(submissions[0].key).toBeTruthy();
+  expect(submissions[1]).toEqual(submissions[0]);
 });
 
-test('navigates the directory with the keyboard and activates cases', async ({ page }) => {
+test('moves selected tests to an existing collection with search, retry and selection cleanup', async ({
+  page,
+}) => {
+  const state = await support(page);
+
+  await page.goto('/cases');
+  await expect(page.getByRole('button', { name: '新建合集', exact: true })).toHaveCount(0);
+  await page.getByRole('checkbox', { name: '全选用例', exact: true }).check();
+  await expect(page.getByText('已选 2 项', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '添加', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '移至合集', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '移至合集', exact: true });
+  const move = dialog.getByRole('button', { name: '移动', exact: true });
+
+  await expect(move).toBeDisabled();
+  await dialog.getByRole('textbox', { name: '搜索合集', exact: true }).fill('回归');
+  await expect(dialog.getByRole('radio', { name: '未分组', exact: true })).toHaveCount(0);
+  await dialog.getByRole('radio', { name: '回归', exact: true }).check();
+  state.failMove = true;
+  await move.click();
+  await expect(dialog.getByRole('alert')).toHaveText('移动失败，请重试');
+  await expect(page.getByText('已选 2 项', { exact: true })).toBeVisible();
+  state.failMove = false;
+  await move.click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '添加', exact: true })).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: '全选用例', exact: true })).not.toBeChecked();
+  expect(state.moves).toHaveLength(1);
+  expect(state.moves[0].testIds.sort()).toEqual(cases.map((item) => item.id).sort());
+  await page.getByRole('button', { name: '折叠 回归', exact: true }).click();
+  await expect(page.getByRole('button', { name: '搜索', exact: true })).toHaveCount(0);
+});
+
+test('creates a collection from selected tests inside the move dialog', async ({ page }) => {
+  const state = await support(page);
+
+  await page.goto('/cases');
+  await page.getByRole('checkbox', { name: '全选用例', exact: true }).check();
+  await page.getByRole('button', { name: '移至合集', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '移至合集', exact: true });
+
+  await dialog.getByRole('button', { name: '新建合集', exact: true }).click();
+  await expect(dialog.getByRole('textbox', { name: '合集名称', exact: true })).toBeFocused();
+  const create = dialog.getByRole('button', { name: '创建并移入', exact: true });
+
+  await expect(create).toBeDisabled();
+  await dialog.getByRole('textbox', { name: '合集名称', exact: true }).fill('核心流程');
+  state.failCreate = true;
+  await create.click();
+  await expect(dialog.getByRole('alert')).toHaveText('保存失败，请重试');
+  expect(state.creates).toHaveLength(0);
+  state.failCreate = false;
+  await create.click();
+  await expect(dialog).toHaveCount(0);
+  expect(state.creates).toEqual([
+    { name: '核心流程', parentId: null, testIds: cases.map((item) => item.id) },
+  ]);
+  await expect(page.getByRole('button', { name: '折叠 核心流程', exact: true })).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: '全选用例', exact: true })).not.toBeChecked();
+});
+
+test('moves tests back to ungrouped and offers creation inside empty collections', async ({
+  page,
+}) => {
   await support(page);
   await page.goto('/cases');
-  const directory = tree(page).getByRole('tree', { name: '用例目录', exact: true });
-  const folder = directory.getByRole('treeitem', { name: '回归', exact: true });
-  const login = directory.getByRole('treeitem', { name: '登录', exact: true });
+  await expect(page.getByRole('button', { name: '折叠 未分组', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '更多操作：登录', exact: true }).click();
+  await page.getByRole('menuitem', { name: '移至合集', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '移至合集', exact: true });
 
-  await folder.focus();
-  await expect(folder).toHaveAttribute('aria-expanded', 'true');
-  await folder.press('ArrowLeft');
-  await expect(folder).toHaveAttribute('aria-expanded', 'false');
-  await expect(login).toHaveCount(0);
-  await folder.press('ArrowRight');
-  await expect(login).toBeVisible();
-  await folder.press('ArrowDown');
-  await expect(login).toBeFocused();
-  await login.press('Enter');
-  await expect(page).toHaveURL(new RegExp(`case=${cases[0].id}`));
-  await expect(login).toHaveAttribute('aria-selected', 'true');
+  await dialog.getByRole('radio', { name: '未分组', exact: true }).check();
+  await dialog.getByRole('button', { name: '移动', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await page.getByRole('button', { name: '折叠 未分组', exact: true }).click();
+  await expect(page.getByRole('button', { name: '登录', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '搜索', exact: true })).toHaveCount(0);
+  await expect(page.getByText('尚未添加用例', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '添加测试', exact: true }).click();
+  await page.getByRole('menuitem', { name: '手动添加测试', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`folder=${folderId}`));
+});
+
+test('AI creation inside a collection preserves membership and closes the overlay', async ({
+  page,
+}) => {
+  await support(page);
+  await page.route('**/api/tests/compile', (route) =>
+    route.fulfill({ json: { plan: cases[0].plan } }),
+  );
+  await page.goto('/cases');
+  await menu(page, '回归', '使用 AI 添加测试');
+  const prompt = page.getByRole('dialog', { name: '快速创建', exact: true });
+
+  await prompt
+    .getByRole('textbox', { name: '测试步骤与预期结果', exact: true })
+    .fill('打开 https://example.com');
+  await prompt.getByRole('button', { name: '生成', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/cases/editor/.*folder=${folderId}`));
+  await expect(prompt).toHaveCount(0);
+  const draftFolder = await page.evaluate(() => {
+    const id = location.pathname.split('/').at(-1);
+
+    return JSON.parse(sessionStorage.getItem(`testdog:case-draft:${id}`)!).folderId;
+  });
+
+  expect(draftFolder).toBe(folderId);
+});
+
+test('collection chooser fits phones and cancels without changing membership', async ({ page }) => {
+  const state = await support(page);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/cases');
+  await page.getByRole('checkbox', { name: '全选用例', exact: true }).check();
+  await page.getByRole('button', { name: '移至合集', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '移至合集', exact: true });
+  const search = dialog.getByRole('textbox', { name: '搜索合集', exact: true });
+
+  await expect(search).toBeFocused();
+  await search.fill('不存在');
+  await expect(dialog.getByText('没有匹配的合集', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: '新建合集', exact: true }).click();
+  await dialog.getByRole('textbox', { name: '合集名称', exact: true }).fill('临时合集');
+  await expect(dialog.getByRole('button', { name: '创建并移入', exact: true })).toBeInViewport();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  expect(state.creates).toHaveLength(0);
+  expect(state.moves).toHaveLength(0);
+  await expect(page.getByText('已选 2 项', { exact: true })).toBeVisible();
 });

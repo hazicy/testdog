@@ -39,7 +39,8 @@ export function QuickCreateDialog({
       const id = crypto.randomUUID();
 
       writeCaseDraft(id, { name, goal, plan, folderId });
-      router.push(`/cases/editor/${id}`);
+      router.push(`/cases/editor/${id}${folderId ? `?folder=${folderId}` : ''}`);
+      onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('generateFailed'));
     }

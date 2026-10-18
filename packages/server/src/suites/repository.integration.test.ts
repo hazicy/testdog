@@ -348,3 +348,136 @@ test('renaming changes only the name and respects workspace ownership', async ()
   await expect(renameTest(item.id, ' ', alice.id)).rejects.toMatchObject({ status: 400 });
   expect((await getTest(item.id, alice.id)).name).toBe('Renamed');
 });
+
+test('starts selected cases as one atomic, scoped and idempotent batch', async () => {
+  const { startCaseBatch } = await import('@testdog/server/test-cases/batchRuns');
+  const first = await saveTest(input('Batch selected first'), undefined, alice.id);
+  const second = await saveTest(input('Batch selected second'), undefined, alice.id);
+  const foreign = await saveTest(input('Batch private'), undefined, bob.id);
+  const payload = { mode: 'selected', testIds: [first.id, second.id, first.id] };
+  const key = randomUUID();
+  const submission = () =>
+    new Request('http://localhost/api/tests/runs', {
+      method: 'POST',
+      headers: { 'Idempotency-Key': key },
+    });
+  const batch = await startCaseBatch(submission(), payload, alice.id);
+
+  expect(await startCaseBatch(submission(), payload, alice.id)).toEqual(batch);
+  const detail = await getSuiteRun(batch.batchId, alice.id);
+
+  expect(detail.total).toBe(2);
+  expect(detail.runs.map((run) => run.testId).sort()).toEqual([first.id, second.id].sort());
+  await expect(getSuiteRun(batch.batchId, bob.id)).rejects.toThrow();
+  const before = await db.select().from(suiteRuns);
+
+  await expect(
+    startCaseBatch(
+      new Request('http://localhost/api/tests/runs', { method: 'POST' }),
+      { mode: 'selected', testIds: [first.id, foreign.id] },
+      alice.id,
+    ),
+  ).rejects.toThrow('部分用例不存在');
+  expect(await db.select().from(suiteRuns)).toHaveLength(before.length);
+});
+
+test('runs every filtered case beyond the first page and honors latest status and folder', async () => {
+  const { startCaseBatch } = await import('@testdog/server/test-cases/batchRuns');
+  const token = randomUUID();
+  const ids: string[] = [];
+
+  for (let index = 0; index < 52; index++) {
+    const item = await saveTest(input(`${token} ${index}`), undefined, alice.id);
+
+    ids.push(item.id);
+  }
+
+  await saveTest(input(token), undefined, bob.id);
+  const submission = () => new Request('http://localhost/api/tests/runs', { method: 'POST' });
+  const filtered = { mode: 'filtered', q: token, status: 'none' };
+  const firstPage = await listTestPage({ ...page, q: token, status: 'none' }, alice.id);
+
+  expect(firstPage.tests).toHaveLength(50);
+  expect(firstPage.nextCursor).toBeTruthy();
+  const batch = await startCaseBatch(submission(), filtered, alice.id);
+  const detail = await getSuiteRun(batch.batchId, alice.id);
+
+  expect(detail.total).toBe(52);
+  expect(detail.runs.map((run) => run.testId).sort()).toEqual(ids.sort());
+  await expect(startCaseBatch(submission(), filtered, alice.id)).rejects.toThrow('没有符合条件');
+  const folder = await saveSuite(undefined, { name: token, testIds: [ids[0]] }, alice.id);
+  const failed = detail.runs.find((run) => run.testId === ids[0])!;
+
+  await db.update(testRuns).set({ status: 'failed' }).where(eq(testRuns.id, failed.id));
+  const scoped = await startCaseBatch(
+    submission(),
+    { mode: 'filtered', q: token, status: 'failed', folderId: folder.id },
+    alice.id,
+  );
+
+  expect((await getSuiteRun(scoped.batchId, alice.id)).total).toBe(1);
+  await expect(
+    startCaseBatch(submission(), { mode: 'selected', testIds: [] }, alice.id),
+  ).rejects.toThrow('参数无效');
+  await expect(
+    startCaseBatch(submission(), { mode: 'filtered', status: 'invalid' }, alice.id),
+  ).rejects.toThrow('参数无效');
+}, 30000);
+
+test('moves selected cases atomically, preserves other members and returns cases to ungrouped', async () => {
+  const { moveTests } = await import('./folders');
+  const a = await saveTest(input('Collection A'), undefined, alice.id);
+  const b = await saveTest(input('Collection B'), undefined, alice.id);
+  const existing = await saveTest(input('Collection existing'), undefined, alice.id);
+  const foreign = await saveTest(input('Collection foreign'), undefined, bob.id);
+  const source = await saveSuite(
+    undefined,
+    { name: 'Source collection', testIds: [a.id, b.id] },
+    alice.id,
+  );
+  const target = await saveSuite(
+    undefined,
+    { name: 'Target collection', testIds: [existing.id] },
+    alice.id,
+  );
+
+  await expect(moveTests([a.id, foreign.id], target.id, alice.id)).rejects.toMatchObject({
+    status: 404,
+  });
+  expect((await getSuite(source.id, alice.id)).tests.map((test) => test.id)).toEqual([a.id, b.id]);
+  await expect(moveTests([a.id, b.id], target.id, bob.id)).rejects.toMatchObject({ status: 404 });
+  await moveTests([a.id, b.id, a.id], target.id, alice.id);
+  expect((await getSuite(target.id, alice.id)).tests.map((test) => test.id)).toEqual([
+    existing.id,
+    ...[a.id, b.id].sort(),
+  ]);
+  expect((await getSuite(source.id, alice.id)).testCount).toBe(0);
+  await moveTests([a.id, b.id], null, alice.id);
+  expect((await getSuiteTree(alice.id)).rootTests.map((test) => test.id)).toEqual(
+    expect.arrayContaining([a.id, b.id]),
+  );
+  expect((await getSuite(target.id, alice.id)).tests.map((test) => test.id)).toEqual([existing.id]);
+  await expect(moveTests([], target.id, alice.id)).rejects.toMatchObject({ status: 400 });
+});
+
+test('creates a collection with selected tests in one operation and preserves members when deleted', async () => {
+  const a = await saveTest(input('Create and move A'), undefined, alice.id);
+  const b = await saveTest(input('Create and move B'), undefined, alice.id);
+  const original = await saveSuite(
+    undefined,
+    { name: 'Original collection', testIds: [a.id] },
+    alice.id,
+  );
+  const created = await saveSuite(
+    undefined,
+    { name: 'Created collection', parentId: null, testIds: [a.id, b.id] },
+    alice.id,
+  );
+
+  expect((await getSuite(created.id, alice.id)).tests.map((test) => test.id)).toEqual([a.id, b.id]);
+  expect((await getSuite(original.id, alice.id)).testCount).toBe(0);
+  await deleteSuite(created.id, alice.id);
+  expect((await getSuiteTree(alice.id)).rootTests.map((test) => test.id)).toEqual(
+    expect.arrayContaining([a.id, b.id]),
+  );
+});

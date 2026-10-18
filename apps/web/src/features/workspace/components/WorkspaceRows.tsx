@@ -1,7 +1,11 @@
+import { useContext } from 'react';
+import moveIcon from '@iconify-icons/lucide/folder-input';
+import { FolderActionsContext } from '@/features/suites/context';
 import { useTranslations, useFormatter } from 'next-intl';
 import clsx from 'clsx';
 import workspaceStyles from '@/features/workspace/components/workspace-index.module.css';
 import styles from './WorkspaceRows.module.css';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { TableRow, TableCell } from '@/components/ui/Table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import Link from 'next/link';
@@ -74,7 +78,13 @@ function duration(run: RunSummary) {
       : `${(run.durationMs / 1000).toFixed(1)} s`;
 }
 
+export type CaseSelection = {
+  ids: Set<string>;
+  toggle: (ids: string[], checked: boolean) => void;
+};
+
 type Props = {
+  selection?: CaseSelection;
   isTests: boolean;
   visibleTests: TestCase[];
   visibleRuns: RunSummary[];
@@ -89,6 +99,7 @@ type Props = {
 };
 
 export function WorkspaceRows({
+  selection,
   isTests,
   visibleTests,
   visibleRuns,
@@ -103,6 +114,8 @@ export function WorkspaceRows({
 }: Props) {
   const t = useTranslations('workspace');
   const format = useFormatter();
+  const folders = useContext(FolderActionsContext);
+  const suites = useTranslations('suites');
   const date = (value: string) =>
     format.dateTime(new Date(value), {
       month: '2-digit',
@@ -119,37 +132,51 @@ export function WorkspaceRows({
             const run = latest(test.id);
 
             return (
-              <TableRow key={test.id}>
+              <TableRow key={test.id} data-selected={selection?.ids.has(test.id) || undefined}>
                 <TableCell>
-                  <div className={workspaceStyles.workspaceIndexTitle}>
-                    <Button
-                      onClick={() => openEditor(test)}
-                      variant="ghost"
-                      className={clsx(workspaceStyles.workspaceIndexName, styles.action)}
-                    >
-                      <span className={workspaceStyles.workspaceIndexNameText} title={test.name}>
-                        {test.name}
-                      </span>
-                    </Button>
-                  </div>
-                  <div className={workspaceStyles.workspaceIndexMeta}>
-                    <p className={workspaceStyles.workspaceIndexDescription} title={test.url}>
-                      {test.target && test.target.platform !== 'web'
-                        ? `${test.target.platform} · ${test.target.appId}`
-                        : address(test.url)}
-                    </p>
-                    {test.tags.length > 0 && (
-                      <div className={workspaceStyles.workspaceIndexTags}>
-                        {test.tags.map((tag, index) => (
-                          <span
-                            key={`${tag}-${index}`}
-                            className={workspaceStyles.workspaceIndexTag}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
+                  <div className={styles.caseIdentity}>
+                    {selection && (
+                      <Checkbox
+                        aria-label={t('selectCase', { name: test.name })}
+                        checked={selection.ids.has(test.id)}
+                        onCheckedChange={(checked) => selection.toggle([test.id], checked)}
+                      />
                     )}
+                    <div className={styles.caseContent}>
+                      <div className={workspaceStyles.workspaceIndexTitle}>
+                        <Button
+                          onClick={() => openEditor(test)}
+                          variant="ghost"
+                          className={clsx(workspaceStyles.workspaceIndexName, styles.action)}
+                        >
+                          <span
+                            className={workspaceStyles.workspaceIndexNameText}
+                            title={test.name}
+                          >
+                            {test.name}
+                          </span>
+                        </Button>
+                      </div>
+                      <div className={workspaceStyles.workspaceIndexMeta}>
+                        <p className={workspaceStyles.workspaceIndexDescription} title={test.url}>
+                          {test.target && test.target.platform !== 'web'
+                            ? `${test.target.platform} · ${test.target.appId}`
+                            : address(test.url)}
+                        </p>
+                        {test.tags.length > 0 && (
+                          <div className={workspaceStyles.workspaceIndexTags}>
+                            {test.tags.map((tag, index) => (
+                              <span
+                                key={`${tag}-${index}`}
+                                className={workspaceStyles.workspaceIndexTag}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -198,6 +225,19 @@ export function WorkspaceRows({
                           icon: copyIcon,
                           onSelect: () => openEditor(test, true),
                         },
+                        ...(folders
+                          ? [
+                              {
+                                label: suites('moveToCollection'),
+                                accessibleLabel: suites('moveToCollection'),
+                                icon: moveIcon,
+                                onSelect: () =>
+                                  folders.moveCases([test.id], () =>
+                                    selection?.toggle([test.id], false),
+                                  ),
+                              },
+                            ]
+                          : []),
                         {
                           label: t('deleteCase'),
                           accessibleLabel: t('delete', { name: test.name }),

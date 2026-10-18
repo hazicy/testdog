@@ -78,13 +78,10 @@
 
 .explorer {
   display: grid;
-  grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  &[data-directory-collapsed] {
-    grid-template-columns: 2.5rem minmax(0, 1fr);
-  }
 }
 .directory {
   display: flex;
@@ -279,38 +276,13 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: 0 var(--space-8) var(--space-6);
-  & > div > header {
-    min-height: var(--workspace-header-height);
-    padding-block: var(--space-3);
-  }
   background: var(--surface);
   &[data-editor] {
+    display: flex;
+    flex-direction: column;
     padding: 0;
     overflow: hidden;
     background: var(--surface);
-  }
-}
-@media (width < 48rem) {
-  .explorer {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(8rem, 35%) minmax(0, 1fr);
-    &[data-directory-collapsed] {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: 2.5rem minmax(0, 1fr);
-      & .treeHeader {
-        min-height: 2.5rem;
-        justify-content: flex-start;
-        padding-inline: var(--space-2);
-      }
-    }
-  }
-  .directory {
-    border-right: 0;
-    border-bottom: var(--border-width) solid var(--page-line);
-  }
-  .folderContent {
-    padding: 0 var(--space-4) var(--space-4);
   }
 }
 
@@ -318,4 +290,10 @@
   .treeLink {
     min-height: var(--control-height-touch);
   }
+}
+
+.editorNavigation {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--border-width) solid var(--line-subtle);
 }

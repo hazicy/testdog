@@ -10,6 +10,7 @@
   --text-sm: 0.75rem;
   --text-md: 0.8125rem;
   --text-lg: 0.875rem;
+  --text-title: 0.9375rem;
   --text-xl: 1rem;
   --text-2xl: 1.125rem;
   --text-3xl: 1.25rem;
@@ -46,7 +47,7 @@
   --line-ui: 1.25rem;
   --line-metadata: 1.125rem;
   --line-page-title: 1.625rem;
-  --type-page-title: 500 var(--text-lg) / var(--line-ui) var(--font-ui);
+  --type-page-title: 500 var(--text-title) / var(--line-ui) var(--font-ui);
   --type-panel-title: var(--type-page-title);
   --type-navigation: 500 var(--text-md) / var(--line-ui) var(--font-ui);
   --type-list-primary: var(--type-navigation);

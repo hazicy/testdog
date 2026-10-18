@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases, testSuites } from '@testdog/server/db/schema';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
@@ -22,7 +22,7 @@ export async function caseFolderValues(tx: Tx, folderId: string | null, scope: U
     .from(testSuites)
     .where(and(eq(testSuites.id, folderId), ownedBy(testSuites, scope)));
 
-  if (!folder) throw new WorkspaceError('目标文件夹不存在。', 404);
+  if (!folder) throw new WorkspaceError('目标合集不存在。', 404);
   const [last] = await tx
     .select({ position: sql<number>`coalesce(max(${testCases.folderPosition}), -1)::int` })
     .from(testCases)
@@ -32,17 +32,34 @@ export async function caseFolderValues(tx: Tx, folderId: string | null, scope: U
 }
 
 export async function moveTest(id: string, folderId: string | null, scope: UserScope) {
-  validId(id);
+  return moveTests([id], folderId, scope);
+}
+
+export async function moveTests(testIds: string[], folderId: string | null, scope: UserScope) {
+  const ids = [...new Set(testIds)].sort();
+
+  if (!ids.length) throw new WorkspaceError('请选择要移动的用例。');
+  for (const id of ids) validId(id);
   await db.transaction(async (tx) => {
     await lockTree(tx, scope);
-    const location = await caseFolderValues(tx, folderId, scope);
-    const rows = await tx
-      .update(testCases)
-      .set(location)
-      .where(and(eq(testCases.id, id), ownedBy(testCases, scope)))
-      .returning({ id: testCases.id });
+    const tests = await tx
+      .select({ id: testCases.id })
+      .from(testCases)
+      .where(and(inArray(testCases.id, ids), ownedBy(testCases, scope)))
+      .orderBy(testCases.id)
+      .for('update');
 
-    if (!rows.length) throw new WorkspaceError('用例不存在。', 404);
+    if (tests.length !== ids.length) throw new WorkspaceError('部分用例不存在或不可访问。', 404);
+    const location = await caseFolderValues(tx, folderId, scope);
+
+    for (const [index, test] of tests.entries())
+      await tx
+        .update(testCases)
+        .set({
+          folderId: location.folderId,
+          folderPosition: folderId ? location.folderPosition + index : 0,
+        })
+        .where(eq(testCases.id, test.id));
   });
 }
 
@@ -54,7 +71,7 @@ export async function folderFor(id: string, scope: UserScope, tx: Tx, lock?: 'up
     .where(and(eq(testSuites.id, id), ownedBy(testSuites, scope)));
   const [folder] = await (lock ? query.for(lock) : query);
 
-  if (!folder) throw new WorkspaceError('文件夹不存在。', 404);
+  if (!folder) throw new WorkspaceError('合集不存在。', 404);
 
   return folder;
 }

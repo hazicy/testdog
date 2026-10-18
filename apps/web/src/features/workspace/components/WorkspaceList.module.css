@@ -26,3 +26,44 @@
 .actionsHeading {
   text-align: right;
 }
+
+.statusTabs {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+.statusTab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-md);
+  color: var(--page-muted);
+  font: var(--type-navigation);
+  &:hover {
+    background: var(--surface-hover);
+  }
+  &[aria-pressed='true'] {
+    color: var(--ink);
+    background: var(--surface-muted);
+  }
+}
+.caseHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.statusTab[data-status='passed'] > svg {
+  color: var(--success);
+}
+.statusTab[data-status='failed'] > svg {
+  color: var(--danger);
+}
+.statusTab[data-status='running'] > svg,
+.statusTab[data-status='preparing'] > svg,
+.statusTab[data-status='finalizing'] > svg {
+  color: var(--warning);
+}

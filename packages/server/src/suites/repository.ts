@@ -139,7 +139,7 @@ export async function saveSuite(id: string | undefined, raw: unknown, scope: Use
   const parsed = (id ? suiteUpdateSchema : suiteInputSchema).safeParse(raw);
 
   if (!parsed.success)
-    throw new WorkspaceError(parsed.error.issues[0]?.message || '文件夹参数无效。');
+    throw new WorkspaceError(parsed.error.issues[0]?.message || '合集参数无效。');
   const input = parsed.data;
   const testIds = input.testIds ?? [];
 
@@ -149,9 +149,9 @@ export async function saveSuite(id: string | undefined, raw: unknown, scope: Use
     const folders = await tx.select().from(testSuites).where(ownedBy(testSuites, scope));
 
     if (input.parentId && !folders.some((folder) => folder.id === input.parentId))
-      throw new WorkspaceError('目标文件夹不存在。', 404);
+      throw new WorkspaceError('目标合集不存在。', 404);
     if (id && input.parentId && descendantSuiteIds(folders, id).has(input.parentId))
-      throw new WorkspaceError('不能将文件夹移入自身或子文件夹。', 409);
+      throw new WorkspaceError('不能将合集移入自身或子合集。', 409);
     const position =
       existing?.parentId === input.parentId
         ? existing.position
@@ -163,7 +163,7 @@ export async function saveSuite(id: string | undefined, raw: unknown, scope: Use
           ) + 1;
 
     if (existing && (!('version' in input) || input.version !== existing.version))
-      throw new WorkspaceError('文件夹已更新，请刷新后再编辑。', 409);
+      throw new WorkspaceError('合集已更新，请刷新后再编辑。', 409);
     const tests = testIds.length
       ? await tx
           .select({ id: testCases.id })
@@ -221,6 +221,6 @@ export async function deleteSuite(id: string, scope: UserScope) {
       .where(and(eq(testSuites.id, id), ownedBy(testSuites, scope)))
       .returning({ id: testSuites.id });
 
-    if (!deleted.length) throw new WorkspaceError('测试文件夹不存在。', 404);
+    if (!deleted.length) throw new WorkspaceError('测试合集不存在。', 404);
   });
 }

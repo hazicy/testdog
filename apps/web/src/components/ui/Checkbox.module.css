@@ -9,13 +9,25 @@
     cursor: pointer;
     align-items: center;
     justify-content: center;
-    border-radius: 0.1875rem;
+    border-radius: var(--radius-sm);
     border: var(--border-width) solid var(--control-line);
     background-color: var(--surface);
     &[data-checked] {
       border-color: var(--brand);
       background-color: var(--brand);
       color: var(--brand-foreground);
+    }
+    &[data-indeterminate] {
+      border-color: var(--brand);
+      background-color: var(--brand);
+      color: var(--brand-foreground);
+      & .indicator {
+        font-size: 0;
+        &::after {
+          content: '−';
+          font-size: var(--text-sm);
+        }
+      }
     }
     &[data-disabled] {
       cursor: not-allowed;

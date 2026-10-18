@@ -572,9 +572,9 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   });
   await caseEditor.goto();
   await expect(caseEditor.newTestButton).toBeVisible();
-  const trigger = caseEditor.quickCreateButton;
+  const trigger = caseEditor.newTestButton;
 
-  await trigger.click();
+  await caseEditor.quickCreate();
   const dialog = page.getByRole('dialog', { name: '快速创建' });
   const input = dialog.getByRole('textbox', { name: '测试步骤与预期结果' });
   const generate = dialog.getByRole('button', { name: '生成', exact: true });
@@ -600,7 +600,7 @@ test('quick creation preserves failed prompts and opens generated nodes in the c
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
-  await trigger.click();
+  await caseEditor.quickCreate();
   const goal = '打开 https://example.com，点击登录，验证显示邮箱表单';
 
   await input.fill(goal);
@@ -659,7 +659,7 @@ for (const mode of ['quick', 'canvas'] as const) {
         .catch(() => {});
     });
     await caseEditor.goto();
-    if (mode === 'quick') await caseEditor.quickCreateButton.click();
+    if (mode === 'quick') await caseEditor.quickCreate();
     else {
       await caseEditor.create();
       await caseEditor.describeButton.click();
@@ -920,6 +920,7 @@ test('dialogs support keyboard entry, Escape dismissal and focus restoration', a
 
   await create.focus();
   await create.press('Enter');
+  await page.getByRole('menuitem', { name: '手动添加测试', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(caseEditor.canvas).toBeVisible();
   await page.getByRole('link', { name: '测试用例', exact: true }).first().click();
@@ -1804,7 +1805,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
   page.on('pageerror', (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 1000 });
   await caseEditor.goto();
-  await caseEditor.newTestButton.first().click();
+  await caseEditor.create();
   const dialog = page.locator(
     '[data-ui~="case-canvas-page"], [role=dialog]:not(#case-prompt-section)',
   );
@@ -1980,7 +1981,7 @@ test('converts text to independent action and assertion cards and preserves fail
     ),
   );
   await caseEditor.goto();
-  await caseEditor.newTestButton.first().click();
+  await caseEditor.create();
   const dialog = page.locator(
     '[data-ui~="case-canvas-page"], [role=dialog]:not(#case-prompt-section)',
   );
@@ -2056,7 +2057,7 @@ test('adds adjacent groups as columns with independent insertion points', async 
   page.on('pageerror', (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 1000 });
   await caseEditor.goto();
-  await caseEditor.newTestButton.first().click();
+  await caseEditor.create();
   const canvas = caseEditor.canvas;
 
   const groups = canvas.locator('[data-step-type=group]:not([data-plan-node=root])');
