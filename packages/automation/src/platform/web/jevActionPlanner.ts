@@ -219,7 +219,8 @@ export function canFinishWithoutLLM(input: Input) {
 
   if (action.type === 'fill') {
     const focused = (input.observation.page as { focused?: { value?: string } } | undefined)?.focused;
-    return explicitFillValue(input.goal) === action.value && focused?.value === action.value;
+    return /(?:输入|填写|填入|\bfill\b|\btype\b)/i.test(input.goal) &&
+      explicitFillValue(input.goal) === action.value && focused?.value === action.value;
   }
   if (action.type === 'click') return /(?:点击|点按|click)/i.test(input.goal);
   if (action.type === 'press') return /(?:回车|enter)/i.test(input.goal);
@@ -265,6 +266,10 @@ export class JevActionPlanner implements ActionPlanner {
     // On an uncertain or failed browser action, never guess or replay using Jev.
     // The LLM receives the full completed history and previous failure.
     if (input.previousFailure) this.fallbackActive = true;
+    // An incomplete fill/login instruction needs value generation, not a guessed
+    // literal or a premature click. Keep the entire task on the LLM fallback.
+    if (/(?:填写|填入|输入(?!框|法|项)|登录|\\bfill\\b|\\btype\\b|\\blog\\s*in\\b)/i.test(input.goal) &&
+        explicitFillValue(input.goal) === undefined) this.fallbackActive = true;
     if (this.fallbackActive) return this.fallback.plan(input);
 
     const options = jevActionOptions(input);
