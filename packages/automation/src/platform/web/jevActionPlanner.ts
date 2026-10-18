@@ -95,7 +95,7 @@ export function createJevActionChooser(
 /** Only reuse a literal value if the task explicitly provides an unambiguous one. */
 export function explicitFillValue(goal: string): string | undefined {
   const pattern =
-    /(?:输入|填写|填入|搜索|search(?: for)?|type|fill(?: in)?)\s*(?:为|：|:)?\s*(?:"([^"]+)"|“([^”]+)”|'([^']+)'|([^\s，。；,;]{1,100}))/gi;
+    /(?:输入|填写|填入|搜索|search(?: for)?|type|fill(?: in)?)(?:\s*(?:为|：|:)\s*|\s+|\s*(?=["“']))(?:"([^"]+)"|“([^”]+)”|'([^']+)'|([^\s，。；,;]{1,100}))/gi;
   const matches = [...goal.matchAll(pattern)];
   if (matches.length !== 1) return;
   const value = (matches[0][1] ?? matches[0][2] ?? matches[0][3] ?? matches[0][4])?.trim();
@@ -138,6 +138,19 @@ export function jevActionOptions(input: Input): Map<string, Option> {
     .slice(0, 80);
 
   for (const { candidate } of ranked) {
+    const alreadyDispatched = (type: string, actionValue: string) =>
+      input.completedSteps.some((step, index) => {
+        if (step.platform !== 'web' || step.action.type !== type ||
+            !('target' in step.action) || step.action.target.kind !== 'ariaRef') return false;
+        const source = input.completedObservations?.[index];
+        if (!source || source.surface.url !== url) return false;
+        const previous = hybridCandidates(source.tree as AriaNode[], url)
+          .find((item) => item.id === step.action.target.value);
+        return previous?.name === candidate.name &&
+          previous.role === candidate.role &&
+          previous.context === candidate.context &&
+          ('value' in step.action ? step.action.value : '') === actionValue;
+      });
     const summary = JSON.stringify({
       ref: candidate.id,
       role: candidate.role,
@@ -146,6 +159,7 @@ export function jevActionOptions(input: Input): Map<string, Option> {
       href: candidate.href.slice(0, 180),
     });
     const add = (type: 'click' | 'fill' | 'press', actionValue = '') => {
+      if (alreadyDispatched(type, actionValue)) return;
       const id = 'a' + (options.size + 1);
       options.set(id, {
         kind: 'action',
