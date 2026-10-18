@@ -21,6 +21,8 @@ import { buttonStyles } from '@/components/ui/buttonStyles';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Select } from '@/components/ui/Select';
+import filterIcon from '@iconify-icons/lucide/funnel';
+import { ListStatusFilter } from '@/components/shared/ListStatusFilter';
 import { Icon } from '@iconify/react/offline';
 import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import pendingIcon from '@iconify-icons/lucide/circle-dashed';
@@ -124,7 +126,7 @@ export function WorkspaceList({
   const someSelected = tests.some((test) => selected.has(test.id));
   const statuses = [
     'all',
-    'none',
+    ...(isTests ? ['none' as const] : []),
     'queued',
     'preparing',
     'running',
@@ -140,34 +142,39 @@ export function WorkspaceList({
       aria-label={isTests ? t('testList') : t('runList')}
     >
       <div className={workspaceStyles.workspaceIndexToolbar}>
-        <SearchInput
-          className={workspaceStyles.workspaceIndexSearch}
-          aria-label={isTests ? t('searchTests') : t('searchResults')}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={isTests ? t('testPlaceholder') : t('runPlaceholder')}
-        />
-        {!isTests && (
-          <div className={workspaceStyles.workspaceIndexFilter}>
-            <Select
-              aria-label={t('statusFilter')}
-              value={filter}
-              onValueChange={(value) => setFilter(value)}
-              className={styles.statusFilter}
-              items={[
-                { value: 'all', label: t('allStatuses') },
-                { value: 'passed', label: t('passed') },
-                { value: 'failed', label: t('failed') },
-                { value: 'queued', label: t('queued') },
-                { value: 'preparing', label: t('preparing') },
-                { value: 'finalizing', label: t('finalizing') },
-                { value: 'running', label: t('running') },
-                { value: 'cancelled', label: t('cancelled') },
-                isTests && { value: 'none', label: t('none') },
-              ]}
-            />
-          </div>
-        )}
+        <div
+          className={
+            isTests
+              ? workspaceStyles.workspaceIndexSearch
+              : workspaceStyles.workspaceIndexSearchGroup
+          }
+        >
+          <SearchInput
+            className={isTests ? undefined : workspaceStyles.workspaceIndexSearch}
+            aria-label={isTests ? t('searchTests') : t('searchResults')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={isTests ? t('testPlaceholder') : t('runPlaceholder')}
+          />
+          {!isTests && (
+            <div className={workspaceStyles.workspaceIndexFilter}>
+              <Select
+                aria-label={t('statusFilter')}
+                triggerIcon={filterIcon}
+                className={clsx(
+                  workspaceStyles.filterIcon,
+                  filter !== 'all' && workspaceStyles.filterActive,
+                )}
+                value={filter}
+                onValueChange={setFilter}
+                items={statuses.map((status) => ({
+                  value: status,
+                  label: t(status === 'all' ? 'allStatuses' : status),
+                }))}
+              />
+            </div>
+          )}
+        </div>
         {actions && (
           <div className={workspaceStyles.workspaceIndexToolbarActions}>
             {typeof actions === 'function'
@@ -180,23 +187,24 @@ export function WorkspaceList({
         )}
       </div>
       {isTests && (
-        <div className={styles.statusTabs} role="group" aria-label={t('statusFilter')}>
-          {statuses.map((status) => (
-            <button
-              type="button"
-              key={status}
-              aria-pressed={filter === status}
-              className={styles.statusTab}
-              data-status={status}
-              onClick={() => setFilter(status)}
-            >
-              {status !== 'all' && (
-                <Icon icon={statusIcons[status]} width="14" aria-hidden="true" />
-              )}
-              {t(status === 'all' ? 'allStatuses' : status)}
-            </button>
-          ))}
-        </div>
+        <ListStatusFilter
+          label={t('statusFilter')}
+          value={filter}
+          onValueChange={setFilter}
+          options={statuses.map((status) => ({
+            value: status,
+            label: t(status === 'all' ? 'allStatuses' : status),
+            icon: status === 'all' ? undefined : statusIcons[status],
+            tone:
+              status === 'passed'
+                ? 'success'
+                : status === 'failed'
+                  ? 'danger'
+                  : ['running', 'preparing', 'finalizing'].includes(status)
+                    ? 'warning'
+                    : undefined,
+          }))}
+        />
       )}
       {loading ? (
         isTests ? (
@@ -244,7 +252,6 @@ export function WorkspaceList({
             <Table
               className={clsx(workspaceStyles.workspaceIndexTable, {
                 [workspaceStyles.isResults]: !isTests,
-                [workspaceStyles.isGrouped]: grouped,
               })}
             >
               <TableHeader className={styles.tableHeader}>

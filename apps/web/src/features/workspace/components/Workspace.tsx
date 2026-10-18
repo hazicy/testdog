@@ -220,11 +220,7 @@ export function Workspace({
       ref={(element) => {
         promptContainer.current = element?.closest<HTMLElement>('#main-content') ?? null;
       }}
-      className={clsx(
-        workspaceStyles.workspaceIndex,
-        styles.container,
-        workspaceStyles.dataWorkspace,
-      )}
+      className={clsx(workspaceStyles.workspaceIndex, workspaceStyles.dataWorkspace)}
     >
       <PageHeader title={title ?? (isTests ? t('tests') : t('runs'))} />
       {error && !previewEmpty && !previewLoading && (

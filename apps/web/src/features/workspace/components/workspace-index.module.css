@@ -598,7 +598,7 @@
   }
 }
 
-.dataWorkspace .workspaceIndexTable.isGrouped {
+.dataWorkspace .workspaceIndexTable {
   & tbody tr,
   & tbody td {
     border-bottom: 0;
@@ -641,4 +641,33 @@
 .selectionCount {
   color: var(--page-muted);
   font: var(--type-metadata);
+}
+
+.dataWorkspace .workspaceIndexSearchGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 1 23rem;
+  min-width: 0;
+  & .workspaceIndexSearch {
+    flex: 1;
+    min-width: 0;
+  }
+  @media (width < 40rem) {
+    flex-basis: 100%;
+  }
+  @container case-content (width < 40rem) {
+    flex-basis: 100%;
+  }
+}
+.dataWorkspace .filterIcon[data-slot='select'] {
+  width: var(--workspace-control-height);
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+  &.filterActive {
+    color: var(--brand);
+    border-color: var(--brand-line);
+    background: var(--brand-soft);
+  }
 }

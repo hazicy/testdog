@@ -88,18 +88,34 @@ for (const list of [
 
     await listPage.nextButton.click();
     await expect(listPage.table.getByText(second.name, { exact: true })).toBeVisible();
-    await listPage.statusFilter(list.api === 'issues').click();
     const filterLabel = list.api === 'issues' ? '处理中' : '失败';
 
-    await page.getByRole('option', { name: filterLabel, exact: true }).click();
+    if (list.api === 'tests')
+      await listPage
+        .statusFilter(false)
+        .getByRole('button', { name: filterLabel, exact: true })
+        .click();
+    else {
+      await listPage.statusFilter(list.api === 'issues').click();
+      await page.getByRole('option', { name: filterLabel, exact: true }).click();
+    }
+
     await expect
       .poll(() => requests.at(-1)?.get('status'))
       .toBe(list.api === 'issues' ? 'in_progress' : 'failed');
     expect(requests.at(-1)?.has('cursor')).toBe(false);
     await expect(footer).toContainText('第 1 页');
 
-    await listPage.statusFilter(list.api === 'issues').click();
-    await page.getByRole('option', { name: '全部状态', exact: true }).click();
+    if (list.api === 'tests')
+      await listPage
+        .statusFilter(false)
+        .getByRole('button', { name: '全部状态', exact: true })
+        .click();
+    else {
+      await listPage.statusFilter(list.api === 'issues').click();
+      await page.getByRole('option', { name: '全部状态', exact: true }).click();
+    }
+
     await expect(footer).toContainText('第 1 页');
     await expect(listPage.table.getByText(saved.name, { exact: true })).toBeVisible();
     await expect(listPage.table.getByText(second.name, { exact: true })).toHaveCount(0);

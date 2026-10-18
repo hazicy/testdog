@@ -43,6 +43,7 @@ export function CaseWorkbench() {
   const caseId = params.get('case');
   const folder = tree?.folders.find((item) => item.id === folderId);
   const t = useTranslations('suites');
+  const ui = useTranslations('ui');
 
   if (caseId) return <CaseEditor key={caseId} id={caseId} />;
   if (folderId && !tree) return <LoadingState />;
@@ -54,7 +55,7 @@ export function CaseWorkbench() {
         key={folderId ?? 'root'}
         view="tests"
         folderId={folderId}
-        title={folder?.name ?? t('allCases')}
+        title={folder?.name ?? ui('test_cases')}
       />
     </>
   );

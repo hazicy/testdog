@@ -1,6 +1,5 @@
 .section {
-  margin-inline: auto;
-  max-width: 93.75rem;
+  min-width: 0;
 }
 .filters {
   display: flex;
@@ -36,7 +35,7 @@
   color: var(--page-muted);
 }
 .issueLink {
-  font-weight: 500;
+  font-weight: 400;
   @media (hover: hover) {
     &:hover {
       color: var(--brand);

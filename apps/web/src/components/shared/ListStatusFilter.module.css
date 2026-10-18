@@ -1,0 +1,32 @@
+.filters {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-md);
+  color: var(--page-muted);
+  font: var(--type-navigation);
+  &:hover {
+    background: var(--surface-hover);
+  }
+  &[aria-pressed='true'] {
+    color: var(--ink);
+    background: var(--surface-muted);
+  }
+  &[data-tone='success'] > svg {
+    color: var(--success);
+  }
+  &[data-tone='danger'] > svg {
+    color: var(--danger);
+  }
+  &[data-tone='warning'] > svg {
+    color: var(--warning);
+  }
+}

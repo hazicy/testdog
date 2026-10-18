@@ -378,15 +378,12 @@ test('case search combines tags and latest status while history uses each execut
   await search.fill('smoke');
   await expect(page.getByRole('button', { name: '未运行用例', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: saved.name, exact: true })).toHaveCount(0);
-  await filter.click();
-  await page.getByRole('option', { name: '未运行', exact: true }).click();
+  await filter.getByRole('button', { name: '未运行', exact: true }).click();
   await expect(page.getByRole('button', { name: '未运行用例', exact: true })).toBeVisible();
   await search.fill('');
-  await filter.click();
-  await page.getByRole('option', { name: '失败', exact: true }).click();
+  await filter.getByRole('button', { name: '失败', exact: true }).click();
   await expect(page.getByText('没有符合条件的记录', { exact: true })).toBeVisible();
-  await filter.click();
-  await page.getByRole('option', { name: '已通过', exact: true }).click();
+  await filter.getByRole('button', { name: '已通过', exact: true }).click();
   await expect(page.getByRole('button', { name: saved.name, exact: true })).toBeVisible();
   await page.getByRole('link', { name: '执行记录', exact: true }).click();
   await expect(page.getByRole('textbox', { name: '搜索结果', exact: true })).toBeVisible();

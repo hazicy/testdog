@@ -38,6 +38,7 @@ import { type IssuePage } from '@testdog/contracts/issues/types';
 import { IssueEditor, options } from '@/features/issues/components/IssueEditor';
 import { Icon } from '@iconify/react/offline';
 import plusIcon from '@iconify-icons/lucide/plus';
+import filterIcon from '@iconify-icons/lucide/funnel';
 
 export function IssueList() {
   const t = useTranslations('issues');
@@ -82,36 +83,36 @@ export function IssueList() {
       )}
       aria-label={t('issues')}
     >
-      <PageHeader
-        title={t('issues')}
-        actions={
-          <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
-            <Icon icon={plusIcon} width="16" aria-hidden="true" />
-            {t('newIssue')}
-          </Button>
-        }
-      />
+      <PageHeader title={t('issues')} />
       <div
         className={clsx(workspaceStyles.workspaceIndexToolbar, workspaceStyles.issueIndexToolbar)}
       >
-        <SearchInput
-          className={workspaceStyles.workspaceIndexSearch}
-          aria-label={t('search')}
-          placeholder={t('searchPlaceholder')}
-          maxLength={200}
-          value={q}
-          onChange={(event) => void setFilters({ q: event.target.value })}
-        />
-        <div className={clsx(workspaceStyles.workspaceIndexFilter, styles.filters)}>
-          <Select
-            aria-label={t('filterStatus')}
-            className={styles.select}
-            value={status}
-            onValueChange={(value) => {
-              void setFilters({ status: value as typeof status }, { history: 'push' });
-            }}
-            items={[{ value: 'all', label: t('allStatuses') }, ...options(issueStatuses)]}
+        <div className={workspaceStyles.workspaceIndexSearchGroup}>
+          <SearchInput
+            className={workspaceStyles.workspaceIndexSearch}
+            aria-label={t('search')}
+            placeholder={t('searchPlaceholder')}
+            maxLength={200}
+            value={q}
+            onChange={(event) => void setFilters({ q: event.target.value })}
           />
+          <div className={workspaceStyles.workspaceIndexFilter}>
+            <Select
+              aria-label={t('filterStatus')}
+              triggerIcon={filterIcon}
+              className={clsx(
+                workspaceStyles.filterIcon,
+                status !== 'all' && workspaceStyles.filterActive,
+              )}
+              value={status}
+              onValueChange={(value) => {
+                void setFilters({ status: value as typeof status }, { history: 'push' });
+              }}
+              items={[{ value: 'all', label: t('allStatuses') }, ...options(issueStatuses)]}
+            />
+          </div>
+        </div>
+        <div className={clsx(workspaceStyles.workspaceIndexFilter, styles.filters)}>
           <Select
             aria-label={t('filterEnvironment')}
             className={styles.select}
@@ -152,6 +153,12 @@ export function IssueList() {
               { value: '30', label: t('lastMonth') },
             ]}
           />
+        </div>
+        <div className={workspaceStyles.workspaceIndexToolbarActions}>
+          <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+            <Icon icon={plusIcon} width="16" aria-hidden="true" />
+            {t('newIssue')}
+          </Button>
         </div>
       </div>
       {error && (

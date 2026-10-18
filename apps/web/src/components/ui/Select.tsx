@@ -3,7 +3,7 @@
 import styles from './Select.module.css';
 
 import { Select as BaseSelect } from '@base-ui/react/select';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { inputStyles } from '@/components/ui/inputStyles';
 import clsx from 'clsx';
 import { Icon } from '@iconify/react/offline';
@@ -15,13 +15,21 @@ type Props = {
   value: string | number;
   onValueChange: (value: string) => void;
   className?: string;
+  triggerIcon?: ComponentProps<typeof Icon>['icon'];
   disabled?: boolean;
   required?: boolean;
   name?: string;
   'aria-label'?: string;
 };
 
-export function Select({ items, value, onValueChange, className = '', ...props }: Props) {
+export function Select({
+  items,
+  value,
+  onValueChange,
+  className = '',
+  triggerIcon,
+  ...props
+}: Props) {
   const options = items
     .flat()
     .filter((item): item is Item => !!item)
@@ -43,10 +51,16 @@ export function Select({ items, value, onValueChange, className = '', ...props }
         className={clsx(inputStyles(), styles.select, className)}
         aria-label={props['aria-label']}
       >
-        <BaseSelect.Value />
-        <BaseSelect.Icon aria-hidden="true" className={styles.icon}>
-          <Icon icon={chevronDownIcon} width="16" height="16" />
-        </BaseSelect.Icon>
+        {triggerIcon ? (
+          <Icon icon={triggerIcon} width="18" height="18" aria-hidden="true" />
+        ) : (
+          <>
+            <BaseSelect.Value />
+            <BaseSelect.Icon aria-hidden="true" className={styles.icon}>
+              <Icon icon={chevronDownIcon} width="16" height="16" />
+            </BaseSelect.Icon>
+          </>
+        )}
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
         <BaseSelect.Positioner
