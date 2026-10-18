@@ -142,6 +142,7 @@
   min-width: 0;
   flex: 1;
   font: var(--type-panel-title);
+  color: var(--ink);
 }
 .treeNavigation {
   flex: 1;
@@ -203,11 +204,11 @@
   height: auto;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
-  color: var(--page-muted);
+  color: var(--text-resource);
   font: var(--type-resource-item);
   & > svg {
     flex-shrink: 0;
-    color: var(--page-muted);
+    color: var(--text-resource);
   }
   & > span {
     overflow: hidden;

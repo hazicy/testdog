@@ -25,7 +25,7 @@
     max-height: min(20rem, var(--available-height));
     max-width: var(--available-width);
     overflow-y: auto;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-xl);
     border: var(--border-width) solid var(--control-line);
     background-color: var(--surface);
     padding: var(--space-1);
@@ -39,7 +39,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     padding: var(--space-2) var(--space-2-5);
     &[data-highlighted] {
       background-color: var(--brand-soft);

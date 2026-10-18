@@ -5,7 +5,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   min-height: var(--workspace-control-height);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 .identity {
   flex: 1 1 12rem;
@@ -32,5 +32,6 @@
   & > button {
     min-height: var(--workspace-control-height);
     font: var(--type-navigation);
+    font-size: var(--text-sm);
   }
 }

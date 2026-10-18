@@ -1,7 +1,7 @@
 .action {
   text-align: left;
-  font-weight: 500;
-  color: var(--ink);
+  font-weight: 400;
+  color: var(--text-resource);
   @media (hover: hover) {
     &:hover {
       color: var(--brand-link);

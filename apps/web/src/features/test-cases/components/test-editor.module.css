@@ -16,14 +16,10 @@
   padding: var(--space-2);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-lg);
-  font: 550 var(--text-xl) / var(--line-page-title) var(--font-ui);
+  font: var(--type-page-title);
   color: var(--ink);
   letter-spacing: -0.015em;
   text-overflow: ellipsis;
-
-  @media (pointer: coarse) {
-    font-size: var(--text-xl);
-  }
 
   &:hover {
     background: var(--surface-hover);
@@ -157,7 +153,7 @@
   outline: none;
   resize: none;
   background: transparent;
-  color: var(--control-ink);
+  color: var(--text-resource);
   font-size: clamp(0.9375rem, 1.3vw, var(--text-2xl));
   line-height: 1.8;
   height: 100%;

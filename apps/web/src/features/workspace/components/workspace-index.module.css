@@ -26,7 +26,7 @@
     min-height: 2.125rem;
     padding-top: var(--space-1-5);
     padding-bottom: var(--space-1-5);
-    border-radius: 0.3125rem;
+    border-radius: var(--radius-md);
     background: transparent;
     font-size: var(--text-lg);
     @media (pointer: coarse) {
@@ -95,7 +95,7 @@
 
   & th:first-child {
     width: 52%;
-    border-top-left-radius: 0.3125rem;
+    border-top-left-radius: var(--radius-md);
   }
 
   & td:first-child {
@@ -123,7 +123,7 @@
 
   & th:last-child {
     width: 14%;
-    border-top-right-radius: 0.3125rem;
+    border-top-right-radius: var(--radius-md);
   }
 
   &.isResults th:first-child {
@@ -265,7 +265,7 @@
   min-width: 10.25rem;
   padding: 0.3125rem;
   border: var(--border-width) solid var(--page-line);
-  border-radius: 0.4375rem;
+  border-radius: var(--radius-xl);
   background: var(--surface-raised);
   box-shadow:
     0 0.5rem 1.75rem var(--plan-shadow),
@@ -277,7 +277,7 @@
   align-items: center;
   gap: 0.5625rem;
   padding: var(--space-2) 0.5625rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
   cursor: pointer;
   outline: none;
@@ -294,7 +294,7 @@
   &.isDanger {
     margin-top: 0.3125rem;
     border-top: var(--border-width) solid var(--page-line);
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
     color: var(--danger);
   }
 }
@@ -344,8 +344,8 @@
   width: 100%;
   & .workspaceIndexToolbar {
     flex-wrap: wrap;
-    gap: var(--space-3);
-    padding-bottom: var(--space-4);
+    gap: var(--space-2);
+    padding-bottom: var(--space-3);
   }
   & .workspaceIndexSearch {
     flex: 0 1 20rem;
@@ -448,7 +448,8 @@
     display: flex;
     justify-content: flex-start;
     width: 100%;
-    font: var(--type-list-primary);
+    font: var(--type-resource-item);
+    color: var(--text-resource);
     border-width: 0;
     &:hover {
       background: transparent;

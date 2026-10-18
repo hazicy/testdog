@@ -17,11 +17,11 @@
   --text-6xl: 2.25rem;
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.625rem;
-  --radius-2xl: 0.75rem;
-  --radius-3xl: 1rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --radius-3xl: 1.25rem;
   --space-0-5: 0.125rem;
   --space-1: 0.25rem;
   --space-1-5: 0.375rem;
@@ -46,20 +46,20 @@
   --line-ui: 1.25rem;
   --line-metadata: 1.125rem;
   --line-page-title: 1.625rem;
-  --type-page-title: 550 var(--text-2xl) / var(--line-page-title) var(--font-ui);
-  --type-panel-title: 550 var(--text-md) / var(--line-ui) var(--font-ui);
+  --type-page-title: 500 var(--text-lg) / var(--line-ui) var(--font-ui);
+  --type-panel-title: var(--type-page-title);
   --type-navigation: 500 var(--text-md) / var(--line-ui) var(--font-ui);
   --type-list-primary: var(--type-navigation);
   --type-column-header: 500 var(--text-sm) / var(--line-metadata) var(--font-ui);
   --type-metadata: 400 var(--text-sm) / var(--line-metadata) var(--font-ui);
   --type-status: var(--type-column-header);
   --type-resource-item: 400 var(--text-md) / var(--line-ui) var(--font-ui);
-  --workspace-header-height: 4.5rem;
+  --workspace-header-height: 3.5rem;
   --navigation-row-height: 2.25rem;
   --resource-row-height: 2rem;
   --list-row-min-height: 3rem;
   --list-row-padding: var(--space-2-5);
-  --workspace-control-height: 2.25rem;
+  --workspace-control-height: 2rem;
   --sidebar-control-inset: var(--space-2);
   --motion-duration-fast: 160ms;
   --motion-easing: ease;
@@ -92,6 +92,7 @@
   --dialog-line: #e6e6e6;
   --page-muted: #74746f;
   --text-secondary: #5f5f5b;
+  --text-resource: #454541;
   --text-subtle: #74746f;
   --text-faint: #a6a6a6;
   --table-heading: #616161;
@@ -136,7 +137,7 @@
 
   /* Canvas nodes, review states and composer overlays */
   --canvas-line: var(--page-line);
-  --canvas-ink: var(--ink);
+  --canvas-ink: var(--text-resource);
   --canvas-panel-shadow: #0000000d;
   --canvas-shadow: #00000008;
   --canvas-preview-shadow: #00000012;
@@ -150,7 +151,7 @@
   --canvas-branch-line: #d8c5ef;
   --canvas-selected-ring: #b6d2ff33;
   --canvas-active-line: #b7c7d9;
-  --canvas-node-ink: var(--ink);
+  --canvas-node-ink: var(--text-resource);
   --review-accept-ink: #16845c;
   --review-accept-soft: #edf9f1;
   --review-reject-ink: #c45858;
@@ -350,6 +351,7 @@
   --dialog-line: #454545;
   --page-muted: #b0b0b0;
   --text-secondary: #c0c0c0;
+  --text-resource: #c8c8c4;
   --text-subtle: #aaa;
   --text-faint: #888;
   --table-heading: #c0c0c0;
