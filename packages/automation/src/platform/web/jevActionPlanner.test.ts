@@ -34,6 +34,7 @@ const completed = (state: Input, action: PlatformAction) => {
   state.completedObservations!.push(state.observation);
   state.observation = { ...state.observation, revision: state.observation.revision + 1 };
 };
+
 const fallback = () => ({
   plan: vi.fn().mockResolvedValue({ done: true, steps: [] }),
 });
@@ -65,6 +66,7 @@ describe('Jev-first action planner', () => {
     const state = input();
 
     const first = await planner.plan(state);
+
     expect(first).toMatchObject({
       done: false,
       modelCallId: 'jev-1',
@@ -79,6 +81,7 @@ describe('Jev-first action planner', () => {
 
   it('allows a typed fill and verifies the observed value before accepting done', async () => {
     const state = input('在 Name 输入框输入 Ada');
+
     state.observation = observation('Name', 'textbox');
     const options = jevActionOptions(state);
     const fillId = [...options].find(([, option]) =>
@@ -100,6 +103,7 @@ describe('Jev-first action planner', () => {
     const choose = vi.fn().mockResolvedValue({ choice: 'done' });
     const planner = new JevActionPlanner(emptyModel, signal, choose, back as unknown as ActionPlanner);
     const state = input('点击 Issues，然后点击 Bug');
+
     completed(state, {
       platform: 'web',
       action: { type: 'click', target: { kind: 'ariaRef', value: 'e1', name: '' }, value: '' },
@@ -108,6 +112,7 @@ describe('Jev-first action planner', () => {
     expect(back.plan).toHaveBeenCalledTimes(1);
 
     const state2 = input('根据客户资料填写收货地址');
+
     state2.previousFailure = { reason: 'Browser action uncertain' };
     expect(await planner.plan(state2)).toMatchObject({ done: true });
     expect(choose).toHaveBeenCalledTimes(1);
