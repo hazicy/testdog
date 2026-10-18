@@ -189,8 +189,8 @@ beforeEach(async () => {
   });
 });
 describe('recording and replay with real PostgreSQL and Chromium', { timeout: 30000 }, () => {
-  it('runs the hybrid planner through runtime and persists the Jev call and linked action', async () => {
-    vi.stubEnv('TESTDOG_WEB_AGENT', 'hybrid');
+  it('runs the legacy hybrid planner through runtime and persists the Jev call and linked action', async () => {
+    vi.stubEnv('TESTDOG_WEB_AGENT', 'hybrid-legacy');
     vi.stubEnv('JEV_API_KEY', 'fixture-key');
     vi.stubEnv('JEV_MODEL', 'jev-1.14.0');
     vi.stubEnv('JEV_ENDPOINT', 'https://jev.test/v1/systemone');
