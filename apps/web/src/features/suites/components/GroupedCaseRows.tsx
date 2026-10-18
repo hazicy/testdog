@@ -36,6 +36,11 @@ export function GroupedCaseRows({ includeEmpty, folderId, ...props }: Props) {
       {displayedGroups.map(({ folder, name, tests }) => {
         const id = folder?.id ?? 'root';
         const closed = collapsed.has(id);
+        const members = folder?.tests ?? tree?.rootTests ?? [];
+        const passed = members.filter((test) => test.latestStatus === 'passed').length;
+        const total = folder?.testCount ?? members.length;
+        const percent = total ? Math.round((passed / total) * 100) : 0;
+        const passRate = t('passRateValue', { passed, total, percent });
 
         return (
           <Fragment key={id}>
@@ -85,9 +90,21 @@ export function GroupedCaseRows({ includeEmpty, folderId, ...props }: Props) {
                       data-expanded={!closed || undefined}
                     />
                     <span className={styles.name}>{name}</span>
-                    <span className={styles.count}>{folder?.testCount ?? ungrouped.length}</span>
+                    <span className={styles.count}>{total}</span>
                   </button>
                   {folder && actions?.renderActions(folder)}
+                  <div
+                    className={styles.passRate}
+                    role="progressbar"
+                    aria-label={t('collectionPassRate', { name })}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={percent}
+                    aria-valuetext={passRate}
+                    title={passRate}
+                  >
+                    <span className={styles.passRateFill} style={{ width: `${percent}%` }} />
+                  </div>
                 </div>
               </TableCell>
             </TableRow>

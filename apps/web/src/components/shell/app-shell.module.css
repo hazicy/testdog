@@ -35,6 +35,7 @@
     padding-right: var(--space-2);
   }
   .workspacePage {
+    scrollbar-gutter: stable;
     padding: var(--space-6) var(--space-8);
     @media (width < 48rem) {
       padding: var(--space-4);

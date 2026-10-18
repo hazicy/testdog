@@ -1,8 +1,8 @@
 import { descendantSuiteIds } from '@testdog/contracts/suites/tree';
-import type { SuiteTreeNode } from '@testdog/contracts/suites/types';
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import type { SuiteTreeCase, SuiteTreeNode } from '@testdog/contracts/suites/types';
+import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
-import { testSuites, testCases } from '@testdog/server/db/schema';
+import { testSuites, testCases, testRuns } from '@testdog/server/db/schema';
 import { ownedBy, ownershipValues, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { validId } from '@testdog/server/shared/http';
@@ -24,14 +24,22 @@ async function readTree(scope: UserScope, tx: Tx) {
     .from(testCases)
     .where(ownedBy(testCases, scope))
     .orderBy(testCases.folderPosition, testCases.name, testCases.id);
+  const latestRuns = await tx
+    .selectDistinctOn([testRuns.testId], { testId: testRuns.testId, status: testRuns.status })
+    .from(testRuns)
+    .where(and(ownedBy(testRuns, scope), isNotNull(testRuns.testId)))
+    .orderBy(testRuns.testId, desc(testRuns.startedAt), desc(testRuns.id));
+  const latestStatuses = new Map(latestRuns.map((run) => [run.testId, run.status]));
   const nodes = new Map<string, SuiteTreeNode>(
     folders.map((folder) => [folder.id, { ...folder, tests: [], testCount: 0, totalTestCount: 0 }]),
   );
-  const rootTests: { id: string; name: string }[] = [];
+  const rootTests: SuiteTreeCase[] = [];
 
   for (const { id, name, folderId } of cases) {
-    if (!folderId) rootTests.push({ id, name });
-    else nodes.get(folderId)?.tests.push({ id, name });
+    const test = { id, name, latestStatus: latestStatuses.get(id) };
+
+    if (!folderId) rootTests.push(test);
+    else nodes.get(folderId)?.tests.push(test);
   }
 
   // Process leaves first so each folder contributes its count to its parent once.

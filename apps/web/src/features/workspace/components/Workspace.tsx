@@ -129,17 +129,10 @@ export function Workspace({
     );
 
   async function startBatch(selectedIds: string[]) {
-    if (starting) return;
+    if (starting || !selectedIds.length) return;
     setStarting(true);
     setError('');
-    const payload: CaseBatchRequest = selectedIds.length
-      ? { mode: 'selected', testIds: selectedIds }
-      : {
-          mode: 'filtered',
-          q: data.query.trim(),
-          status: data.filter as Extract<CaseBatchRequest, { mode: 'filtered' }>['status'],
-          ...(folderId ? { folderId } : {}),
-        };
+    const payload: CaseBatchRequest = { mode: 'selected', testIds: selectedIds };
 
     try {
       const { batchId } = await submit<{ batchId: string }>('/api/tests/runs', payload);
@@ -208,7 +201,7 @@ export function Workspace({
             size="sm"
             variant="primary"
             className={workspaceStyles.caseCreateButton}
-            disabled={starting || loading || previewEmpty || previewLoading || !tests.length}
+            disabled={starting || loading || previewEmpty || previewLoading || !selectedIds.length}
             onClick={() => void startBatch(selectedIds)}
           >
             <Icon icon={playIcon} width="16" aria-hidden="true" />
@@ -216,7 +209,7 @@ export function Workspace({
               ? suites('starting')
               : selectedIds.length
                 ? t('runSelected', { count: selectedIds.length })
-                : t('runFiltered')}
+                : t('run')}
           </Button>
         </>
       )

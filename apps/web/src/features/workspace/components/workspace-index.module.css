@@ -622,9 +622,6 @@
   & tbody td {
     padding-block: var(--space-1-5);
   }
-  & tbody tr[data-selected] td {
-    background: var(--brand-soft);
-  }
   & tbody tr:hover td:first-child {
     border-start-start-radius: var(--radius-md);
     border-end-start-radius: var(--radius-md);

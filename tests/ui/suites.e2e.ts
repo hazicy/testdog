@@ -357,6 +357,7 @@ test('runs one or multiple selected cases as a batch', async ({ page }) => {
     return route.fulfill({ status: 202, json: { batchId } });
   });
   await page.goto('/cases');
+  await expect(page.getByRole('button', { name: '运行', exact: true }).first()).toBeDisabled();
   await page.getByRole('checkbox', { name: '选择 登录', exact: true }).check();
   await page.getByRole('button', { name: '运行所选 1', exact: true }).click();
   await expect(page).toHaveURL(`/cases/batches/${batchId}`);
@@ -370,7 +371,7 @@ test('runs one or multiple selected cases as a batch', async ({ page }) => {
   );
 });
 
-test('submits the full search, status and folder filter and retries without duplicating requests', async ({
+test('requires selection within filters and retries without duplicating requests', async ({
   page,
 }) => {
   await support(page);
@@ -387,7 +388,9 @@ test('submits the full search, status and folder filter and retries without dupl
       : route.fulfill({ status: 202, json: { batchId } });
   });
   await page.goto(`/cases?folder=${folderId}&q=登录&status=failed`);
-  const run = page.getByRole('button', { name: '运行筛选结果', exact: true });
+  await expect(page.getByRole('button', { name: '运行', exact: true }).first()).toBeDisabled();
+  await page.getByRole('checkbox', { name: '选择 登录', exact: true }).check();
+  const run = page.getByRole('button', { name: '运行所选 1', exact: true });
 
   await run.click();
   await expect(page.getByRole('alert').filter({ hasText: '暂时无法执行' })).toBeVisible();
@@ -395,10 +398,8 @@ test('submits the full search, status and folder filter and retries without dupl
   await run.click();
   await expect(page).toHaveURL(`/cases/batches/${batchId}`);
   expect(submissions[0].payload).toEqual({
-    mode: 'filtered',
-    q: '登录',
-    status: 'failed',
-    folderId,
+    mode: 'selected',
+    testIds: [cases[0].id],
   });
   expect(submissions[0].key).toBeTruthy();
   expect(submissions[1]).toEqual(submissions[0]);
@@ -534,4 +535,65 @@ test('collection chooser fits phones and cancels without changing membership', a
   expect(state.creates).toHaveLength(0);
   expect(state.moves).toHaveLength(0);
   await expect(page.getByText('已选 2 项', { exact: true })).toBeVisible();
+});
+
+test('shows collection pass rate from all members rather than the visible page', async ({
+  page,
+}) => {
+  const state = await support(page);
+  let latestStatus = 'passed';
+
+  await page.route('**/api/suites/tree', (route) =>
+    route.fulfill({
+      json: {
+        folders: [
+          {
+            ...state.folders[0],
+            testCount: 2,
+            totalTestCount: 2,
+            tests: [
+              { id: cases[0].id, name: cases[0].name, latestStatus },
+              { id: cases[1].id, name: cases[1].name, latestStatus: 'failed' },
+            ],
+          },
+        ],
+        rootTests: [],
+      },
+    }),
+  );
+  await page.route(/\/api\/tests(?:\?.*)?$/, (route) =>
+    route.fulfill({
+      json: {
+        tests: [{ ...cases[0], folderId }],
+        latestRuns: [],
+        nextCursor: 'another-page',
+      },
+    }),
+  );
+  await page.goto('/cases');
+  const rate = page.getByRole('progressbar', { name: '回归 通过率', exact: true });
+
+  await expect(rate).toHaveAttribute('aria-valuenow', '50');
+  await expect(rate).toHaveAttribute('aria-valuetext', '通过率 50%（1/2）');
+  await page.getByRole('button', { name: '折叠 回归', exact: true }).click();
+  await expect(rate).toBeVisible();
+  latestStatus = 'failed';
+  await page.reload();
+  await expect(rate).toHaveAttribute('aria-valuenow', '0');
+});
+
+test('checking a case does not tint its row', async ({ page }) => {
+  await support(page);
+  await page.goto('/cases');
+  const row = page
+    .getByRole('row')
+    .filter({ has: page.getByRole('button', { name: '登录', exact: true }) });
+  const cell = row.locator('td').first();
+  const background = await cell.evaluate((element) => getComputedStyle(element).backgroundColor);
+
+  await page.getByRole('checkbox', { name: '选择 登录', exact: true }).check();
+  await page.getByRole('textbox', { name: '搜索测试', exact: true }).focus();
+  await page.mouse.move(0, 0);
+  await expect(row).toHaveAttribute('data-selected');
+  await expect(cell).toHaveCSS('background-color', background);
 });

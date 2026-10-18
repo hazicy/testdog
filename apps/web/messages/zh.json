@@ -968,6 +968,8 @@
     "create": "创建团队"
   },
   "suites": {
+    "collectionPassRate": "{name} 通过率",
+    "passRateValue": "通过率 {percent}%（{passed}/{total}）",
     "noCollectionMatches": "没有匹配的合集",
     "addTests": "添加测试",
     "createAndMove": "创建并移入",

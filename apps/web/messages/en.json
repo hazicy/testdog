@@ -968,6 +968,8 @@
     "create": "Create team"
   },
   "suites": {
+    "collectionPassRate": "{name} pass rate",
+    "passRateValue": "Pass rate {percent}% ({passed}/{total})",
     "noCollectionMatches": "No matching collections",
     "addTests": "Add tests",
     "createAndMove": "Create and move",

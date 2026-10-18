@@ -11,8 +11,9 @@ export type TestSuite = {
   testCount: number;
   updatedAt: string;
 };
-export type SuiteTreeNode = TestSuite & { tests: Pick<TestCase, 'id' | 'name'>[] };
-export type FolderTree = { folders: SuiteTreeNode[]; rootTests: Pick<TestCase, 'id' | 'name'>[] };
+export type SuiteTreeCase = Pick<TestCase, 'id' | 'name'> & { latestStatus?: RunStatus };
+export type SuiteTreeNode = TestSuite & { tests: SuiteTreeCase[] };
+export type FolderTree = { folders: SuiteTreeNode[]; rootTests: SuiteTreeCase[] };
 export type SuiteDetail = TestSuite & { tests: TestCase[]; folders: TestSuite[] };
 export type SuiteRunStatus = 'queued' | 'running' | 'passed' | 'failed' | 'cancelled';
 export type SuiteRunSummary = {

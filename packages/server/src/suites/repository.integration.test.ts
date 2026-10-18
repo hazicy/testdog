@@ -481,3 +481,43 @@ test('creates a collection with selected tests in one operation and preserves me
     expect.arrayContaining([a.id, b.id]),
   );
 });
+
+test('collection tree reports each case latest execution across the complete collection', async () => {
+  const a = await saveTest(input('Rate A'), undefined, alice.id);
+  const b = await saveTest(input('Rate B'), undefined, alice.id);
+  const unrun = await saveTest(input('Rate unrun'), undefined, alice.id);
+  const foreign = await saveTest(input('Rate private'), undefined, bob.id);
+  const collection = await saveSuite(
+    undefined,
+    { name: 'Rate collection', testIds: [a.id, b.id] },
+    alice.id,
+  );
+  const first = await startSuite(request(collection.id), collection.id, alice.id);
+  const initial = await getSuiteRun(first.batchId, alice.id);
+
+  for (const run of initial.runs)
+    await db
+      .update(testRuns)
+      .set({ status: 'passed', startedAt: '2020-01-01T00:00:00Z' })
+      .where(eq(testRuns.id, run.id));
+  const second = await startSuite(request(collection.id), collection.id, alice.id);
+  const latest = await getSuiteRun(second.batchId, alice.id);
+
+  for (const run of latest.runs)
+    await db
+      .update(testRuns)
+      .set({ status: run.testId === a.id ? 'failed' : 'passed' })
+      .where(eq(testRuns.id, run.id));
+  const tree = await getSuiteTree(alice.id);
+  const folder = tree.folders.find((item) => item.id === collection.id)!;
+
+  expect(folder.testCount).toBe(2);
+  expect(folder.tests).toEqual(
+    expect.arrayContaining([
+      { id: a.id, name: 'Rate A', latestStatus: 'failed' },
+      { id: b.id, name: 'Rate B', latestStatus: 'passed' },
+    ]),
+  );
+  expect(tree.rootTests.find((item) => item.id === unrun.id)?.latestStatus).toBeUndefined();
+  expect(tree.rootTests.some((item) => item.id === foreign.id)).toBe(false);
+});
