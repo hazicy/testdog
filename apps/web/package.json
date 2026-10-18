@@ -18,6 +18,8 @@
     "@codemirror/state": "catalog:",
     "@codemirror/view": "catalog:",
     "@dagrejs/dagre": "catalog:",
+    "@headless-tree/core": "^1.8.0",
+    "@headless-tree/react": "^1.8.0",
     "@iconify-icons/lucide": "catalog:",
     "@iconify/react": "catalog:",
     "@playwright/test": "catalog:",

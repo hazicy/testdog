@@ -400,3 +400,24 @@ test('keeps the case workspace contained, scrolls panels independently and colla
   await page.getByRole('button', { name: '展开用例目录', exact: true }).click();
   await expect(directory).toBeVisible();
 });
+
+test('navigates the directory with the keyboard and activates cases', async ({ page }) => {
+  await support(page);
+  await page.goto('/cases');
+  const directory = tree(page).getByRole('tree', { name: '用例目录', exact: true });
+  const folder = directory.getByRole('treeitem', { name: '回归', exact: true });
+  const login = directory.getByRole('treeitem', { name: '登录', exact: true });
+
+  await folder.focus();
+  await expect(folder).toHaveAttribute('aria-expanded', 'true');
+  await folder.press('ArrowLeft');
+  await expect(folder).toHaveAttribute('aria-expanded', 'false');
+  await expect(login).toHaveCount(0);
+  await folder.press('ArrowRight');
+  await expect(login).toBeVisible();
+  await folder.press('ArrowDown');
+  await expect(login).toBeFocused();
+  await login.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`case=${cases[0].id}`));
+  await expect(login).toHaveAttribute('aria-selected', 'true');
+});

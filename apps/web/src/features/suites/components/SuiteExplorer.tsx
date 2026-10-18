@@ -47,7 +47,6 @@ export function SuiteExplorer({ children }: { children: ReactNode }) {
   const { emptyPlan, caseName } = useAuthoring();
   const submit = useRunSubmission();
   const [directoryCollapsed, setDirectoryCollapsed] = useState(false);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [action, setAction] = useState<DirectoryAction | null>(null);
   const edit = action?.kind === 'create' || action?.kind === 'rename' ? action : null;
   const moving = action?.kind === 'move' ? action.item : null;
@@ -82,7 +81,6 @@ export function SuiteExplorer({ children }: { children: ReactNode }) {
   function createFolder(parentId: string | null) {
     setError('');
     setAction({ kind: 'create', parentId });
-    if (parentId) setCollapsed((current) => new Set([...current].filter((id) => id !== parentId)));
   }
 
   async function updateFolder(
@@ -380,8 +378,6 @@ export function SuiteExplorer({ children }: { children: ReactNode }) {
                     selectedCase={selectedCase}
                     selectedFolder={selectedFolder}
                     edit={edit}
-                    collapsed={collapsed}
-                    setCollapsed={setCollapsed}
                     openCase={openCase}
                     selectFolder={selectFolder}
                     saveName={saveName}

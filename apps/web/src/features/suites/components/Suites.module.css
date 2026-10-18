@@ -79,7 +79,7 @@
 
 .explorer {
   display: grid;
-  grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
+  grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr);
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -149,33 +149,44 @@
   overflow: auto;
   padding: var(--space-3);
 }
-.tree,
-.treeChildren {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
-.treeChildren {
-  margin-left: var(--space-2);
-  padding-left: calc(var(--space-2) - var(--border-width));
-  border-left: var(--border-width) solid var(--line-subtle);
+.treeChevron {
+  display: flex;
+  flex: 0 0 0.875rem;
+  width: 0.875rem;
+  transition: transform 150ms ease;
+  &[data-expanded] {
+    transform: rotate(90deg);
+  }
+}
+.treeRename {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-2);
 }
 .treeRow {
   gap: 0;
   min-width: 0;
   min-height: var(--resource-row-height);
+  margin-left: calc(var(--tree-level, 0) * 1rem);
   border-radius: var(--radius-md);
   &:hover {
     background: var(--surface-hover);
   }
   &[data-selected] {
-    background: var(--brand-soft);
+    background: var(--surface-hover);
     box-shadow: none;
     & > .treeLink {
-      color: var(--brand-active);
+      color: var(--text-secondary);
       font-weight: 500;
       & > svg {
-        color: var(--brand);
+        color: var(--text-secondary);
       }
       &:hover {
         background: transparent;
@@ -204,6 +215,7 @@
     white-space: nowrap;
   }
 }
+.treeRow:focus-visible,
 .treeLink:focus-visible {
   outline: var(--focus-width) solid var(--brand-line);
   outline-offset: calc(-1 * var(--focus-width));
