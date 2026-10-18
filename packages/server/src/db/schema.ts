@@ -243,6 +243,8 @@ export const testRuns = pgTable(
     index('test_runs_started_idx').on(table.startedAt, table.id),
     index('test_runs_user_started_idx').on(table.userId, table.startedAt, table.id),
     index('test_runs_batch_idx').on(table.batchId),
+    index('test_runs_source_idx').on(table.sourceRunId),
+    index('test_runs_recording_version_idx').on(table.recordingVersionId),
     index('test_runs_case_idx').on(table.testId, table.startedAt, table.id),
     index('test_runs_status_started_idx').on(table.status, table.startedAt, table.id),
     index('test_runs_active_lease_idx')
@@ -303,6 +305,8 @@ export const runSteps = pgTable(
   },
   (table) => [
     uniqueIndex('run_steps_sequence_idx').on(table.runId, table.sequence),
+    index('run_steps_model_call_idx').on(table.modelCallId),
+    check('run_steps_duration_check', sql`${table.durationMs} is null or ${table.durationMs} >= 0`),
     check('run_steps_sequence_check', sql`${table.sequence} > 0`),
     check('run_steps_status_check', sql`${table.status} in ('running','passed','failed')`),
     check(
@@ -341,6 +345,7 @@ export const runArtifacts = pgTable(
       table.capturedAt,
       table.id,
     ),
+    index('run_artifacts_step_idx').on(table.stepId),
     check('run_artifacts_kind_check', sql`${table.kind} in ('screenshot','video','trace')`),
     check('run_artifacts_stage_check', sql`${table.stage} in ('before','after','live','final')`),
     check('run_artifacts_size_check', sql`${table.size} >= 0 and ${table.elapsedMs} >= 0`),
@@ -363,7 +368,11 @@ export const recordingVersions = pgTable(
     steps: jsonb().$type<RecordingOperation[]>().notNull(),
     createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
-  (table) => [index('recording_versions_run_idx').on(table.runId, table.createdAt, table.id)],
+  (table) => [
+    index('recording_versions_run_idx').on(table.runId, table.createdAt, table.id),
+    check('recording_versions_platform_check', sql`${table.platform} in ('web','android','ios')`),
+    check('recording_versions_schema_version_check', sql`${table.schemaVersion} > 0`),
+  ],
 );
 
 export const automationResources = pgTable(
@@ -384,6 +393,7 @@ export const automationResources = pgTable(
     metadata: jsonb().$type<Record<string, unknown>>().notNull().default({}),
   },
   (table) => [
+    check('automation_resources_platform_check', sql`${table.platform} in ('web','android','ios')`),
     uniqueIndex('automation_resource_device_unique').on(
       table.hostId,
       table.platform,
@@ -413,14 +423,20 @@ export const automationRunEvents = pgTable(
   ],
 );
 
-export const automationBuilds = pgTable('automation_builds', {
-  id: uuid().primaryKey().defaultRandom(),
-  platform: text({ enum: ['android', 'ios'] }).notNull(),
-  appId: text().notNull(),
-  sha256: text().notNull(),
-  path: text().notNull(),
-  createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
-});
+export const automationBuilds = pgTable(
+  'automation_builds',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    platform: text({ enum: ['android', 'ios'] }).notNull(),
+    appId: text().notNull(),
+    sha256: text().notNull(),
+    path: text().notNull(),
+    createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('automation_builds_platform_check', sql`${table.platform} in ('android','ios')`),
+  ],
+);
 
 // Durable notification outbox; published entries remain briefly for SSE catch-up.
 export const realtimeOutbox = pgTable(
@@ -496,7 +512,17 @@ export const modelCalls = pgTable(
     errorCode: text(),
     trace: jsonb().$type<ModelCallTrace>(),
   },
-  (table) => [index('model_calls_run_idx').on(table.runId, table.startedAt, table.id)],
+  (table) => [
+    index('model_calls_run_idx').on(table.runId, table.startedAt, table.id),
+    check(
+      'model_calls_status_check',
+      sql`${table.status} in ('passed','failed','cancelled','timeout')`,
+    ),
+    check(
+      'model_calls_metrics_check',
+      sql`${table.durationMs} >= 0 and ${table.retryCount} >= 0 and ${table.failedAttempts} >= 0 and (${table.inputTokens} is null or ${table.inputTokens} >= 0) and (${table.outputTokens} is null or ${table.outputTokens} >= 0)`,
+    ),
+  ],
 );
 
 export const issues = pgTable(
@@ -562,6 +588,8 @@ export const issueOccurrences = pgTable(
       .on(table.issueId, table.runId)
       .where(sql`${table.stepId} is null`),
     index('issue_occurrences_issue_idx').on(table.issueId, table.createdAt),
+    index('issue_occurrences_run_step_idx').on(table.runId, table.stepId),
+    index('issue_occurrences_step_idx').on(table.stepId),
   ],
 );
 export const issueEvents = pgTable(
@@ -575,7 +603,13 @@ export const issueEvents = pgTable(
     message: text().notNull(),
     createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
-  (table) => [index('issue_events_issue_idx').on(table.issueId, table.createdAt)],
+  (table) => [
+    index('issue_events_issue_idx').on(table.issueId, table.createdAt),
+    check(
+      'issue_events_kind_check',
+      sql`${table.kind} in ('created','updated','comment','occurrence','verification')`,
+    ),
+  ],
 );
 export const issueVerifications = pgTable(
   'issue_verifications',
@@ -593,7 +627,10 @@ export const issueVerifications = pgTable(
       .references(() => testRuns.id, { onDelete: 'restrict' }),
     createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
-  (table) => [index('issue_verifications_issue_idx').on(table.issueId, table.createdAt)],
+  (table) => [
+    index('issue_verifications_issue_idx').on(table.issueId, table.createdAt),
+    index('issue_verifications_occurrence_idx').on(table.occurrenceId),
+  ],
 );
 
 export const notificationIntegrations = pgTable(
@@ -661,6 +698,8 @@ export const notificationDeliveries = pgTable(
   (table) => [
     uniqueIndex('notification_deliveries_event_idx').on(table.integrationId, table.eventId),
     index('notification_deliveries_due_idx').on(table.status, table.nextAttemptAt),
+    index('notification_deliveries_event_id_idx').on(table.eventId),
+    check('notification_deliveries_attempts_check', sql`${table.attempts} >= 0`),
     check(
       'notification_deliveries_status_check',
       sql`${table.status} in ('pending','sending','sent','failed','skipped')`,
