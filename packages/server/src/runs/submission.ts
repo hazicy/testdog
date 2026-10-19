@@ -4,7 +4,11 @@ import {
   ownedBy,
   type UserScope,
 } from '@testdog/server/shared/ownership';
-import { resolvePlanPlugins, resolvePluginInvocations } from '@testdog/server/plugins/repository';
+import {
+  resolvePlanPlugins,
+  resolvePluginInvocations,
+  resolvePlansPlugins,
+} from '@testdog/server/plugins/repository';
 import { and, asc, eq } from 'drizzle-orm';
 import { isDeepStrictEqual } from 'node:util';
 import { db } from '@testdog/server/db';
@@ -190,4 +194,34 @@ async function persistRun(
   };
 
   return transaction ? persist(transaction) : db.transaction(persist);
+}
+
+/** All cases have already been scoped and share-locked by the suite transaction. */
+export async function createCaseRuns(
+  tests: Pick<typeof testCases.$inferSelect, 'id' | 'target' | 'name' | 'goal' | 'plan'>[],
+  batchId: string,
+  tx: Tx,
+  userId: UserScope,
+) {
+  assertUserScope(userId);
+  const plans = await resolvePlansPlugins(
+    tests.flatMap((test) => (test.plan ? [test.plan] : [])),
+    userId,
+    tx,
+  );
+  let planIndex = 0;
+  const rows = tests.map((test) => ({
+    ...ownershipValues(userId),
+    batchId,
+    testId: test.id,
+    targetSnapshot: test.target,
+    name: test.name,
+    goal: test.goal,
+    mode: 'record' as const,
+    status: 'queued' as const,
+    plan: test.plan ? plans[planIndex++] : null,
+  }));
+
+  for (let offset = 0; offset < rows.length; offset += 200)
+    await tx.insert(testRuns).values(rows.slice(offset, offset + 200));
 }

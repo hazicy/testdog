@@ -1,3 +1,4 @@
+import { notificationReadyChannel } from '@testdog/server/integrations/wakeup';
 import { randomUUID } from 'node:crypto';
 import { rowScope, workspaceChannel } from '@testdog/server/shared/ownership';
 import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
@@ -54,6 +55,7 @@ async function publishOutbox() {
           userId: realtimeOutbox.userId,
           teamId: realtimeOutbox.teamId,
           summary: realtimeOutbox.summary,
+          notificationReady: sql<boolean>`${realtimeOutbox.kind} = 'notification'`,
           taskReady: sql<boolean>`${realtimeOutbox.kind} = 'run' AND ${realtimeOutbox.data}->>'status' = 'queued'`,
         })
         .from(realtimeOutbox)
@@ -89,7 +91,10 @@ async function publishOutbox() {
         rows.map((row) => row.id),
       ),
     );
+
     try {
+      if (rows.some((row) => row.notificationReady))
+        await client.publish(notificationReadyChannel(), 'ready');
       if (rows.some((row) => row.taskReady)) await client.publish(taskReadyChannel(), 'ready');
       const runs = new Set(rows.flatMap((row) => (row.runId ? [row.runId] : [])));
 
@@ -197,7 +202,7 @@ export async function readRunUpdates(runId: string, revision: number): Promise<R
       };
 
     return {
-      kind: 'logs',
+      kind: row.kind === 'model' ? 'model' : 'logs',
       revision,
     };
   });

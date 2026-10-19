@@ -10,7 +10,7 @@ import { WorkspaceError } from '@testdog/server/shared/errors';
 import { validId } from '@testdog/server/shared/http';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
 import { submitOnce } from '@testdog/server/shared/idempotency';
-import { createRun } from '@testdog/server/runs/submission';
+import { createCaseRuns } from '@testdog/server/runs/submission';
 import { runSummaryColumns, runSummary } from '@testdog/server/runs/records';
 import { lockTree, folderFor } from './folders';
 
@@ -32,20 +32,25 @@ export async function startSuite(request: Request, id: string, scope: UserScope)
       const descendants = [...descendantSuiteIds(folders, id)];
       // Lock exactly the scoped cases included in this immutable batch snapshot.
       const tests = await tx
-        .select({ id: testCases.id })
+        .select({
+          id: testCases.id,
+          target: testCases.target,
+          name: testCases.name,
+          goal: testCases.goal,
+          plan: testCases.plan,
+        })
         .from(testCases)
         .where(and(inArray(testCases.folderId, descendants), ownedBy(testCases, scope)))
         .orderBy(testCases.id)
         .for('share');
 
       if (!tests.length) throw new WorkspaceError('文件夹没有可运行的用例。', 409);
-      const testIds = tests.map((test) => test.id);
       const [batch] = await tx
         .insert(suiteRuns)
-        .values({ ...ownershipValues(scope), suiteId: id, name: suite.name, total: testIds.length })
+        .values({ ...ownershipValues(scope), suiteId: id, name: suite.name, total: tests.length })
         .returning();
 
-      for (const testId of testIds) await createRun({ testId, batchId: batch.id }, tx, scope);
+      await createCaseRuns(tests, batch.id, tx, scope);
 
       return { batchId: batch.id };
     },

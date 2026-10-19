@@ -1,6 +1,6 @@
 import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
-import { getRun } from '@testdog/server/runs/repository';
+import { getRunRepresentation } from '@testdog/server/runs/repository';
 import { requestCancellation } from '@testdog/server/runs/lifecycle';
 import { apiError, validId } from '@testdog/server/shared/http';
 import { jsonResponse } from '@testdog/server/shared/jsonResponse';
@@ -14,11 +14,13 @@ export async function GET(request: Request, context: Context) {
 
     validId(id);
 
-    return jsonResponse(request, {
-      run: await getRun(id, {
-        userId: await requireUserId(request),
-      }),
-    });
+    const { run, etag } = await getRunRepresentation(
+      id,
+      await requireUserId(request),
+      request.headers.get('if-none-match'),
+    );
+
+    return jsonResponse(request, { run }, etag);
   } catch (error) {
     return apiError(error);
   }

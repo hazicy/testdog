@@ -438,6 +438,14 @@ export const automationBuilds = pgTable(
   ],
 );
 
+// Separate from SSE revisions: covers updates and deletions in the full detail response.
+export const runDetailVersions = pgTable('run_detail_versions', {
+  runId: uuid()
+    .primaryKey()
+    .references(() => testRuns.id, { onDelete: 'cascade' }),
+  version: uuid().notNull().defaultRandom(),
+});
+
 // Durable notification outbox; published entries remain briefly for SSE catch-up.
 export const realtimeOutbox = pgTable(
   'realtime_outbox',

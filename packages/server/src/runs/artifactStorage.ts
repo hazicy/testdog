@@ -13,6 +13,14 @@ import {
 export const artifactRoot = () =>
   join(process.env.TESTDOG_DATA_DIR || join(process.cwd(), '.automation'), 'artifacts');
 
+const state = globalThis as typeof globalThis & { testdogArtifactClients?: Map<string, S3Client> };
+const clients = (state.testdogArtifactClients ??= new Map<string, S3Client>());
+
+export function closeArtifactStorage() {
+  for (const client of clients.values()) client.destroy();
+  clients.clear();
+}
+
 function remote() {
   const bucket = process.env.TESTDOG_ARTIFACT_BUCKET;
 
@@ -22,16 +30,17 @@ function remote() {
   if (!prefix || prefix.split('/').some((part) => part === '..'))
     throw new Error('Invalid artifact prefix');
 
-  return {
-    bucket,
-    prefix,
-    client: new S3Client({
-      region: process.env.AWS_REGION || 'us-east-1',
-      endpoint: process.env.TESTDOG_ARTIFACT_ENDPOINT || undefined,
-      forcePathStyle: !!process.env.TESTDOG_ARTIFACT_ENDPOINT,
-      maxAttempts: 2,
-    }),
-  };
+  const region = process.env.AWS_REGION || 'us-east-1';
+  const endpoint = process.env.TESTDOG_ARTIFACT_ENDPOINT || undefined;
+  const key = JSON.stringify([region, endpoint]);
+  let client = clients.get(key);
+
+  if (!client) {
+    client = new S3Client({ region, endpoint, forcePathStyle: !!endpoint, maxAttempts: 2 });
+    clients.set(key, client);
+  }
+
+  return { bucket, prefix, client };
 }
 
 export async function storeArtifactFile(
@@ -62,26 +71,19 @@ export async function storeArtifactFile(
     );
   } finally {
     body?.destroy();
-    config.client.destroy();
   }
 
   return {
     path: `s3://${config.bucket}/${key}`,
     rollback: async () => {
-      const cleanup = remote()!;
-
-      try {
-        await cleanup.client.send(new DeleteObjectCommand({ Bucket: cleanup.bucket, Key: key }), {
-          abortSignal: AbortSignal.timeout(10000),
-        });
-      } finally {
-        cleanup.client.destroy();
-      }
+      await config.client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }), {
+        abortSignal: AbortSignal.timeout(10000),
+      });
     },
   };
 }
 
-// The caller closes metadata-only reads; a returned stream owns the client until closed.
+// Each read owns its cancellation scope and stream; the process owns the shared client.
 export async function openRemoteArtifact(
   runId: string,
   id: string,
@@ -91,16 +93,16 @@ export async function openRemoteArtifact(
   const config = remote();
 
   if (!config || path !== `s3://${config.bucket}/${config.prefix}/${runId}/${id}`) {
-    config?.client.destroy();
     throw new Error('Invalid artifact object reference');
   }
 
   const object = { Bucket: config.bucket, Key: `${config.prefix}/${runId}/${id}` };
-  const close = () => config.client.destroy();
+  const requestScope = new AbortController();
+  const close = () => requestScope.abort();
 
   try {
     const metadata = await config.client.send(new HeadObjectCommand(object), {
-      abortSignal: AbortSignal.any([signal, AbortSignal.timeout(20000)]),
+      abortSignal: AbortSignal.any([signal, requestScope.signal, AbortSignal.timeout(20000)]),
     });
     const size = metadata.ContentLength;
 
@@ -121,7 +123,7 @@ export async function openRemoteArtifact(
               ...(range ? { Range: `bytes=${range.start}-${range.end}` } : {}),
               IfMatch: metadata.ETag,
             }),
-            { abortSignal: AbortSignal.any([signal, timeout.signal]) },
+            { abortSignal: AbortSignal.any([signal, requestScope.signal, timeout.signal]) },
           )
           .finally(() => clearTimeout(timer));
 

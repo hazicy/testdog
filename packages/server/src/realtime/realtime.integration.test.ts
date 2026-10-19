@@ -3,7 +3,9 @@ import { createServer } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 
-const isolated = vi.hoisted(() => ({ db: undefined as unknown }));
+const isolated = vi.hoisted(() => ({ db: undefined as unknown, send: vi.fn() }));
+
+vi.mock('@testdog/server/integrations/delivery', () => ({ sendNotification: isolated.send }));
 
 vi.mock('@/server/shared/auth', () => ({ requireUserId: async () => null }));
 vi.mock('@testdog/server/db', () => ({
@@ -20,6 +22,9 @@ import {
   watchPreview,
 } from '@testdog/server/realtime/preview';
 import { flushOutbox, stopOutboxPublisher } from '@testdog/server/realtime/realtime';
+import { startNotificationDispatcher } from '@testdog/server/integrations/dispatcher';
+import { notificationReadyChannel } from '@testdog/server/integrations/wakeup';
+import { encryptSecret } from '@testdog/server/shared/secrets';
 import { taskWakeup } from '@testdog/server/scheduling/wakeup';
 import { eventStream } from '@/server/realtime/eventStream';
 import { GET as previewResponse } from '../../../../apps/web/src/app/api/runs/[id]/preview/route';
@@ -264,6 +269,56 @@ it.skipIf(!binary)(
     } finally {
       abort.abort();
       await reader.cancel();
+    }
+  },
+  10000,
+);
+
+it.skipIf(!binary)(
+  'wakes notification delivery after commit and schedules future work without another message',
+  async () => {
+    vi.stubEnv('TESTDOG_INTEGRATION_SECRET', 'test-notification-secret-at-least-32-characters');
+    isolated.send.mockResolvedValue(undefined);
+    const integration = randomUUID();
+    const event = randomUUID();
+    const config = encryptSecret(
+      { webhookUrl: 'https://open.feishu.cn/open-apis/bot/v2/hook/fixture' },
+      null,
+      'feishu',
+    );
+
+    await database.client.query(
+      `INSERT INTO notification_integrations (id,channel,"encryptedConfig") VALUES ($1,'feishu',$2)`,
+      [integration, config],
+    );
+    await database.client.query(
+      `INSERT INTO notification_events (id,"sourceKey","eventType",payload) VALUES ($1,$2,'test','{"title":"Test","body":"Test","path":"/"}')`,
+      [event, randomUUID()],
+    );
+    const stop = startNotificationDispatcher(60000);
+
+    try {
+      await vi.waitFor(async () => {
+        const client = await readyRedis();
+        const subscribers = await client.pubSubNumSub(notificationReadyChannel());
+
+        expect(subscribers[notificationReadyChannel()]).toBe(1);
+      });
+      await database.client.query(
+        `INSERT INTO notification_deliveries ("integrationId","integrationVersion","eventId","nextAttemptAt") VALUES ($1,1,$2,now()+interval '500 milliseconds')`,
+        [integration, event],
+      );
+      await flushOutbox();
+      // The only message arrives before this delivery is due; its timer must do the rest.
+      await vi.waitFor(() => expect(isolated.send).toHaveBeenCalledOnce(), { timeout: 5000 });
+      const status = await database.client.query<{ status: string }>(
+        `SELECT status FROM notification_deliveries WHERE "eventId"=$1`,
+        [event],
+      );
+
+      expect(status.rows[0].status).toBe('sent');
+    } finally {
+      await stop();
     }
   },
   10000,

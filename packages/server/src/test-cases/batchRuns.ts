@@ -4,7 +4,7 @@ import { testCases, suiteRuns } from '@testdog/server/db/schema';
 import { submitOnce } from '@testdog/server/shared/idempotency';
 import { ownedBy, ownershipValues, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
-import { createRun } from '@testdog/server/runs/submission';
+import { createCaseRuns } from '@testdog/server/runs/submission';
 import { lockTree } from '@testdog/server/suites/folders';
 import { testFilter } from './filter';
 
@@ -21,7 +21,13 @@ export async function startCaseBatch(request: Request, raw: unknown, scope: User
       await lockTree(tx, scope);
       const ids = input.mode === 'selected' ? [...new Set(input.testIds)].sort() : [];
       const tests = await tx
-        .select({ id: testCases.id })
+        .select({
+          id: testCases.id,
+          target: testCases.target,
+          name: testCases.name,
+          goal: testCases.goal,
+          plan: testCases.plan,
+        })
         .from(testCases)
         .where(
           input.mode === 'selected'
@@ -44,7 +50,7 @@ export async function startCaseBatch(request: Request, raw: unknown, scope: User
         })
         .returning();
 
-      for (const test of tests) await createRun({ testId: test.id, batchId: batch.id }, tx, scope);
+      await createCaseRuns(tests, batch.id, tx, scope);
 
       return { batchId: batch.id };
     },

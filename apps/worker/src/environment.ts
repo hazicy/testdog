@@ -9,3 +9,6 @@ const runtimeRoot = existsSync(resolve(workspaceRoot, 'pnpm-workspace.yaml'))
 
 loadDotenv({ path: [resolve(process.cwd(), '.env'), resolve(runtimeRoot, '.env')] });
 process.env.TESTDOG_DATA_DIR ||= resolve(runtimeRoot, '.automation');
+
+// Background SQL batches have a larger budget than interactive API reads.
+process.env.TESTDOG_DB_STATEMENT_TIMEOUT_MS ??= '60000';

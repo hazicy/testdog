@@ -3,6 +3,7 @@ import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 
 const fixture = vi.hoisted(() => ({
+  queries: [] as string[],
   database: undefined as
     | Awaited<ReturnType<typeof import('@testdog/server/testing/testDatabase').createTestDatabase>>
     | undefined,
@@ -13,12 +14,24 @@ vi.mock('@testdog/server/db', async () => {
     await import('@testdog/server/testing/testDatabase')
   ).createTestDatabase();
 
+  const { drizzle } = await import('drizzle-orm/pglite');
+
+  fixture.database.db = drizzle({
+    client: fixture.database.client,
+    logger: {
+      logQuery(sql) {
+        fixture.queries.push(sql);
+      },
+    },
+  });
+
   return { db: fixture.database.db };
 });
 import { db } from '@testdog/server/db';
 import {
   authUsers,
   testRuns,
+  testCases,
   testSuites,
   suiteRuns,
   realtimeOutbox,
@@ -520,4 +533,40 @@ test('collection tree reports each case latest execution across the complete col
   );
   expect(tree.rootTests.find((item) => item.id === unrun.id)?.latestStatus).toBeUndefined();
   expect(tree.rootTests.some((item) => item.id === foreign.id)).toBe(false);
+});
+
+test('enqueues a large suite with one case read and chunked inserts', async () => {
+  const suite = await saveSuite(undefined, { name: 'Large batch', testIds: [] }, alice.id);
+  const target = {
+    schemaVersion: 1 as const,
+    platform: 'web' as const,
+    url: 'https://example.com',
+    browser: 'chromium' as const,
+    deviceProfile: 'legacy-desktop' as const,
+  };
+
+  await db.insert(testCases).values(
+    Array.from({ length: 205 }, (_, index) => ({
+      userId: alice.id,
+      folderId: suite.id,
+      name: `Case ${index}`,
+      goal: 'Check',
+      target,
+      tags: [],
+    })),
+  );
+  fixture.queries.length = 0;
+  let result;
+
+  try {
+    result = await startSuite(request(suite.id), suite.id, alice.id);
+    const statements = fixture.queries;
+
+    expect(statements.filter((sql) => /^insert into "test_runs"/i.test(sql))).toHaveLength(2);
+    expect(statements.filter((sql) => /^select .*from "test_cases"/i.test(sql))).toHaveLength(1);
+  } finally {
+    fixture.queries.length = 0;
+  }
+
+  expect((await getSuiteRun(result.batchId, alice.id)).counts.queued).toBe(205);
 });

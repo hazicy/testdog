@@ -1,3 +1,4 @@
+import { closeArtifactStorage } from '@testdog/server/runs/artifactStorage';
 import { logger } from '@testdog/server/shared/logger';
 import { pool } from '@testdog/server/db';
 import { startNotificationDispatcher } from '@testdog/server/integrations/dispatcher';
@@ -64,7 +65,7 @@ export async function runServiceProcess(
     const results = await Promise.allSettled(stops.map(async (finish) => finish()));
 
     for (const result of results) if (result.status === 'rejected') errors.push(result.reason);
-    for (const close of [closeRedis, () => pool.end()]) {
+    for (const close of [closeArtifactStorage, closeRedis, () => pool.end()]) {
       try {
         await close();
       } catch (error) {

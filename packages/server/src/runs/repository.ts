@@ -3,6 +3,7 @@ import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import {
   testRuns,
+  runDetailVersions,
   runSteps,
   runArtifacts,
   runBrowserLogs,
@@ -13,6 +14,7 @@ import { assertUserScope, ownedBy, type UserScope } from '@testdog/server/shared
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { runWrite } from '@testdog/server/scheduling/lease';
 import { storeArtifactFile } from '@testdog/server/runs/artifactStorage';
+import { matchesEtag } from '@testdog/server/shared/jsonResponse';
 import { runRecord, stepRecord, artifactRecord } from '@testdog/server/runs/records';
 
 export async function getRun(id: string, options: { userId: UserScope }): Promise<TestRun> {
@@ -25,36 +27,68 @@ export function getRunInternal(id: string): Promise<TestRun> {
   return readRun(id, eq(testRuns.id, id));
 }
 
-async function readRun(id: string, filter: SQL): Promise<TestRun> {
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export async function getRunRepresentation(
+  id: string,
+  userId: UserScope,
+  condition: string | null,
+) {
+  assertUserScope(userId);
+  const filter = and(eq(testRuns.id, id), ownedBy(testRuns, userId))!;
+
   return db.transaction(
     async (tx) => {
-      const [row] = await tx.select().from(testRuns).where(filter);
+      const [row] = await tx
+        .select({ version: runDetailVersions.version })
+        .from(testRuns)
+        .innerJoin(runDetailVersions, eq(runDetailVersions.runId, testRuns.id))
+        .where(filter);
 
       if (!row) throw new WorkspaceError('执行记录不存在。', 404);
-      const run = runRecord(row);
-      const [steps, artifacts, events] = await Promise.all([
-        tx.select().from(runSteps).where(eq(runSteps.runId, id)).orderBy(asc(runSteps.sequence)),
-        tx
-          .select()
-          .from(runArtifacts)
-          .where(eq(runArtifacts.runId, id))
-          .orderBy(asc(runArtifacts.elapsedMs), asc(runArtifacts.capturedAt), asc(runArtifacts.id)),
-        tx
-          .select({ at: automationRunEvents.at, message: automationRunEvents.message })
-          .from(automationRunEvents)
-          .where(eq(automationRunEvents.runId, id))
-          .orderBy(asc(automationRunEvents.sequence)),
-      ]);
+      // Increment the format version whenever the JSON representation changes in code.
+      const etag = `W/"run-detail-v1:${id}:${row.version}"`;
 
       return {
-        ...run,
-        events: events.map((event) => ({ ...event, at: new Date(event.at).toISOString() })),
-        steps: steps.map(stepRecord),
-        artifacts: artifacts.map(artifactRecord),
+        etag,
+        run: matchesEtag(condition, etag) ? undefined : await readRunSnapshot(tx, id, filter),
       };
     },
     { isolationLevel: 'repeatable read' },
   );
+}
+
+async function readRun(id: string, filter: SQL): Promise<TestRun> {
+  return db.transaction((tx) => readRunSnapshot(tx, id, filter), {
+    isolationLevel: 'repeatable read',
+  });
+}
+
+async function readRunSnapshot(tx: Tx, id: string, filter: SQL): Promise<TestRun> {
+  const [row] = await tx.select().from(testRuns).where(filter);
+
+  if (!row) throw new WorkspaceError('执行记录不存在。', 404);
+  const run = runRecord(row);
+  const [steps, artifacts, events] = await Promise.all([
+    tx.select().from(runSteps).where(eq(runSteps.runId, id)).orderBy(asc(runSteps.sequence)),
+    tx
+      .select()
+      .from(runArtifacts)
+      .where(eq(runArtifacts.runId, id))
+      .orderBy(asc(runArtifacts.elapsedMs), asc(runArtifacts.capturedAt), asc(runArtifacts.id)),
+    tx
+      .select({ at: automationRunEvents.at, message: automationRunEvents.message })
+      .from(automationRunEvents)
+      .where(eq(automationRunEvents.runId, id))
+      .orderBy(asc(automationRunEvents.sequence)),
+  ]);
+
+  return {
+    ...run,
+    events: events.map((event) => ({ ...event, at: new Date(event.at).toISOString() })),
+    steps: steps.map(stepRecord),
+    artifacts: artifacts.map(artifactRecord),
+  };
 }
 
 export async function appendEvent(id: string, message: string) {

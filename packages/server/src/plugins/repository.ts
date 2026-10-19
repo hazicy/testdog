@@ -103,24 +103,37 @@ export async function resolvePlanPlugins(
   userId: UserScope,
   tx: Tx | typeof db,
 ): Promise<Plan> {
-  const nodes = Object.values(plan.nodes).filter(
-    (node): node is Extract<PlanNode, { kind: 'task' }> =>
-      node.kind === 'task' && node.actionType === 'plugin' && Boolean(node.plugin),
-  );
+  return (await resolvePlansPlugins([plan], userId, tx))[0];
+}
 
-  if (!nodes.length) return plan;
+export async function resolvePlansPlugins(
+  plans: Plan[],
+  userId: UserScope,
+  tx: Tx | typeof db,
+): Promise<Plan[]> {
+  const groups = plans.map((plan) =>
+    Object.values(plan.nodes).filter(
+      (node): node is Extract<PlanNode, { kind: 'task' }> =>
+        node.kind === 'task' && node.actionType === 'plugin' && Boolean(node.plugin),
+    ),
+  );
   const plugins = await resolvePluginInvocations(
-    nodes.map((node) => node.plugin!),
+    groups.flatMap((nodes) => nodes.map((node) => node.plugin!)),
     userId,
     tx,
   );
-  const resolved = structuredClone(plan);
+  let offset = 0;
 
-  nodes.forEach((node, index) => {
-    const target = resolved.nodes[node.id];
+  return plans.map((plan, index) => {
+    if (!groups[index].length) return plan;
+    const resolved = structuredClone(plan);
 
-    if (target.kind === 'task') target.plugin = plugins[index];
+    for (const node of groups[index]) {
+      const target = resolved.nodes[node.id];
+
+      if (target.kind === 'task') target.plugin = plugins[offset++];
+    }
+
+    return resolved;
   });
-
-  return resolved;
 }

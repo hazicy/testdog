@@ -1,3 +1,5 @@
+import { queueWakeup } from '@testdog/server/shared/queueWakeup';
+import { notificationReadyChannel } from '@testdog/server/integrations/wakeup';
 import { rowScope } from '@testdog/server/shared/ownership';
 import { logger } from '@testdog/server/shared/logger';
 import type { NotificationConfig } from '@testdog/contracts/integrations/types';
@@ -58,7 +60,7 @@ export async function dispatchNotifications(limit = 10) {
     return claimed;
   });
 
-  if (!jobs.length) return;
+  if (!jobs.length) return 0;
   const contexts = await db
     .select({ id: deliveries.id, integration: integrations, event: events })
     .from(deliveries)
@@ -133,28 +135,43 @@ export async function dispatchNotifications(limit = 10) {
       }
     }),
   );
+
+  return jobs.length;
 }
 
-export function startNotificationDispatcher(intervalMs = 2000) {
-  let pending: Promise<void> | undefined;
-  let stopped = false;
-  const tick = () => {
-    if (stopped || pending) return;
-    pending = dispatchNotifications()
-      .catch(() => logger.error({ component: 'notifications' }, '通知发送服务暂时无法访问队列。'))
-      .finally(() => {
-        pending = undefined;
-      });
-  };
+export function startNotificationDispatcher(fallbackMs = 2000) {
+  const controller = new AbortController();
+  const wakeup = queueWakeup(controller.signal, notificationReadyChannel(), fallbackMs);
+  const pending = (async () => {
+    while (!controller.signal.aborted) {
+      const revision = wakeup.revision;
+      let delay = 30000;
 
-  tick();
-  const timer = setInterval(tick, intervalMs);
+      try {
+        const count = await dispatchNotifications();
 
-  timer.unref();
+        if (count >= 10) continue;
+        const [next] = await db
+          .select({
+            at: sql<
+              string | null
+            >`min(case when ${deliveries.status} = 'pending' then ${deliveries.nextAttemptAt} else ${deliveries.leaseUntil} end)`,
+          })
+          .from(deliveries)
+          .where(inArray(deliveries.status, ['pending', 'sending']));
+
+        if (next.at) delay = Math.max(100, Date.parse(next.at) - Date.now());
+      } catch {
+        logger.error({ component: 'notifications' }, '通知发送服务暂时无法访问队列。');
+        delay = fallbackMs;
+      }
+
+      await wakeup.wait(revision, delay);
+    }
+  })();
 
   return async () => {
-    stopped = true;
-    clearInterval(timer);
+    controller.abort();
     await pending;
   };
 }

@@ -1,14 +1,20 @@
 import { createServer } from 'node:http';
+import { S3Client } from '@aws-sdk/client-s3';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
-import { storeArtifactFile } from '@testdog/server/runs/artifactStorage';
+import { storeArtifactFile, closeArtifactStorage } from '@testdog/server/runs/artifactStorage';
 import { serveArtifact } from '@testdog/server/runs/artifactResponse';
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  closeArtifactStorage();
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
 
-test('private S3 upload, retrieval and rollback use the exact owned object key', async () => {
+test('private S3 upload, retrieval and rollback share a client without closing it per request', async () => {
+  const destroyed = vi.spyOn(S3Client.prototype, 'destroy');
   const objects = new Map<string, Buffer>();
   const requests: string[] = [];
   const server = createServer(async (request, response) => {
@@ -116,6 +122,7 @@ test('private S3 upload, retrieval and rollback use the exact owned object key',
     expect(head.headers.get('content-length')).toBe('4');
     expect(head.body).toBeNull();
     await stored.rollback();
+    expect(destroyed).not.toHaveBeenCalled();
     expect(objects.size).toBe(0);
     expect(requests).toEqual([
       'PUT /private-evidence/tests/run/artifact',

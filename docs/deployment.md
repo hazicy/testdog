@@ -48,11 +48,13 @@ openssl rand -base64 32
 
 本地 Compose 的 Redis 绑定宿主机 `127.0.0.1:6380`，容器内部端口为 6379；宿主机服务使用 `REDIS_URL=redis://localhost:6380`。Redis 只承载可丢弃的实时数据，使用 128 MB 上限和 LRU 淘汰，不需要持久化。跨主机部署使用共享 Redis 并配置访问控制；Pub/Sub 不按逻辑数据库编号隔离，环境前缀必须不同。
 
+数据库默认连接获取超时为 5 秒、锁等待超时为 5 秒、空闲事务超时为 30 秒。单条 SQL 超时在 Web 默认为 15 秒，worker 和后台入口默认为 60 秒；客户端读取超时额外留 5 秒，避免连接异常时无限等待。可用 `TESTDOG_DB_CONNECTION_TIMEOUT_MS`、`TESTDOG_DB_LOCK_TIMEOUT_MS`、`TESTDOG_DB_IDLE_TRANSACTION_TIMEOUT_MS`、`TESTDOG_DB_STATEMENT_TIMEOUT_MS` 调整，均为正整数毫秒。长任务的执行时间与单条 SQL 超时分别管理。
+
 反向代理对 SSE 关闭响应缓冲和缓存，空闲超时大于 15 秒，推荐 HTTP/2。未配置 Redis 或连接中断时页面降级轮询；执行与永久证据不依赖实时预览。协议与保留规则见 [工作台文档](workspace.md)。
 
 ### 附件与原生构建存储
 
-API 和 worker 需要访问同一份证据。本地附件模式挂载两端可访问、路径一致的持久目录；不同主机仅设置同名本地目录不会共享文件。跨主机可配置同一私有 S3 存储的 `TESTDOG_ARTIFACT_BUCKET`、`TESTDOG_ARTIFACT_PREFIX`、`AWS_REGION` 与 AWS 凭据；兼容 S3 的服务另设 `TESTDOG_ARTIFACT_ENDPOINT`。对象保持私有，API 校验归属后提供附件和 Range 请求。
+API 和 worker 需要访问同一份证据。本地附件模式挂载两端可访问、路径一致的持久目录；不同主机仅设置同名本地目录不会共享文件。跨主机可配置同一私有 S3 存储的 `TESTDOG_ARTIFACT_BUCKET`、`TESTDOG_ARTIFACT_PREFIX`、`AWS_REGION` 与 AWS 凭据；兼容 S3 的服务另设 `TESTDOG_ARTIFACT_ENDPOINT`。对象保持私有，API 校验归属后提供附件和 Range 请求。S3 客户端按进程和连接配置复用，单次请求仅关闭自己的下载流；worker 退出时统一关闭客户端。
 
 原生构建登记保存文件路径，必须在实际设备节点登记，或让相关节点共享同路径的构建目录。证据对象存储不会自动分发 APK 或 `.app`。
 

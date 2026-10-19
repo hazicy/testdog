@@ -92,7 +92,7 @@ export async function serveArtifact(request: Request, artifact: ArtifactRecord) 
     artifact.path,
     request.signal,
   );
-  let streamOwnsClient = false;
+  let streamOwnsRead = false;
 
   try {
     const { headers, range, unsatisfiable } = representation(request, artifact, remote.size);
@@ -102,11 +102,11 @@ export async function serveArtifact(request: Request, artifact: ArtifactRecord) 
     const body = await remote.stream(range);
     const response = new Response(body, { status: range ? 206 : 200, headers });
 
-    streamOwnsClient = true;
+    streamOwnsRead = true;
 
     return response;
   } finally {
-    if (!streamOwnsClient) remote.close();
+    if (!streamOwnsRead) remote.close();
   }
 }
 
