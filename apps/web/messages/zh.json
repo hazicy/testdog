@@ -754,6 +754,8 @@
     },
     "reference": "引用",
     "invalidReference": "操作会产生循环或无效引用，请调整节点后重试。",
+    "feishuImagesSkipped": "已导入文字步骤，图片未导入。",
+    "feishuPasteFailed": "无法导入，请重新复制飞书思维导图中的步骤和预期结果。",
     "groupStart": "分组开头",
     "afterNode": "在「{title}」后",
     "insertNode": "在 {group} 的第 {index} 个位置添加节点",

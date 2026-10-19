@@ -1,5 +1,7 @@
 'use client';
 
+import { createId } from '@/client/id';
+
 import { useRef } from 'react';
 import { isHTTPError } from 'ky';
 import { api } from '@/client/api';
@@ -9,7 +11,7 @@ export function useRunSubmission() {
 
   return async <T>(url: string, payload: unknown): Promise<T> => {
     const signature = `${url}:${JSON.stringify(payload)}`;
-    const key = pending.current.get(signature) ?? crypto.randomUUID();
+    const key = pending.current.get(signature) ?? createId();
 
     pending.current.set(signature, key);
     try {

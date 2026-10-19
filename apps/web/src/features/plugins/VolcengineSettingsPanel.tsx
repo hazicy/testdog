@@ -1,5 +1,7 @@
 'use client';
 
+import { createId } from '@/client/id';
+
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import useSWR from 'swr';
@@ -22,7 +24,7 @@ import styles from './Plugins.module.css';
 
 type Group = { id: string; name: string; value: string; variantId: string };
 type Experiment = { id: string; key: string; groups: Group[] };
-const newGroup = (): Group => ({ id: crypto.randomUUID(), name: '', value: '""', variantId: '' });
+const newGroup = (): Group => ({ id: createId(), name: '', value: '""', variantId: '' });
 
 export function VolcengineSettingsPanel() {
   const t = useTranslations('executionPlugins');
@@ -67,10 +69,10 @@ function VolcengineSettingsForm({
   const [dataPath, setDataPath] = useState(settings.config.dataPath);
   const [experiments, setExperiments] = useState<Experiment[]>(() =>
     settings.config.experiments.map((item) => ({
-      id: crypto.randomUUID(),
+      id: createId(),
       key: item.key,
       groups: item.groups.map((group) => ({
-        id: crypto.randomUUID(),
+        id: createId(),
         name: group.name,
         value: JSON.stringify(group.value, null, 2),
         variantId: group.variantId ?? '',
@@ -102,10 +104,10 @@ function VolcengineSettingsForm({
     setDataPath(settings.config.dataPath);
     setExperiments(
       settings.config.experiments.map((item) => ({
-        id: crypto.randomUUID(),
+        id: createId(),
         key: item.key,
         groups: item.groups.map((group) => ({
-          id: crypto.randomUUID(),
+          id: createId(),
           name: group.name,
           value: JSON.stringify(group.value, null, 2),
           variantId: group.variantId ?? '',
@@ -200,7 +202,7 @@ function VolcengineSettingsForm({
               onClick={() => {
                 setExperiments((items) => [
                   ...items,
-                  { id: crypto.randomUUID(), key: '', groups: [newGroup()] },
+                  { id: createId(), key: '', groups: [newGroup()] },
                 ]);
               }}
             >

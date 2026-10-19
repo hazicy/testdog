@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>画板剪贴板检查</title>
+  <style>
+    body {
+      max-width: 60rem;
+      margin: 3rem auto;
+      padding: 0 1rem;
+      font-family: system-ui, sans-serif;
+    }
+    textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 24rem;
+      margin: 1rem 0;
+      padding: 1rem;
+      border: 0.0625rem solid #888;
+      border-radius: 0.5rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+    }
+  </style>
+  <h1>画板剪贴板检查</h1>
+  <p>在飞书画板复制图形和连线，回到此页按 Ctrl+V 或 ⌘V。</p>
+  <textarea aria-label="剪贴板数据" readonly placeholder="等待粘贴"></textarea>
+  <button type="button" disabled>下载 JSON</button>
+  <p role="status" aria-live="polite"></p>
+  <script>
+    const output = document.querySelector('textarea');
+    const download = document.querySelector('button');
+    const status = document.querySelector('[role="status"]');
+    let snapshot = '';
+
+    document.addEventListener('paste', (event) => {
+      const clipboard = event.clipboardData;
+      if (!clipboard) return;
+      event.preventDefault();
+      const strings = {};
+      for (const type of clipboard.types) {
+        if (type !== 'Files') strings[type] = clipboard.getData(type);
+      }
+      const files = Array.from(clipboard.files, (file) => ({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+      }));
+      snapshot = JSON.stringify({ types: Array.from(clipboard.types), strings, files }, null, 2);
+      output.value = snapshot;
+      download.disabled = false;
+      status.textContent = '已读取，可检查内容后下载。';
+    });
+
+    download.addEventListener('click', () => {
+      const url = URL.createObjectURL(new Blob([snapshot], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'board-clipboard.json';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  </script>
+</html>

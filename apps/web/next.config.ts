@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: resolve(process.cwd(), '../..'),
   transpilePackages: ['@testdog/contracts', '@testdog/automation', '@testdog/server'],
   serverExternalPackages: ['playwright', '@playwright/test', 'agent-device'],
-  allowedDevOrigins: ['192.168.2.123'],
+  allowedDevOrigins: ['192.168.2.123', '192.168.2.35'],
 };
 
 export default createNextIntlPlugin()(nextConfig);

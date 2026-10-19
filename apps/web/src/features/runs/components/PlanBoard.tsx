@@ -25,6 +25,8 @@ import { InsertStepMenu } from '@/features/test-cases/components/InsertStepMenu'
 import { usePlanBoard, type BoardNode } from '@/features/runs/hooks/usePlanBoard';
 import { PlanNodes, type NodeReview } from '@/features/runs/components/PlanNodes';
 import { usePlanHistory } from '@/features/runs/hooks/usePlanHistory';
+import { useToastManager } from '@/components/ui/Toast';
+import { pasteFeishuPlan } from '@/features/test-cases/lib/pasteFeishuPlan';
 
 const MIN_ZOOM = 0.08;
 const MAX_ZOOM = 1.5;
@@ -83,6 +85,7 @@ function PlanBoardContent({
   onIssue,
 }: BoardProps & { plan: Plan }) {
   const t = useTranslations('runs');
+  const toastManager = useToastManager();
   const [hoveredId, setHoveredId] = useState<string>();
   const [tool, setTool] = useState<'select' | 'pan'>('select');
   const history = usePlanHistory(plan, onChange);
@@ -198,6 +201,31 @@ function PlanBoardContent({
           className={boardStyles.planViewport}
           aria-label={t('plan')}
           tabIndex={0}
+          onPaste={(event) => {
+            if (
+              !history.change ||
+              (event.target instanceof HTMLElement &&
+                event.target.closest(
+                  'input, textarea, select, [contenteditable]:not([contenteditable="false"])',
+                ))
+            )
+              return;
+            const html = event.clipboardData.getData('text/html');
+
+            if (!html.includes('--%whiteboard-x--')) return;
+            event.preventDefault();
+            event.stopPropagation();
+            try {
+              const imported = pasteFeishuPlan(plan, html);
+
+              if (!imported) return;
+              history.change(imported.plan);
+              if (imported.skippedImages)
+                toastManager.add({ title: t('feishuImagesSkipped'), type: 'warning' });
+            } catch {
+              toastManager.add({ title: t('feishuPasteFailed'), type: 'error' });
+            }
+          }}
           onMouseLeave={() => setHoveredId(undefined)}
           onMouseMove={(event) => {
             if (hoveredId && !(event.target as Element).closest('.react-flow__node'))

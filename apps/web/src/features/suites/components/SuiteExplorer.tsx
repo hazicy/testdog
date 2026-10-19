@@ -1,5 +1,7 @@
 'use client';
 
+import { createId } from '@/client/id';
+
 import { useRef, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import shellStyles from '@/components/shell/app-shell.module.css';
@@ -60,7 +62,7 @@ export function SuiteExplorer({ children }: { children: ReactNode }) {
   }
 
   function createCase(parentId: string | null) {
-    const id = crypto.randomUUID();
+    const id = createId();
     const name = caseName('');
 
     writeCaseDraft(id, { name, goal: '', plan: emptyPlan(name), folderId: parentId });

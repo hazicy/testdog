@@ -330,3 +330,79 @@ test('branch insertion keeps each path separate and the continuation outside bot
     canvas.getByRole('button', { name: '在 root 的第 3 个位置添加节点', exact: true }),
   ).toHaveCount(1);
 });
+
+test('Feishu paste imports editable steps and expectations with undo and persistence', async ({
+  page,
+  caseEditor,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true });
+  });
+  await page.route('**/api/tests*', (route) =>
+    route.fulfill({ json: { tests: [], nextCursor: null } }),
+  );
+  await page.route('**/api/workspace/stats', (route) =>
+    route.fulfill({ json: { testCount: 0, runCount: 0, counts: {} } }),
+  );
+  await caseEditor.goto();
+  await caseEditor.create();
+  const canvas = caseEditor.canvas;
+  const viewport = canvas.locator('[data-ui="plan-viewport"]');
+  const data = [
+    ['topic', '登录场景', ''],
+    ['step', '步骤：输入账号并登录', 'topic'],
+    ['expected', '预期：显示用户首页', 'step'],
+  ].map(([id, text, parentId]) => ({
+    id,
+    type: 24,
+    info: {
+      baseV2: { x: 0, y: 0, width: 150, height: 50 },
+      textV2: { text },
+      mindMap: { parentId },
+    },
+  }));
+  const html = `<span data-info="--%whiteboard-x--${Buffer.from(encodeURIComponent(JSON.stringify({ data }))).toString('base64')}--whiteboard-x%--"></span>`;
+  const paste = async (target = viewport, content = html) => {
+    await target.evaluate((element, value) => {
+      const clipboardData = new DataTransfer();
+
+      clipboardData.setData('text/html', value);
+      clipboardData.setData('text/plain', '步骤：输入账号并登录');
+      element.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }),
+      );
+    }, content);
+  };
+
+  const actions = canvas.locator('[data-step-type=act]');
+  const assertions = canvas.locator('[data-step-type=assert]');
+
+  await viewport.focus();
+  await paste();
+  await expect(actions).toHaveCount(1);
+  await expect(actions).toContainText('输入账号并登录');
+  await expect(assertions).toContainText('显示用户首页');
+  await paste();
+  await expect(actions).toHaveCount(2);
+  await viewport.focus();
+  await page.keyboard.press('Control+z');
+  await expect(actions).toHaveCount(1);
+  await page.keyboard.press('Control+Shift+z');
+  await expect(actions).toHaveCount(2);
+  await page.keyboard.press('Control+z');
+  await actions.first().locator('[data-ui~="plan-content-button"]').click();
+  const input = canvas.getByRole('textbox', { name: /^节点内容/ });
+
+  await paste(input);
+  await expect(actions).toHaveCount(1);
+  await input.fill('修改后的登录步骤');
+  await input.press('Enter');
+  await paste(viewport, '<span data-info="--%whiteboard-x--bad!--whiteboard-x%--"></span>');
+  await expect(
+    page.getByText('无法导入，请重新复制飞书思维导图中的步骤和预期结果。'),
+  ).toBeVisible();
+  await expect(actions).toHaveCount(1);
+  await page.reload();
+  await expect(actions).toContainText('修改后的登录步骤');
+  await expect(assertions).toContainText('显示用户首页');
+});

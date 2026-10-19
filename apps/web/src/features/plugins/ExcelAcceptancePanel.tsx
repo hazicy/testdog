@@ -1,5 +1,7 @@
 'use client';
 
+import { createId } from '@/client/id';
+
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import useSWR from 'swr';
@@ -170,7 +172,7 @@ export function ExcelAcceptancePanel() {
                   onClick={() => {
                     setGroups((items) => [
                       ...items,
-                      { id: crypto.randomUUID(), name: name.trim(), nodeIds: [...selected] },
+                      { id: createId(), name: name.trim(), nodeIds: [...selected] },
                     ]);
                     setSelected([]);
                     setName('');

@@ -1,5 +1,7 @@
 'use client';
 
+import { createId } from '@/client/id';
+
 import { useTranslations } from 'next-intl';
 
 import { useState, type RefObject } from 'react';
@@ -36,7 +38,7 @@ export function QuickCreateDialog({
       const root = source.nodes[source.rootId];
       const name = caseName(root.kind === 'branch' ? goal : root.goal);
       const plan = editablePlan(source, name);
-      const id = crypto.randomUUID();
+      const id = createId();
 
       writeCaseDraft(id, { name, goal, plan, folderId });
       router.push(`/cases/editor/${id}${folderId ? `?folder=${folderId}` : ''}`);

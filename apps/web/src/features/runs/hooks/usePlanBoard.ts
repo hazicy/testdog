@@ -1,5 +1,7 @@
 'use client';
 
+import { createId } from '@/client/id';
+
 import { useTranslations, useMessages } from 'next-intl';
 
 import { useCallback, useMemo, useState } from 'react';
@@ -219,7 +221,7 @@ export function usePlanBoard({
             position,
           }),
           onInsert: (type) => {
-            const id = crypto.randomUUID();
+            const id = createId();
             const inserted = commit(() => insertStep(plan, item, type, id, labels));
 
             if (inserted) {

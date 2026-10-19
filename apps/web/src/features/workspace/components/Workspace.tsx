@@ -1,5 +1,7 @@
 'use client';
 
+import { createId } from '@/client/id';
+
 import { useTranslations } from 'next-intl';
 
 import clsx from 'clsx';
@@ -76,7 +78,7 @@ export function Workspace({
       return;
     }
 
-    const id = crypto.randomUUID();
+    const id = createId();
     const name = test ? `${test.name}${duplicate ? t('copySuffix') : ''}` : caseName('');
 
     writeCaseDraft(id, {

@@ -1,8 +1,10 @@
+import { createId } from '@/client/id';
+
 export const workspaceChangeKey = 'testdog-workspace-change';
 
 export function reloadWorkspace(destination: string) {
   try {
-    localStorage.setItem(workspaceChangeKey, crypto.randomUUID());
+    localStorage.setItem(workspaceChangeKey, createId());
   } catch {
     // Requests also check the document's workspace if storage is unavailable.
   }

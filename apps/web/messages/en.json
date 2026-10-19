@@ -754,6 +754,8 @@
     },
     "reference": "Reference",
     "invalidReference": "This operation would create a cycle or invalid reference. Adjust the nodes and try again.",
+    "feishuImagesSkipped": "Text steps imported. Images were not imported.",
+    "feishuPasteFailed": "Could not import. Copy the steps and expected results from the Feishu mind map again.",
     "groupStart": "Start of group",
     "afterNode": "After “{title}”",
     "insertNode": "Add a node at position {index} in {group}",

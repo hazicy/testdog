@@ -1,3 +1,4 @@
+import { createId } from '@/client/id';
 import { executionPlugins } from '@testdog/contracts/plugins/execution';
 import zh from '../../../../messages/zh.json';
 
@@ -131,7 +132,7 @@ export function insertStep(
   plan: Plan,
   insertion: Insertion,
   type: StepType | 'group' | 'branch',
-  id = crypto.randomUUID(),
+  id = createId(),
   labels = defaultAuthoringLabels,
 ): Plan {
   const group = plan.nodes[insertion.groupId];

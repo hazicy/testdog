@@ -1,3 +1,4 @@
+import { createId } from '@/client/id';
 import { validatePlugin, type PluginInvocation } from '@testdog/contracts/plugins/execution';
 import {
   PlanSchema,
@@ -87,7 +88,7 @@ export function duplicateNode(plan: Plan, id: string): Plan {
 
   if (!parent) return plan;
   const nodes = structuredClone(plan.nodes);
-  const copies = new Map([...subtreeIds(plan, id)].map((ref) => [ref, crypto.randomUUID()]));
+  const copies = new Map([...subtreeIds(plan, id)].map((ref) => [ref, createId()]));
   const map = (ref: string) => copies.get(ref) ?? ref;
 
   for (const [source, copy] of copies) {
