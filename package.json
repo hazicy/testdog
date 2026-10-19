@@ -25,6 +25,7 @@
     "db:studio": "drizzle-kit studio",
     "assign:legacy": "tsx apps/worker/src/assign-legacy-data.ts",
     "test:watch": "vitest",
+    "test:regression": "vitest run packages/server/src/testing/regression/regression.live.test.ts",
     "typecheck": "pnpm -r --no-sort typecheck && pnpm typecheck:repo",
     "worker": "tsx apps/worker/src/worker.ts",
     "maintenance": "tsx apps/worker/src/maintenance.ts",

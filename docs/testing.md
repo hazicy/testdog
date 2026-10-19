@@ -65,3 +65,22 @@ pnpm exec playwright show-trace <trace.zip>
 ```
 
 原生 trace 有独立 producer/format，不能作为 Playwright Trace 打开。模拟合同测试、emulator/simulator 验收与真机验收各有不同范围；历史通过记录不能替代当前环境验证。
+
+## 多轮真实模型回归基线
+
+运行本地可控页面上的 10 个引擎场景：登录、搜索按钮、回车搜索、确认删除、取消删除、下拉选择、条款勾选、异步加载、同名按钮与链接、订阅表单。每轮重新从自然语言编译和录制，再重放该轮录制；默认三轮，共 60 次执行。它用于衡量引擎稳定性，不代表真实业务环境已验收。
+
+```bash
+RUN_WORKSPACE_LIVE_TESTS=true pnpm test:regression
+# 首次验证可先执行一轮或只运行某个场景
+RUN_WORKSPACE_LIVE_TESTS=true TESTDOG_REGRESSION_ROUNDS=1 pnpm test:regression
+RUN_WORKSPACE_LIVE_TESTS=true pnpm test:regression -t 'dialog:'
+```
+
+需要配置真实模型凭据并安装 Chromium；真实调用会产生模型费用。轮数支持 1～10，入口继续要求进程显式开启真实模型测试，默认测试不会发起模型请求。使用隔离 PGlite、随机本地端口和本地附件目录，不写开发数据库或配置中的 S3。
+
+结果保存到 `test-results/regression/<时间>/`：`summary.json` 包含计划数、已完成数、通过数、通过率、每次耗时、错误码和模型用量；逐次 JSON 保留执行步骤和附件索引，截图、视频等保留在同目录的 `artifacts/` 下。每次执行后更新汇总，中断时可检查已完成部分。无模型用量的请求通过 `unknownUsage` 表示，不能将已知 token 汇总理解为完整费用。
+
+通过必须同时满足执行成功、证据完整、页面向本地服务提交的实际结果符合预期；最后一项独立于模型断言。录制失败时，本轮重放记录为阻塞失败，不跳过或计为成功；其他场景和轮次继续运行。汇总保留错误原文供人工区分产品、定位、断言和环境问题，不自动推断根因。报告与证据保存在已忽略的目录中。
+
+这些页面不连接真实登录和订单后端。接入实际业务时，需要另外确定测试环境、专用账号和数据清理策略，保留本地基线以区分引擎变化与业务变化。

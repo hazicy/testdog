@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>回归测试</title>
+  </head>
+  <body>
+    <h1>回归测试</h1>
+    <main></main>
+    <p role="status"></p>
+    <script>
+      const id = location.pathname.split('/')[1];
+      const main = document.querySelector('main');
+      const finish = async (value) => {
+        await fetch('/result' + location.pathname, { method: 'POST', body: value });
+        document.querySelector('[role=status]').textContent = value;
+      };
+      if (id === 'login') {
+        main.innerHTML =
+          '<form><label>邮箱<input name="email" type="email" required></label><label>密码<input name="password" type="password" required></label><button>登录</button></form>';
+        main.querySelector('form').onsubmit = (event) => {
+          event.preventDefault();
+          const data = new FormData(event.target);
+          finish(
+            data.get('password') === 'TestPassword123!'
+              ? '登录成功：' + data.get('email')
+              : '密码错误',
+          );
+        };
+      } else if (id === 'search' || id === 'enter') {
+        main.innerHTML =
+          '<form><label>搜索<input name="query" required></label><button>搜索</button></form>';
+        main.querySelector('form').onsubmit = (event) => {
+          event.preventDefault();
+          finish('搜索结果：' + new FormData(event.target).get('query'));
+        };
+      } else if (id === 'dialog' || id === 'cancel') {
+        main.innerHTML =
+          '<button>删除草稿</button><dialog><p>确认删除这份草稿？</p><button>确认删除</button><button>取消</button></dialog>';
+        const dialog = main.querySelector('dialog');
+        main.querySelector('button').onclick = () => dialog.showModal();
+        dialog.querySelectorAll('button').forEach((button, index) => {
+          button.onclick = () => {
+            dialog.close();
+            finish(index === 0 ? '草稿已删除' : '草稿已保留');
+          };
+        });
+      } else if (id === 'select') {
+        main.innerHTML =
+          '<label>城市<select><option>请选择</option><option>北京</option><option>上海</option></select></label><button>保存城市</button>';
+        main.querySelector('button').onclick = () =>
+          finish('城市已保存：' + main.querySelector('select').value);
+      } else if (id === 'checkbox') {
+        main.innerHTML =
+          '<label><input type="checkbox">同意条款</label><button disabled>继续</button>';
+        main.querySelector('input').onchange = (event) => {
+          main.querySelector('button').disabled = !event.target.checked;
+        };
+        main.querySelector('button').onclick = () => finish('条款已接受');
+      } else if (id === 'async') {
+        main.innerHTML = '<button>加载订单</button>';
+        main.querySelector('button').onclick = () => {
+          main.querySelector('button').disabled = true;
+          setTimeout(() => finish('订单 A100 已加载'), 1200);
+        };
+      } else if (id === 'duplicate') {
+        if (location.pathname.endsWith('/register')) {
+          document.querySelector('h1').textContent = '创建账号';
+          finish('创建账号');
+        } else {
+          main.innerHTML =
+            '<form><label>邮箱<input type="email" required></label><button>注册</button></form><a href="' +
+            location.pathname +
+            '/register">注册</a>';
+          main.querySelector('form').onsubmit = (event) => {
+            event.preventDefault();
+            finish('错误：提交了表单');
+          };
+        }
+      } else if (id === 'form') {
+        main.innerHTML =
+          '<form><label>姓名<input name="name" required></label><label>邮箱<input name="email" type="email" required></label><button>订阅更新</button></form>';
+        main.querySelector('form').onsubmit = (event) => {
+          event.preventDefault();
+          const data = new FormData(event.target);
+          finish('订阅成功：' + data.get('name') + '，' + data.get('email'));
+        };
+      }
+    </script>
+  </body>
+</html>
