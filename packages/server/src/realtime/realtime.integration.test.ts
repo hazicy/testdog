@@ -20,6 +20,7 @@ import {
   watchPreview,
 } from '@testdog/server/realtime/preview';
 import { flushOutbox, stopOutboxPublisher } from '@testdog/server/realtime/realtime';
+import { taskWakeup } from '@testdog/server/scheduling/wakeup';
 import { eventStream } from '@/server/realtime/eventStream';
 import { GET as previewResponse } from '../../../../apps/web/src/app/api/runs/[id]/preview/route';
 
@@ -193,6 +194,29 @@ it.skipIf(!binary)(
   },
   10000,
 );
+
+it.skipIf(!binary)('wakes task consumers only for committed queued runs', async () => {
+  await flushOutbox();
+  const abort = new AbortController();
+  const wakeup = taskWakeup(abort.signal);
+
+  try {
+    await vi.waitFor(() => expect(wakeup.revision).toBeGreaterThan(0));
+    const revision = wakeup.revision;
+    const insert = `INSERT INTO test_runs (id, name, "targetSnapshot", goal, status) VALUES ($1, 'Queued', '{"schemaVersion":1,"platform":"web","url":"https://example.com","browser":"chromium","deviceProfile":"legacy-desktop"}', 'Check', 'queued')`;
+
+    await database.client.exec('BEGIN');
+    await database.client.query(insert, [randomUUID()]);
+    await database.client.exec('ROLLBACK');
+    await flushOutbox();
+    expect(wakeup.revision).toBe(revision);
+    await database.client.query(insert, [randomUUID()]);
+    await flushOutbox();
+    await vi.waitFor(() => expect(wakeup.revision).toBeGreaterThan(revision));
+  } finally {
+    abort.abort();
+  }
+});
 
 it.skipIf(!binary)(
   'fails fast when Redis is down, so execution can continue without viewers',

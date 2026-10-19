@@ -4,6 +4,7 @@ import { db } from '@testdog/server/db';
 import { realtimeOutbox, runArtifacts, runSteps, testRuns } from '@testdog/server/db/schema';
 import { artifactRecord, runRecord, stepRecord } from '@testdog/server/runs/records';
 import { readyRedis, redisClient, redisKey } from '@testdog/server/shared/redis';
+import { taskReadyChannel } from '@testdog/server/scheduling/wakeup';
 import type { RunUpdate } from '@testdog/contracts/runs/lib/realtime';
 
 type Listener = (message: string) => void;
@@ -51,6 +52,7 @@ async function publishOutbox() {
           userId: realtimeOutbox.userId,
           teamId: realtimeOutbox.teamId,
           summary: realtimeOutbox.summary,
+          taskReady: sql<boolean>`${realtimeOutbox.kind} = 'run' AND ${realtimeOutbox.data}->>'status' = 'queued'`,
         })
         .from(realtimeOutbox)
         .where(sql`${realtimeOutbox.publishedAt} is null`)
@@ -59,6 +61,7 @@ async function publishOutbox() {
         .for('update', { skipLocked: true });
 
       if (!rows.length) return;
+      if (rows.some((row) => row.taskReady)) await client.publish(taskReadyChannel(), 'ready');
       const runs = new Set(rows.flatMap((row) => (row.runId ? [row.runId] : [])));
 
       for (const id of runs) await client.publish(redisKey(`run:${id}`), '{"kind":"changed"}');

@@ -77,6 +77,8 @@ TESTDOG_BACKGROUND_SERVICES=none pnpm worker
 
 需要单独扩容通知时，maintenance 使用 `TESTDOG_BACKGROUND_SERVICES=maintenance,outbox`，另启 `pnpm notifications`。单独运行 outbox 可使用 `TESTDOG_BACKGROUND_SERVICES=outbox pnpm maintenance`。多进程通过数据库锁协调；不需要在每个执行 worker 中重复配置后台服务。
 
+配置 Redis 后，worker 通过 Pub/Sub 接收入队唤醒，保留 30 秒兜底扫描；Redis 不可用时恢复每秒轮询。至少运行一个启用 `outbox` 的后台进程，才能发布提交后的入队通知。
+
 SIGINT/SIGTERM 会停止领取任务，取消并等待当前执行，等待后台批次结束，再关闭 Redis 和数据库；启动或退出失败也执行清理。
 
 ## 部署产物

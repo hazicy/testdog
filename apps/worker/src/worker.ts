@@ -1,7 +1,7 @@
 import './environment';
 import { logger } from '@testdog/server/shared/logger';
 import { runServiceProcess } from './serviceRuntime';
-import { setTimeout as delay } from 'node:timers/promises';
+import { taskWakeup } from '@testdog/server/scheduling/wakeup';
 import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -43,6 +43,7 @@ if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > confi
 
 await runServiceProcess('worker', async ({ signal, stop }) => {
   const activeIds = new Set<string>();
+  const wakeup = taskWakeup(signal);
 
   signal.addEventListener(
     'abort',
@@ -59,6 +60,7 @@ await runServiceProcess('worker', async ({ signal, stop }) => {
 
   async function consume() {
     while (!signal.aborted) {
+      const revision = wakeup.revision;
       const claimed = await claimRun(workerId, hostId);
 
       if (claimed) {
@@ -78,13 +80,10 @@ await runServiceProcess('worker', async ({ signal, stop }) => {
           runLog.error({ err: error }, 'Run processing failed');
         } finally {
           activeIds.delete(claimed.run.id);
+          wakeup.wake();
         }
       } else {
-        try {
-          await delay(1000, undefined, { signal });
-        } catch (error) {
-          if (!signal.aborted) throw error;
-        }
+        await wakeup.wait(revision);
       }
     }
   }
