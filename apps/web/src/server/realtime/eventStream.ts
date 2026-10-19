@@ -42,6 +42,7 @@ export async function eventStream(request: Request, runId: string | undefined, u
   let dirty = false;
   let workspaceCursor = '';
   let previewVersion = '';
+  let issueVersion = 0;
   const encoder = new TextEncoder();
   const cleanup = () => {
     if (closed) return;
@@ -110,7 +111,11 @@ export async function eventStream(request: Request, runId: string | undefined, u
         if (closed) return;
         if (runId) {
           const [row] = await db
-            .select({ revision: testRuns.realtimeRevision, status: testRuns.status })
+            .select({
+              revision: testRuns.realtimeRevision,
+              status: testRuns.status,
+              issueVersion: sql<number>`(select coalesce(max(id), 0)::float8 from realtime_outbox where "runId" = ${runId} and kind = 'issues')`,
+            })
             .from(testRuns)
             .where(and(eq(testRuns.id, runId), ownedBy(testRuns, userId)));
 
@@ -118,6 +123,11 @@ export async function eventStream(request: Request, runId: string | undefined, u
             close();
 
             return;
+          }
+
+          if (row.issueVersion !== issueVersion) {
+            issueVersion = row.issueVersion;
+            send('changed', {});
           }
 
           if (row.revision > revision) {

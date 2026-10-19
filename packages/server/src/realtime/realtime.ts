@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { rowScope, workspaceChannel } from '@testdog/server/shared/ownership';
 import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
@@ -44,7 +45,8 @@ async function publishOutbox() {
 
     const client = await readyRedis();
 
-    await db.transaction(async (tx) => {
+    const token = randomUUID();
+    const rows = await db.transaction(async (tx) => {
       const rows = await tx
         .select({
           id: realtimeOutbox.id,
@@ -55,12 +57,39 @@ async function publishOutbox() {
           taskReady: sql<boolean>`${realtimeOutbox.kind} = 'run' AND ${realtimeOutbox.data}->>'status' = 'queued'`,
         })
         .from(realtimeOutbox)
-        .where(sql`${realtimeOutbox.publishedAt} is null`)
+        .where(
+          sql`${realtimeOutbox.publishedAt} is null AND (${realtimeOutbox.claimUntil} is null OR ${realtimeOutbox.claimUntil} < now())`,
+        )
         .orderBy(asc(realtimeOutbox.id))
         .limit(200)
         .for('update', { skipLocked: true });
 
-      if (!rows.length) return;
+      if (rows.length)
+        await tx
+          .update(realtimeOutbox)
+          .set({
+            claimToken: token,
+            claimUntil: sql`now() + interval '60 seconds'`,
+          })
+          .where(
+            inArray(
+              realtimeOutbox.id,
+              rows.map((row) => row.id),
+            ),
+          );
+
+      return rows;
+    });
+
+    if (!rows.length) return;
+    const owned = and(
+      eq(realtimeOutbox.claimToken, token),
+      inArray(
+        realtimeOutbox.id,
+        rows.map((row) => row.id),
+      ),
+    );
+    try {
       if (rows.some((row) => row.taskReady)) await client.publish(taskReadyChannel(), 'ready');
       const runs = new Set(rows.flatMap((row) => (row.runId ? [row.runId] : [])));
 
@@ -68,20 +97,15 @@ async function publishOutbox() {
       const owners = new Set(rows.filter((row) => row.summary).map(rowScope));
 
       for (const userId of owners)
-        await client.publish(
-          redisKey(workspaceChannel(userId)),
-          JSON.stringify({ kind: 'changed' }),
-        );
-      await tx
+        await client.publish(redisKey(workspaceChannel(userId)), '{"kind":"changed"}');
+      await db
         .update(realtimeOutbox)
-        .set({ publishedAt: new Date().toISOString() })
-        .where(
-          inArray(
-            realtimeOutbox.id,
-            rows.map((row) => row.id),
-          ),
-        );
-    });
+        .set({ publishedAt: new Date().toISOString(), claimToken: null, claimUntil: null })
+        .where(owned);
+    } catch (error) {
+      await db.update(realtimeOutbox).set({ claimToken: null, claimUntil: null }).where(owned);
+      throw error;
+    }
   } catch {
     // Recent unpublished rows remain durable; retention gaps recover from snapshots.
   }

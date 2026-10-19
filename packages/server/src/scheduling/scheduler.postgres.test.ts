@@ -96,15 +96,6 @@ it.skipIf(!live)(
     );
     const claimed = contenders.filter((claim) => claim !== undefined);
 
-    // The transaction holding all available resource rows may make simultaneous
-    // claimers skip them. Once it commits, another connection can claim the other slot.
-    while (claimed.length < 2) {
-      const next = await claimRun(`worker-next-${claimed.length}`, 'host');
-
-      if (!next) break;
-      claimed.push(next);
-    }
-
     expect(claimed).toHaveLength(2);
     expect(new Set(claimed.map((claim) => claim.run.id)).size).toBe(2);
     expect(new Set(claimed.map((claim) => claim.resource.deviceId)).size).toBe(2);

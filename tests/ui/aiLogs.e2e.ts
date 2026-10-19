@@ -419,3 +419,94 @@ test('AI trajectories load lazily and connect replies and tool results to execut
     runPage.steps.getByRole('heading', { name: '输入搜索内容', exact: true }),
   ).toBeVisible();
 });
+
+test('run panels refresh from the shared stream and poll only after disconnect', async ({
+  page,
+  runPage,
+}) => {
+  const activeRun = makeRun({ status: 'running', finishedAt: undefined, realtimeRevision: 1 });
+  let modelReads = 0;
+  let issueReads = 0;
+
+  await page.clock.install();
+  await mockWorkspaceSupport(page);
+  await mockRun(page, activeRun);
+  await page.route('**/model-usage', (route) => {
+    modelReads++;
+
+    return route.fulfill({
+      json: {
+        usage: {
+          calls: 0,
+          failures: 0,
+          retries: 0,
+          durationMs: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          unknownUsage: 0,
+        },
+        calls: [],
+      },
+    });
+  });
+  await page.route('**/api/issues?*', (route) => {
+    issueReads++;
+
+    return route.fulfill({ json: { issues: [], nextCursor: null } });
+  });
+  await page.addInitScript((snapshot) => {
+    const streams: EventTarget[] = [];
+
+    Object.assign(window, { __panelStreams: streams });
+    class FakeEventSource extends EventTarget {
+      onerror: (() => void) | null = null;
+      constructor() {
+        super();
+        streams.push(this);
+        setTimeout(() => {
+          this.dispatchEvent(
+            new MessageEvent('snapshot', { data: JSON.stringify({ run: snapshot }) }),
+          );
+          this.dispatchEvent(new MessageEvent('ready', { data: '{}' }));
+        }, 0);
+      }
+      close() {}
+    }
+    Object.assign(window, { EventSource: FakeEventSource });
+  }, activeRun);
+  await runPage.goto(activeRun.id);
+  await runPage.openAiLogs();
+  await expect.poll(() => modelReads).toBeGreaterThan(0);
+  await expect.poll(() => issueReads).toBeGreaterThan(0);
+  await page.clock.fastForward(11000);
+  const before = { modelReads, issueReads };
+
+  await page.clock.fastForward(11000);
+  expect(modelReads).toBe(before.modelReads);
+  expect(issueReads).toBe(before.issueReads);
+  await page.evaluate(() => {
+    const stream = (window as unknown as { __panelStreams: EventTarget[] }).__panelStreams[0];
+
+    stream.dispatchEvent(
+      new MessageEvent('updates', { data: JSON.stringify([{ kind: 'model', revision: 2 }]) }),
+    );
+  });
+  await expect.poll(() => modelReads).toBeGreaterThan(before.modelReads);
+  expect(issueReads).toBe(before.issueReads);
+  await page.evaluate(() => {
+    const stream = (window as unknown as { __panelStreams: EventTarget[] }).__panelStreams[0];
+
+    stream.dispatchEvent(new MessageEvent('changed', { data: '{}' }));
+  });
+  await expect.poll(() => issueReads).toBeGreaterThan(before.issueReads);
+  const after = modelReads;
+
+  await page.evaluate(() => {
+    const stream = (window as unknown as { __panelStreams: { onerror: () => void }[] })
+      .__panelStreams[0];
+
+    stream.onerror();
+  });
+  await page.clock.fastForward(6000);
+  await expect.poll(() => modelReads).toBeGreaterThan(after);
+});

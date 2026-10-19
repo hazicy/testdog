@@ -88,7 +88,7 @@ it.skipIf(!binary)(
 
     await publishPreview(runId, bytes, 'image/jpeg');
     expect(await latestPreview(runId)).toMatchObject({ contentType: 'image/jpeg' });
-    expect(await client.ttl(redisKey(`preview:${runId}:bytes`))).toBeGreaterThan(0);
+    expect(await client.ttl(redisKey(`preview:${runId}`))).toBeGreaterThan(0);
     const response = await previewResponse(new Request('http://localhost'), {
       params: Promise.resolve({ id: runId }),
     });
@@ -217,6 +217,57 @@ it.skipIf(!binary)('wakes task consumers only for committed queued runs', async 
     abort.abort();
   }
 });
+
+it.skipIf(!binary)(
+  'streams model and issue invalidations over the existing run connection',
+  async () => {
+    const abort = new AbortController();
+    const response = await eventStream(
+      new Request('http://localhost/events', { signal: abort.signal }),
+      runId,
+      null,
+    );
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    const until = async (event: string) => {
+      let body = '';
+
+      while (!body.includes(`event: ${event}`)) {
+        const chunk = await reader.read();
+
+        if (chunk.done) throw new Error('Stream ended before invalidation');
+        body += decoder.decode(chunk.value);
+      }
+
+      return body;
+    };
+
+    try {
+      await until('ready');
+      await database.client.query(
+        `INSERT INTO model_calls ("runId", "startedAt", "durationMs", model, status, "retryCount", "failedAttempts") VALUES ($1, now(), 10, 'test', 'passed', 0, 0)`,
+        [runId],
+      );
+      await flushOutbox();
+      expect(await until('updates')).toContain('"kind":"model"');
+      const issueId = randomUUID();
+
+      await database.client.query(`INSERT INTO issues (id, title) VALUES ($1, 'New issue')`, [
+        issueId,
+      ]);
+      await database.client.query(
+        `INSERT INTO issue_occurrences ("issueId", "runId", snapshot) VALUES ($1, $2, '{}')`,
+        [issueId, runId],
+      );
+      await flushOutbox();
+      expect(await until('changed')).toContain('event: changed');
+    } finally {
+      abort.abort();
+      await reader.cancel();
+    }
+  },
+  10000,
+);
 
 it.skipIf(!binary)(
   'fails fast when Redis is down, so execution can continue without viewers',

@@ -6,6 +6,8 @@ import styles from './ModelUsagePanel.module.css';
 import { useModelCallPurposes } from '@/features/runs/presentation';
 import { useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
+import { useContext } from 'react';
+import { RunRealtimeContext } from '../hooks/RunRealtimeContext';
 import { fetchJson } from '@/client/api';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@iconify/react/offline';
@@ -22,13 +24,16 @@ export function ModelUsagePanel({
   active: boolean;
   onStep: (id: string) => void;
 }) {
+  const connected = useContext(RunRealtimeContext);
   const t = useTranslations('runs');
   const format = useFormatter();
   const modelCallPurposes = useModelCallPurposes();
   const data = useSWR<{
     usage: ModelUsage;
     calls: ModelCallSummary[];
-  }>(`/api/runs/${id}/model-usage`, fetchJson, { refreshInterval: active ? 5000 : 0 });
+  }>(`/api/runs/${id}/model-usage`, fetchJson, {
+    refreshInterval: active && !connected ? 5000 : 0,
+  });
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const titleId = useId();

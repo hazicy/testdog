@@ -25,6 +25,7 @@ import { downloadRunReport } from '@/client/download';
 import { StepList } from '@/features/runs/components/StepList';
 import { stepAtTime } from '@/features/runs/lib/boardResults';
 import { indexRun } from '@/features/runs/lib/runIndex';
+import { RunRealtimeContext } from '@/features/runs/hooks/RunRealtimeContext';
 import { useRunData } from '@/features/runs/hooks/useRunData';
 import { useRunStudio } from '@/features/runs/hooks/useRunStudio';
 import type { EvidenceSource } from '@/features/runs/lib/runStudio';
@@ -86,10 +87,17 @@ export function RunDetail({
     issueStepId,
   } = state;
   const { follow, evidenceIndex, stepId, videoId, elapsedMs } = playback;
-  const { run, error, setError, unavailable, previewUrl, clearPreview, refresh } = useRunData(
-    id,
-    follow && view === 'execution',
-  );
+  const {
+    run,
+    connected,
+    issueRevision,
+    error,
+    setError,
+    unavailable,
+    previewUrl,
+    clearPreview,
+    refresh,
+  } = useRunData(id, follow && view === 'execution');
 
   useEffect(() => {
     if (run) onRunChange?.(run);
@@ -111,8 +119,12 @@ export function RunDetail({
       return `/api/issues?${params}`;
     },
     fetchJson,
-    { refreshInterval: 5000 },
+    { refreshInterval: connected ? 0 : 5000 },
   );
+
+  useEffect(() => {
+    if (issueRevision) void refreshIssues();
+  }, [issueRevision, refreshIssues]);
   const runIssues = useMemo(
     () =>
       issuePages?.flatMap((page) =>
@@ -379,64 +391,66 @@ export function RunDetail({
     );
 
   return (
-    <div data-ui="run-studio" className={studioStyles.runStudio}>
-      <RunHeader
-        id={id}
-        embedded={embedded}
-        run={run}
-        layout={layout}
-        changeLayout={(layout) => act({ type: 'layout', layout })}
-        busy={busy}
-        exporting={exporting}
-        start={(mode) => perform(mode)}
-        cancel={() => perform('cancel')}
-        exportReport={() => perform('export')}
-      />
-      {run?.evidenceComplete === false && (
-        <p role="alert" className={studioStyles.studioAlert}>
-          {t('incompleteEvidence')}
-        </p>
-      )}
-      {error && (
-        <div role="alert" className={clsx(studioStyles.studioAlert, styles.error)}>
-          <span>{error}</span>
-          <Button
-            onClick={() => void refresh()}
-            variant="ghost"
-            size="sm"
-            className={styles.refresh}
-          >
-            {t('refresh')}
-          </Button>
-        </div>
-      )}
-      {issueStepId && run && (
-        <IssueEditor
+    <RunRealtimeContext value={connected}>
+      <div data-ui="run-studio" className={studioStyles.runStudio}>
+        <RunHeader
+          id={id}
+          embedded={embedded}
           run={run}
-          step={steps.get(issueStepId)}
-          onDismiss={() => act({ type: 'issue' })}
-          onSaved={(issue) => {
-            if (embedded) {
-              act({ type: 'issue' });
-              window.open(`/issues/${issue.id}`, '_blank', 'noopener,noreferrer');
-            } else router.push(`/issues/${issue.id}`);
-          }}
+          layout={layout}
+          changeLayout={(layout) => act({ type: 'layout', layout })}
+          busy={busy}
+          exporting={exporting}
+          start={(mode) => perform(mode)}
+          cancel={() => perform('cancel')}
+          exportReport={() => perform('export')}
         />
-      )}
-      <DockTabs
-        key={`${id}:${layoutVersion}`}
-        label={t('workbench')}
-        className={studioStyles.runStudioDock}
-        tabs={runWorkspaceTabs(layout, runIssues.length).map((tab) => ({
-          ...tab,
-          label: t(`panels.${tab.id}`),
-        }))}
-        revealPanels={revealPanels}
-        value={view}
-        onChange={(panel) => act({ type: 'panel', panel })}
-      >
-        {renderPanel}
-      </DockTabs>
-    </div>
+        {run?.evidenceComplete === false && (
+          <p role="alert" className={studioStyles.studioAlert}>
+            {t('incompleteEvidence')}
+          </p>
+        )}
+        {error && (
+          <div role="alert" className={clsx(studioStyles.studioAlert, styles.error)}>
+            <span>{error}</span>
+            <Button
+              onClick={() => void refresh()}
+              variant="ghost"
+              size="sm"
+              className={styles.refresh}
+            >
+              {t('refresh')}
+            </Button>
+          </div>
+        )}
+        {issueStepId && run && (
+          <IssueEditor
+            run={run}
+            step={steps.get(issueStepId)}
+            onDismiss={() => act({ type: 'issue' })}
+            onSaved={(issue) => {
+              if (embedded) {
+                act({ type: 'issue' });
+                window.open(`/issues/${issue.id}`, '_blank', 'noopener,noreferrer');
+              } else router.push(`/issues/${issue.id}`);
+            }}
+          />
+        )}
+        <DockTabs
+          key={`${id}:${layoutVersion}`}
+          label={t('workbench')}
+          className={studioStyles.runStudioDock}
+          tabs={runWorkspaceTabs(layout, runIssues.length).map((tab) => ({
+            ...tab,
+            label: t(`panels.${tab.id}`),
+          }))}
+          revealPanels={revealPanels}
+          value={view}
+          onChange={(panel) => act({ type: 'panel', panel })}
+        >
+          {renderPanel}
+        </DockTabs>
+      </div>
+    </RunRealtimeContext>
   );
 }

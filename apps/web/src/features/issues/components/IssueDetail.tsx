@@ -23,6 +23,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import useSWR from 'swr';
+import { useIssueRealtime } from '../useIssueRealtime';
 import { api, fetchJson } from '@/client/api';
 import { useRunSubmission } from '@/client/useRunSubmission';
 import { useToastManager } from '@/components/ui/Toast';
@@ -127,6 +128,7 @@ function VerificationAction({
 }
 
 export function IssueDetail({ id }: { id: string }) {
+  const connected = useIssueRealtime();
   const t = useTranslations('issues');
   const format = useFormatter();
   const { issueStatuses, issueCategories, issueSeverities, closeReasons, verificationLabels } =
@@ -138,7 +140,11 @@ export function IssueDetail({ id }: { id: string }) {
     mutate,
   } = useSWR<Detail>(`/api/issues/${id}`, fetchJson, {
     refreshInterval: (current) =>
-      current?.verifications.some((item) => item.outcome === 'pending') ? 5000 : 30000,
+      connected
+        ? 0
+        : current?.verifications.some((item) => item.outcome === 'pending')
+          ? 5000
+          : 30000,
   });
   const [editing, setEditing] = useState(false);
   const [comment, setComment] = useState('');

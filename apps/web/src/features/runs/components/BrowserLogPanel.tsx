@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
+import { useContext } from 'react';
+import { RunRealtimeContext } from '../hooks/RunRealtimeContext';
 import { fetchJson } from '@/client/api';
 import { useDebouncedValue } from '@/client/useDebouncedValue';
 import { useCursorPagination } from '@/client/useCursorPagination';
@@ -73,6 +75,7 @@ export function BrowserLogPanel({
   elapsedMs?: number;
   stepId?: string;
 }) {
+  const connected = useContext(RunRealtimeContext);
   const t = useTranslations('runs');
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState('all');
@@ -89,13 +92,13 @@ export function BrowserLogPanel({
   const data = useSWR<BrowserLogPage>(
     enabled && runId ? `/api/runs/${runId}/logs?${params}` : null,
     fetchJson,
-    { refreshInterval: active ? 5000 : 0 },
+    { refreshInterval: active && !connected ? 5000 : 0 },
   );
   const mutate = data.mutate;
 
   useEffect(() => {
-    if (enabled && runId) void mutate();
-  }, [revision, runId, mutate, enabled]);
+    if (enabled && runId && !connected) void mutate();
+  }, [revision, runId, mutate, enabled, connected]);
   const records = data.data?.logs ?? [];
   const visible = records.filter((log) => matchesFilter(log, filter));
   const filters = kind === 'console' ? consoleFilters : networkFilters;

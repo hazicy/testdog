@@ -19,7 +19,8 @@ export function useRunData(id: string, previewEnabled: boolean) {
   const t = useTranslations('runs');
   const [preview, setPreview] = useState<Preview>();
   const [error, setError] = useState('');
-  const { cache } = useSWRConfig();
+  const [issueRevision, setIssueRevision] = useState(0);
+  const { cache, mutate: mutateCache } = useSWRConfig();
   const url = `/api/runs/${id}`;
   const connection = useRef({ url, connected: false });
   const read = useMemo(() => createJsonReader<{ run: TestRun }>(url), [url]);
@@ -64,6 +65,27 @@ export function useRunData(id: string, previewEnabled: boolean) {
       ? `${url}/events?preview=${wantsPreview ? 1 : 0}`
       : null,
     (event, data) => {
+      if (event === 'snapshot' || event === 'updates' || event === 'changed') {
+        const updates = event === 'updates' ? (data as RunUpdate[]) : undefined;
+        const changed = (kinds: RunUpdate['kind'][]) =>
+          !updates || updates.some((update) => kinds.includes(update.kind));
+
+        if (
+          event === 'snapshot' ||
+          event === 'changed' ||
+          updates?.some((update) => update.kind === 'run')
+        )
+          setIssueRevision((current) => current + 1);
+        void mutateCache((key) => {
+          if (typeof key !== 'string' || event === 'changed') return false;
+          if (key.startsWith(`${url}/logs?`)) return changed(['logs', 'run']);
+
+          if (key === `${url}/model-usage`) return changed(['model', 'run']);
+
+          return key.startsWith(`${url}/model-usage/`) && changed(['model', 'step', 'run']);
+        });
+      }
+
       if (event === 'snapshot') {
         void mutate((current) => newestRun(current, (data as { run: TestRun }).run), {
           revalidate: false,
@@ -94,6 +116,8 @@ export function useRunData(id: string, previewEnabled: boolean) {
 
   return {
     run,
+    connected,
+    issueRevision,
     error:
       error ||
       (loadError instanceof Error ? loadError.message : loadError ? t('runLoadFailed') : ''),

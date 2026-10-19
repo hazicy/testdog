@@ -29,6 +29,7 @@ import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
+import { useIssueRealtime } from '../useIssueRealtime';
 import { fetchJson } from '@/client/api';
 import { useDebouncedValue } from '@/client/useDebouncedValue';
 import { useCursorPagination } from '@/client/useCursorPagination';
@@ -41,6 +42,7 @@ import plusIcon from '@iconify-icons/lucide/plus';
 import filterIcon from '@iconify-icons/lucide/funnel';
 
 export function IssueList() {
+  const connected = useIssueRealtime();
   const t = useTranslations('issues');
   const format = useFormatter();
   const { issueStatuses, issueSeverities } = useIssueLabels();
@@ -69,7 +71,7 @@ export function IssueList() {
   if (days !== 'all') params.set('days', days);
   if (cursors.length) params.set('cursor', cursors.at(-1)!);
   const { data, error, isLoading } = useSWR<IssuePage>(`/api/issues?${params}`, fetchJson, {
-    refreshInterval: 30000,
+    refreshInterval: connected ? 0 : 30000,
   });
   const items = data?.issues ?? [];
   const filtered = !!search || status !== 'all' || platform !== 'all' || days !== 'all';

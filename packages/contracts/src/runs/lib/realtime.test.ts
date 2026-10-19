@@ -46,3 +46,19 @@ it('invalidates the dedicated log cache without storing log payloads in run deta
   expect(result.steps).toBe(run.steps);
   expect(applyRunUpdates(result, updates)).toBe(result);
 });
+
+it('advances model invalidations without invalidating browser logs or changing evidence', () => {
+  const run = {
+    realtimeRevision: 1,
+    browserLogRevision: 1,
+    steps: [],
+    artifacts: [],
+    events: [],
+  } as unknown as TestRun;
+  const next = applyRunUpdates(run, [{ kind: 'model', revision: 2 }]);
+
+  expect(next.realtimeRevision).toBe(2);
+  expect(next.browserLogRevision).toBe(1);
+  expect(next.steps).toBe(run.steps);
+  expect(applyRunUpdates(next, [{ kind: 'model', revision: 2 }])).toBe(next);
+});

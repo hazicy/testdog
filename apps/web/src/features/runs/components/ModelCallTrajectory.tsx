@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl';
 
 import useSWR from 'swr';
+import { useContext } from 'react';
+import { RunRealtimeContext } from '../hooks/RunRealtimeContext';
 import { useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react/offline';
 import copyIcon from '@iconify-icons/lucide/copy';
@@ -32,10 +34,11 @@ export function ModelCallTrajectory({
   active: boolean;
   onStep: (id: string) => void;
 }) {
+  const connected = useContext(RunRealtimeContext);
   const t = useTranslations('runs');
   const modelCallPurposes = useModelCallPurposes();
   const data = useSWR<ModelCallDetail>(`/api/runs/${runId}/model-usage/${callId}`, fetchJson, {
-    refreshInterval: active ? 5000 : 0,
+    refreshInterval: active && !connected ? 5000 : 0,
   });
   const wasActive = useRef(active);
   const mutate = data.mutate;

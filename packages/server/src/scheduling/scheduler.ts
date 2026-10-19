@@ -37,15 +37,23 @@ export async function registerResources(registrations: ResourceRegistration[]) {
 }
 
 export async function claimRun(workerId: string, hostId: string, requestedId?: string) {
-  const claimed = await db.transaction(async (tx) => {
-    const available = await tx
-      .select()
-      .from(resources)
-      .where(and(eq(resources.hostId, hostId), eq(resources.status, 'available')))
-      .orderBy(asc(resources.id))
-      .for('update', { skipLocked: true });
+  const available = await db
+    .select({ id: resources.id })
+    .from(resources)
+    .where(and(eq(resources.hostId, hostId), eq(resources.status, 'available')))
+    .orderBy(asc(resources.id));
+  let claimed;
 
-    for (const resource of available) {
+  for (const candidate of available) {
+    claimed = await db.transaction(async (tx) => {
+      const [resource] = await tx
+        .select()
+        .from(resources)
+        .where(and(eq(resources.id, candidate.id), eq(resources.status, 'available')))
+        .limit(1)
+        .for('update', { skipLocked: true });
+
+      if (!resource) return;
       const platform = sql`${testRuns.targetSnapshot}->>'platform'`;
       const profile = sql`${testRuns.targetSnapshot}->>'deviceProfileId'`;
       const [run] = await tx
@@ -64,7 +72,7 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
         .limit(1)
         .for('update', { skipLocked: true });
 
-      if (!run) continue;
+      if (!run) return;
       const token = resource.fencingToken + 1;
       const leaseUntil = new Date(Date.now() + 60000).toISOString();
 
@@ -91,8 +99,9 @@ export async function claimRun(workerId: string, hostId: string, requestedId?: s
         .where(eq(testRuns.id, run.id));
 
       return { runId: run.id, workerId, fencingToken: token, resource };
-    }
-  });
+    });
+    if (claimed) break;
+  }
 
   if (!claimed) return;
   const run = await getRunInternal(claimed.runId);

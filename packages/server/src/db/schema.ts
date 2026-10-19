@@ -452,6 +452,8 @@ export const realtimeOutbox = pgTable(
     summary: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     publishedAt: timestamp({ withTimezone: true, mode: 'string' }),
+    claimToken: uuid(),
+    claimUntil: timestamp({ withTimezone: true, mode: 'string' }),
   },
   (table) => [
     index('realtime_outbox_team_summary_idx')

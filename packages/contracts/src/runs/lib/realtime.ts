@@ -6,7 +6,7 @@ export type RunUpdate =
   | { kind: 'event'; revision: number; data: RunEvent }
   | { kind: 'step'; revision: number; data: ExecutionStep }
   | { kind: 'artifact'; revision: number; data: RunArtifact }
-  | { kind: 'logs'; revision: number; data?: undefined };
+  | { kind: 'logs' | 'model'; revision: number; data?: undefined };
 
 export function applyRunUpdates(run: TestRun, updates: RunUpdate[]): TestRun {
   let next = run;
