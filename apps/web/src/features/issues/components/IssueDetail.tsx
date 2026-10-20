@@ -1,6 +1,8 @@
 'use client';
 
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 
 import { useTranslations, useFormatter } from 'next-intl';
 import { useIssueLabels, useIssuePresentation } from '@/features/issues/presentation';
@@ -218,16 +220,12 @@ export function IssueDetail({ id }: { id: string }) {
       <Link href="/issues" className={styles.link}>
         {t('backLink')}
       </Link>
-      <header className={styles.header}>
-        <div className={styles.headingGroup}>
-          <div className={styles.titleRow}>
-            <span className={styles.category} data-category={issue.category}>
-              {issue.category === 'product' ? 'BUG' : issueCategories[issue.category]}
-            </span>
-            <h1 className={styles.title}>{issue.title}</h1>
-          </div>
-          <div className={styles.metadata}>
-            {latest && <span className={styles.environment}>{environmentLabel(latest)}</span>}
+      <PageHeader
+        title={issue.title}
+        description={
+          <span className={styles.metadata}>
+            <StatusBadge>{issueCategories[issue.category]}</StatusBadge>
+            {latest && <StatusBadge>{environmentLabel(latest)}</StatusBadge>}
             <span>{t('runsCount', { count: runCount })}</span>
             <span>
               {t('firstSeen', {
@@ -255,51 +253,60 @@ export function IssueDetail({ id }: { id: string }) {
             {issue.closeReason && (
               <span>{t('closeReasonText', { reason: closeReasons[issue.closeReason] })}</span>
             )}
-          </div>
-        </div>
-        <div className={styles.actions}>
-          {latest && (
-            <Button onClick={() => setVerificationOpen(true)}>
-              <Icon icon={replayIcon} className={styles.icon} aria-hidden="true" />
-              {t('verification')}
-            </Button>
-          )}
-          <Button
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError('');
-              try {
-                await api.patch(`/api/issues/${id}`, {
-                  json: {
-                    version: issue.version,
-                    status: issue.status === 'closed' ? 'open' : 'closed',
-                    ...(issue.status === 'closed' ? {} : { closeReason: 'fixed' }),
-                  },
-                });
-                await mutate();
-              } catch (cause) {
-                setError(cause instanceof Error ? cause.message : t('updateFailed'));
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            <Icon icon={checkIcon} className={styles.icon} aria-hidden="true" />
-            {issue.status === 'closed' ? t('reopen') : t('resolve')}
-          </Button>
-          <Tooltip content={t('editIssue')}>
+          </span>
+        }
+        actions={
+          <>
+            {latest && (
+              <Button
+                size="sm"
+                className={styles.toolbarButton}
+                onClick={() => setVerificationOpen(true)}
+              >
+                <Icon icon={replayIcon} className={styles.icon} aria-hidden="true" />
+                {t('verification')}
+              </Button>
+            )}
             <Button
-              size="icon"
+              size="sm"
+              className={styles.toolbarButton}
               disabled={busy}
-              aria-label={t('editIssue')}
-              onClick={() => setEditing(true)}
+              onClick={async () => {
+                setBusy(true);
+                setError('');
+                try {
+                  await api.patch(`/api/issues/${id}`, {
+                    json: {
+                      version: issue.version,
+                      status: issue.status === 'closed' ? 'open' : 'closed',
+                      ...(issue.status === 'closed' ? {} : { closeReason: 'fixed' }),
+                    },
+                  });
+                  await mutate();
+                } catch (cause) {
+                  setError(cause instanceof Error ? cause.message : t('updateFailed'));
+                } finally {
+                  setBusy(false);
+                }
+              }}
             >
-              <Icon icon={editIcon} className={styles.icon} aria-hidden="true" />
+              <Icon icon={checkIcon} className={styles.icon} aria-hidden="true" />
+              {issue.status === 'closed' ? t('reopen') : t('resolve')}
             </Button>
-          </Tooltip>
-        </div>
-      </header>
+            <Tooltip content={t('editIssue')}>
+              <Button
+                size="icon"
+                variant="ghost"
+                disabled={busy}
+                aria-label={t('editIssue')}
+                onClick={() => setEditing(true)}
+              >
+                <Icon icon={editIcon} className={styles.icon} aria-hidden="true" />
+              </Button>
+            </Tooltip>
+          </>
+        }
+      />
       {(error || loadError) && (
         <p className={styles.loadError} role="alert">
           {error || loadError?.message}
@@ -307,7 +314,7 @@ export function IssueDetail({ id }: { id: string }) {
       )}
       {latest && (
         <section className={styles.section} aria-label={t('latestOccurrence')}>
-          <h2 className={styles.heading}>{t('latestOccurrence')}</h2>
+          <SectionHeader title={t('latestOccurrence')} />
           <div className={styles.latestOccurrence}>
             <div className={styles.comparison}>
               <div>
@@ -357,15 +364,17 @@ export function IssueDetail({ id }: { id: string }) {
         </section>
       )}
       <section className={styles.historySection} aria-label={t('occurrences')}>
-        <div className={styles.sectionHeading}>
-          <h2 className={styles.heading}>{t('occurrences')}</h2>
-          {occurrences.length > 0 && (
-            <span className={styles.historySummary}>
-              {t('runsCount', { count: runCount })} ·{' '}
-              {t('environmentCount', { count: new Set(occurrences.map(environmentLabel)).size })}
-            </span>
-          )}
-        </div>
+        <SectionHeader
+          title={t('occurrences')}
+          actions={
+            occurrences.length > 0 ? (
+              <span className={styles.historySummary}>
+                {t('runsCount', { count: runCount })} ·{' '}
+                {t('environmentCount', { count: new Set(occurrences.map(environmentLabel)).size })}
+              </span>
+            ) : undefined
+          }
+        />
         {!occurrences.length ? (
           <p className={styles.emptyMessage}>{t('noOccurrences')}</p>
         ) : (
@@ -418,7 +427,7 @@ export function IssueDetail({ id }: { id: string }) {
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <span className={styles.environment}>{environmentLabel(item)}</span>
+                        <StatusBadge>{environmentLabel(item)}</StatusBadge>
                       </TableCell>
                       <TableCell>
                         {item.snapshot.durationMs == null
