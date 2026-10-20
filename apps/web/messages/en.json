@@ -880,6 +880,7 @@
   },
   "plugins": {
     "title": "Plugins",
+    "backToPlugins": "Back to plugins",
     "plugin": "Plugin",
     "run": "Run",
     "chooseRun": "Choose run",

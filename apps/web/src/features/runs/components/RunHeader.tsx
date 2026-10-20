@@ -5,13 +5,13 @@ import { useTranslations } from 'next-intl';
 import { Tooltip } from '@/components/ui/Tooltip';
 import styles from './RunHeader.module.css';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import Link from 'next/link';
+
 import { Button } from '@/components/ui/Button';
-import { buttonStyles } from '@/components/ui/buttonStyles';
+
 import { Icon } from '@iconify/react/offline';
 import downloadIcon from '@iconify-icons/lucide/download';
 import resultsIcon from '@iconify-icons/lucide/play';
-import backIcon from '@iconify-icons/lucide/chevron-left';
+import { BackLink } from '@/components/shared/BackLink';
 import stopIcon from '@iconify-icons/lucide/square';
 import recordIcon from '@iconify-icons/lucide/rotate-cw';
 import { RunLayoutPopover } from '@/features/runs/components/RunLayoutPopover';
@@ -50,14 +50,11 @@ export function RunHeader({
     <header className={styles.header}>
       <div className={styles.identity}>
         {!embedded && (
-          <Link
-            href="/runs"
-            className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
-            aria-label={t('backToRuns')}
-            title={t('backToRuns')}
-          >
-            <Icon icon={backIcon} width="16" aria-hidden="true" />
-          </Link>
+          <div className={styles.backLink}>
+            <BackLink href="/runs" iconOnly>
+              {t('backToRuns')}
+            </BackLink>
+          </div>
         )}
         <div className={styles.titleGroup}>
           <p className={styles.accessibleLabel}>{t('runId', { id: id.slice(0, 8) })}</p>

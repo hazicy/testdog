@@ -880,6 +880,7 @@
   },
   "plugins": {
     "title": "插件",
+    "backToPlugins": "返回插件",
     "plugin": "插件",
     "run": "执行",
     "chooseRun": "选择执行",

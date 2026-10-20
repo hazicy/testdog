@@ -1,5 +1,7 @@
 'use client';
 
+import { BackLink } from '@/components/shared/BackLink';
+
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SectionHeader } from '@/components/shared/SectionHeader';
@@ -224,9 +226,7 @@ export function IssueDetail({ id }: { id: string }) {
 
   return (
     <article className={styles.article}>
-      <Link href="/issues" className={styles.link}>
-        {t('backLink')}
-      </Link>
+      <BackLink href="/issues">{t('backToIssues')}</BackLink>
       <PageHeader
         title={
           <span className={styles.titleRow}>

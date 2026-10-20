@@ -5,12 +5,7 @@
   margin-inline: auto;
   padding-bottom: var(--space-8);
 }
-.link {
-  display: inline-flex;
-  margin-bottom: var(--space-4);
-  font: var(--type-resource-item);
-  color: var(--page-muted);
-}
+
 .titleRow {
   display: flex;
   flex-wrap: wrap;
@@ -273,7 +268,6 @@
   margin-bottom: var(--space-4);
 }
 @media (hover: hover) {
-  .link:hover,
   .targetLink:hover,
   .runLink:hover,
   .detailsLink:hover {

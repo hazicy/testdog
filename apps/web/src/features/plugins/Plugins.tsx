@@ -6,7 +6,7 @@ import { Icon } from '@iconify/react/offline';
 import sheetIcon from '@iconify-icons/lucide/file-spreadsheet';
 import flameIcon from '@iconify-icons/lucide/flame';
 import arrowIcon from '@iconify-icons/lucide/arrow-up-right';
-import backIcon from '@iconify-icons/lucide/arrow-left';
+import { BackLink } from '@/components/shared/BackLink';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ExcelAcceptancePanel } from './ExcelAcceptancePanel';
 import { VolcengineSettingsPanel } from './VolcengineSettingsPanel';
@@ -39,10 +39,7 @@ export function Plugins() {
     <div className={styles.panel}>
       {plugin ? (
         <>
-          <button type="button" className={styles.back} onClick={() => router.push('/plugins')}>
-            <Icon icon={backIcon} aria-hidden="true" />
-            {t('title')}
-          </button>
+          <BackLink href="/plugins">{t('backToPlugins')}</BackLink>
           <div className={styles.detailHeader}>
             <span className={styles.appIcon} data-tone={plugin.tone}>
               <Icon icon={plugin.icon} aria-hidden="true" />

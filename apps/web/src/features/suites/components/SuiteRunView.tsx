@@ -10,6 +10,7 @@ import { retryVisibleRequest } from '@/client/swr';
 import { Button } from '@/components/ui/Button';
 import { statusStyles } from '@/components/ui/statusStyles';
 import { ErrorState } from '@/components/shared/ErrorState';
+import { BackLink } from '@/components/shared/BackLink';
 import { LoadingState } from '@/components/shared/LoadingState';
 import type { SuiteRunDetail } from '@testdog/contracts/suites/types';
 import styles from './Suites.module.css';
@@ -57,9 +58,7 @@ export function SuiteRunView({ id }: { id: string }) {
 
   return (
     <div className={styles.page}>
-      <Link className={styles.back} href="/runs">
-        {t('backToExecution')}
-      </Link>
+      <BackLink href="/runs">{t('backToExecution')}</BackLink>
       <header className={styles.header}>
         <h1 className={styles.title}>{data.name}</h1>
         <div className={styles.toolbar}>

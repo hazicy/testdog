@@ -1,0 +1,27 @@
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--workspace-control-height);
+  max-width: 100%;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--page-muted);
+  font: var(--type-metadata);
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+.icon {
+  width: var(--space-4);
+  height: var(--space-4);
+  flex-shrink: 0;
+}
+.link:focus-visible {
+  outline: var(--focus-width) solid var(--brand-line);
+  outline-offset: var(--space-1);
+}
+@media (hover: hover) {
+  .link:hover {
+    color: var(--brand-hover);
+  }
+}

@@ -255,7 +255,7 @@ export function SuiteExplorer({ children }: { children: ReactNode }) {
                   {error}
                 </p>
               )}
-              {(editingCanvas || selectedFolder) && (
+              {!editingCanvas && selectedFolder && (
                 <div className={styles.editorNavigation}>
                   <Button size="sm" variant="ghost" onClick={() => selectFolder(null)}>
                     <Icon icon={backIcon} width="16" aria-hidden="true" />

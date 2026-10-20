@@ -17,6 +17,16 @@
     column-gap: var(--space-6);
   }
 }
+.backLink {
+  display: flex;
+  flex-shrink: 0;
+  padding-inline-end: var(--space-3);
+  border-inline-end: var(--border-width) solid var(--page-line);
+}
+.backLink > a {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
 .identity {
   display: flex;
   min-width: 0;

@@ -6,6 +6,7 @@ import styles from './TestEditor.module.css';
 import editorStyles from '@/features/test-cases/components/test-editor.module.css';
 
 import { Button } from '@/components/ui/Button';
+import { BackLink } from '@/components/shared/BackLink';
 import { useEffect, useState, useRef } from 'react';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 import { api } from '@/client/api';
@@ -285,24 +286,29 @@ export function TestEditor({
         data-collapsed={!settingsOpen}
         aria-label={t('testPanel')}
       >
-        <input
-          ref={nameRef}
-          className={editorStyles.caseName}
-          name="testName"
-          aria-label={t('testName')}
-          required
-          maxLength={120}
-          value={name}
-          disabled={editingLocked}
-          onChange={(event) => changeName(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              event.currentTarget.blur();
-            }
-          }}
-          placeholder={t('untitled')}
-        />
+        <div className={editorStyles.caseIdentity}>
+          <BackLink href="/cases" iconOnly>
+            {t('backToCases')}
+          </BackLink>
+          <input
+            ref={nameRef}
+            className={editorStyles.caseName}
+            name="testName"
+            aria-label={t('testName')}
+            required
+            maxLength={120}
+            value={name}
+            disabled={editingLocked}
+            onChange={(event) => changeName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                event.currentTarget.blur();
+              }
+            }}
+            placeholder={t('untitled')}
+          />
+        </div>
         <div className={editorStyles.casePanelActions}>
           <Button
             type="button"

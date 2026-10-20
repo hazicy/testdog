@@ -30,8 +30,7 @@
     background: var(--surface-hover);
   }
 }
-.catalogItem:focus-visible,
-.back:focus-visible {
+.catalogItem:focus-visible {
   outline: var(--focus-width) solid var(--brand-line);
   outline-offset: var(--space-1);
 }
@@ -68,21 +67,7 @@
   font: var(--type-metadata);
   color: var(--page-muted);
 }
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: transparent;
-  padding: 0;
-  border: 0;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font: var(--type-navigation);
-  margin-bottom: var(--space-6);
-  &:hover {
-    color: var(--ink);
-  }
-}
+
 .detailHeader {
   display: flex;
   align-items: flex-start;
