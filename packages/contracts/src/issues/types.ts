@@ -24,7 +24,6 @@ export type IssueStatus = keyof typeof issueStatuses;
 export type Issue = {
   id: string;
   title: string;
-  description: string;
   status: IssueStatus;
   category: keyof typeof issueCategories;
   severity: keyof typeof issueSeverities;

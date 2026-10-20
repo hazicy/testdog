@@ -7,6 +7,7 @@ import clsx from 'clsx';
 
 import studioStyles from '@/features/runs/components/run-studio.module.css';
 import styles from './RunIssues.module.css';
+import { ActualResult } from './ActualResult';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -57,7 +58,6 @@ function RunIssueCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const expected = snapshot.step?.assertion?.description ?? snapshot.nodeGoal ?? snapshot.goal;
-  const actual = snapshot.step?.evidence ?? snapshot.error ?? issue.description;
   const reproduction =
     snapshot.reproduction ??
     run.steps
@@ -113,7 +113,7 @@ function RunIssueCard({
           </div>
           <div className={styles.actual}>
             <h3 className={styles.actualHeading}>{t('actual')}</h3>
-            <p className={styles.description}>{actual || t('noActual')}</p>
+            <ActualResult snapshot={snapshot} className={styles.description} />
           </div>
         </div>
         <details open className={styles.details}>

@@ -152,9 +152,7 @@ export async function listIssues(
         filters.days
           ? sql`coalesce((select max(${issueOccurrences.createdAt}) from ${issueOccurrences} where ${issueOccurrences.issueId} = ${issues.id}), ${issues.createdAt}) >= ${new Date(Date.now() - filters.days * 86400000).toISOString()}::timestamptz`
           : undefined,
-        page.q
-          ? sql`concat_ws(' ', ${issues.title}, ${issues.description}) ilike ${searchPattern(page.q)}`
-          : undefined,
+        page.q ? sql`${issues.title} ilike ${searchPattern(page.q)}` : undefined,
         page.cursor
           ? sql`(${sortDate}, ${issues.id}) < (${page.cursor.date}::timestamptz, ${page.cursor.id}::uuid)`
           : undefined,
@@ -431,14 +429,6 @@ export async function createIssuesForFailedRun(runId: string, tx: Tx) {
       await createIssue(
         issueInput.parse({
           title: (step?.title || run.name || '测试执行失败').slice(0, 200),
-          description: [
-            step?.assertion?.description && `预期：${step.assertion.description}`,
-            step?.evidence && `实际：${step.evidence}`,
-            step?.error || run.error,
-          ]
-            .filter(Boolean)
-            .join('\n')
-            .slice(0, 20000),
           category,
           severity: 'medium',
           source,

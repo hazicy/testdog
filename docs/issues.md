@@ -4,7 +4,7 @@
 
 ## 数据与权限
 
-- `issues`：标题、描述、状态、分类、严重程度、关闭原因、归属和编辑版本。
+- `issues`：标题、状态、分类、严重程度、关闭原因、归属和编辑版本。
 - `issue_occurrences`：发现时的执行及步骤引用，用例、目标、环境和证据元数据快照。数据库唯一索引保证同一来源不会重复关联。
 - `issue_verifications`：验证来源、回归执行 ID。验证结论由已保存的执行结果计算，不调用模型，不自动关闭问题。
 
@@ -20,14 +20,14 @@ PATCH 必须带当前 version。服务端在事务中校验版本并递增；冲
 
 ## API
 
-| 接口                               | 内容                                                                 |
-| ---------------------------------- | -------------------------------------------------------------------- |
-| GET /api/issues                    | 接受 q、status、limit、cursor，返回 issues 和 nextCursor             |
-| POST /api/issues                   | title、description、category、severity，可选 source: {runId, stepId} |
-| GET /api/issues/:id                | 返回 issue、occurrences、verifications                               |
-| PATCH /api/issues/:id              | version，加修改字段、status、closeReason                             |
-| POST /api/issues/:id/occurrences   | {runId, stepId?}，重复关联返回成功且不新增关联                       |
-| POST /api/issues/:id/verifications | {occurrenceId, recordingVersionId?}，返回新 run，HTTP 202            |
+| 接口                               | 内容                                                      |
+| ---------------------------------- | --------------------------------------------------------- |
+| GET /api/issues                    | 接受 q、status、limit、cursor，返回 issues 和 nextCursor  |
+| POST /api/issues                   | title、category、severity，可选 source: {runId, stepId}   |
+| GET /api/issues/:id                | 返回 issue、occurrences、verifications                    |
+| PATCH /api/issues/:id              | version，加修改字段、status、closeReason                  |
+| POST /api/issues/:id/occurrences   | {runId, stepId?}，重复关联返回成功且不新增关联            |
+| POST /api/issues/:id/verifications | {occurrenceId, recordingVersionId?}，返回新 run，HTTP 202 |
 
 创建问题和发起回归接受 Idempotency-Key UUID；相同键和参数返回已有结果，参数变化返回 409。列表使用更新时间与 ID 的游标分页，搜索中的通配符按字面量处理。
 
@@ -41,7 +41,7 @@ PATCH 必须带当前 version。服务端在事务中校验版本并递增；冲
 
 ## 界面
 
-运行画板节点和步骤详情均提供“创建或关联问题”。创建自动填写步骤标题、预期、证据摘要和错误；用户补充分类、严重程度及描述。问题详情提供最近一次失败的预期与实际、复现步骤、发现记录表格、原始执行链接、状态编辑和回归入口。可加载来源执行中的保存版本。
+运行画板节点和步骤详情均提供“创建或关联问题”。创建自动填写步骤标题、预期、证据摘要和错误；用户补充分类和严重程度。问题详情提供最近一次失败的预期与实际、复现步骤、发现记录表格、原始执行链接、状态编辑和回归入口。可加载来源执行中的保存版本。
 
 列表每 30 秒刷新；详情有活动回归时每 5 秒刷新，其他时间每 30 秒刷新。复用 SWR 和已有请求封装。当前版本按个人数据归属运行，团队指派与外部平台同步尚未加入。
 
@@ -54,3 +54,5 @@ PATCH 必须带当前 version。服务端在事务中校验版本并递增；冲
 列表支持状态、平台、日期、最近出现/更新排序，显示执行次数和最近环境；详情提供预期/实际、复现步骤、证据及标记已解决。执行详情显示关联问题链接。出现时间使用来源执行结束时间（未结束则使用开始时间）。
 
 历史失败不会通过 GET 接口写入。显式补录的命令、范围和归属规则统一见 [运维操作](deployment.md#显式运维操作)。
+
+Actual 优先展示发现快照中的具体观察证据；空证据或仅重复预期时回退到步骤错误、执行错误。Playwright 的实际值优先展示，调用日志和堆栈保留在折叠的错误详情中。详情页和执行问题面板共用该规则，不从目标或标题推断实际结果。

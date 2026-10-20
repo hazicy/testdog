@@ -22,7 +22,6 @@ const run = makeRun({
 const issue = {
   id: saved.id,
   title: '订单金额错误',
-  description: '预期 100，实际 120',
   status: 'open',
   category: 'product',
   severity: 'high',

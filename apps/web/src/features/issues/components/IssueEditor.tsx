@@ -6,7 +6,6 @@ import { useIssueLabels } from '@/features/issues/presentation';
 import styles from './IssueEditor.module.css';
 
 import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
 import { useId, useState } from 'react';
 import { Dialog, DialogHeader, DialogFooter } from '@/components/ui/Dialog';
 import { Icon } from '@iconify/react/offline';
@@ -43,18 +42,6 @@ export function IssueEditor({
   const submit = useRunSubmission();
   const [mode, setMode] = useState<'create' | 'link'>('create');
   const [title, setTitle] = useState(issue?.title ?? step?.title ?? run?.name ?? '');
-  const [description, setDescription] = useState(
-    issue?.description ??
-      [
-        step?.assertion?.description
-          ? t('expectedText', { value: step.assertion.description })
-          : '',
-        step?.evidence ? t('evidenceText', { value: step.evidence }) : '',
-        (step ? step.error : run?.error) ?? '',
-      ]
-        .filter(Boolean)
-        .join('\n'),
-  );
   const [category, setCategory] = useState(issue?.category ?? 'product');
   const [severity, setSeverity] = useState(issue?.severity ?? 'medium');
   const [status, setStatus] = useState(issue?.status ?? 'open');
@@ -87,7 +74,6 @@ export function IssueEditor({
             json: {
               version: baseVersion,
               title,
-              description,
               category,
               severity,
               status,
@@ -100,7 +86,6 @@ export function IssueEditor({
       } else {
         const response = await submit<{ issue: Issue }>('/api/issues', {
           title,
-          description,
           category,
           severity,
           ...(run ? { source: { runId: run.id, stepId: step?.id } } : {}),
@@ -192,18 +177,6 @@ export function IssueEditor({
                   onChange={(event) => setTitle(event.target.value)}
                 />
               </label>
-              <div>
-                <label htmlFor={`${titleId}-description`} className={styles.field}>
-                  {t('description')}
-                </label>
-                <Textarea
-                  id={`${titleId}-description`}
-                  className={styles.descriptionInput}
-                  maxLength={20000}
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                />
-              </div>
               <div className={styles.classification}>
                 <Select
                   aria-label={t('category')}

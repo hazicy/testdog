@@ -28,10 +28,6 @@
 .input {
   margin-top: var(--space-2);
 }
-.descriptionInput {
-  margin-top: var(--space-2);
-  min-height: 8rem;
-}
 .classification {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

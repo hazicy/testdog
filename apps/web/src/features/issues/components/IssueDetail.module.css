@@ -200,23 +200,6 @@
 .rowAction {
   text-align: right;
 }
-.secondary {
-  margin-top: var(--space-5);
-  display: grid;
-  gap: var(--space-3);
-}
-.disclosure > summary {
-  width: fit-content;
-  cursor: pointer;
-  color: var(--page-muted);
-  font: var(--type-metadata);
-}
-.issueDescription {
-  margin-top: var(--space-3);
-  color: var(--text-secondary);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 .eventTime {
   display: block;
   margin-top: var(--space-1);
@@ -287,9 +270,6 @@
     color: var(--brand-hover);
     text-decoration: underline;
     text-underline-offset: var(--space-1);
-  }
-  .disclosure > summary:hover {
-    color: var(--ink);
   }
 }
 @media (width < 80rem) {

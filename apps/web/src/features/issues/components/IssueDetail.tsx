@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { type IssueDetail as Detail, type IssueOccurrence } from '@testdog/contracts/issues/types';
+import { ActualResult } from './ActualResult';
 import { IssueEditor } from '@/features/issues/components/IssueEditor';
 import { Dialog, DialogHeader } from '@/components/ui/Dialog';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -195,7 +196,6 @@ export function IssueDetail({ id }: { id: string }) {
     latest?.snapshot.step?.assertion?.description ??
     latest?.snapshot.nodeGoal ??
     latest?.snapshot.goal;
-  const actual = latest?.snapshot.step?.evidence ?? latest?.snapshot.error;
   const active = verifications.some((item) => item.outcome === 'pending');
   const runCount = issue.runCount ?? new Set(occurrences.map((item) => item.runId)).size;
   const reproduction =
@@ -316,7 +316,7 @@ export function IssueDetail({ id }: { id: string }) {
               </div>
               <div>
                 <h3 className={styles.actualHeading}>{t('actual')}</h3>
-                <p className={styles.description}>{actual || t('noActual')}</p>
+                <ActualResult snapshot={latest.snapshot} className={styles.description} />
               </div>
             </div>
             <div className={styles.reproduction}>
@@ -459,14 +459,6 @@ export function IssueDetail({ id }: { id: string }) {
           </div>
         )}
       </section>
-      <div className={styles.secondary}>
-        {issue.description && (
-          <details className={styles.disclosure}>
-            <summary>{t('description')}</summary>
-            <p className={styles.issueDescription}>{issue.description}</p>
-          </details>
-        )}
-      </div>
       {verificationOpen && (
         <Dialog
           titleId={verificationTitleId}

@@ -11,10 +11,6 @@ export class IssuesPage {
     return this.page.getByLabel('问题标题', { exact: true });
   }
 
-  get descriptionInput() {
-    return this.page.getByLabel('问题描述', { exact: true });
-  }
-
   get saveButton() {
     return this.page.getByRole('button', { name: '保存问题', exact: true });
   }

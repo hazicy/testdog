@@ -11,7 +11,6 @@ const timestamp = '2026-10-01T00:00:00Z';
 const initial: Issue = {
   id: issueId,
   title: '订单金额错误',
-  description: '预期100，实际120',
   status: 'open',
   category: 'product',
   severity: 'high',
@@ -124,7 +123,7 @@ test('creates, edits, closes and reopens an issue without activity or comments',
   await expect(page.getByText('暂无问题', { exact: true })).toBeVisible();
   await issuesPage.createButton.click();
   await issuesPage.titleInput.fill('订单金额错误');
-  await issuesPage.descriptionInput.fill('预期100，实际120');
+  await expect(page.getByLabel('问题描述', { exact: true })).toHaveCount(0);
   await issuesPage.saveButton.click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
   await expect(page.getByRole('heading', { name: '订单金额错误', exact: true })).toBeVisible();
@@ -209,7 +208,7 @@ test('creates an issue from a failed board node and starts a regression without 
     .getByRole('button', { name: '创建或关联问题' })
     .click();
   await expect(issuesPage.titleInput).toHaveValue('订单金额为100');
-  await expect(issuesPage.descriptionInput).toHaveValue(/实际为120/);
+  await expect(page.getByLabel('问题描述', { exact: true })).toHaveCount(0);
   await issuesPage.saveButton.click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
   expect(submittedSource).toEqual({ runId, stepId });
@@ -684,4 +683,36 @@ test('issue evidence and regression controls fit a narrow phone', async ({ page 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
   await verification.scrollIntoViewIfNeeded();
   await page.screenshot({ path: testInfo.outputPath('issue-detail-mobile-verification.png') });
+});
+
+test('shows the observed value in Actual and keeps diagnostics collapsed', async ({ page }) => {
+  const error =
+    'Error: expect(locator).toHaveText(expected) failed\n\nExpected: "100"\nReceived: "120"\n\nCall log:\n  - waiting for locator(".amount")';
+  const detail: IssueDetail = {
+    issue: initial,
+    occurrences: [
+      {
+        ...occurrence,
+        snapshot: {
+          ...occurrence.snapshot,
+          step: { ...run.steps[0], evidence: '订单金额为100', error },
+          error,
+        },
+      },
+    ],
+    verifications: [],
+  };
+
+  await page.route(`**/api/issues/${issueId}`, (route) => route.fulfill({ json: detail }));
+  await page.goto(`/issues/${issueId}`);
+  const latest = page.getByRole('region', { name: '最近出现' });
+
+  await expect(latest.getByText('实际值："120"', { exact: true })).toBeVisible();
+  const actual = latest.getByRole('heading', { name: '实际 ACTUAL' }).locator('..');
+
+  await expect(actual.getByText('订单金额为100', { exact: true })).toHaveCount(0);
+  await expect(latest.locator('pre')).toBeHidden();
+  await latest.getByText('错误详情', { exact: true }).click();
+  await expect(latest.locator('pre')).toHaveText(error);
+  await expect(page.getByText('问题描述', { exact: true })).toHaveCount(0);
 });

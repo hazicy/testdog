@@ -330,16 +330,20 @@ it('enforces authentication, ownership, input validation and idempotency through
   const beforeUpdate = await getIssue(issue.id, 'alice');
 
   expect(beforeUpdate).not.toHaveProperty('events');
-  const commentResponse = await updateEndpoint(
-    new Request(`http://localhost/api/issues/${issue.id}`, {
-      method: 'PATCH',
-      headers: { 'test-user': 'alice', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ version: beforeUpdate.issue.version, comment: '不再支持添加说明' }),
-    }),
-    context,
-  );
+  expect(beforeUpdate.issue).not.toHaveProperty('description');
+  for (const field of ['comment', 'description']) {
+    const response = await updateEndpoint(
+      new Request(`http://localhost/api/issues/${issue.id}`, {
+        method: 'PATCH',
+        headers: { 'test-user': 'alice', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: beforeUpdate.issue.version, [field]: '已移除的字段' }),
+      }),
+      context,
+    );
 
-  expect(commentResponse.status).toBe(400);
+    expect(response.status).toBe(400);
+  }
+
   expect((await getIssue(issue.id, 'alice')).issue.version).toBe(beforeUpdate.issue.version);
   const occurrence = beforeUpdate.occurrences[0];
   const verifyKey = randomUUID();

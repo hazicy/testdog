@@ -4,7 +4,6 @@ export const occurrenceInput = z.object({ runId: z.uuid(), stepId: z.uuid().opti
 export const issueInput = z
   .object({
     title: z.string().trim().min(1).max(200),
-    description: z.string().trim().max(20000).default(''),
     category: z.enum(['product', 'test', 'environment', 'execution']).default('product'),
     severity: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
     source: occurrenceInput.optional(),
@@ -14,7 +13,6 @@ export const issueUpdate = z
   .object({
     version: z.number().int().positive(),
     title: z.string().trim().min(1).max(200).optional(),
-    description: z.string().trim().max(20000).optional(),
     category: z.enum(['product', 'test', 'environment', 'execution']).optional(),
     severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
     status: z.enum(['open', 'in_progress', 'pending_verification', 'closed']).optional(),

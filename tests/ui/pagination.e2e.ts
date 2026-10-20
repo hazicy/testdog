@@ -8,7 +8,6 @@ const second = makeCase({ id: '62534c46-a8eb-4991-993e-af6df14bece8', name: '第
 const issue: Issue = {
   id: saved.id,
   title: saved.name,
-  description: '',
   status: 'open',
   category: 'product',
   severity: 'high',

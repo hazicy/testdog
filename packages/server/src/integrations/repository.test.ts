@@ -272,7 +272,7 @@ it('queues committed events exactly once for matching subscriptions and never fo
     .returning();
 
   await db.update(issues).set({ status: 'in_progress', version: 2 }).where(eq(issues.id, issue.id));
-  await db.update(issues).set({ description: 'No status change' }).where(eq(issues.id, issue.id));
+  await db.update(issues).set({ title: 'Updated issue title' }).where(eq(issues.id, issue.id));
   expect(
     (await db.select().from(notificationEventRecords)).map((item) => item.eventType).sort(),
   ).toEqual(['issue.created', 'issue.status_changed', 'run.failed']);

@@ -21,7 +21,6 @@ export const issues = pgTable(
     userId: text().references(() => authUsers.id),
     teamId: uuid().references(() => teams.id),
     title: text().notNull(),
-    description: text().notNull().default(''),
     status: text({ enum: ['open', 'in_progress', 'pending_verification', 'closed'] })
       .notNull()
       .default('open'),
