@@ -9,7 +9,6 @@ import { db } from '@testdog/server/db';
 import {
   issues,
   issueOccurrences,
-  issueEvents,
   issueVerifications,
   testRuns,
   testCases,
@@ -27,11 +26,7 @@ import {
   occurrenceInput,
   verificationInput,
 } from '@testdog/contracts/issues/schemas';
-import {
-  closeReasons,
-  issueStatuses,
-  type OccurrenceSnapshot,
-} from '@testdog/contracts/issues/types';
+import { issueStatuses, type OccurrenceSnapshot } from '@testdog/contracts/issues/types';
 import { verificationResult } from '@testdog/contracts/issues/lib/verification';
 import { isActiveRun } from '@testdog/contracts/runs/types';
 import { targetUrl } from '@testdog/contracts/execution/target';
@@ -218,11 +213,6 @@ export async function createIssue(input: z.infer<typeof issueInput>, userId: Use
       snapshot,
       createdAt: snapshot.finishedAt ?? snapshot.startedAt,
     });
-  await tx.insert(issueEvents).values({
-    issueId: issue.id,
-    kind: 'created',
-    message: source ? '从测试执行创建问题。' : '创建问题。',
-  });
 
   return issue;
 }
@@ -232,7 +222,7 @@ export async function updateIssue(
   input: z.infer<typeof issueUpdate>,
   userId: UserScope,
 ) {
-  const { version, comment, closeReason, ...patch } = issueUpdate.parse(input);
+  const { version, closeReason, ...patch } = issueUpdate.parse(input);
 
   return db.transaction(async (tx) => {
     const before = await issueFor(tx, id, userId, true);
@@ -254,17 +244,6 @@ export async function updateIssue(
       .returning();
 
     if (!issue) throw new WorkspaceError('问题已被更新，请刷新后重试。', 409);
-    if (Object.keys(patch).length || closeReason)
-      await tx.insert(issueEvents).values({
-        issueId: id,
-        kind: 'updated',
-        message:
-          before.status !== status
-            ? `状态：${issueStatuses[before.status]} → ${issueStatuses[status]}${reason ? `（${closeReasons[reason]}）` : ''}`
-            : '更新问题信息。',
-      });
-    if (comment)
-      await tx.insert(issueEvents).values({ issueId: id, kind: 'comment', message: comment });
 
     return issue;
   });
@@ -294,9 +273,6 @@ export async function linkOccurrence(
         .update(issues)
         .set({ version: sql`${issues.version} + 1`, updatedAt: new Date().toISOString() })
         .where(eq(issues.id, id));
-      await tx
-        .insert(issueEvents)
-        .values({ issueId: id, kind: 'occurrence', message: `关联执行：${snapshot.name}` });
     }
 
     return { linked: true };
@@ -346,9 +322,6 @@ export async function startVerification(
       updatedAt: new Date().toISOString(),
     })
     .where(eq(issues.id, id));
-  await tx
-    .insert(issueEvents)
-    .values({ issueId: id, kind: 'verification', message: `发起回归验证：${run.name}` });
 
   return run;
 }
@@ -360,11 +333,6 @@ export async function getIssue(id: string, userId: UserScope) {
     .from(issueOccurrences)
     .where(eq(issueOccurrences.issueId, id))
     .orderBy(desc(issueOccurrences.createdAt), desc(issueOccurrences.id));
-  const events = await db
-    .select()
-    .from(issueEvents)
-    .where(eq(issueEvents.issueId, id))
-    .orderBy(desc(issueEvents.createdAt), desc(issueEvents.id));
   const rows = await db
     .select()
     .from(issueVerifications)
@@ -379,7 +347,7 @@ export async function getIssue(id: string, userId: UserScope) {
     }),
   );
 
-  return { issue, occurrences, events, verifications };
+  return { issue, occurrences, verifications };
 }
 
 // Called inside the run finalization transaction, after all evidence is saved.
@@ -459,9 +427,6 @@ export async function createIssuesForFailedRun(runId: string, tx: Tx) {
         .update(issues)
         .set({ version: sql`${issues.version} + 1`, updatedAt: new Date().toISOString() })
         .where(eq(issues.id, issueId));
-      await tx
-        .insert(issueEvents)
-        .values({ issueId, kind: 'occurrence', message: `自动关联失败执行：${run.name}` });
     } else {
       await createIssue(
         issueInput.parse({

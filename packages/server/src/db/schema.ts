@@ -17,7 +17,7 @@ export {
 export { automationResources } from './schema/scheduling';
 export { automationBuilds } from './schema/builds';
 export { realtimeOutbox } from './schema/realtime';
-export { issues, issueOccurrences, issueEvents, issueVerifications } from './schema/issues';
+export { issues, issueOccurrences, issueVerifications } from './schema/issues';
 export {
   notificationIntegrations,
   notificationEventRecords,

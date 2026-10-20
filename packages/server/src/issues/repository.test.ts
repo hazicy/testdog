@@ -31,7 +31,6 @@ import {
   authUsers,
   issues,
   issueOccurrences,
-  issueEvents,
   issueVerifications,
   testCases,
   testRuns,
@@ -50,7 +49,10 @@ import {
 import { issueInput } from '@testdog/contracts/issues/schemas';
 import { POST as createEndpoint } from '../../../../apps/web/src/app/api/issues/route';
 import { POST as verifyEndpoint } from '../../../../apps/web/src/app/api/issues/[id]/verifications/route';
-import { GET as detailEndpoint } from '../../../../apps/web/src/app/api/issues/[id]/route';
+import {
+  GET as detailEndpoint,
+  PATCH as updateEndpoint,
+} from '../../../../apps/web/src/app/api/issues/[id]/route';
 
 beforeEach(async () => {
   await isolated.client!.exec(
@@ -201,7 +203,7 @@ it.each(['web', 'ios'] as const)(
   },
 );
 
-it('deduplicates links, validates closure and prevents stale updates from losing comments', async () => {
+it('deduplicates links, validates closure and rejects stale updates', async () => {
   const source = await fixture();
   const issue = await fromFixture(source);
 
@@ -216,16 +218,14 @@ it('deduplicates links, validates closure and prevents stale updates from losing
   ).rejects.toThrow('关闭原因');
   const closed = await updateIssue(
     issue.id,
-    { version: current.version, status: 'closed', closeReason: 'fixed', comment: '已修复金额计算' },
+    { version: current.version, status: 'closed', closeReason: 'fixed' },
     'alice',
   );
 
   await expect(
-    updateIssue(issue.id, { version: current.version, comment: '旧页面操作' }, 'alice'),
+    updateIssue(issue.id, { version: current.version, title: '旧页面操作' }, 'alice'),
   ).rejects.toMatchObject({ status: 409 });
-  expect(
-    (await db.select().from(issueEvents)).filter((item) => item.message === '旧页面操作'),
-  ).toHaveLength(0);
+  expect((await getIssue(issue.id, 'alice')).issue.title).toBe(issue.title);
   const reopened = await updateIssue(
     issue.id,
     { version: closed.version, status: 'open' },
@@ -327,7 +327,21 @@ it('enforces authentication, ownership, input validation and idempotency through
       )
     ).status,
   ).toBe(404);
-  const occurrence = (await getIssue(issue.id, 'alice')).occurrences[0];
+  const beforeUpdate = await getIssue(issue.id, 'alice');
+
+  expect(beforeUpdate).not.toHaveProperty('events');
+  const commentResponse = await updateEndpoint(
+    new Request(`http://localhost/api/issues/${issue.id}`, {
+      method: 'PATCH',
+      headers: { 'test-user': 'alice', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: beforeUpdate.issue.version, comment: '不再支持添加说明' }),
+    }),
+    context,
+  );
+
+  expect(commentResponse.status).toBe(400);
+  expect((await getIssue(issue.id, 'alice')).issue.version).toBe(beforeUpdate.issue.version);
+  const occurrence = beforeUpdate.occurrences[0];
   const verifyKey = randomUUID();
   const verifyRequest = () =>
     new Request(`http://localhost/api/issues/${issue.id}/verifications`, {

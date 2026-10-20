@@ -19,7 +19,6 @@ export const issueUpdate = z
     severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
     status: z.enum(['open', 'in_progress', 'pending_verification', 'closed']).optional(),
     closeReason: z.enum(['fixed', 'dismissed', 'duplicate', 'unreproducible']).optional(),
-    comment: z.string().trim().min(1).max(10000).optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).some((key) => key !== 'version'), '请提供修改内容');

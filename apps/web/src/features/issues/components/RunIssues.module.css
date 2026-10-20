@@ -149,9 +149,6 @@
 .select {
   width: auto;
 }
-.copyPrompt {
-  flex: 1;
-}
 .detailsLink {
   font-size: var(--text-sm);
   line-height: 1rem;

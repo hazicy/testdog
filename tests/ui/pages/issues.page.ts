@@ -35,10 +35,6 @@ export class IssuesPage {
     return this.page.getByRole('button', { name: '问题', exact: true });
   }
 
-  get copyFixPromptButton() {
-    return this.page.getByRole('button', { name: '复制修复提示词', exact: true });
-  }
-
   async goto() {
     await this.page.goto('/issues');
   }

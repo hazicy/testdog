@@ -63,13 +63,6 @@ export type IssueOccurrence = {
   snapshot: OccurrenceSnapshot;
   createdAt: string;
 };
-export type IssueEvent = {
-  id: string;
-  issueId: string;
-  kind: 'created' | 'updated' | 'comment' | 'occurrence' | 'verification';
-  message: string;
-  createdAt: string;
-};
 export type VerificationOutcome = 'pending' | 'passed' | 'failed' | 'inconclusive';
 export const verificationLabels = {
   pending: '验证中',
@@ -90,7 +83,6 @@ export type IssueVerification = {
 export type IssueDetail = {
   issue: Issue;
   occurrences: IssueOccurrence[];
-  events: IssueEvent[];
   verifications: IssueVerification[];
 };
 export type IssuePage = { issues: Issue[]; nextCursor: string | null };

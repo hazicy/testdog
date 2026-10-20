@@ -88,9 +88,12 @@ const occurrence: IssueOccurrence = {
   },
 };
 
-test('creates, edits, comments, closes and reopens an issue', async ({ page, issuesPage }) => {
+test('creates, edits, closes and reopens an issue without activity or comments', async ({
+  page,
+  issuesPage,
+}) => {
   let issue = { ...initial };
-  const detail: IssueDetail = { issue, occurrences: [], events: [], verifications: [] };
+  const detail: IssueDetail = { issue, occurrences: [], verifications: [] };
 
   await page.route('**/api/issues{,?*}', async (route) => {
     if (route.request().method() === 'POST') {
@@ -104,7 +107,7 @@ test('creates, edits, comments, closes and reopens an issue', async ({ page, iss
   });
   await page.route(`**/api/issues/${issueId}`, async (route) => {
     if (route.request().method() === 'PATCH') {
-      const { version, comment, ...patch } = route.request().postDataJSON();
+      const { version, ...patch } = route.request().postDataJSON();
 
       issue = {
         ...issue,
@@ -113,14 +116,6 @@ test('creates, edits, comments, closes and reopens an issue', async ({ page, iss
         closeReason: patch.status === 'open' ? null : (patch.closeReason ?? issue.closeReason),
       };
       detail.issue = issue;
-      if (comment)
-        detail.events.unshift({
-          id: 'event',
-          issueId,
-          kind: 'comment',
-          message: comment,
-          createdAt: timestamp,
-        });
     }
 
     return route.fulfill({ json: route.request().method() === 'PATCH' ? { issue } : detail });
@@ -133,11 +128,9 @@ test('creates, edits, comments, closes and reopens an issue', async ({ page, iss
   await issuesPage.saveButton.click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
   await expect(page.getByRole('heading', { name: '订单金额错误', exact: true })).toBeVisible();
-  await page.getByLabel('补充处理说明').fill('已修正优惠计算，等待回归。');
-  await page.getByRole('button', { name: '添加说明' }).click();
-  await expect(
-    page.getByRole('region', { name: '处理记录' }).getByText('已修正优惠计算，等待回归。'),
-  ).toBeVisible();
+  await expect(page.getByText('动态', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('添加说明', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('补充处理说明')).toHaveCount(0);
   await issuesPage.editButton.click();
   await issuesPage.statusSelect.click();
   await page.getByRole('option', { name: '已关闭', exact: true }).click();
@@ -182,7 +175,6 @@ test('creates an issue from a failed board node and starts a regression without 
   const detail: IssueDetail = {
     issue: initial,
     occurrences: [occurrence],
-    events: [],
     verifications: [],
   };
   let submittedSource: unknown;
@@ -221,9 +213,8 @@ test('creates an issue from a failed board node and starts a regression without 
   await issuesPage.saveButton.click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
   expect(submittedSource).toEqual({ runId, stepId });
-  await expect(
-    page.getByRole('region', { name: '问题出现记录' }).getByText('实际为120'),
-  ).toBeVisible();
+  await expect(page.getByRole('region', { name: '最近出现' }).getByText('实际为120')).toBeVisible();
+  await page.getByRole('button', { name: '回归验证', exact: true }).click();
   await page.getByRole('button', { name: '发起回归验证' }).click();
   await expect(
     page.getByRole('region', { name: '回归验证' }).getByText('目标验证通过'),
@@ -256,7 +247,7 @@ test('links a failed step to an existing issue and filters the issue list', asyn
   });
   await page.route(`**/api/issues/${issueId}`, (route) =>
     route.fulfill({
-      json: { issue: initial, occurrences: [occurrence], events: [], verifications: [] },
+      json: { issue: initial, occurrences: [occurrence], verifications: [] },
     }),
   );
   await runPage.goto(runId);
@@ -330,13 +321,13 @@ test('shows issue summaries and filters environment, date and ordering', async (
     .toBe(true);
 });
 
-test('shows expected, actual and reproduction, copies a fix prompt and resolves the issue', async ({
+test('shows expected, actual and reproduction, copies the address and resolves the issue', async ({
   page,
   context,
-  issuesPage,
   workspacePage,
 }, testInfo) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.setViewportSize({ width: 1568, height: 864 });
   const detail: IssueDetail = {
     issue: { ...initial },
     occurrences: [
@@ -349,8 +340,14 @@ test('shows expected, actual and reproduction, copies a fix prompt and resolves 
           runStatus: 'failed',
         },
       },
+      {
+        ...occurrence,
+        id: 'older-occurrence',
+        runId: '62534c46-a8eb-4991-993e-af6df14bece4',
+        createdAt: '2026-09-29T00:00:00Z',
+        snapshot: { ...occurrence.snapshot, durationMs: 32000, runStatus: 'failed' },
+      },
     ],
-    events: [],
     verifications: [],
   };
 
@@ -377,22 +374,27 @@ test('shows expected, actual and reproduction, copies a fix prompt and resolves 
   await expect(latest.getByText('订单金额为100', { exact: true })).toBeVisible();
   await expect(latest.getByText('实际为120', { exact: true })).toBeVisible();
   await expect(latest.getByText('查看订单', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: '发现记录', exact: true }).getByRole('row'),
+  ).toHaveCount(3);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('issue-detail.png'), fullPage: true });
-  await issuesPage.copyFixPromptButton.click();
+  await page.getByRole('button', { name: '复制地址', exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('https://example.com');
+  await workspacePage.notifications.getByText('已复制地址', { exact: true }).hover();
+  await workspacePage.notifications.getByRole('button', { name: '关闭通知' }).click();
+  await expect(workspacePage.notifications.getByText('已复制地址', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '复制修复提示词', exact: true })).toHaveCount(0);
   const notifications = workspacePage.notifications;
 
-  await expect(notifications.getByText('已复制修复提示词', { exact: true })).toBeVisible();
-  await notifications.getByText('已复制修复提示词', { exact: true }).hover();
-  await notifications.getByRole('button', { name: '关闭通知' }).click();
-  await expect(notifications.getByText('已复制修复提示词', { exact: true })).toHaveCount(0);
   await page.evaluate(() => {
     navigator.clipboard.writeText = async () => {
       throw new Error('Clipboard unavailable');
     };
   });
-  await issuesPage.copyFixPromptButton.click();
+  await page.getByRole('button', { name: '复制地址', exact: true }).click();
   await expect(notifications.getByText('复制失败，请检查浏览器剪贴板权限。')).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('实际为120');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('https://example.com');
   await page.getByRole('button', { name: '标记已解决', exact: true }).click();
   await expect(page.getByText('关闭原因：已修复')).toBeVisible();
   await page.getByRole('button', { name: '重新打开', exact: true }).click();
@@ -401,12 +403,9 @@ test('shows expected, actual and reproduction, copies a fix prompt and resolves 
 
 test('opens an issue tab from the transcript and synchronizes it with replay', async ({
   page,
-  context,
-  workspacePage,
   issuesPage,
   runPage,
 }, testInfo) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const frame = {
     id: '62534c46-a8eb-4991-993e-af6df14bece9',
     runId,
@@ -489,11 +488,7 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await panel.getByText('截图证据 · 1', { exact: true }).click();
   await panel.getByRole('button', { name: '回放证据 00:26' }).click();
   await expect(runPage.playbackTime).toHaveText('00:26 / 00:32');
-  await panel.getByRole('button', { name: '复制修复提示词', exact: true }).click();
-  await expect(
-    workspacePage.notifications.getByText('已复制修复提示词', { exact: true }),
-  ).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('实际为120');
+  await expect(panel.getByRole('button', { name: '复制修复提示词', exact: true })).toHaveCount(0);
   await panel.getByRole('combobox', { name: '问题状态：订单金额错误' }).click();
   await page.getByRole('option', { name: '已关闭', exact: true }).click();
   await expect(panel.getByRole('combobox', { name: '问题状态：订单金额错误' })).toContainText(
@@ -502,7 +497,7 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await panel.locator('[data-ui~="run-issue-body"]').evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  await expect(panel.getByRole('button', { name: '复制修复提示词', exact: true })).toBeVisible();
+  await expect(panel.getByRole('link', { name: '查看问题详情 ↗', exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('run-issues.png'), fullPage: true });
   await runPage.stepsButton.click();
   await expect(transcript).toBeVisible();
@@ -556,7 +551,7 @@ test('English issue list and detail translate labels while preserving issue cont
   );
   await page.route(`**/api/issues/${issueId}`, (route) =>
     route.fulfill({
-      json: { issue: initial, occurrences: [occurrence], events: [], verifications: [] },
+      json: { issue: initial, occurrences: [occurrence], verifications: [] },
     }),
   );
   await page.goto('/issues');
@@ -566,7 +561,9 @@ test('English issue list and detail translate labels while preserving issue cont
   await page.getByRole('link', { name: initial.title, exact: true }).click();
   await expect(page.getByRole('heading', { name: initial.title, exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Mark resolved', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Verification', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Verification', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Verification', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close verification', exact: true }).click();
   await page.getByRole('button', { name: 'Edit issue', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Edit issue', exact: true });
 
@@ -580,7 +577,7 @@ test('English issue list and detail translate labels while preserving issue cont
   ).toBeVisible();
 });
 
-test('expands occurrence evidence with the keyboard and verifies the selected source', async ({
+test('lists occurrences once and opens regression verification for a selected row', async ({
   page,
 }) => {
   const olderId = '62534c46-a8eb-4991-993e-af6df14bece4';
@@ -595,7 +592,6 @@ test('expands occurrence evidence with the keyboard and verifies the selected so
         snapshot: { ...occurrence.snapshot, name: '历史订单验证', error: '历史金额错误' },
       },
     ],
-    events: [],
     verifications: [],
   };
 
@@ -621,16 +617,23 @@ test('expands occurrence evidence with the keyboard and verifies the selected so
     return route.fulfill({ json: { run } });
   });
   await page.goto(`/issues/${issueId}`);
-  const history = page.getByRole('region', { name: '问题出现记录' });
-  const older = history.locator('details').filter({ hasText: '历史订单验证' });
+  const history = page.getByRole('region', { name: '发现记录', exact: true });
 
-  await expect(history.locator('details[open]')).toHaveCount(1);
-  await expect(older.getByText('历史金额错误', { exact: true })).not.toBeVisible();
-  await older.locator('summary').focus();
-  await page.keyboard.press('Enter');
-  await expect(older.getByText('历史金额错误', { exact: true })).toBeVisible();
-  const verification = page.getByRole('region', { name: '回归验证', exact: true });
+  await expect(history.getByRole('row')).toHaveCount(3);
+  await expect(history.getByRole('link', { name: '历史订单验证', exact: true })).toHaveAttribute(
+    'href',
+    `/runs/${runId}`,
+  );
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('补充处理说明')).not.toBeVisible();
+  await history.getByRole('button', { name: '回归验证：历史订单验证', exact: true }).click();
+  const verification = page.getByRole('dialog', { name: '回归验证', exact: true });
 
+  await expect(verification.getByRole('combobox', { name: '选择验证来源' })).toContainText(
+    '历史订单验证',
+  );
+  await verification.getByRole('combobox', { name: '选择验证来源' }).click();
+  await page.getByRole('option', { name: /验证订单/ }).click();
   await expect(page.getByRole('button', { name: '发起回归验证' })).toHaveCount(1);
   await verification.getByRole('button', { name: '加载录制版本', exact: true }).click();
   await expect(verification.getByRole('button', { name: '刷新录制版本' })).toBeVisible();
@@ -654,9 +657,6 @@ test('issue evidence and regression controls fit a narrow phone', async ({ page 
   const detail: IssueDetail = {
     issue: { ...initial, title: '订单金额错误：' + '长标题'.repeat(16) },
     occurrences: [{ ...occurrence, snapshot: { ...occurrence.snapshot, testId: undefined } }],
-    events: [
-      { id: 'event', issueId, kind: 'comment', message: '正在检查支付金额', createdAt: timestamp },
-    ],
     verifications: [],
   };
 
@@ -673,12 +673,15 @@ test('issue evidence and regression controls fit a narrow phone', async ({ page 
   const actualBounds = await actual.boundingBox();
 
   expect(actualBounds!.y).toBeGreaterThan(expectedBounds!.y + expectedBounds!.height);
-  const verification = page.getByRole('region', { name: '回归验证', exact: true });
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await page.screenshot({ path: testInfo.outputPath('issue-detail-mobile.png'), fullPage: true });
+  await page.getByRole('button', { name: '回归验证', exact: true }).click();
+  const verification = page.getByRole('dialog', { name: '回归验证', exact: true });
 
   await expect(verification.getByText('此执行暂无可用的录制版本。')).toBeVisible();
   await expect(verification.getByRole('button', { name: '发起回归验证' })).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
-  await page.screenshot({ path: testInfo.outputPath('issue-detail-mobile.png'), fullPage: true });
   await verification.scrollIntoViewIfNeeded();
   await page.screenshot({ path: testInfo.outputPath('issue-detail-mobile-verification.png') });
 });

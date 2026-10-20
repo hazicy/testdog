@@ -64,7 +64,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ json: { issues: [issue], nextCursor: null } }),
   );
   await page.route(`**/api/issues/${issue.id}`, (route) =>
-    route.fulfill({ json: { issue, occurrences: [], events: [], verifications: [] } }),
+    route.fulfill({ json: { issue, occurrences: [], verifications: [] } }),
   );
   await page.route(`**/api/tests/${saved.id}`, (route) => route.fulfill({ json: { test: saved } }));
   await page.route('**/api/integrations', (route) =>

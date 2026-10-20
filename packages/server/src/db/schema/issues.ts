@@ -83,26 +83,6 @@ export const issueOccurrences = pgTable(
   ],
 );
 
-export const issueEvents = pgTable(
-  'issue_events',
-  {
-    id: uuid().primaryKey().defaultRandom(),
-    issueId: uuid()
-      .notNull()
-      .references(() => issues.id, { onDelete: 'cascade' }),
-    kind: text({ enum: ['created', 'updated', 'comment', 'occurrence', 'verification'] }).notNull(),
-    message: text().notNull(),
-    createdAt: timestamp({ withTimezone: true, mode: 'string' }).notNull().defaultNow(),
-  },
-  (table) => [
-    index('issue_events_issue_idx').on(table.issueId, table.createdAt),
-    check(
-      'issue_events_kind_check',
-      sql`${table.kind} in ('created','updated','comment','occurrence','verification')`,
-    ),
-  ],
-);
-
 export const issueVerifications = pgTable(
   'issue_verifications',
   {

@@ -9,10 +9,8 @@ import { LoadingState } from '@/components/shared/LoadingState';
 
 import styles from './IssueDetail.module.css';
 
-import { Textarea } from '@/components/ui/Textarea';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import useSWR from 'swr';
 import { useIssueRealtime } from '../useIssueRealtime';
 import { api, fetchJson } from '@/client/api';
@@ -21,9 +19,25 @@ import { useToastManager } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { ErrorState } from '@/components/shared/ErrorState';
-import { asset } from '@/features/runs/presentation';
 import { type IssueDetail as Detail, type IssueOccurrence } from '@testdog/contracts/issues/types';
 import { IssueEditor } from '@/features/issues/components/IssueEditor';
+import { Dialog, DialogHeader } from '@/components/ui/Dialog';
+import { Tooltip } from '@/components/ui/Tooltip';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/Table';
+import { Icon } from '@iconify/react/offline';
+import checkIcon from '@iconify-icons/lucide/circle-check';
+import copyIcon from '@iconify-icons/lucide/copy';
+import editIcon from '@iconify-icons/lucide/pencil';
+import replayIcon from '@iconify-icons/lucide/rotate-ccw';
+import closeIcon from '@iconify-icons/lucide/x';
+import externalIcon from '@iconify-icons/lucide/external-link';
 
 function VerificationAction({
   id,
@@ -141,8 +155,7 @@ export function IssueDetail({ id }: { id: string }) {
   const connected = useIssueRealtime();
   const t = useTranslations('issues');
   const format = useFormatter();
-  const { issueStatuses, issueCategories, issueSeverities, closeReasons, verificationLabels } =
-    useIssueLabels();
+  const { issueStatuses, issueCategories, closeReasons, verificationLabels } = useIssueLabels();
   const { relativeTime, environmentLabel } = useIssuePresentation();
   const {
     data,
@@ -157,32 +170,13 @@ export function IssueDetail({ id }: { id: string }) {
           : 30000,
   });
   const [editing, setEditing] = useState(false);
-  const [comment, setComment] = useState('');
-  const [commentBusy, setCommentBusy] = useState(false);
-  const [commentError, setCommentError] = useState('');
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const verificationTitleId = useId();
   const [selectedOccurrenceId, setSelectedOccurrenceId] = useState('');
   const [startingVerification, setStartingVerification] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const toastManager = useToastManager();
-
-  async function addComment(event: React.FormEvent) {
-    event.preventDefault();
-    if (!data || !comment.trim() || commentBusy) return;
-    setCommentBusy(true);
-    setCommentError('');
-    try {
-      await api.patch(`/api/issues/${id}`, {
-        json: { version: data.issue.version, comment: comment.trim() },
-      });
-      setComment('');
-      await mutate();
-    } catch (cause) {
-      setCommentError(cause instanceof Error ? cause.message : t('submitFailed'));
-    } finally {
-      setCommentBusy(false);
-    }
-  }
 
   if (loadError && !data)
     return (
@@ -194,7 +188,7 @@ export function IssueDetail({ id }: { id: string }) {
       />
     );
   if (!data) return <LoadingState message={t('loading')} />;
-  const { issue, occurrences, events, verifications } = data;
+  const { issue, occurrences, verifications } = data;
   const latest = occurrences[0];
   const verificationSource = occurrences.find((item) => item.id === selectedOccurrenceId) ?? latest;
   const expected =
@@ -203,20 +197,74 @@ export function IssueDetail({ id }: { id: string }) {
     latest?.snapshot.goal;
   const actual = latest?.snapshot.step?.evidence ?? latest?.snapshot.error;
   const active = verifications.some((item) => item.outcome === 'pending');
+  const runCount = issue.runCount ?? new Set(occurrences.map((item) => item.runId)).size;
+  const reproduction =
+    latest?.snapshot.reproduction ??
+    [latest?.snapshot.goal, latest?.snapshot.step?.title].filter(
+      (title): title is string => !!title,
+    );
+
+  async function copyAddress(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      toastManager.add({ title: t('copiedAddress'), type: 'success' });
+    } catch {
+      toastManager.add({ title: t('clipboardFailed'), type: 'error' });
+    }
+  }
 
   return (
     <article className={styles.article}>
       <Link href="/issues" className={styles.link}>
         {t('backLink')}
       </Link>
-      <div className={styles.header}>
+      <header className={styles.header}>
         <div className={styles.headingGroup}>
-          <span className={styles.category}>{issueCategories[issue.category]}</span>
-          <h1 className={styles.title}>{issue.title}</h1>
+          <div className={styles.titleRow}>
+            <span className={styles.category} data-category={issue.category}>
+              {issue.category === 'product' ? 'BUG' : issueCategories[issue.category]}
+            </span>
+            <h1 className={styles.title}>{issue.title}</h1>
+          </div>
+          <div className={styles.metadata}>
+            {latest && <span className={styles.environment}>{environmentLabel(latest)}</span>}
+            <span>{t('runsCount', { count: runCount })}</span>
+            <span>
+              {t('firstSeen', {
+                time: relativeTime(
+                  issue.firstSeen ?? occurrences.at(-1)?.createdAt ?? issue.createdAt,
+                ),
+              })}
+            </span>
+            <span>
+              {t('lastSeen', {
+                time: relativeTime(issue.lastSeen ?? latest?.createdAt ?? issue.createdAt),
+              })}
+            </span>
+            <StatusBadge
+              tone={
+                issue.status === 'closed'
+                  ? 'success'
+                  : issue.status === 'open'
+                    ? 'neutral'
+                    : 'warning'
+              }
+            >
+              {issueStatuses[issue.status]}
+            </StatusBadge>
+            {issue.closeReason && (
+              <span>{t('closeReasonText', { reason: closeReasons[issue.closeReason] })}</span>
+            )}
+          </div>
         </div>
         <div className={styles.actions}>
+          {latest && (
+            <Button onClick={() => setVerificationOpen(true)}>
+              <Icon icon={replayIcon} className={styles.icon} aria-hidden="true" />
+              {t('verification')}
+            </Button>
+          )}
           <Button
-            variant="primary"
             disabled={busy}
             onClick={async () => {
               setBusy(true);
@@ -237,237 +285,209 @@ export function IssueDetail({ id }: { id: string }) {
               }
             }}
           >
+            <Icon icon={checkIcon} className={styles.icon} aria-hidden="true" />
             {issue.status === 'closed' ? t('reopen') : t('resolve')}
           </Button>
-          <Button
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(
-                  [
-                    t('fixIssue', { title: issue.title }),
-                    issue.description,
-                    t('address', { value: latest?.snapshot.url ?? t('notProvided') }),
-                    t('expectedText', { value: expected ?? t('notProvided') }),
-                    t('actualText', { value: actual ?? t('notProvided') }),
-                    t('reproductionPrompt'),
-                    ...(latest?.snapshot.reproduction ?? []).map(
-                      (title, index) => `${index + 1}. ${title}`,
-                    ),
-                  ].join('\n'),
-                );
-                toastManager.add({ title: t('copiedPrompt'), type: 'success' });
-              } catch {
-                toastManager.add({ title: t('clipboardFailed'), type: 'error' });
-              }
-            }}
-          >
-            {t('copyPrompt')}
-          </Button>
-          <Button disabled={busy} onClick={() => setEditing(true)}>
-            {t('editIssue')}
-          </Button>
+          <Tooltip content={t('editIssue')}>
+            <Button
+              size="icon"
+              disabled={busy}
+              aria-label={t('editIssue')}
+              onClick={() => setEditing(true)}
+            >
+              <Icon icon={editIcon} className={styles.icon} aria-hidden="true" />
+            </Button>
+          </Tooltip>
         </div>
-      </div>
-      <div className={styles.metadata}>
-        <StatusBadge
-          tone={
-            issue.status === 'closed' ? 'success' : issue.status === 'open' ? 'neutral' : 'warning'
-          }
-        >
-          {issueStatuses[issue.status]}
-        </StatusBadge>
-        <StatusBadge
-          tone={issue.severity === 'critical' || issue.severity === 'high' ? 'danger' : 'neutral'}
-        >
-          {issueSeverities[issue.severity]}
-        </StatusBadge>
-        <span className={styles.environment}>{environmentLabel(latest)}</span>
-        <span>
-          {t('runsCount', {
-            count: issue.runCount ?? new Set(occurrences.map((item) => item.runId)).size,
-          })}
-        </span>
-        <span>
-          {t('firstSeen', {
-            time: relativeTime(issue.firstSeen ?? occurrences.at(-1)?.createdAt ?? issue.createdAt),
-          })}
-        </span>
-        <span>
-          {t('lastSeen', {
-            time: relativeTime(issue.lastSeen ?? latest?.createdAt ?? issue.createdAt),
-          })}
-        </span>
-        {issue.closeReason && (
-          <span>{t('closeReasonText', { reason: closeReasons[issue.closeReason] })}</span>
-        )}
-      </div>
+      </header>
       {(error || loadError) && (
         <p className={styles.loadError} role="alert">
           {error || loadError?.message}
         </p>
       )}
-      <div className={styles.layout}>
-        <div className={styles.main}>
-          {issue.description && (
-            <section className={styles.section} aria-label={t('description')}>
-              <h2 className={styles.heading}>{t('description')}</h2>
-              <p className={styles.issueDescription}>{issue.description}</p>
-            </section>
-          )}
-          {latest && (
-            <section className={styles.section} aria-label={t('latestOccurrence')}>
-              <h2 className={styles.heading}>{t('latestOccurrence')}</h2>
-              <div className={styles.latestOccurrence}>
-                <div className={styles.comparison}>
-                  <div>
-                    <h3 className={styles.expectedHeading}>{t('expected')}</h3>
-                    <p className={styles.description}>{expected || t('noExpected')}</p>
-                  </div>
-                  <div>
-                    <h3 className={styles.actualHeading}>{t('actual')}</h3>
-                    <p className={styles.description}>{actual || t('noActual')}</p>
-                  </div>
-                </div>
-                <div className={styles.reproduction}>
-                  {/^https?:\/\//.test(latest.snapshot.url) && (
-                    <a
-                      className={styles.targetLink}
-                      href={latest.snapshot.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      ↗ {latest.snapshot.url}
-                    </a>
-                  )}
-                  <h3 className={styles.reproductionHeading}>{t('reproduction')}</h3>
-                  <ol className={styles.ol}>
-                    {(
-                      latest.snapshot.reproduction ??
-                      [latest.snapshot.goal, latest.snapshot.step?.title].filter(
-                        (title): title is string => !!title,
-                      )
-                    ).map((title, index) => (
-                      <li key={index} className={styles.item}>
-                        <span className={styles.stepNumber}>
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
-                        <span>{title}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
+      {latest && (
+        <section className={styles.section} aria-label={t('latestOccurrence')}>
+          <h2 className={styles.heading}>{t('latestOccurrence')}</h2>
+          <div className={styles.latestOccurrence}>
+            <div className={styles.comparison}>
+              <div>
+                <h3 className={styles.expectedHeading}>{t('expected')}</h3>
+                <p className={styles.description}>{expected || t('noExpected')}</p>
               </div>
-            </section>
-          )}
-          <section className={styles.historySection} aria-label={t('occurrences')}>
-            <h2 className={styles.historyTitle}>
-              {t('occurrenceCount', { count: occurrences.length })}
-            </h2>
-            {!occurrences.length && <p className={styles.emptyMessage}>{t('noOccurrences')}</p>}
-            <div className={styles.occurrences}>
-              {occurrences.map((item, index) => {
-                const status =
-                  item.snapshot.runStatus === 'passed' || item.snapshot.runStatus === 'cancelled'
-                    ? item.snapshot.runStatus
-                    : item.snapshot.runStatus === 'failed' ||
-                        item.snapshot.step?.status === 'failed'
-                      ? 'failed'
-                      : 'unknown';
-                const startedAt = item.snapshot.startedAt ?? item.createdAt;
-
-                return (
-                  <details key={item.id} className={styles.occurrence} open={index === 0}>
-                    <summary className={styles.occurrenceSummary}>
-                      <span className={styles.occurrenceName}>{item.snapshot.name}</span>
-                      <StatusBadge
-                        tone={
-                          status === 'passed'
-                            ? 'success'
-                            : status === 'failed'
-                              ? 'danger'
-                              : 'neutral'
-                        }
-                      >
-                        {t(status)}
-                      </StatusBadge>
-                      <span className={styles.occurrenceEnvironment}>{environmentLabel(item)}</span>
-                      <time
-                        className={styles.occurrenceTime}
-                        dateTime={startedAt}
-                        title={format.dateTime(new Date(startedAt), {
-                          dateStyle: 'medium',
-                          timeStyle: 'short',
-                        })}
-                      >
-                        {relativeTime(startedAt)}
-                      </time>
-                    </summary>
-                    <div className={styles.occurrenceBody}>
-                      <div className={styles.occurrenceHeading}>
-                        <strong>{item.snapshot.step?.title ?? item.snapshot.goal}</strong>
-                        <Link className={styles.detailsLink} href={`/runs/${item.runId}`}>
-                          {t('viewDiscoveryRun')}
-                        </Link>
-                      </div>
-                      {item.snapshot.durationMs != null && (
-                        <p className={styles.occurrenceMetadata}>
-                          {t('duration')} · {(item.snapshot.durationMs / 1000).toFixed(1)}s
-                        </p>
-                      )}
-                      {item.snapshot.step?.assertion && (
-                        <p className={styles.assertion}>
-                          {t('expectedText', { value: item.snapshot.step.assertion.description })}
-                        </p>
-                      )}
-                      {item.snapshot.step?.evidence && (
-                        <p className={styles.evidence}>
-                          {t('evidenceText', { value: item.snapshot.step.evidence })}
-                        </p>
-                      )}
-                      {item.snapshot.error && (
-                        <p className={styles.occurrenceError}>{item.snapshot.error}</p>
-                      )}
-                      {item.snapshot.artifacts.some((frame) => frame.kind === 'screenshot') && (
-                        <div className={styles.screenshots}>
-                          {item.snapshot.artifacts
-                            .filter((frame) => frame.kind === 'screenshot')
-                            .slice(-4)
-                            .map((frame) => (
-                              <a
-                                key={frame.id}
-                                href={asset(item.runId, frame)}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                <figure>
-                                  <Image
-                                    width={200}
-                                    height={120}
-                                    unoptimized
-                                    className={styles.image}
-                                    src={asset(item.runId, frame)}
-                                    alt={t('issueEvidence', {
-                                      stage: frame.stage === 'before' ? t('before') : t('after'),
-                                    })}
-                                  />
-                                  <figcaption className={styles.caption}>
-                                    {frame.stage === 'before' ? t('before') : t('after')}
-                                  </figcaption>
-                                </figure>
-                              </a>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </details>
-                );
-              })}
+              <div>
+                <h3 className={styles.actualHeading}>{t('actual')}</h3>
+                <p className={styles.description}>{actual || t('noActual')}</p>
+              </div>
             </div>
-          </section>
+            <div className={styles.reproduction}>
+              {/^https?:\/\//.test(latest.snapshot.url) && (
+                <div className={styles.targetAddress}>
+                  <a
+                    className={styles.targetLink}
+                    href={latest.snapshot.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Icon icon={externalIcon} className={styles.icon} aria-hidden="true" />
+                    <span>{latest.snapshot.url}</span>
+                  </a>
+                  <Tooltip content={t('copyAddress')}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('copyAddress')}
+                      onClick={() => void copyAddress(latest.snapshot.url)}
+                    >
+                      <Icon icon={copyIcon} className={styles.icon} aria-hidden="true" />
+                    </Button>
+                  </Tooltip>
+                </div>
+              )}
+              <h3 className={styles.reproductionHeading}>{t('reproduction')}</h3>
+              <ol className={styles.ol}>
+                {reproduction.map((title, index) => (
+                  <li key={index} className={styles.item}>
+                    <span className={styles.stepNumber}>{String(index + 1).padStart(2, '0')}</span>
+                    <span>{title}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </section>
+      )}
+      <section className={styles.historySection} aria-label={t('occurrences')}>
+        <div className={styles.sectionHeading}>
+          <h2 className={styles.heading}>{t('occurrences')}</h2>
+          {occurrences.length > 0 && (
+            <span className={styles.historySummary}>
+              {t('runsCount', { count: runCount })} ·{' '}
+              {t('environmentCount', { count: new Set(occurrences.map(environmentLabel)).size })}
+            </span>
+          )}
         </div>
-        <aside className={styles.sidebar}>
-          <section className={styles.historySection} aria-label={t('verification')}>
-            <h2 className={styles.verificationHeading}>{t('verification')}</h2>
+        {!occurrences.length ? (
+          <p className={styles.emptyMessage}>{t('noOccurrences')}</p>
+        ) : (
+          <div
+            className={styles.tableScroll}
+            role="region"
+            aria-label={t('occurrencesTable')}
+            tabIndex={0}
+          >
+            <Table className={styles.table}>
+              <TableHeader>
+                <TableRow>
+                  {[t('status'), t('run'), t('environment'), t('duration'), t('startedAt')].map(
+                    (label) => (
+                      <TableHead key={label}>{label}</TableHead>
+                    ),
+                  )}
+                  <TableHead aria-label={t('issueActions')} />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {occurrences.map((item) => {
+                  const status =
+                    item.snapshot.runStatus === 'passed' || item.snapshot.runStatus === 'cancelled'
+                      ? item.snapshot.runStatus
+                      : item.snapshot.runStatus === 'failed' ||
+                          item.snapshot.step?.status === 'failed'
+                        ? 'failed'
+                        : 'unknown';
+                  const startedAt = item.snapshot.startedAt ?? item.createdAt;
+
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <StatusBadge
+                          tone={
+                            status === 'failed'
+                              ? 'danger'
+                              : status === 'passed'
+                                ? 'success'
+                                : 'neutral'
+                          }
+                        >
+                          {t(status)}
+                        </StatusBadge>
+                      </TableCell>
+                      <TableCell className={styles.runCell}>
+                        <Link className={styles.runLink} href={`/runs/${item.runId}`}>
+                          {item.snapshot.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <span className={styles.environment}>{environmentLabel(item)}</span>
+                      </TableCell>
+                      <TableCell>
+                        {item.snapshot.durationMs == null
+                          ? '—'
+                          : `${format.number(item.snapshot.durationMs / 1000, { maximumFractionDigits: 1 })}s`}
+                      </TableCell>
+                      <TableCell>
+                        <time
+                          dateTime={startedAt}
+                          title={format.dateTime(new Date(startedAt), {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })}
+                        >
+                          {format.dateTime(new Date(startedAt), { month: 'short', day: 'numeric' })}
+                        </time>
+                      </TableCell>
+                      <TableCell className={styles.rowAction}>
+                        <Tooltip content={t('verifyOccurrence', { name: item.snapshot.name })}>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('verifyOccurrence', { name: item.snapshot.name })}
+                            onClick={() => {
+                              setSelectedOccurrenceId(item.id);
+                              setVerificationOpen(true);
+                            }}
+                          >
+                            <Icon icon={replayIcon} className={styles.icon} aria-hidden="true" />
+                          </Button>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
+      <div className={styles.secondary}>
+        {issue.description && (
+          <details className={styles.disclosure}>
+            <summary>{t('description')}</summary>
+            <p className={styles.issueDescription}>{issue.description}</p>
+          </details>
+        )}
+      </div>
+      {verificationOpen && (
+        <Dialog
+          titleId={verificationTitleId}
+          busy={startingVerification}
+          onDismiss={() => setVerificationOpen(false)}
+        >
+          <DialogHeader>
+            <h2 id={verificationTitleId} className={styles.heading}>
+              {t('verification')}
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('closeVerification')}
+              disabled={startingVerification}
+              onClick={() => setVerificationOpen(false)}
+            >
+              <Icon icon={closeIcon} className={styles.icon} aria-hidden="true" />
+            </Button>
+          </DialogHeader>
+          <section className={styles.modalBody} aria-label={t('verification')}>
             {verificationSource && (
               <div className={styles.verificationSetup}>
                 {occurrences.length > 1 && (
@@ -529,49 +549,8 @@ export function IssueDetail({ id }: { id: string }) {
               </div>
             ))}
           </section>
-          <section className={styles.historySection} aria-label={t('activity')}>
-            <h2 className={styles.verificationHeading}>{t('activity')}</h2>
-            <form onSubmit={addComment} className={styles.form}>
-              <label className={styles.field}>
-                {t('comment')}
-                <Textarea
-                  className={styles.input}
-                  value={comment}
-                  onChange={(event) => setComment(event.target.value)}
-                  disabled={commentBusy}
-                  required
-                  maxLength={10000}
-                />
-              </label>
-              {commentError && (
-                <p role="alert" className={styles.error}>
-                  {commentError}
-                </p>
-              )}
-              <Button
-                className={styles.commentSubmit}
-                type="submit"
-                disabled={commentBusy || !comment.trim()}
-              >
-                {commentBusy ? t('saving') : t('addComment')}
-              </Button>
-            </form>
-            <ol className={styles.events}>
-              {events.map((event) => (
-                <li key={event.id} className={styles.event}>
-                  <p className={styles.eventMessage}>{event.message}</p>
-                  <p className={styles.eventTime}>
-                    {format.dateTime(new Date(event.createdAt), {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </section>
-        </aside>
-      </div>
+        </Dialog>
+      )}
       {editing && (
         <IssueEditor
           issue={issue}
