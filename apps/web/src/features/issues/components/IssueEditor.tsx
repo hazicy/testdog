@@ -18,6 +18,7 @@ import { type Issue, type IssuePage } from '@testdog/contracts/issues/types';
 import type { ExecutionStep, TestRun } from '@testdog/contracts/runs/types';
 import useSWR from 'swr';
 import { fetchJson } from '@/client/api';
+import { issueTitle } from '../lib/issueTitle';
 
 export const options = (values: Record<string, string>) =>
   Object.entries(values).map(([value, label]) => ({ value, label }));
@@ -41,7 +42,7 @@ export function IssueEditor({
   const [baseVersion] = useState(issue?.version);
   const submit = useRunSubmission();
   const [mode, setMode] = useState<'create' | 'link'>('create');
-  const [title, setTitle] = useState(issue?.title ?? step?.title ?? run?.name ?? '');
+  const [title, setTitle] = useState(() => issue?.title ?? issueTitle(run, step));
   const [category, setCategory] = useState(issue?.category ?? 'product');
   const [severity, setSeverity] = useState(issue?.severity ?? 'medium');
   const [status, setStatus] = useState(issue?.status ?? 'open');
