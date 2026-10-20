@@ -579,3 +579,106 @@ test('English issue list and detail translate labels while preserving issue cont
     page.getByRole('option', { name: 'Pending verification', exact: true }),
   ).toBeVisible();
 });
+
+test('expands occurrence evidence with the keyboard and verifies the selected source', async ({
+  page,
+}) => {
+  const olderId = '62534c46-a8eb-4991-993e-af6df14bece4';
+  const detail: IssueDetail = {
+    issue: initial,
+    occurrences: [
+      occurrence,
+      {
+        ...occurrence,
+        id: olderId,
+        createdAt: '2026-09-30T00:00:00Z',
+        snapshot: { ...occurrence.snapshot, name: '历史订单验证', error: '历史金额错误' },
+      },
+    ],
+    events: [],
+    verifications: [],
+  };
+
+  await page.route(`**/api/issues/${issueId}`, (route) => route.fulfill({ json: detail }));
+  await page.route(`**/api/runs/${runId}/recording`, (route) =>
+    route.fulfill({ json: { versions: [{ id: 'recording-v1', createdAt: timestamp }] } }),
+  );
+  await page.route(`**/api/issues/${issueId}/verifications`, (route) => {
+    expect(route.request().postDataJSON()).toEqual({ occurrenceId: olderId });
+    detail.verifications = [
+      {
+        id: 'pending-verification',
+        issueId,
+        occurrenceId: olderId,
+        runId,
+        createdAt: timestamp,
+        runStatus: 'queued',
+        outcome: 'pending',
+        explanation: '',
+      },
+    ];
+
+    return route.fulfill({ json: { run } });
+  });
+  await page.goto(`/issues/${issueId}`);
+  const history = page.getByRole('region', { name: '问题出现记录' });
+  const older = history.locator('details').filter({ hasText: '历史订单验证' });
+
+  await expect(history.locator('details[open]')).toHaveCount(1);
+  await expect(older.getByText('历史金额错误', { exact: true })).not.toBeVisible();
+  await older.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(older.getByText('历史金额错误', { exact: true })).toBeVisible();
+  const verification = page.getByRole('region', { name: '回归验证', exact: true });
+
+  await expect(page.getByRole('button', { name: '发起回归验证' })).toHaveCount(1);
+  await verification.getByRole('button', { name: '加载录制版本', exact: true }).click();
+  await expect(verification.getByRole('button', { name: '刷新录制版本' })).toBeVisible();
+  await verification
+    .getByRole('combobox', { name: `验证版本：${occurrence.snapshot.name}` })
+    .click();
+  await page.getByRole('option', { name: /录制版本 ·/ }).click();
+  await verification.getByRole('combobox', { name: '选择验证来源' }).click();
+  await page.getByRole('option', { name: /历史订单验证/ }).click();
+  await expect(
+    verification.getByRole('combobox', { name: '验证版本：历史订单验证' }),
+  ).toContainText('当前用例');
+  await verification.getByRole('button', { name: '发起回归验证' }).click();
+  await expect(verification.getByRole('button', { name: '验证中', exact: true })).toBeDisabled();
+  await expect(verification.getByRole('combobox', { name: '选择验证来源' })).toBeDisabled();
+  await expect(verification.getByRole('link', { name: '查看回归执行' })).toBeVisible();
+});
+
+test('issue evidence and regression controls fit a narrow phone', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  const detail: IssueDetail = {
+    issue: { ...initial, title: '订单金额错误：' + '长标题'.repeat(16) },
+    occurrences: [{ ...occurrence, snapshot: { ...occurrence.snapshot, testId: undefined } }],
+    events: [
+      { id: 'event', issueId, kind: 'comment', message: '正在检查支付金额', createdAt: timestamp },
+    ],
+    verifications: [],
+  };
+
+  await page.route(`**/api/issues/${issueId}`, (route) => route.fulfill({ json: detail }));
+  await page.route(`**/api/runs/${runId}/recording`, (route) =>
+    route.fulfill({ json: { versions: [] } }),
+  );
+  await page.goto(`/issues/${issueId}`);
+  await expect(page.getByRole('heading', { name: detail.issue.title })).toBeVisible();
+  const latest = page.getByRole('region', { name: '最近出现' });
+  const expected = latest.getByRole('heading', { name: '预期 EXPECTED' });
+  const actual = latest.getByRole('heading', { name: '实际 ACTUAL' });
+  const expectedBounds = await expected.boundingBox();
+  const actualBounds = await actual.boundingBox();
+
+  expect(actualBounds!.y).toBeGreaterThan(expectedBounds!.y + expectedBounds!.height);
+  const verification = page.getByRole('region', { name: '回归验证', exact: true });
+
+  await expect(verification.getByText('此执行暂无可用的录制版本。')).toBeVisible();
+  await expect(verification.getByRole('button', { name: '发起回归验证' })).toBeDisabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await page.screenshot({ path: testInfo.outputPath('issue-detail-mobile.png'), fullPage: true });
+  await verification.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath('issue-detail-mobile-verification.png') });
+});
