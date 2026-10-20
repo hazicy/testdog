@@ -214,6 +214,7 @@ export class PlanRunner {
           revision: observation.revision,
         });
       }
+
       observationRequest = undefined;
       const revision = session.revision;
       let decision: Awaited<ReturnType<ActionPlanner['plan']>>;

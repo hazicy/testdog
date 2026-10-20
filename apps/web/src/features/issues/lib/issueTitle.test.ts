@@ -36,6 +36,7 @@ it('uses the only failed step when creating from a run', () => {
 
 it('does not choose an arbitrary step when several steps failed', () => {
   const failed = { ...step, evidence: '订单详情显示 ¥120.00' };
+
   expect(issueTitle({ ...run, steps: [failed, { ...failed, id: 'other' }] })).toBe('');
 });
 
