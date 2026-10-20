@@ -1,7 +1,7 @@
 import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
 import { saveTest, deleteTest, getTest } from '@testdog/server/test-cases/repository';
-import { apiError, validId } from '@testdog/server/shared/http';
+import { apiError, validId } from '@testdog/server/http/api';
 
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };

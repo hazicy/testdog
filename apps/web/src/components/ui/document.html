@@ -1,0 +1,1579 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="mobile-web-app-capable" content="yes"/>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+        <meta name="google-site-verification" content="UBz6KYbqRwt7GUO7kki1PWcGq9I38lb3E19QUZvNic4"/>
+        <meta name="msvalidate.01" content="EAB34B33A1E6B3E2A53058D28207434B"/>
+        <meta name="baidu-site-verification" content="codeva-VpCocMV8nw"/>
+        <!-- DNS Prefetch -->
+        <link rel="dns-prefetch" href="https://lf16-data.bytepluscdn.com"/>
+        <link rel="dns-prefetch" href="https://txcdn-prod-a1art.xiaopiu.com"/>
+        <link rel="dns-prefetch" href="https://accounts.google.com"/>
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com"/>
+        <link rel="dns-prefetch" href="https://www.facebook.com"/>
+        <link rel="dns-prefetch" href="https://connect.facebook.net"/>
+        <link rel="dns-prefetch" href="https://googleads.g.doubleclick.net"/>
+        <!-- /DNS Prefetch -->
+        <style>
+            html[data-splash-platform='app'] #globalLoading {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000000;
+                background: #fff var(--splash-screen-background) center / cover no-repeat
+            }
+
+            html[data-splash-platform='app'] #globalLoading>:not(.splash_icon) {
+                display: none
+            }
+
+            html[data-splash-platform='app'] .splash_icon {
+                position: relative;
+                width: 96px;
+                height: 96px;
+                flex: 0 0 96px;
+                overflow: hidden;
+                border-radius: 15px
+            }
+
+            html[data-splash-platform='app'] .splash_icon.is-error {
+                display: none
+            }
+
+            html[data-splash-platform='app'] .splash_icon img {
+                display: block;
+                width: 100%;
+                height: 100%;
+                object-fit: cover
+            }
+
+            html[data-splash-platform='app'] .splash_icon::after {
+                content: '';
+                position: absolute;
+                top: -60%;
+                left: 0;
+                width: 62%;
+                height: 220%;
+                pointer-events: none;
+                background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.09) 22%, rgba(255,255,255,0.11) 40%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.11) 60%, rgba(255,255,255,0.09) 78%, rgba(255,255,255,0) 100%);
+                transform: translateX(-180%) rotate(20deg);
+                transform-origin: center;
+                opacity: 0;
+                animation: splash-icon-shine 2220ms linear infinite
+            }
+
+            @keyframes splash-icon-shine {
+                0%,100% {
+                    transform: translateX(-180%) rotate(20deg);
+                    opacity: 0
+                }
+
+                1% {
+                    opacity: 1
+                }
+
+                56.76% {
+                    transform: translateX(280%) rotate(20deg);
+                    opacity: 1
+                }
+
+                57.76% {
+                    transform: translateX(280%) rotate(20deg);
+                    opacity: 0
+                }
+            }
+
+            html[data-splash-platform='pc'] #globalLoading {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000000;
+                background-color: #fff
+            }
+
+            html[data-splash-platform='pc'] #globalLoading .splash_icon {
+                display: none
+            }
+
+            html[data-splash-platform='pc'] #globalLoading .logo {
+                display: block !important;
+                content: url('https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/a0950807-c11c-493a-ac7c-602aa850d5eb.png');
+                transition: opacity .4s cubic-bezier(.4, 0, .2, 1);
+                animation: opacity-change 2s ease-in-out infinite
+            }
+
+            @keyframes opacity-change {
+                0%,100% {
+                    opacity: 1
+                }
+
+                50% {
+                    opacity: .6
+                }
+            }
+        </style>
+        <link rel="preconnect" href="https://fonts.googleapis.com"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+        <!-- Google Fonts 异步加载（合并为单个请求），避免阻塞首屏渲染 -->
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=DM+Serif+Display:ital@0;1&family=DM+Serif+Text:ital@0;1&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Aldrich&display=swap" onload="this.onload=null;this.rel='stylesheet'"/>
+        <link rel="icon" href="https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/69e44eb3-1fde-4052-a5a5-7b7599051f30.png"/>
+        <!-- 火山引擎ab实验全局方法 -->
+        <script>
+            const DISABLE_VIEWPORT_SCALE_CONTENT = 'width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,viewport-fit=cover,user-scalable=no';
+
+            let hasInitDisablePageScale = false;
+
+            const initDisablePageScale = () => {
+                if (hasInitDisablePageScale)
+                    return;
+
+                hasInitDisablePageScale = true;
+
+                const viewportMeta = document.querySelector('meta[name="viewport"]');
+
+                if (viewportMeta) {
+                    viewportMeta.setAttribute('content', DISABLE_VIEWPORT_SCALE_CONTENT);
+                }
+            }
+            ;
+
+            initDisablePageScale();
+        </script>
+        <script>
+            (function(win, export_obj) {
+                win['LogAnalyticsObject'] = export_obj;
+                if (!win[export_obj]) {
+                    function _collect() {
+                        _collect.q.push(arguments);
+                    }
+                    _collect.q = _collect.q || [];
+                    win[export_obj] = _collect;
+                }
+                win[export_obj].l = +new Date();
+            }
+            )(window, 'collectEvent');
+        </script>
+        <script>
+            function initCollectEvent() {
+                window.collectEvent('init', {
+                    app_id: 678774,
+                    // a1 APP ID
+                    channel: 'sg',
+                    log: true,
+                    // 启用调试日志
+                    autotrack: false,
+                    // 启用自动追踪
+                    enable_ab_test: true,
+                    // 启用 A/B 测试
+                });
+                window.collectEvent('start');
+                // 开始发送事件
+            }
+        </script>
+        <script async src="https://lf16-data.bytepluscdn.com/obj/data-static-sg/log-sdk/collect/5/collect-rangers-v5.2.1.js" onload="initCollectEvent()"></script>
+        <!-- BUNDLE_FILE -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script defer src="https://txcdn-prod-a1art.xiaopiu.com/static/js/initial-runtime.80888cbf.js"></script>
+        <script defer src="https://txcdn-prod-a1art.xiaopiu.com/static/js/lib-single-set-2.b4a094bb.js"></script>
+        <script defer src="https://txcdn-prod-a1art.xiaopiu.com/static/js/matrix-resource.d9d70f2d.js"></script>
+        <script defer src="https://txcdn-prod-a1art.xiaopiu.com/static/js/lib-react.e8b33f35.js"></script>
+        <script defer src="https://txcdn-prod-a1art.xiaopiu.com/static/js/lib-router.9145bcff.js"></script>
+        <script defer src="https://txcdn-prod-a1art.xiaopiu.com/static/js/lib-axios.46c03c6b.js"></script>
+        <script defer src="https://txcdn-prod-a1art.xiaopiu.com/static/js/lib-single-set.633b52e2.js"></script>
+        <script defer src="https://txcdn-prod-a1art.xiaopiu.com/static/js/1742.176957d3.js"></script>
+        <script defer src="https://txcdn-prod-a1art.xiaopiu.com/static/js/index.c722b906.js"></script>
+        <link href="https://txcdn-prod-a1art.xiaopiu.com/static/css/async/arco-mobile-styles.a5f01f57.css" rel="preload" as="style">
+        <link href="https://txcdn-prod-a1art.xiaopiu.com/static/js/async/common-svgs.848895a1.js" rel="preload" as="script">
+        <link href="https://txcdn-prod-a1art.xiaopiu.com/static/css/matrix-resource.f6171167.css" rel="stylesheet">
+        <link href="https://txcdn-prod-a1art.xiaopiu.com/static/css/index.0d79fdd1.css" rel="stylesheet">
+        <!-- /BUNDLE_FILE -->
+        <script>
+            function handleAPPGoogleSignInCallback(idToken) {}
+            function handleFacebookLoginSuccessCallback(idToken) {}
+            function handleImageDownLoadEventTrack(appId, picId) {}
+            function handleGooglePlayPaymentCallback(receipt, currentOrderId, info) {
+                console.log('receipt: ', receipt);
+                console.log('currentOrderId: ', currentOrderId);
+                console.log('info: ', info);
+            }
+            function handleScreenshot() {
+                console.log('handleScreenshot');
+            }
+        </script>
+        <!-- Google 登录 SDK (gsi/client) 与 Google tag (gtag.js) 已迁移至 src/bootstrap/webThirdPartyScripts.ts，按 !isAndroidApp 环境加载 -->
+        <meta name="keywords" content="Funpack,Funpack AI,Funpack Art"/>
+        <title>Funpack - Your ultimate AI art companion</title>
+        <link rel="canonical" href="https://funpack.app.funpack.cc/"/>
+        <meta name="description" content="Funpack is a platform where you can easily create and discover AI art applications. Funpack is committed to becoming Your ultimate AI art companion, where mastery of art is as simple as speaking."/>
+        <script>
+            defaultTitle = 'Funpack - Your ultimate AI art companion';
+        </script>
+        <script>
+            window.feConfig = {
+                "EmergencyDisableRiskContent": false,
+                "LANG_URL_MAP": {
+                    "en": "",
+                    "zh": "/zh",
+                    "zh-tw": "/zh-tw",
+                    "ru": "/ru",
+                    "ja": "/ja",
+                    "pt-br": "/pt-br",
+                    "es-mx": "/es-mx",
+                    "de": "/de",
+                    "tr": "/tr",
+                    "id": "/id",
+                    "vi": "/vi",
+                    "th": "/th",
+                    "ms": "/ms",
+                    "hi": "/hi-in",
+                    "ar": "/ar",
+                    "ko": "/ko"
+                },
+                "LANG_SERVER_MAP": {
+                    "en": "en_US",
+                    "en-gb": "en_GB",
+                    "zh": "zh_CN",
+                    "zh-tw": "zh_TW",
+                    "ru": "ru_RU",
+                    "ja": "ja_JP",
+                    "pt": "pt_BR",
+                    "pt-br": "pt_BR",
+                    "es": "es_MX",
+                    "es-mx": "es_MX",
+                    "de": "de_DE",
+                    "tr": "tr_TR",
+                    "id": "id_ID",
+                    "fr": "fr",
+                    "vi": "vi_VN",
+                    "th": "th_TH",
+                    "ms": "ms_MY",
+                    "fr-ca": "fr_CA",
+                    "it": "it",
+                    "ko": "ko-KR",
+                    "ar-origin": "ar",
+                    "nl": "nl",
+                    "sv": "sv",
+                    "no": "no",
+                    "da": "da",
+                    "fi": "fi",
+                    "hi": "hi_IN",
+                    "ar": "ar_SA"
+                },
+                "whatsappInfo": {
+                    "createAssistantNumber": "8615792574420",
+                    "feedbackNumber": "8617600234131"
+                },
+                "labelBlock": {
+                    "blockAppVersion": "4.1.1",
+                    "blockFaceswap": false,
+                    "blockAll": true,
+                    "blockLabelList": ["1879789371804065793"],
+                    "greenAllLabelId": "1993248255587098625"
+                },
+                "specLabels": {
+                    "video": ["1879789371804065793", "1933081225796571138", "1956186320538808322", "1927299494858240001", "1924670961040543745", "1927982608474722305", "1944931914067251201", "1899641544017448961", "1924670743461023746", "1913087440881192961", "1848201685868335105", "1844193743298670593", "1846477049846718466", "1927287504382615554", "1927937277462663169", "1924670812167917569", "1938125449757974530", "1844194505709080577", "1846463744348008449", "1958791436702855170"]
+                },
+                "iosSubscriptionIds": ["premium_subscribe_yr", "premium_subscribe_wk"],
+                "AndroidSubscriptionIds": ["premium_subscribe_wk", "premium_subscribe_yr", "premium_subscribe_qr", "premium_subscribe_mo", "svip_subscribe_week", "svip_subscribe_week_2", "svip_subscribe_year", "svip_subscribe_month"],
+                "AndroidOneTimeProductIds": ["cp_in_30", "cp_in_100", "cp_in_1001", "cp_in_90", "cp_in_300", "cp_in_900", "cp_in_base3_11", "cp_in_base10_11", "cp_in_base30_11", "cp_in_base3_2", "cp_in_base10_2", "cp_in_base30_2", "cp_in_base3_79", "cp_in_base10_249", "cp_in_base30_699", "cp_in_base1", "cp_in_base5", "cp_in_base15"],
+                "weekPriceExperimentKey": "price_test_ID_005_IN",
+                "svipSubscribe": {
+                    "week": "standard-subscribe-week-3lowprice-others",
+                    "week_1821486038686658562": "standard-subscribe-week-549-price-india",
+                    "week_1821485970348863490": "standard-subscribe-week-149000-price-indonesia",
+                    "week_1836586849588690945": "standard-subscribe-week-thailand-low",
+                    "week_1836586985316368385": "standard-subscribe-week-vietnam-low",
+                    "year": "standard-subscribe-year",
+                    "year_1821486038686658562": "standard-subscribe-year-5399-india"
+                },
+                "feedback": {
+                    "feedbackQuestionnaire": "https://docs.google.com/forms/d/e/1FAIpQLSfX0AxG6TmfOU3Bb75uNeUi5bj6qtBH-AeqvtPhmHSz-DRBYA/viewform?usp=dialog",
+                    "creatorCenter": "https://fyze31atzb.feishu.cn/wiki/C3d9wWbKBitoytk88NicFNmlnsc"
+                },
+                "infiniteTalk": "2049012665931608065",
+                "aicr": {
+                    "model": "anthropic/claude-sonnet-4.5"
+                },
+                "pageConfig": {
+                    "pageNode": ["Home", "Discover", "Inspired", "Message", "Profile", "Profile_Liked"],
+                    "pageEnum": ["Home_Page", "Like_Page", "Follow_Page", "Explore_Page", "Post_Page", "Topic_Page", "Message_New_Page", "Message_More_Page", "Message_Favorites_Page", "Profile_Post_Page", "Profile_App_Page", "Profile_Follow_Page", "Profile_Liked_Post_Page", "Profile_Liked_App_Page", "Draft_Page", "Studio"]
+                },
+                "appSpec": {
+                    "a1": {
+                        "defaultGreenLabel": "1993248255587098625",
+                        "showChatbotSince": "2026-02-06 14:00:00",
+                        "googleChatbotDisabled": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "837863014979747",
+                            "FacebookClientToken": "9fe915442cba20551eaa3d92e79b9160",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "popdoll": {
+                        "defaultGreenLabel": "1993248255587098625",
+                        "showChatbotSince": "2030-01-01 00:00:00",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1138073627168453",
+                            "FacebookClientToken": "ddff93c5047d5f47049c1b91d560d997",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "minimix": {
+                        "defaultGreenLabel": "1993248255587098625",
+                        "showChatbotSince": "2050-03-01 00:00:00",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1371203713882166",
+                            "FacebookClientToken": "d8f42fb8f50b2f4d2298ad4e04e48675",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "couplelens": {
+                        "defaultGreenLabel": "1993248255587098625",
+                        "showChatbotSince": "2050-01-01 00:00:00",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showExploreBanner": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1933012314310229",
+                            "FacebookClientToken": "53aac5cb15e41b7dbeb2ddfac114a622",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "vimi": {
+                        "defaultGreenLabel": "1993248255587098625",
+                        "showChatbotSince": "2030-01-01 00:00:00",
+                        "googleChatbotDisabled": true,
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1475971543870807",
+                            "FacebookClientToken": "a2df1738d88682522d8af342b91ba897",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "beyo": {
+                        "defaultGreenLabel": "2021041856681320449",
+                        "showChatbotSince": "2030-01-01 00:00:00",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showExploreBanner": true,
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1700113014487304",
+                            "FacebookClientToken": "49450756a02ae2c02b1d93c18d70e91d",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "heyo": {
+                        "defaultGreenLabel": "2021041930585497602",
+                        "showChatbotSince": "2030-01-01 00:00:00",
+                        "googleChatbotDisabled": true,
+                        "showExploreBanner": true,
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1638620543821631",
+                            "FacebookClientToken": "87ceefafc11c7fb7a1cfce65d46b4601",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "viyo": {
+                        "defaultGreenLabel": "2021156290295160833",
+                        "showChatbotSince": "2030-01-01 00:00:00",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1193134759476465",
+                            "FacebookClientToken": "c2d9a36e4caef4f26eeb5af24d6c7f09",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "veeo": {
+                        "defaultGreenLabel": "2021156389897297922",
+                        "showChatbotSince": "2030-01-01 00:00:00",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showExploreBanner": true,
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1924750601466279",
+                            "FacebookClientToken": "c3387dfdbe00ac710da76adc604280fe",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "beatmo": {
+                        "defaultGreenLabel": "2032383963430379521",
+                        "showChatbotSince": "2030-01-01 00:00:00",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showExploreBanner": true,
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "dradra": {
+                        "defaultGreenLabel": "2032376239401324546",
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "appId": "dradra.ai.space",
+                        "displayName": "Dradra",
+                        "customHosts": "dradra.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "3455305827952183",
+                            "FacebookClientToken": "71c7b60f9db9d9ecb07eb03c1357f2d7",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "usgen": {
+                        "defaultGreenLabel": "2032408234860589058",
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "appId": "com.usgen.magic",
+                        "displayName": "Usgen",
+                        "customHosts": "usgen.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1482499020150051",
+                            "FacebookClientToken": "899b105c8a389252cff1395cfe1d5c7f",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "facefame": {
+                        "defaultGreenLabel": "2032408189297864705",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "appId": "studio.ai.facefame",
+                        "displayName": "Facefame",
+                        "customHosts": "facefame.live",
+                        "showExploreBanner": true,
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "pixpop": {
+                        "defaultGreenLabel": "2032408285608013825",
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "isHiddenCreatorEntrance": true,
+                        "appId": "pixpop.create.lab",
+                        "displayName": "Pixpop",
+                        "customHosts": "pixpop.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1862662811806203",
+                            "FacebookClientToken": "3d9dd758f08e0e5beeb61bffa1252d10",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "zikzik": {
+                        "defaultGreenLabel": "2037362152713396225",
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "isHiddenCreatorEntrance": true,
+                        "appId": "live.zikzik.art",
+                        "displayName": "Zikzik",
+                        "customHosts": "zikzik.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1956446759079306",
+                            "FacebookClientToken": "5294e81886abb2ea6193bb1d6080be86",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "funpack": {
+                        "defaultGreenLabel": "2037362233881972738",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "appId": "net.funpack.play",
+                        "displayName": "Funpack",
+                        "customHosts": "funpack.cc",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1695242698270709",
+                            "FacebookClientToken": "449ce1d06b181c98307f1db36f8a5ee1",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "picpic": {
+                        "defaultGreenLabel": "2037362193985753089",
+                        "appId": "com.picpic.story",
+                        "displayName": "Picpic",
+                        "customHosts": "picpic.lol",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [],
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "gloglo": {
+                        "defaultGreenLabel": "2037362613067890690",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "appId": "live.gloglo.soul",
+                        "displayName": "Gloglo",
+                        "customHosts": "gloglo.lol",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1852489319297747",
+                            "FacebookClientToken": "d92e3080dd756a819c9b87470e350981",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "makmak": {
+                        "defaultGreenLabel": "2037362613067890690",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": false,
+                        "metaShowChatbot": true,
+                        "appId": "org.makmak.pure",
+                        "displayName": "Makmak",
+                        "customHosts": "makmak.fun",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "4046577662312238",
+                            "FacebookClientToken": "7edbb07d26d710e8cd1acbbe79d92d28",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "glamix": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "com.glamix.star",
+                        "displayName": "Glamix",
+                        "customHosts": "glamix.online",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1717260629314720",
+                            "FacebookClientToken": "c0e3b02a764dfed2cff3358bf56cf4d7",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "jokepop": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "app.jokepop.twin",
+                        "displayName": "Jokepop",
+                        "customHosts": "jokepop.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1392293319409422",
+                            "FacebookClientToken": "da7b2a64d0b34807e6047906b80a6800",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "moodix": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "me.moodix.dear",
+                        "displayName": "Moodix",
+                        "customHosts": "moodix.co",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2130928617454295",
+                            "FacebookClientToken": "f74bedba47044a75c619e3cfa796a18b",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "filtergo": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "net.filtergo.magic",
+                        "displayName": "Filtergo",
+                        "customHosts": "filtergo.art",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "memepop": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "fun.memepop.side",
+                        "displayName": "Memepop",
+                        "customHosts": "memepop.site",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2039351333616139",
+                            "FacebookClientToken": "d6c27b8dc1a99a2b854304dd7ce87e20",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "vividix": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "net.vividix.mint",
+                        "displayName": "Vividix",
+                        "customHosts": "vividix.cc",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "895938606247645",
+                            "FacebookClientToken": "6416fe90a94c4a199f420d50928a5f9f",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "rendio": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "me.rendio.spark",
+                        "displayName": "Rendio",
+                        "customHosts": "rendio.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "912345741924258",
+                            "FacebookClientToken": "f78909b8157617f30f0c76f73b122639",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "dreamcove": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "io.dreamcove.lite",
+                        "displayName": "DreamCove",
+                        "customHosts": "dreamcove.online",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1330299898807655",
+                            "FacebookClientToken": "b0f806cd80b8b3d42262313d44b553cf",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "pixlume": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "net.pixlume.film",
+                        "displayName": "Pixlume",
+                        "customHosts": "pixlume.lol",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1950572249131224",
+                            "FacebookClientToken": "95da6a00eac4a46237394172f84c8a1e",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "photora": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "io.photora.mood",
+                        "displayName": "Photora",
+                        "customHosts": "photora.lol",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1853239079102060",
+                            "FacebookClientToken": "7338ea704043b9641f299be3ffe8adec",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "framelux": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "app.framelux.dream",
+                        "displayName": "Framelux",
+                        "customHosts": "framelux.cc",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1779418766810181",
+                            "FacebookClientToken": "a03efd942c375809a3744edba7f9b2ac",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "viswell": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "app.viswell.glow",
+                        "displayName": "Viswell",
+                        "customHosts": "viswell.pics",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "1083259080692945",
+                            "FacebookClientToken": "e0fa4795e1014fdc939dbfb18863779c",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "rendia": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "io.rendia.nova",
+                        "displayName": "Rendia",
+                        "customHosts": "rendia.online",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2263691431140063",
+                            "FacebookClientToken": "9e5afd85e08648d95ce746b9e343838e",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "pixdream": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "ai.pixdream.vibe",
+                        "displayName": "Pixdream",
+                        "customHosts": "pixdream.fun",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "rendix": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "io.rendix.nova",
+                        "displayName": "Rendix",
+                        "customHosts": "rendix.xyz",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "raysel": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "ai.raysel.glow",
+                        "displayName": "Raysel",
+                        "customHosts": "raysel.fun",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "taleglow": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "mv.taleglow.glint",
+                        "displayName": "Taleglow",
+                        "customHosts": "taleglow.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "drala": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "io.drala.vibe",
+                        "displayName": "Drala",
+                        "customHosts": "drala.cc",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "picrise": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": true,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "io.picrise.lume",
+                        "displayName": "Picrise",
+                        "customHosts": "picrise.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "vyrid": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "px.vyrid.aura",
+                        "displayName": "Vyrid",
+                        "customHosts": "vyrid.vip",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "gleamory": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "ai.gleamory.glint",
+                        "displayName": "Gleamory",
+                        "customHosts": "gleamory.art",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "lumelore": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "io.lumelore.scene",
+                        "displayName": "Lumelore",
+                        "customHosts": "lumelore.xyz",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "miravo": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "io.miravo.vista",
+                        "displayName": "Miravo",
+                        "customHosts": "miravo.pics",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "storylume": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "go.storylume.atlas",
+                        "displayName": "Storylume",
+                        "customHosts": "storylume.lol",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "mylolens": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "av.mylolens.motif",
+                        "displayName": "Mylolens",
+                        "customHosts": "mylolens.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "shadivo": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "im.shadivo.tale",
+                        "displayName": "Shadivo",
+                        "customHosts": "shadivo.live",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "flarcast": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "vi.flarcast.film",
+                        "displayName": "Flarcast",
+                        "customHosts": "flarcast.vip",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "rendrise": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "ai.rendrise.snap",
+                        "displayName": "Rendrise",
+                        "customHosts": "rendrise.xyz",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "runilens": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "ru.runilens.lume",
+                        "displayName": "Runilens",
+                        "customHosts": "runilens.fun",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "vistell": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "av.vistell.scene",
+                        "displayName": "Vistell",
+                        "customHosts": "vistell.cc",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "forgiq": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "ai.forgiq.aura",
+                        "displayName": "Forgiq",
+                        "customHosts": "forgiq.online",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "shuttro": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "px.shuttro.frame",
+                        "displayName": "Shuttro",
+                        "customHosts": "shuttro.vip",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "taviloom": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "io.taviloom.lens",
+                        "displayName": "Taviloom",
+                        "customHosts": "taviloom.xyz",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "cindelo": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "px.cindelo.story",
+                        "displayName": "Cindelo",
+                        "customHosts": "cindelo.fun",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "eidix": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "ai.eidix.lume",
+                        "displayName": "Eidix",
+                        "customHosts": "eidix.pics",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "pixenvia": {
+                        "defaultGreenLabel": "1965259543286013953",
+                        "isHiddenCreatorEntrance": false,
+                        "showChatbotSince": "",
+                        "googleChatbotDisabled": true,
+                        "metaShowChatbot": true,
+                        "showChatbotUserType": [1, 2, 3],
+                        "appId": "ai.pixenvia.glint",
+                        "displayName": "Pixenvia",
+                        "customHosts": "pixenvia.online",
+                        "FacebookAppInfo": {
+                            "EnableFacebookRemoteConfig": true,
+                            "FacebookAppId": "2898980330493554",
+                            "FacebookClientToken": "4b2b52d03fa6ba9537f2a37ea9b68da6",
+                            "FacebookConfigVersion": 1
+                        }
+                    },
+                    "talehalo": {},
+                    "phoselo": {},
+                    "lumetide": {},
+                    "sceneza": {},
+                    "beamovia": {},
+                    "spectelo": {},
+                    "layenvia": {},
+                    "motifio": {},
+                    "oviarise": {},
+                    "strokeart": {},
+                    "runiloom": {},
+                    "drelex": {},
+                    "lorelume": {},
+                    "vibok": {},
+                    "tonelio": {},
+                    "magezia": {},
+                    "loopella": {}
+                }
+            }
+        </script>
+        <link data-rh="true" rel="alternate" hrefLang="x-default" href="https://a1.art"/>
+        <link data-rh="true" rel="alternate" hrefLang="pt" href="https://a1.art/pt-br"/>
+        <link data-rh="true" rel="alternate" hrefLang="es" href="https://a1.art/es-mx"/>
+        <link data-rh="true" rel="alternate" hrefLang="en" href="https://a1.art">
+        <link data-rh="true" rel="alternate" hrefLang="zh" href="https://a1.art/zh">
+        <link data-rh="true" rel="alternate" hrefLang="zh-tw" href="https://a1.art/zh-tw">
+        <link data-rh="true" rel="alternate" hrefLang="ru" href="https://a1.art/ru">
+        <link data-rh="true" rel="alternate" hrefLang="ja" href="https://a1.art/ja">
+        <link data-rh="true" rel="alternate" hrefLang="pt-br" href="https://a1.art/pt-br">
+        <link data-rh="true" rel="alternate" hrefLang="es-mx" href="https://a1.art/es-mx">
+        <link data-rh="true" rel="alternate" hrefLang="de" href="https://a1.art/de">
+        <link data-rh="true" rel="alternate" hrefLang="tr" href="https://a1.art/tr">
+        <link data-rh="true" rel="alternate" hrefLang="id" href="https://a1.art/id">
+        <link data-rh="true" rel="alternate" hrefLang="vi" href="https://a1.art/vi">
+        <link data-rh="true" rel="alternate" hrefLang="th" href="https://a1.art/th">
+        <link data-rh="true" rel="alternate" hrefLang="ms" href="https://a1.art/ms">
+        <link data-rh="true" rel="alternate" hrefLang="hi" href="https://a1.art/hi-in">
+        <link data-rh="true" rel="alternate" hrefLang="ar" href="https://a1.art/ar">
+        <link data-rh="true" rel="alternate" hrefLang="ko" href="https://a1.art/ko">
+        <script>
+            defaultTitle = "a1.art - Online AI Image Generator with Millions of Photo Filters";
+        </script>
+        <link rel="stylesheet" data-matrix-resource="matrixThemeTokens" href="https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/8cc02de5-7828-4fa0-9c3b-a4bdcd26ddd3.css">
+        <script>
+            window.matrixRuntimeConfig = {
+                "appName": "Funpack",
+                "appId": "net.funpack.play",
+                "sha256": "7A:E3:C2:32:86:2B:2E:34:83:F0:41:4B:5F:FE:CA:68:F7:3B:D4:00:D0:67:CE:D5:2F:5E:26:EE:BB:FF:D5:47",
+                "releaseVersion": 1,
+                "manifestUrl": "https://cdn.funpack.cc/assets/fe-internal/matrix/runtime/releases/funpack/v1/manifest.json",
+                "manifest": {
+                    "schemaVersion": 1,
+                    "packageKey": "53932b08-160b-45fe-804f-be6513942841",
+                    "version": 1,
+                    "resources": {
+                        "text": {
+                            "CDN_HOST": "cdn.funpack.cc",
+                            "WEB_HOST": "funpack.cc",
+                            "Matrix_App_Host": "funpack.app.funpack.cc",
+                            "REPORT_FORM_URL": "https://docs.google.com/forms/d/e/1FAIpQLSe57m553u3t0hiHuCwxSfqVf7ysrAPFTvsdXv1wzIP4rs7dxw/viewform?usp=publish-editor",
+                            "facebook_app_id": "1695242698270709",
+                            "WATERMARK_BASE64": "aHR0cHM6Ly9hMS0xMzE4MzAyNzU1LmNvcy5uYS1zaWxpY29udmFsbGV5Lm15cWNsb3VkLmNvbS9hc3NldHMvUmVzb3VyY2UvaW1hZ2Uvd2F0ZXJtYXJrL3dhdGVybWFya19mdW5wYWNrMi5wbmc=",
+                            "MATRIX_PRODUCT_ID": "42",
+                            "Matrix_App_Origin": "190000",
+                            "Prod_Tracking_Url": "https://data.app.funpack.cc",
+                            "Test_Tracking_Url": "https://aws-test-data.geesdev.com",
+                            "Google_Holder_Name": "Tuchong Hong Kong Limited",
+                            "MATRIX_HOME_PAGE_ID": "46",
+                            "MATRIX_PRODUCT_PATH": "funpack",
+                            "Matrix_Contact_Email": "contact@funpack.cc",
+                            "Test_App_Download_Url": "https://play.google.com/apps/internaltest/4701580380058881316",
+                            "WATERMARK_BASE64_TEST": "aHR0cHM6Ly9hMS0xMzE4MzAyNzU1LmNvcy5uYS1zaWxpY29udmFsbGV5Lm15cWNsb3VkLmNvbS9hc3NldHMvUmVzb3VyY2UvaW1hZ2Uvd2F0ZXJtYXJrL3dhdGVybWFya19mdW5wYWNrMi5wbmc=",
+                            "facebook_client_token": "449ce1d06b181c98307f1db36f8a5ee1",
+                            "Release_App_Download_Url": "https://play.google.com/apps/internaltest/4700479346770086326",
+                            "FEEDBACK_QUESTIONNAIRE_URL": "https://docs.google.com/forms/d/e/1FAIpQLSfuCDTpYMc2JFHuPIGs35ehF82pMPICywrTR0ky_WYIeEkpDw/viewform?usp=publish-editor",
+                            "MATRIX_FACEBOOK_INSTALL_DECRYPT_SECRET": "6fe1359e02725af37e3b9128e67435d1cfba47702f2d7a7c47696d59715be1a0"
+                        },
+                        "image": {
+                            "APP_ICON": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/4682b6b2-bd1d-40dc-bce4-d5b7fdf214ff.webp",
+                            "Power_24px": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d96612e0-b149-48fd-a7c9-1acb4b1521a3.png",
+                            "push_small": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/c388cd81-5dfd-4e47-acaa-65b2cf7f79aa.png",
+                            "web_favicon": "",
+                            "power_20_png": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/c7cfa1df-932f-4567-9292-58937b08ce7c.png",
+                            "Free_Popup_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d5478ff0-8dd2-4556-bace-ca7801ba7f5a.png",
+                            "Daily_Check_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d3cd9777-0bcb-4a3f-9542-1f05576943a5.png",
+                            "Artie_App_Empty": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/207346c5-77be-46f0-9f00-7e1b4404e60e.png",
+                            "Artie_Task_Fail": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/ae1dfbfb-f4e7-4699-ad98-d7af57567b8d.png",
+                            "Artie_Task_Nsfw": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/f194fd54-c996-40ce-b7bf-a2b2ca80bb17.png",
+                            "Like_Background": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/e669afda-455a-440c-be9c-ba601d092206.png",
+                            "website_favicon": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/69e44eb3-1fde-4052-a5a5-7b7599051f30.png",
+                            "Artie_Post_Empty": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/e9ada203-75fd-4813-8e86-10cf62f14983.png",
+                            "Artie_Task_Empty": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/6331291a-888f-412f-90de-1c782814674d.png",
+                            "Svip_Entrance_bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/1791a39f-5845-4d0d-8f74-8aa71b2ef2c4.png",
+                            "Artie_Liked_Empty": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/b75e0d05-4970-4496-8235-6378e821b166.png",
+                            "Credit_Enough_Vip": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/ad766fea-4103-4e67-a93a-611dd28dd2b3.png",
+                            "Daily_Check_Video": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/ee50f936-bd5d-4cd2-8f85-4edbed9039ec.png",
+                            "Guide_Banner_Coin": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/06f1dccf-fe78-4fd3-9c51-6f4c9b64ec01.png",
+                            "Artie_Search_Empty": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/dbd5086e-a2a1-4103-8b27-11456c3dd721.png",
+                            "Credit_Enough_SVip": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/7368230e-2c5c-46c1-9451-4d8d0a85f1e8.png",
+                            "Last_Reward_Credit": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/41617b16-e19e-49e3-9bb3-b3f860ee4e57.png",
+                            "Limit_Count_Vip_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/7e262512-218b-49f1-921b-950d7da50bf2.png",
+                            "OldUserPayGuide_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/bfd5204b-57aa-4d20-8165-56a4a767a320.png",
+                            "Splash_Screen_Star": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/eb033acf-0000-4e10-9f23-755e11dc1bc6.png",
+                            "Artie_Comment_Empty": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/32685488-e3a3-4e06-8183-53763080a1d4.png",
+                            "Artie_Message_Empty": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/b760d4ef-f5d7-408e-8c89-e6c5beba82ab.png",
+                            "Artie_Network_Error": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/6730aee9-62de-419a-939d-4785a2742e51.png",
+                            "Daily_Check_Bg_Icon": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/48e80163-f701-4d57-a1ac-7325479ab355.png",
+                            "Daily_Check_Enhance": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/9218cc7b-a791-489f-8dc7-c66d0d3018fb.png",
+                            "FiveRate_Background": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/aa05642e-28d8-454c-a580-685103ef1088.png",
+                            "Half_Screen_Plus_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/7faa6c0f-ccb4-45bd-82d4-d8f21396c2c0.png",
+                            "Limit_Detail_Vip_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d49c92db-113d-45e4-98bf-d6cac5ddb62a.png",
+                            "Limit_Result_Vip_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/603909d4-61d0-4b60-954c-68385fd62318.png",
+                            "Pay_Cancel_Popup_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/140d61ed-0b7c-4e22-bff1-1db8bdaa82a5.png",
+                            "Personal_Plus_Start": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/63bb569d-300f-42fa-ab09-34a76336917b.png",
+                            "Chatbot_Loading_Icon": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/2c0a8731-7799-4d6d-8c67-ab903306d3f6.png",
+                            "Daily_Check_Credit_1": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/e62e74dd-9376-4eb5-bcb6-f0c10135304b.png",
+                            "Daily_Check_Credit_3": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/0b9cd916-a48c-4f8a-92ca-ef4bd08e0424.png",
+                            "Limit_Count_Vip_Icon": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/611150d4-9e06-4722-ba11-9ab8bb9a8ff6.png",
+                            "Pedning_Reward_Claim": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/0ed30439-5e8e-495c-a8dd-fba161aa38c6.png",
+                            "Reward_Credits_Empty": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/78222fde-62a4-4f24-be6c-3a029c41c84d.png",
+                            "Splash_Screen_Slogan": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/9ed8cfdd-7d1f-4e81-8d94-d3542f3f0299.png",
+                            "Subscribe_Premium_bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/af2e9b2a-aaee-4066-a8b0-e3caf73a4143.png",
+                            "Artie_Topic_Not_Found": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/b26a4745-cf5d-4d9a-98df-f081c3444afb.png",
+                            "Daily_Check_Unlimited": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/efbd18d4-993e-4f8e-9d2a-94ca6b3b651f.png",
+                            "Last_Reward_Credit_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d786f018-0dfe-4d5d-b8fc-aa1ec0b5e5a0.png",
+                            "Limit_Detail_Vip_Icon": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d2122d96-ca25-4718-ad22-79884e7af527.png",
+                            "PaidRetention_Left_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/810dd64b-075d-4b99-ae94-fd44d46ec417.png",
+                            "Personal_Free_Card_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/9ca96d05-6620-4e51-9ef6-2c8a9e668f3e.png",
+                            "Remix_Image_Update_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/dfa953f7-d6fd-4938-b72a-7932dffb0d51.png",
+                            "Remix_Video_Update_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/80178d6f-fa33-4e75-8981-fa63d9b31497.png",
+                            "no-enough-credit-pack": "",
+                            "App_Splash_Screen_Icon": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/9dc3aa8f-f4a9-4d90-a332-fa97ed6e5ac5.png",
+                            "Daily_Checkin_Missed_1": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d0afeabf-772b-479f-b536-ca982cb35bf7.png",
+                            "Daily_Checkin_Missed_3": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/ed29fbb6-3b67-4ec7-bac6-b8a946acfc03.png",
+                            "Message_Tab_Image_Blur": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/37969d9e-2e38-4720-9bd5-eddd960df407.png",
+                            "PaidRetention_Right_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/2b9119c6-fc24-45cc-a5f0-b3b0e332f3f9.png",
+                            "Daily_Check_Credit_Fast": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/134830c7-830f-445f-b661-353c2d6257a9.png",
+                            "Daily_Check_Reward_Rate": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/09d06d59-6a6e-4803-ac59-57d45af248eb.png",
+                            "Daily_Check_Reward_User": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/906fc8c3-f935-4b77-808f-72a661f30570.png",
+                            "Daily_Check_Reward_plus": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/e5bba48f-e9a5-4f67-a4ab-fa6fd8b50b7c.png",
+                            "Daily_Checkin_Lightning": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/0b8c4321-7fed-44e1-8965-23bb3240e3ce.png",
+                            "Half_Screen_Standard_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/de8cfa1a-0a36-4409-b083-add0b1e8108e.png",
+                            "Message_Tab_Image_Focus": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/b5e915d1-f8c9-4a92-9591-0cfdb259e744.png",
+                            "Onboarding_Retention_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/d6396897-7ded-4b7d-91b9-326e2f9755b1.webp",
+                            "Personal_Free_Card_Icon": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/3de5f8ab-7398-44ce-9757-582174b40401.png",
+                            "Personal_Standard_Start": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/dbad8a36-3bd1-4358-83c5-d8b674b38e06.png",
+                            "Chatbot_Background_Image": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/6b7374ce-4e7d-4c01-bf0c-6afddc2100c6.png",
+                            "Daily_Check_Last_Fast_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/ef296d3c-8af2-4633-b388-616cdb9689bf.png",
+                            "Daily_Check_Reward_Daily": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/6fe4dbe4-983d-4d5d-ae67-dddd644c8df6.png",
+                            "Splash_Screen_Background": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/4003fbef-c5d5-4b86-882f-fade1ce42955.png",
+                            "Daily_Check_Reward_Invite": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/0668bb9b-63ba-4156-87fd-42466b505784.png",
+                            "Daily_Check_Reward_System": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/320aaeeb-8330-4730-965d-f9942a3e9e03.png",
+                            "Onboarding_Retention_Card": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/ed246bb9-d85e-4f98-b1d0-6c9269b00245.png",
+                            "Personal_Free_Vip_Card_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/18d9ce94-2f79-4323-8cb8-6e175c24bfbb.png",
+                            "Personal_Plus_Vip_Card_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d94bd026-1923-4ae2-a22f-6ad91debac0b.png",
+                            "Daily_Check_Reward_startup": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/5b334458-e8ec-45ef-95bf-f9098864af42.png",
+                            "Personal_Limited_Free_Star": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d5933450-3d7b-4775-a050-b344ab21eda6.png",
+                            "Personal_Stand_Vip_Card_Bg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/67d48600-0ded-45db-8230-870adb4c0b8c.png",
+                            "Daily_Check_Reward_standard": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/63d39019-b327-47f7-b0d2-a3b1dfd4543f.png",
+                            "AppPurchasePageSVIP_Background": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/54c1c569-928e-4f50-94c8-0eb218f42a46.png",
+                            "Daily_Check_Reward_gift_withdraw": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/7df6a9bc-10bf-4f84-9d3f-f764b7a5f2fe.png",
+                            "PurchasePageOnboarding_Background": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/5af71381-fe07-4eda-88dc-99646f90a7ea.png",
+                            "Push_Notification_Illustration_Test_C": "",
+                            "Push_Notification_Illustration_Test_AB": ""
+                        },
+                        "svg": {
+                            "Matrix_Logo": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/ca9adfbf-a852-47ae-8372-4a55efca29e0.svg",
+                            "VIP_Tag_Svg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/82a98a8d-b44e-4389-9828-223c79df3da7.svg",
+                            "Plus_Tag_Svg": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/510fa8fc-4416-467b-ab31-1d0e7de64a20.svg",
+                            "Privacy_App_Icon": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/0e3cc9b1-f91c-4555-9247-d10015e35ae2.png",
+                            "Daily_Check_Last_Fast": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/270ef4c2-fc98-423e-93f6-f9c27ab9729e.svg",
+                            "Daily_Check_Little_start": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/57e99ed6-4720-4571-bd9b-54e9ee67b308.svg",
+                            "Loading_Transparency_Logo": ""
+                        },
+                        "json": {
+                            "Google_Services": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/b99026bc-dc4b-4b14-9d3a-03a3610cba44.json",
+                            "Home_Tab_Lottie": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/6d13568d-c32b-4e18-b76e-f77106aadf53.json",
+                            "Message_Tab_lottie": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/3aa5533e-463a-4c37-b56a-7134986eaaff.json",
+                            "Profile_Tab_Lottie": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d5bc090e-80b0-4517-af9d-d27d54fc3a82.json",
+                            "Discover_Tab_Lottie": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/c656e503-90e8-414c-b8e3-d98bd3d4ea13.json",
+                            "Chatbot_Lottie_Large": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/0df9786f-03cf-4971-9ff7-378b4f7a79f4.json",
+                            "Chatbot_Lottie_Small": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/446e14f3-e354-49c6-b9dd-e638dd66fcc3.json"
+                        },
+                        "css": {
+                            "matrixThemeTokens": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/8cc02de5-7828-4fa0-9c3b-a4bdcd26ddd3.css"
+                        },
+                        "i18nImage": {
+                            "Daily_Check_Top": {
+                                "ar-SA": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/6ba6c67a-81d7-4fcb-a39b-794b983cbe2b.png",
+                                "de-DE": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/b0340ebb-dbab-4b7f-961f-83e8e2edc45d.png",
+                                "en-US": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/7a4b15c1-838a-4f81-a010-510535ef7cc3.png",
+                                "es-MX": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/90b3a4f8-e00a-448c-a82e-e94b9a1cc867.png",
+                                "hi-IN": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/503e579b-2a1f-444f-a31f-d78e20b21f79.png",
+                                "id-ID": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/ab9d3095-461a-43b7-a60d-b472609674a9.png",
+                                "ja-JP": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/d5c8071d-be12-4284-9bb5-f211903ed6b4.png",
+                                "ko-KR": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/898e592d-2d4c-4c3f-a084-11fbf88ad2e6.png",
+                                "ms-MY": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/194a8d63-a028-49bc-a4a9-f8102ee115ba.png",
+                                "pt-BR": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/34b60160-8afd-4418-9ba9-edb7a82f1fef.png",
+                                "ru-RU": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/92e8eea8-fb39-4908-a59d-595b27589e94.png",
+                                "th-TH": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/4ed86b58-d4e1-401a-999c-8824ea67359a.png",
+                                "tr-TR": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/bdc1fd5f-c687-4d11-9d9f-bb7ab528ee79.png",
+                                "vi-VN": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/8c86d8f9-a2a7-48b0-a618-35c700cc5b18.png",
+                                "zh-CN": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/1304b201-4460-47ff-8b81-a54f29b9eb22.png",
+                                "zh-TW": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/f3a14543-5cdf-48cb-a511-98462b7f2ae9.png"
+                            },
+                            "Invite_Reward_Top": {
+                                "ar-SA": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/0aeda0f9-b05c-42fe-851a-b806335873f9.png",
+                                "bn-BD": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/3173d25c-1776-4529-8803-30b0142f2f1b.png",
+                                "de-DE": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/b9725ecb-5b10-43ef-81e1-c0ce6fc7a057.png",
+                                "en-US": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/2aed2e4e-6aee-4ff3-96d7-382531502475.png",
+                                "es-MX": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/a7b1888b-37e9-4dbb-ba2d-70e719dc4624.png",
+                                "hi-IN": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/76aa6782-30f6-42c4-9996-98c6c6c9f1f0.png",
+                                "id-ID": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/2295789f-f515-47a5-9549-b6b756229900.png",
+                                "ja-JP": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/44c2cc5a-26b2-4067-b8a7-324732639541.png",
+                                "ko-KR": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/1d1ff6b8-e763-4910-852b-b3393bc01a9b.png",
+                                "ms-MY": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/d085d650-bdb8-4ed8-9bb3-fec8d46b42ad.png",
+                                "pt-BR": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/204580d7-33df-4f07-b554-c7640972b3f3.png",
+                                "ru-RU": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/8a6dfe26-df42-4224-a768-1ff3fd58712e.png",
+                                "th-TH": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/69b95a46-7806-449c-bdd4-179d4068e421.png",
+                                "tr-TR": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/a3526e9d-94f9-42ff-9199-ca8195c453b4.png",
+                                "ur-PK": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/0fd82a41-db0a-4e43-8d53-972a99eff51f.png",
+                                "vi-VN": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/5648f8ca-2e3a-4b6a-b897-f7fe7a9f784a.png",
+                                "zh-CN": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/a6cfb340-a6c1-4af9-93e2-a2f530d16788.png",
+                                "zh-TW": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/fc098cc0-44ca-4964-941a-61a51cfa826d.png"
+                            },
+                            "PaidRetention_Top": {
+                                "ar-SA": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/20368d88-4943-446e-b1fb-c15fa393756d.png",
+                                "bn-BD": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/8fa061c2-4fc0-40dc-8d72-a9a98de4126c.png",
+                                "de-DE": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/2c32f427-1980-4146-a074-50d400cbdef5.png",
+                                "en-US": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/fc99ff1f-61a4-4e5f-885e-2fd88f3f4ca8.png",
+                                "es-MX": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/8ea4544f-9d0d-4ea8-8c15-773cea659635.png",
+                                "hi-IN": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/639eddc0-5bbb-46e5-82b9-95a8c08ec6cd.png",
+                                "id-ID": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/793190ee-8fc1-4dce-8a29-d8ca6e7cd100.png",
+                                "ja-JP": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/5ea4a77a-1580-47bd-a9c3-85ff81735662.png",
+                                "ko-KR": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/bf314a61-7cbe-41b8-b382-b46e8a7c0e46.png",
+                                "ms-MY": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/a5f4da12-ebdf-4607-a482-1680a2c37777.png",
+                                "pt-BR": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/2fcfc84d-3def-486e-b8f2-5f13280eb8c4.png",
+                                "ru-RU": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/dfb15d09-4b9d-49a1-adf1-710890b6d666.png",
+                                "th-TH": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/922b6c06-068d-4fff-8fc9-06c55b8120ba.png",
+                                "tr-TR": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/2b5d459e-ee0d-4c75-9036-01c6064a0dd7.png",
+                                "ur-PK": "https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/4a3f1966-228f-44a4-b56e-7ed86a463ceb.png",
+                                "vi-VN": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/3fffe151-836c-4422-82ca-7976bea5256a.png",
+                                "zh-CN": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/c8e4d91d-d289-4efc-b4ac-a443ee79912d.png",
+                                "zh-TW": "https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/8497ffad-1a65-485d-bef1-2625a10894f7.png"
+                            }
+                        }
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div id="root"></div>
+        <div id="globalLoading" style="background-color: #fff">
+            <div class="splash_icon">
+                <img id="appSplashIcon" alt=""/>
+            </div>
+            <img id="pcSplashLogo" width="288" class="logo" alt=""/>
+        </div>
+        <script>
+            ( () => {
+                const ua = window.navigator.userAgent;
+                const isPc = /Windows NT|Macintosh|X11|Linux x86_64/.test(ua);
+                const isMatrixA1 = 'false' === 'true';
+                const isA1Loading = isPc && isMatrixA1;
+                const root = document.documentElement;
+
+                root.dataset.splashPlatform = isA1Loading ? 'pc' : 'app';
+                root.style.setProperty('--splash-screen-background', 'url(https://txcdn-prod-a1art.xiaopiu.com/assets/a1seo-render/4003fbef-c5d5-4b86-882f-fade1ce42955.png)', );
+
+                if (!isA1Loading) {
+                    document.getElementById('appSplashIcon').src = 'https://txcdn-prod-a1art.xiaopiu.com/assets/fe-internal/matrix-resource/4682b6b2-bd1d-40dc-bce4-d5b7fdf214ff.webp';
+                }
+            }
+            )();
+        </script>
+        <a id="deepLink" style="display: none"></a>
+        <noscript>
+            <img height="1" width="1" src="https://www.facebook.com/tr?id=1030554051914094&ev=PageView
+				&noscript=1"/>
+        </noscript>
+        <!-- End Facebook Pixel Code -->
+        <script defer src="https://lf1-cdn-tos.bytegoofy.com/obj/iconpark/icons_36524_159.ec801b57076a1c275faec1a39f0bf96b.js"></script>
+        <script>
+            window.SENTRY_RELEASE = {
+                id: `funpack@91b2f496`
+            };
+            global = globalThis;
+            console.time('[🧪Pref] React loaded');
+
+            window.__A1_TIMELINE_RECORD__ = {
+                startHtml: +new Date()
+            };
+        </script>
+        <!-- Facebook Pixel Code, 用于回传注册等行为数据给FB媒体 -->
+        <script>
+            // webview app 不加载facebook web 回传sdk
+            if (!window.navigator.userAgent.includes('a1.art.app') && !window.navigator.userAgent.includes('AppWebView/1.0')) {
+                !(function(f, b, e, v, n, t, s) {
+                    if (f.fbq)
+                        return;
+                    n = f.fbq = function() {
+                        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+                    }
+                    ;
+                    if (!f._fbq)
+                        f._fbq = n;
+                    n.push = n;
+                    n.loaded = !0;
+                    n.version = '2.0';
+                    n.queue = [];
+                    t = b.createElement(e);
+                    t.async = !0;
+                    t.src = v;
+                    s = b.getElementsByTagName(e)[0];
+                    s.parentNode.insertBefore(t, s);
+                }
+                )(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', '1030554051914094');
+                fbq('track', 'PageView');
+            }
+        </script>
+        <script>
+            if (window.location.href.includes('/invite') && window.location.href.includes('source=share')) {
+                // 把当前url中的invite删掉
+                const url = window.location.href.replace('/invite', '');
+                window.location.href = url;
+            }
+            // 如果设备为 android，url中包含source=share&qr=true且不是 a1 app，先到h5承接页面，则重定向到google play
+            if (window.navigator.userAgent.includes('Android') && !window.navigator.userAgent.includes('a1.art.app') && !window.navigator.userAgent.includes('AppWebView/1.0')) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const source = urlParams.get('source');
+                const shareInfo = urlParams.get('share_token');
+                const qr = urlParams.get('qr');
+                const APPID = 'net.funpack.play';
+                if (source === 'share') {
+                    // matrix edit
+                    const googlePlayUrl = `https://play.google.com/store/apps/details?id=${APPID}&referrer=utm_source%3Dshare,share_info%3D${shareInfo}`;
+                    const url = window.location.href.replace(window.location.origin, 'intent://funpack.app.funpack.cc', );
+                    const intentUrl = `${url}#Intent;scheme=https;package=${APPID};S.browser_fallback_url=${googlePlayUrl};end`;
+                    const deepLinkElement = document.getElementById('deepLink');
+                    console.log("source === 'share'", googlePlayUrl, url, intentUrl);
+                    deepLinkElement.href = intentUrl;
+                    deepLinkElement.click();
+                    setTimeout( () => {
+                        if (!document.hidden)
+                            window.location.href = googlePlayUrl;
+                    }
+                    , 2000);
+                }
+            } else if (// ios 用户
+            window.navigator.userAgent.includes('iPhone')) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const source = urlParams.get('source');
+                const shareInfo = urlParams.get('share_token');
+                if (source === 'share' && shareInfo) {
+                    fetch(`/api/resources/v1/short?type=SHARE_TOKEN&shortCode=${shareInfo}`).then( (res) => res.json()).then( (data) => {
+                        try {
+                            const decryptedData = JSON.parse(data.data);
+                            const appId = decryptedData?.app_short_id || decryptedData?.app_id;
+                            let intentUrl = 'a1art://';
+                            if (appId) {
+                                intentUrl += `appDetail/${appId}`;
+                            }
+                            const deepLinkElement = document.getElementById('deepLink');
+                            deepLinkElement.href = intentUrl;
+                            deepLinkElement.click();
+                            console.log('intentUrl: ', intentUrl);
+                            setTimeout( () => {
+                                const appStoreUrl = `https://apps.apple.com/app/apple-store/id6748423076?pt=127098371&ct=share&mt=8`;
+                                if (!document.hidden)
+                                    window.location.href = appStoreUrl;
+                            }
+                            , 5000);
+                        } catch (error) {
+                            console.error('解密接口错误:', error);
+                        }
+                    }
+                    );
+                }
+            }
+        </script>
+    </body>
+</html>

@@ -1,10 +1,10 @@
 import { closeArtifactStorage } from '@testdog/server/runs/artifactStorage';
-import { logger } from '@testdog/server/shared/logger';
+import { logger } from '@testdog/server/infrastructure/logger';
 import { pool } from '@testdog/server/db';
 import { startNotificationDispatcher } from '@testdog/server/integrations/dispatcher';
-import { startOutboxPublisher, stopOutboxPublisher } from '@testdog/server/realtime/realtime';
+import { startOutboxPublisher, stopOutboxPublisher } from '@testdog/server/realtime/events';
 import { startLeaseMaintenance } from '@testdog/server/scheduling/maintenance';
-import { closeRedis } from '@testdog/server/shared/redis';
+import { closeRedis } from '@testdog/server/infrastructure/redis';
 
 const starters = {
   maintenance: startLeaseMaintenance,

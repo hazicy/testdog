@@ -1,0 +1,236 @@
+import { WebExecutionPlugins } from '@testdog/engine/platform/web/executionPlugins';
+import { expect as playwrightExpect } from '@playwright/test';
+import { recordAction } from '@testdog/engine/platform/web/recordingLocator';
+import type { Page } from 'playwright';
+import { BrowserSession } from '@testdog/engine/platform/web/browserSession';
+import { Observer } from '@testdog/engine/platform/web/observer';
+import { executeWebAction } from '@testdog/engine/platform/web/webActions';
+import { locateWebElement } from '@testdog/engine/platform/web/webLocator';
+import { captureWebScreenshot } from '@testdog/engine/platform/web/screenshot';
+import type { ExecutionHooks } from '@testdog/contracts/runs/types';
+import type {
+  AutomationSession,
+  Observation,
+  PlatformAction,
+  SessionEvent,
+  PlatformAssertion,
+  CaptureRequest,
+  ArtifactDescriptor,
+  ReplayStep,
+  ObservationRequest,
+} from '@testdog/contracts/automation/platform/contracts';
+
+export class PlaywrightSession implements AutomationSession {
+  readonly platform = 'web' as const;
+  readonly executionPolicy = { reobserveAfterAction: false };
+  readonly capabilities = {
+    actions: ['navigate', 'click', 'fill', 'press', 'wait', 'screenshot', 'plugin'],
+    artifacts: ['screenshot', 'video', 'trace', 'console', 'network'],
+    assertions: ['semantic', 'visible', 'text', 'containsText', 'value', 'url'],
+    observations: ['aria-tree', 'url', 'focused-element', 'regions'],
+  };
+  private session: BrowserSession;
+  private plugins: WebExecutionPlugins;
+  private pluginEvent?: SessionEvent;
+  private observer = new Observer();
+  private disposed = false;
+  private observation?: Observation;
+  private pages = new Map<string, Page>();
+  private registerPage = (page: Page) => {
+    this.pages.set(`page-${this.pages.size + 1}`, page);
+  };
+
+  constructor(
+    readonly id: string,
+    page: Page,
+    private hooks: ExecutionHooks = {},
+    private useTouch = false,
+  ) {
+    this.session = new BrowserSession(page);
+    this.plugins = new WebExecutionPlugins(page.context());
+    page.context().pages().forEach(this.registerPage);
+    page.context().on('page', this.registerPage);
+  }
+
+  async selectSurface(id: string, signal: AbortSignal) {
+    const deadline = Date.now() + 15000;
+
+    while (!this.pages.has(id) && Date.now() < deadline) {
+      signal.throwIfAborted();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    signal.throwIfAborted();
+    const page = this.pages.get(id);
+
+    if (!page || page.isClosed()) throw new Error(`录制中的页面 ${id} 已不存在`);
+    this.session.activate(page);
+  }
+
+  async prepareReplayStep(step: ReplayStep, signal: AbortSignal) {
+    signal.throwIfAborted();
+    const action = step.event.action;
+
+    if (action && action.platform !== this.platform) throw new Error('Expected Web action');
+    const browserAction = action?.action;
+
+    // A popup wait belongs to the preceding action's page, even if the popup is already open.
+    if (!(browserAction?.type === 'wait' && browserAction.condition === 'newPage')) {
+      if (!step.surfaceId) throw new Error('录制步骤缺少页面信息');
+      await this.selectSurface(step.surfaceId, signal);
+    }
+
+    if (
+      browserAction &&
+      browserAction.type !== 'navigate' &&
+      browserAction.type !== 'wait' &&
+      browserAction.type !== 'plugin' &&
+      (browserAction.target.kind === 'ariaRef' || browserAction.target.scope?.kind === 'ariaRef')
+    )
+      throw new Error('该步骤没有稳定定位器，请重新录制');
+  }
+
+  get latestObservation() {
+    return this.observation;
+  }
+
+  get revision() {
+    return this.session.version;
+  }
+
+  async observe(signal: AbortSignal, request?: ObservationRequest): Promise<Observation> {
+    signal.throwIfAborted();
+    this.plugins.assertHealthy();
+    const observation = await this.session.observe(this.observer, request);
+
+    signal.throwIfAborted();
+
+    return (this.observation = {
+      ...observation,
+      schemaVersion: 1,
+      sessionId: this.id,
+      revision: this.revision,
+      capturedAt: new Date().toISOString(),
+      surface: {
+        platform: 'web',
+        id: [...this.pages].find(([, page]) => page === this.session.page)![0],
+        url: this.session.page.url(),
+      },
+    });
+  }
+
+  async perform(step: PlatformAction, signal: AbortSignal) {
+    signal.throwIfAborted();
+    if (step.platform !== 'web') throw new Error('Expected Web action');
+    const action = step.action;
+
+    this.plugins.assertHealthy();
+    if (action.type === 'plugin') {
+      const event = this.pluginEvent;
+
+      if (!event) throw new Error('插件步骤缺少执行事件');
+
+      return this.plugins.install(action.plugin, async (evidence, error) => {
+        await this.hooks.onStep?.(
+          { ...event, phase: error ? 'error' : 'finish', evidence, error },
+          this.session.page,
+        );
+      });
+    }
+
+    if (action.type === 'wait') await this.session.wait(action);
+    else await this.session.perform((page) => executeWebAction(page, action, this.useTouch));
+    signal.throwIfAborted();
+  }
+
+  async wait(action: PlatformAction, signal: AbortSignal) {
+    if (action.action.type !== 'wait') throw new Error('Expected wait action');
+    await this.perform(action, signal);
+
+    return this.observe(signal);
+  }
+
+  async check(assertion: PlatformAssertion, signal: AbortSignal) {
+    signal.throwIfAborted();
+    if (assertion.platform !== 'web') throw new Error('Assertion platform mismatch');
+    try {
+      if (assertion.type === 'url') {
+        const check = playwrightExpect(this.session.page);
+
+        await (assertion.negate ? check.not : check).toHaveURL(assertion.value!, { timeout: 5000 });
+      } else {
+        if (!assertion.target) throw new Error('Assertion target required');
+        const base = playwrightExpect(locateWebElement(this.session.page, assertion.target));
+        const check = assertion.negate ? base.not : base;
+
+        if (assertion.type === 'visible') await check.toBeVisible({ timeout: 5000 });
+        else if (assertion.type === 'text')
+          await check.toHaveText(assertion.value!, { timeout: 5000 });
+        else if (assertion.type === 'containsText')
+          await check.toContainText(assertion.value!, { timeout: 5000 });
+        else await check.toHaveValue(assertion.value!, { timeout: 5000 });
+      }
+
+      signal.throwIfAborted();
+
+      return { passed: true, evidence: `Playwright ${assertion.type} passed` };
+    } catch (error) {
+      signal.throwIfAborted();
+
+      return { passed: false, evidence: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  async resolveForRecording(action: PlatformAction, observation: Observation) {
+    if (
+      action.platform !== 'web' ||
+      observation.sessionId !== this.id ||
+      observation.revision !== this.revision
+    )
+      throw new Error('Recording observation mismatch');
+    const result = await recordAction(this.session.page, action.action);
+
+    return {
+      action: { platform: 'web' as const, action: result.action },
+      replayable: result.replayable,
+    };
+  }
+  async capture(request: CaptureRequest, signal: AbortSignal): Promise<ArtifactDescriptor[]> {
+    signal.throwIfAborted();
+    if (request.kind !== 'screenshot')
+      throw new Error('Web video/trace are exported during context finalization');
+
+    return [
+      {
+        kind: 'screenshot',
+        bytes: await captureWebScreenshot(this.session.page, {
+          type: 'png',
+          timeout: 15000,
+        }),
+        contentType: 'image/png',
+        producer: 'playwright',
+        format: 'png',
+      },
+    ];
+  }
+  async verifyPlugins(signal: AbortSignal) {
+    await this.plugins.verify(signal);
+  }
+
+  async emit(event: SessionEvent) {
+    if (event.phase === 'start' && event.action?.action.type === 'plugin') this.pluginEvent = event;
+    const page = this.session.page;
+
+    this.hooks.onPage?.(page);
+    await this.hooks.onStep?.(event, page);
+  }
+
+  async close() {
+    if (!this.disposed) {
+      this.disposed = true;
+      await this.plugins.close();
+      this.session.page.context().off('page', this.registerPage);
+      this.session.dispose();
+    }
+  }
+}

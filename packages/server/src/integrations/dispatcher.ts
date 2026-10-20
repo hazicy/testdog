@@ -1,7 +1,7 @@
-import { queueWakeup } from '@testdog/server/shared/queueWakeup';
+import { queueWakeup } from '@testdog/server/infrastructure/queueWakeup';
 import { notificationReadyChannel } from '@testdog/server/integrations/wakeup';
 import { rowScope } from '@testdog/server/shared/ownership';
-import { logger } from '@testdog/server/shared/logger';
+import { logger } from '@testdog/server/infrastructure/logger';
 import type { NotificationConfig } from '@testdog/contracts/integrations/types';
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
@@ -11,7 +11,7 @@ import {
   notificationDeliveries as deliveries,
   notificationEventRecords as events,
 } from '@testdog/server/db/schema';
-import { decryptSecret } from '@testdog/server/shared/secrets';
+import { decryptSecret } from '@testdog/server/infrastructure/secrets';
 import { sendNotification } from '@testdog/server/integrations/delivery';
 
 const MAX_ATTEMPTS = 3;

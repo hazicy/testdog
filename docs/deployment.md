@@ -28,7 +28,7 @@ API、worker 与后台服务使用 Pino 向标准输出写入 JSON 服务日志�
 
 在执行 Worker 的 `.env` 或进程环境中设置 `TESTDOG_WEB_AGENT=hybrid` 和 `JEV_API_KEY`，重启 Worker 后，界面中正常运行的 Web 用例会使用缓存的 LLM 语义计划、确定性定位及 Jev Choice。LLM 沿用 `OPENAI_API_KEY` 对应的现有 DeepSeek 适配器；Jev 默认 `jev-1.14.0` 和 `https://api.typesafe.ai/v1/systemone`，可通过 `JEV_MODEL`、`JEV_ENDPOINT` 覆盖。
 
-所有模型请求共用 `TESTDOG_AI_*` 预算，AI 日志区分“浏览器规划”和“元素选择”。已有断言、录制与回放继续通过原运行器执行；录制回放不调用 Jev，也不要求 Jev Key。移除该配置或设为 `TESTDOG_WEB_AGENT=llm` 可恢复原 Planner。独立演示 CLI 的 `DOM_AGENT_*` 配置不用于 Testdog Worker。接入细节和测试说明见 [DOM Agent 文档](../packages/automation/src/domAgent/README.md)。
+所有模型请求共用 `TESTDOG_AI_*` 预算，AI 日志区分“浏览器规划”和“元素选择”。已有断言、录制与回放继续通过原运行器执行；录制回放不调用 Jev，也不要求 Jev Key。移除该配置或设为 `TESTDOG_WEB_AGENT=llm` 可恢复原 Planner。独立演示 CLI 的 `DOM_AGENT_*` 配置不用于 Testdog Worker。接入细节和测试说明见 [DOM Agent 文档](../packages/engine/src/domAgent/README.md)。
 
 ### 认证
 

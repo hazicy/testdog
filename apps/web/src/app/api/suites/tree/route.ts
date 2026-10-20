@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
 import { getSuiteTree } from '@testdog/server/suites/repository';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 
 export async function GET(request: Request) {
   try {

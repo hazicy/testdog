@@ -17,7 +17,7 @@ vi.mock('@testdog/server/db', async () => {
 import { db } from '@testdog/server/db';
 import { automationBuilds } from '@testdog/server/db/schema';
 import { getBuild } from '@testdog/server/builds/repository';
-import { hashBuild } from '@testdog/automation/platform/native/builds';
+import { hashBuild } from '@testdog/engine/platform/native/builds';
 
 afterAll(() => isolated.client?.close());
 it('validates platform, app identity and content hash before allowing an install', async () => {

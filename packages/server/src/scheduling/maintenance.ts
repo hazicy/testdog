@@ -1,4 +1,4 @@
-import { logger } from '@testdog/server/shared/logger';
+import { logger } from '@testdog/server/infrastructure/logger';
 import { recoverLeases } from '@testdog/server/scheduling/scheduler';
 
 // One task per process, with a database advisory lock coordinating processes.

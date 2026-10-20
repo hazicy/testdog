@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 import { savePluginSettings } from '@testdog/server/plugins/repository';
 
 export const runtime = 'nodejs';

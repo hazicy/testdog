@@ -20,7 +20,7 @@ import { WorkspaceError } from '@testdog/server/shared/errors';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
 import { createRun } from '@testdog/server/runs/submission';
 import { getRun } from '@testdog/server/runs/repository';
-import { stepRecord } from '@testdog/server/runs/records';
+import { stepRecord } from '@testdog/server/runs/mappers';
 import {
   issueInput,
   issueUpdate,

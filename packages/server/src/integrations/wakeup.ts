@@ -1,3 +1,3 @@
-import { redisKey } from '@testdog/server/shared/redis';
+import { redisKey } from '@testdog/server/infrastructure/redis';
 
 export const notificationReadyChannel = () => redisKey('notifications:ready');

@@ -6,13 +6,13 @@ import { assertRunAccess, getRun } from '@testdog/server/runs/repository';
 import { ownedBy, workspaceChannel, type UserScope } from '@testdog/server/shared/ownership';
 import { requireUserId } from '@/server/shared/auth';
 import { isActiveRun } from '@testdog/contracts/runs/types';
-import { readyRedis, redisClient } from '@testdog/server/shared/redis';
+import { readyRedis, redisClient } from '@testdog/server/infrastructure/redis';
 import { latestPreview, watchPreview } from '@testdog/server/realtime/preview';
 import {
   readRunUpdates,
   startOutboxPublisher,
   subscribeRealtime,
-} from '@testdog/server/realtime/realtime';
+} from '@testdog/server/realtime/events';
 
 export async function workspaceVersion(userId: UserScope) {
   const [row] = await db

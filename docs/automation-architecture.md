@@ -171,16 +171,16 @@ Next.js API 仅校验、保存快照、入队并返回 202，独立长驻 Node w
 
 ### Web 实现目录
 
-Web 专用实现集中在 `packages/automation/src/platform/web/`。`webActions.ts` 执行浏览器动作，`webLocator.ts` 解析元素定位器，供 `PlaywrightSession` 和录制定位共用。Web 与原生工作台运行统一通过 `PlanRunner` 编排；平台差异由各自的 session、planner 和 replay adapter 处理。
+Web 专用实现集中在 `packages/engine/src/platform/web/`。`webActions.ts` 执行浏览器动作，`webLocator.ts` 解析元素定位器，供 `PlaywrightSession` 和录制定位共用。Web 与原生工作台运行统一通过 `PlanRunner` 编排；平台差异由各自的 session、planner 和 replay adapter 处理。
 
 ### 执行依赖装配与平台边界
 
-`packages/server/src/runs/runtime.ts` 按目标平台分派给 `webRuntime.ts` 或 `nativeRuntime.ts`，各平台分别装配 session、planner、注入模型的 `SemanticEvaluator` 与证据采集，并管理自己的初始化和清理。`PlanRunner` 只依赖统一接口，不选择具体平台或模型，也不读取旧工作台录制格式。
+`packages/server/src/execution/runtime/index.ts` 按目标平台分派给 `web.ts` 或 `native.ts`，各平台分别装配 session、planner、注入模型的 `SemanticEvaluator` 与证据采集，并管理自己的初始化和清理。`PlanRunner` 只依赖统一接口，不选择具体平台或模型，也不读取旧工作台录制格式。
 
 Web 和原生脚本解析返回纯 `RecordingOperation[]`，录制版本与重放快照只保存操作字段。历史 `ExecutionStep` 在创建重放时提取为录制操作；执行时通过 `packages/contracts/src/runs/lib/replay.ts` 转换为 `ReplayStep`，真实步骤的 ID、状态、时间和证据由录制器生成。内部动作统一为带平台标记的 `action`，确定性断言统一为 `platformAssertion`；Playwright 方法名在脚本解析／导出边界转换，重放时不再兼容或转换旧字段。历史步骤、录制版本、冻结快照、实时事件、问题证据和幂等响应在数据库迁移中统一。平台 session 的 `prepareReplayStep` 决定页面选择与重放规则：Web 弹窗等待不切回原页面，瞬时 ARIA 引用不能重放；原生会话继续绑定已租用的设备和应用。
 
 session 的 `executionPolicy.reobserveAfterAction` 声明动作后是否必须重新观察。原生会话逐动作重新规划，Web 可执行同一观察中的批量动作；任一会话 revision 变化都使剩余批次失效。自然语言断言和分支通过注入的 `Evaluator` 使用当前观察判断，确定性平台断言继续交给 session 检查。
 
-模型请求、响应和工具定义集中在 `automation/llm/contracts.ts`，不依赖供应商 SDK。`TextCompiler`、Web/Native planner 和 `SemanticEvaluator` 都接收 `ModelClient`，不直接引用 DeepSeek 或 OpenAI SDK。`server/shared/model.ts` 是默认模型的选择点，编译与运行时装配共用同一个客户端；新增模型适配器实现该接口后在此选择。
+模型请求、响应和工具定义集中在 `automation/llm/contracts.ts`，不依赖供应商 SDK。`TextCompiler`、Web/Native planner 和 `SemanticEvaluator` 都接收 `ModelClient`，不直接引用 DeepSeek 或 OpenAI SDK。`server/infrastructure/model.ts` 是默认模型的选择点，编译与运行时装配共用同一个客户端；新增模型适配器实现该接口后在此选择。
 
 稳定录制定位由 `platform/web/recordingLocator.ts` 提供，`RecordedAction` 定义在 `platform/web/types.ts`。Web session 与服务端录制器共用该平台能力；工作台执行记录和数据库表定义引用 Web 领域类型，session 不再导入工作台服务端定位模块。

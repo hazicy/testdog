@@ -19,8 +19,8 @@ vi.mock('@testdog/server/realtime/preview', () => ({
   publishPreview: vi.fn(),
   previewInterval: () => 3000,
 }));
-import { RunRecorder } from '@testdog/server/runs/recorder';
-import { browserlessProvider } from '@testdog/automation/platform/web/providers/browserless';
+import { RunRecorder } from '@testdog/server/execution/recording/webRecorder';
+import { browserlessProvider } from '@testdog/engine/platform/web/providers/browserless';
 
 let server: BrowserServer | undefined;
 let directory: string | undefined;

@@ -12,14 +12,14 @@ const services = vi.hoisted(() => ({
 }));
 
 vi.mock('@testdog/server/db', () => ({ pool: { end: services.closePool } }));
-vi.mock('@testdog/server/shared/redis', () => ({ closeRedis: services.closeRedis }));
+vi.mock('@testdog/server/infrastructure/redis', () => ({ closeRedis: services.closeRedis }));
 vi.mock('@testdog/server/scheduling/maintenance', () => ({
   startLeaseMaintenance: services.maintenance,
 }));
 vi.mock('@testdog/server/integrations/dispatcher', () => ({
   startNotificationDispatcher: services.notifications,
 }));
-vi.mock('@testdog/server/realtime/realtime', () => ({
+vi.mock('@testdog/server/realtime/events', () => ({
   startOutboxPublisher: services.outbox,
   stopOutboxPublisher: services.stopOutbox,
 }));

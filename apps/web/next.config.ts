@@ -14,7 +14,7 @@ if (existsSync(resolve(workspaceRoot, 'pnpm-workspace.yaml'))) {
 const nextConfig: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: resolve(process.cwd(), '../..'),
-  transpilePackages: ['@testdog/contracts', '@testdog/automation', '@testdog/server'],
+  transpilePackages: ['@testdog/contracts', '@testdog/engine', '@testdog/server'],
   serverExternalPackages: ['playwright', '@playwright/test', 'agent-device'],
   allowedDevOrigins: ['192.168.2.123', '192.168.2.35'],
 };

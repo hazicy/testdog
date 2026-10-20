@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
-import { apiError, validId } from '@testdog/server/shared/http';
+import { apiError, validId } from '@testdog/server/http/api';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { channelSchema } from '@testdog/contracts/integrations/schemas';
 import { retryDelivery } from '@testdog/server/integrations/repository';

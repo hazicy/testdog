@@ -4,8 +4,8 @@ import { expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ compile: vi.fn(), auth: vi.fn() }));
 
 vi.mock('@/server/shared/auth', () => ({ requireUserId: mocks.auth }));
-vi.mock('@testdog/server/shared/model', () => ({ modelClient: {} }));
-vi.mock('@testdog/automation/compiler/textCompiler', () => ({
+vi.mock('@testdog/server/infrastructure/model', () => ({ modelClient: {} }));
+vi.mock('@testdog/engine/compiler/textCompiler', () => ({
   TextCompiler: class {
     compile = mocks.compile;
   },

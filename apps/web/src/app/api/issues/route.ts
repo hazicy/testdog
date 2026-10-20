@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
-import { apiError, validId } from '@testdog/server/shared/http';
+import { apiError, validId } from '@testdog/server/http/api';
 import { readPage } from '@testdog/server/shared/pagination';
 import { submitOnce } from '@testdog/server/shared/idempotency';
 import { createIssue, listIssues } from '@testdog/server/issues/repository';

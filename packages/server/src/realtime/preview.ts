@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { RESP_TYPES } from 'redis';
-import { readyRedis, redisKey } from '@testdog/server/shared/redis';
+import { readyRedis, redisKey } from '@testdog/server/infrastructure/redis';
 import type { Preview } from '@testdog/contracts/runs/lib/realtime';
 
 export const previewInterval = () => {

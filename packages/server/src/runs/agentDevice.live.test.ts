@@ -1,7 +1,7 @@
 import { normalizeReplaySteps } from '@testdog/contracts/runs/lib/replay';
-import { SemanticEvaluator } from '@testdog/automation/evaluator';
-import { deepseekClient } from '@testdog/automation/llm/deepseek';
-import { PlanRunner } from '@testdog/automation/planRunner';
+import { SemanticEvaluator } from '@testdog/engine/evaluator';
+import { deepseekClient } from '@testdog/engine/llm/deepseek';
+import { PlanRunner } from '@testdog/engine/planRunner';
 import type { RecordingOperation } from '@testdog/contracts/runs/types';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -26,7 +26,7 @@ vi.mock('@testdog/server/db', async (original) => {
 import { getBuild, registerBuild } from '@testdog/server/builds/repository';
 
 afterAll(() => isolated.client?.close());
-import { AgentDeviceSession } from '@testdog/automation/platform/native/agentDeviceSession';
+import { AgentDeviceSession } from '@testdog/engine/platform/native/agentDeviceSession';
 import type {
   NativeAction,
   PlatformAction,
@@ -85,7 +85,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
     try {
       await mkdir(app);
       await cp(
-        'packages/automation/src/platform/native/fixtures/ios/Info.plist',
+        'packages/engine/src/platform/native/fixtures/ios/Info.plist',
         join(app, 'Info.plist'),
       );
       const sdk = (
@@ -103,7 +103,7 @@ it.skipIf(!live || process.platform !== 'darwin')(
           '-target',
           `${process.arch === 'arm64' ? 'arm64' : 'x86_64'}-apple-ios17.0-simulator`,
           '-parse-as-library',
-          'packages/automation/src/platform/native/fixtures/ios/Main.swift',
+          'packages/engine/src/platform/native/fixtures/ios/Main.swift',
           '-o',
           join(app, 'TestdogFixture'),
         ],
@@ -234,7 +234,7 @@ it.skipIf(!live || !process.env.TESTDOG_ANDROID_SERIAL)(
       await exec(join(tools, 'aapt2'), [
         'compile',
         '--dir',
-        'packages/automation/src/platform/native/fixtures/android/res',
+        'packages/engine/src/platform/native/fixtures/android/res',
         '-o',
         resources,
       ]);
@@ -245,7 +245,7 @@ it.skipIf(!live || !process.env.TESTDOG_ANDROID_SERIAL)(
         '-I',
         androidJar,
         '--manifest',
-        'packages/automation/src/platform/native/fixtures/android/AndroidManifest.xml',
+        'packages/engine/src/platform/native/fixtures/android/AndroidManifest.xml',
         resources,
       ]);
       await exec(join(java, 'bin', 'javac'), [
@@ -257,7 +257,7 @@ it.skipIf(!live || !process.env.TESTDOG_ANDROID_SERIAL)(
         androidJar,
         '-d',
         classes,
-        'packages/automation/src/platform/native/fixtures/android/MainActivity.java',
+        'packages/engine/src/platform/native/fixtures/android/MainActivity.java',
       ]);
       await exec(
         join(tools, 'd8'),

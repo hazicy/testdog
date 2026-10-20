@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUserId } from '@/server/shared/auth';
 import { moveTest } from '@testdog/server/suites/folders';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {

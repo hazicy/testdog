@@ -1,7 +1,7 @@
 import {
   runSummaryColumns as summaryColumns,
   runSummary as summary,
-} from '@testdog/server/runs/records';
+} from '@testdog/server/runs/mappers';
 import { emptyRunCounts, type WorkspaceStats } from '@testdog/contracts/workspace/types';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { and, desc, eq, inArray, sql, type SQLWrapper } from 'drizzle-orm';

@@ -4,15 +4,15 @@ import { readFile } from 'node:fs/promises';
 const manifest = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
 
 await build({
-  entryPoints: [
-    'worker',
-    'maintenance',
-    'notifications',
-    'register-build',
-    'recover-resource',
-    'assign-legacy-data',
-    'backfill-issues',
-  ].map((name) => `src/${name}.ts`),
+  entryPoints: {
+    worker: 'src/processes/worker.ts',
+    maintenance: 'src/processes/maintenance.ts',
+    notifications: 'src/processes/notifications.ts',
+    'register-build': 'src/commands/register-build.ts',
+    'recover-resource': 'src/commands/recover-resource.ts',
+    'assign-legacy-data': 'src/commands/assign-legacy-data.ts',
+    'backfill-issues': 'src/commands/backfill-issues.ts',
+  },
   outdir: 'dist',
   outExtension: { '.js': '.mjs' },
   bundle: true,

@@ -28,12 +28,12 @@ vi.mock('@/server/shared/auth', () => ({
 import { db } from '@testdog/server/db';
 import { authUsers, browserProviderIntegrations, testRuns } from '@testdog/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { decryptSecret } from '@testdog/server/shared/secrets';
+import { decryptSecret } from '@testdog/server/infrastructure/secrets';
 import {
   browserProviderDefinitions,
   type BrowserProviderDefinition,
 } from '@testdog/server/browser-providers/registry';
-import { browserlessProvider } from '@testdog/automation/platform/web/providers/browserless';
+import { browserlessProvider } from '@testdog/engine/platform/web/providers/browserless';
 import {
   readBrowserProviders,
   saveBrowserProvider,

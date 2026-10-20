@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 
 const redis = vi.hoisted(() => ({ client: undefined as unknown }));
 
-vi.mock('@testdog/server/shared/redis', () => ({
+vi.mock('@testdog/server/infrastructure/redis', () => ({
   redisClient: () => redis.client,
   redisKey: (suffix: string) => `test:${suffix}`,
 }));

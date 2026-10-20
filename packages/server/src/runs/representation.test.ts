@@ -26,7 +26,7 @@ vi.mock('@testdog/server/db', async () => {
 });
 import { createRun } from './submission';
 import { getRunRepresentation } from './repository';
-import { jsonResponse } from '@testdog/server/shared/jsonResponse';
+import { jsonResponse } from '@testdog/server/http/jsonResponse';
 
 afterAll(() => isolated.client!.close());
 

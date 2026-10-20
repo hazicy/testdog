@@ -13,12 +13,12 @@ vi.mock('@testdog/server/db', async () => {
 
   return { db: result.db };
 });
-vi.mock('@testdog/server/shared/redis', () => ({
+vi.mock('@testdog/server/infrastructure/redis', () => ({
   readyRedis: async () => ({ publish: isolated.publish }),
   redisClient: vi.fn(),
   redisKey: (key: string) => `test:${key}`,
 }));
-import { flushOutbox } from './realtime';
+import { flushOutbox } from './events';
 
 afterAll(() => isolated.client!.close());
 beforeEach(async () => {

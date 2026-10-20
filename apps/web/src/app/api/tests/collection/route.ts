@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
 import { moveTests } from '@testdog/server/suites/folders';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 
 const inputSchema = z.strictObject({

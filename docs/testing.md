@@ -31,13 +31,13 @@ UI 基础数据工厂与公共路由设置位于 `tests/ui/fixtures/`。工厂�
 
 ```bash
 RUN_WORKSPACE_LIVE_TESTS=true pnpm exec vitest run packages/server/src/runs/liveRun.integration.test.ts
-RUN_LIVE_TESTS=true pnpm exec vitest run packages/automation/src/compiler/textCompiler.integration.test.ts
+RUN_LIVE_TESTS=true pnpm exec vitest run packages/engine/src/compiler/textCompiler.integration.test.ts
 ```
 
 Redis 集成测试启动临时本地 Redis，使用随机端口和独立 key 前缀，不访问开发数据库：
 
 ```bash
-TESTDOG_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run packages/server/src/realtime/realtime.integration.test.ts
+TESTDOG_TEST_REDIS_BINARY=/path/to/redis-server pnpm exec vitest run packages/server/src/realtime/events.integration.test.ts
 ```
 
 独立 PostgreSQL 调度验证只接受本地、名称以 `testdog_test_` 开头的数据库，使用临时 schema 并清理，不读取 `DATABASE_URL`。同时设置 `TESTDOG_ANDROID_SERIAL` 可验证原生健康恢复，设备必须专用于测试：

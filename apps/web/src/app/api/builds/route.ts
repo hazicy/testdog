@@ -2,7 +2,7 @@ import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
 import { db } from '@testdog/server/db';
 import { automationBuilds } from '@testdog/server/db/schema';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 
 export const runtime = 'nodejs';
 

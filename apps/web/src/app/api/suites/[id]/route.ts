@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
 import { getSuite, saveSuite, deleteSuite } from '@testdog/server/suites/repository';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 
 type Context = { params: Promise<{ id: string }> };
 

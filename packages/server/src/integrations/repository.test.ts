@@ -47,7 +47,7 @@ import {
   retryDelivery,
 } from '@testdog/server/integrations/repository';
 import { dispatchNotifications } from '@testdog/server/integrations/dispatcher';
-import { decryptSecret, encryptSecret } from '@testdog/server/shared/secrets';
+import { decryptSecret, encryptSecret } from '@testdog/server/infrastructure/secrets';
 import { POST as testEndpoint } from '../../../../apps/web/src/app/api/integrations/[channel]/test/route';
 import { PUT as saveEndpoint } from '../../../../apps/web/src/app/api/integrations/[channel]/route';
 

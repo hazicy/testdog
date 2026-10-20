@@ -1,8 +1,8 @@
 import { hostname } from 'node:os';
 import type { TestRun } from '@testdog/contracts/runs/types';
-import { executeRun } from '@testdog/server/runs/run';
+import { executeRun } from '@testdog/server/execution/executeRun';
 import { claimRun, registerResources, withLease } from '@testdog/server/scheduling/scheduler';
-import { owner } from '@testdog/server/shared/workerIdentity';
+import { owner } from '@testdog/server/infrastructure/workerIdentity';
 
 export async function executeTestRun(run: TestRun): Promise<void> {
   const hostId = process.env.TESTDOG_HOST_ID || hostname();

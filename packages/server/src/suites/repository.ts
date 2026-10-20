@@ -5,7 +5,7 @@ import { db } from '@testdog/server/db';
 import { testSuites, testCases, testRuns } from '@testdog/server/db/schema';
 import { ownedBy, ownershipValues, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
-import { validId } from '@testdog/server/shared/http';
+import { validId } from '@testdog/server/http/api';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
 import { suiteInputSchema, suiteUpdateSchema } from '@testdog/contracts/suites/schemas';
 import { targetUrl } from '@testdog/contracts/automation/platform/target';

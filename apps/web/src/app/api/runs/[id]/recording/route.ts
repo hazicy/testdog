@@ -1,6 +1,6 @@
 import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
-import { apiError, validId } from '@testdog/server/shared/http';
+import { apiError, validId } from '@testdog/server/http/api';
 import { listRecordingVersions, saveRecordingVersion } from '@testdog/server/runs/recordings';
 
 export const runtime = 'nodejs';

@@ -91,7 +91,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: '^@testdog/(?:automation|server)/|^@/|^next(?:/|$)|^react(?:/|$)',
+              regex: '^@testdog/(?:engine|server)/|^@/|^next(?:/|$)|^react(?:/|$)',
               message: '共享协议不能依赖应用、执行实现或服务端。',
             },
           ],
@@ -100,7 +100,7 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ['packages/automation/src/**/*.ts'],
+    files: ['packages/engine/src/**/*.ts'],
     ignores: ['**/*.test.ts'],
     rules: {
       'no-restricted-imports': [
@@ -135,13 +135,35 @@ const eslintConfig = defineConfig([
     },
   },
 
+  {
+    files: ['packages/server/src/runs/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^@/|^next(?:/|$)|^better-auth(?:/|$)|^@better-auth/',
+              message: '共享后端不能依赖 Web 应用、Next.js 或用户会话实现。',
+            },
+            {
+              regex: '^@testdog/server/execution(?:/|$)|(?:^|/)execution(?:/|$)',
+              message: '执行记录业务不能依赖执行器；取消请求通过数据库传递。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // 模型消费者依赖限制
   {
     files: [
-      'packages/automation/src/compiler/textCompiler.ts',
-      'packages/automation/src/evaluator.ts',
-      'packages/automation/src/platform/web/webPlanner.ts',
-      'packages/automation/src/platform/native/nativePlanner.ts',
+      'packages/engine/src/compiler/textCompiler.ts',
+      'packages/engine/src/evaluator.ts',
+      'packages/engine/src/platform/web/webPlanner.ts',
+      'packages/engine/src/platform/native/nativePlanner.ts',
     ],
     rules: {
       'no-restricted-imports': [
@@ -149,7 +171,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: `^openai(?:/|$)|^@testdog/automation/llm/(?!contracts)|(?:^|/)llm/(?!contracts(?:\\.[cm]?[jt]sx?)?$)|${serverImportPattern}`,
+              regex: `^openai(?:/|$)|^@testdog/engine/llm/(?!contracts)|(?:^|/)llm/(?!contracts(?:\\.[cm]?[jt]sx?)?$)|${serverImportPattern}`,
               message: '模型消费者依赖 ModelClient；具体模型和 SDK 由装配层选择并注入。',
             },
           ],
@@ -161,8 +183,8 @@ const eslintConfig = defineConfig([
   // Web 会话和录制定位依赖限制
   {
     files: [
-      'packages/automation/src/platform/web/playwrightSession.ts',
-      'packages/automation/src/platform/web/recordingLocator.ts',
+      'packages/engine/src/platform/web/playwrightSession.ts',
+      'packages/engine/src/platform/web/recordingLocator.ts',
     ],
     rules: {
       'no-restricted-imports': [
@@ -181,14 +203,14 @@ const eslintConfig = defineConfig([
 
   // PlanRunner 依赖限制
   {
-    files: ['packages/automation/src/planRunner.ts'],
+    files: ['packages/engine/src/planRunner.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              regex: `^@testdog/(?:server|contracts/(?!automation/)|automation/(?:llm|platform/(?:web|native)))|(?:^|/)(?:llm|features|db|platform/(?:web|native))(?:/.*)?$|${serverImportPattern}`,
+              regex: `^@testdog/(?:server|contracts/(?!automation/)|engine/(?:llm|platform/(?:web|native)))|(?:^|/)(?:llm|features|db|platform/(?:web|native))(?:/.*)?$|${serverImportPattern}`,
               allowTypeImports: true,
               message: 'PlanRunner 通过注入接口编排执行，不直接依赖平台驱动、模型或工作台存储。',
             },
@@ -211,7 +233,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: `^@testdog/server/|^@testdog/automation/|(?:^|/)(?:db(?:/.*)?|automation/(?:planRunner|evaluator|llm(?:/.*)?|platform/web/(?:browserSession|observer|pageReadiness|webPlanner|webActions|webLocator|recordingLocator|replay)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$|${serverImportPattern}`,
+              regex: `^@testdog/server/|^@testdog/engine/|(?:^|/)(?:db(?:/.*)?|engine/(?:planRunner|evaluator|llm(?:/.*)?|platform/web/(?:browserSession|observer|pageReadiness|webPlanner|webActions|webLocator|recordingLocator|replay)|platform/native/nativePlanner|compiler/textCompiler))(?:\\.[cm]?[jt]sx?)?$|${serverImportPattern}`,
               allowTypeImports: true,
               message: '浏览器组件通过 API 访问服务端功能；共享类型请使用 import type。',
             },

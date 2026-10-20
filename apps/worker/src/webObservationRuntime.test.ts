@@ -21,17 +21,11 @@ afterAll(async () => {
 it.each(['tsx', 'bundle'])(
   'observes a caller-selected plain region through the %s worker runtime',
   async (runtime) => {
-    const observer = fileURLToPath(
-      import.meta.resolve('@testdog/automation/platform/web/observer'),
-    );
-    const view = fileURLToPath(
-      import.meta.resolve('@testdog/automation/platform/web/observationView'),
-    );
-    const actions = fileURLToPath(
-      import.meta.resolve('@testdog/automation/platform/web/webActions'),
-    );
+    const observer = fileURLToPath(import.meta.resolve('@testdog/engine/platform/web/observer'));
+    const view = fileURLToPath(import.meta.resolve('@testdog/engine/platform/web/observationView'));
+    const actions = fileURLToPath(import.meta.resolve('@testdog/engine/platform/web/webActions'));
     const recorder = fileURLToPath(
-      import.meta.resolve('@testdog/automation/platform/web/recordingLocator'),
+      import.meta.resolve('@testdog/engine/platform/web/recordingLocator'),
     );
     const entry = join(directory, 'observe.mjs');
 

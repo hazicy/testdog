@@ -2,8 +2,8 @@ import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
 import { getRunRepresentation } from '@testdog/server/runs/repository';
 import { requestCancellation } from '@testdog/server/runs/lifecycle';
-import { apiError, validId } from '@testdog/server/shared/http';
-import { jsonResponse } from '@testdog/server/shared/jsonResponse';
+import { apiError, validId } from '@testdog/server/http/api';
+import { jsonResponse } from '@testdog/server/http/jsonResponse';
 
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };

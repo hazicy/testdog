@@ -10,7 +10,7 @@ import type { WebTarget } from '@testdog/contracts/automation/platform/target';
 import { db } from '@testdog/server/db';
 import { browserProviderIntegrations as integrations, testRuns } from '@testdog/server/db/schema';
 import { WorkspaceError } from '@testdog/server/shared/errors';
-import { encryptSecret, decryptSecret } from '@testdog/server/shared/secrets';
+import { encryptSecret, decryptSecret } from '@testdog/server/infrastructure/secrets';
 import type { BrowserProviderIntegration } from '@testdog/contracts/integrations/types';
 import {
   browserProviderDefinitions,

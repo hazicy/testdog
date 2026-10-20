@@ -3,7 +3,7 @@ import { listTestPage } from '@testdog/server/workspace/queries';
 import { readPage } from '@testdog/server/shared/pagination';
 import { NextResponse } from 'next/server';
 import { saveTest } from '@testdog/server/test-cases/repository';
-import { apiError, validId } from '@testdog/server/shared/http';
+import { apiError, validId } from '@testdog/server/http/api';
 
 export const runtime = 'nodejs';
 

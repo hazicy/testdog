@@ -25,7 +25,7 @@
     "@playwright/test": "catalog:",
     "@tanstack/react-table": "catalog:",
     "@tanstack/react-virtual": "catalog:",
-    "@testdog/automation": "workspace:*",
+    "@testdog/engine": "workspace:*",
     "@testdog/contracts": "workspace:*",
     "@testdog/server": "workspace:*",
     "@xyflow/react": "catalog:",

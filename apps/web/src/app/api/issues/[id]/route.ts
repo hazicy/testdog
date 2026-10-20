@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUserId } from '@/server/shared/auth';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { getIssue, updateIssue } from '@testdog/server/issues/repository';
 import { issueUpdate } from '@testdog/contracts/issues/schemas';

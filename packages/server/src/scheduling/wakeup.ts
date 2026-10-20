@@ -1,5 +1,5 @@
-import { queueWakeup } from '@testdog/server/shared/queueWakeup';
-import { redisKey } from '@testdog/server/shared/redis';
+import { queueWakeup } from '@testdog/server/infrastructure/queueWakeup';
+import { redisKey } from '@testdog/server/infrastructure/redis';
 
 export const taskReadyChannel = () => redisKey('tasks:ready');
 

@@ -7,7 +7,7 @@ import type {
   ModelUsage,
 } from '@testdog/contracts/runs/modelCalls';
 import { WorkspaceError } from '@testdog/server/shared/errors';
-import type { ModelCallMetric } from '@testdog/automation/llm/budget';
+import type { ModelCallMetric } from '@testdog/engine/llm/budget';
 import { runWrite } from '@testdog/server/scheduling/lease';
 
 export function recordModelCall(runId: string, metric: ModelCallMetric) {

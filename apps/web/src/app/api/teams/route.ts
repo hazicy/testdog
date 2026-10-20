@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { executeTeamCommand, listTeams } from '@testdog/server/teams/repository';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { requireIdentity, selectedTeam, teamCookie } from '@/server/shared/team';
 

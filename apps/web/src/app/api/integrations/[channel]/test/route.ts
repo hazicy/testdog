@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { submitOnce } from '@testdog/server/shared/idempotency';
 import { channelSchema } from '@testdog/contracts/integrations/schemas';

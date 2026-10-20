@@ -3,7 +3,7 @@ import { db } from '@testdog/server/db';
 import { testCases, testSuites } from '@testdog/server/db/schema';
 import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
-import { validId } from '@testdog/server/shared/http';
+import { validId } from '@testdog/server/http/api';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

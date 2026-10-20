@@ -14,7 +14,7 @@ import {
   testValidationMessage,
 } from '@testdog/contracts/test-cases/schemas';
 import { caseFolderValues, lockTree } from '@testdog/server/suites/folders';
-import { validId } from '@testdog/server/shared/http';
+import { validId } from '@testdog/server/http/api';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 
 export async function getTest(id: string, userId: UserScope) {

@@ -7,7 +7,7 @@ vi.mock('@testdog/server/browser-providers/repository', () => ({
   browserProviderForRun: mocks.forRun,
   savedBrowserProvider: mocks.saved,
 }));
-vi.mock('@testdog/automation/platform/web/providers/local', () => ({
+vi.mock('@testdog/engine/platform/web/providers/local', () => ({
   localBrowserProvider: {
     id: 'local',
     supportedBrowsers: ['chromium', 'webkit'],

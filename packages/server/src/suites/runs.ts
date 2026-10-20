@@ -7,11 +7,11 @@ import { emptyRunCounts } from '@testdog/contracts/workspace/types';
 import { activeRunStatuses } from '@testdog/contracts/runs/types';
 import { ownedBy, ownershipValues, type UserScope } from '@testdog/server/shared/ownership';
 import { WorkspaceError } from '@testdog/server/shared/errors';
-import { validId } from '@testdog/server/shared/http';
+import { validId } from '@testdog/server/http/api';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
 import { submitOnce } from '@testdog/server/shared/idempotency';
 import { createCaseRuns } from '@testdog/server/runs/submission';
-import { runSummaryColumns, runSummary } from '@testdog/server/runs/records';
+import { runSummaryColumns, runSummary } from '@testdog/server/runs/mappers';
 import { lockTree, folderFor } from './folders';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];

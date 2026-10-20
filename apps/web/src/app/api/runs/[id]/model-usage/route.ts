@@ -2,7 +2,7 @@ import { assertRunAccess } from '@testdog/server/runs/repository';
 import { requireUserId } from '@/server/shared/auth';
 import { NextResponse } from 'next/server';
 import { listModelCalls, readModelUsage } from '@testdog/server/runs/modelUsage';
-import { apiError, validId } from '@testdog/server/shared/http';
+import { apiError, validId } from '@testdog/server/http/api';
 
 export const runtime = 'nodejs';
 

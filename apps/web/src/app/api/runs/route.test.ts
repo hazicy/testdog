@@ -19,7 +19,7 @@ vi.mock('next/server', async (original) => ({
   ...(await original<typeof import('next/server')>()),
   after: mocks.after,
 }));
-vi.mock('@testdog/server/runs/run', () => ({ executeRun: mocks.execute }));
+vi.mock('@testdog/server/execution/executeRun', () => ({ executeRun: mocks.execute }));
 import { saveTest } from '@testdog/server/test-cases/repository';
 import { getRun } from '@testdog/server/runs/repository';
 import { POST, GET } from '@/app/api/runs/route';

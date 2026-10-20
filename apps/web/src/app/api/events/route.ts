@@ -1,5 +1,5 @@
 import { requireUserId } from '@/server/shared/auth';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 import { eventStream } from '@/server/realtime/eventStream';
 
 export const runtime = 'nodejs';

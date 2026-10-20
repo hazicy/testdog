@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
 import { startSuite } from '@testdog/server/suites/runs';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {

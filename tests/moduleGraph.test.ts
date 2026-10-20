@@ -10,7 +10,7 @@ it('keeps the production module graph free of runtime import cycles', () => {
     'apps/web',
     'apps/worker',
     'packages/contracts',
-    'packages/automation',
+    'packages/engine',
     'packages/server',
   ];
   const files = projects

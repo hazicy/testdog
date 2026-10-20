@@ -21,7 +21,7 @@ import { WorkspaceError } from '@testdog/server/shared/errors';
 import { submitOnce } from '@testdog/server/shared/idempotency';
 import type { z } from 'zod';
 import { recordingOperation } from '@testdog/contracts/runs/lib/recordingOperation';
-import { runRecord, stepRecord } from '@testdog/server/runs/records';
+import { runRecord, stepRecord } from '@testdog/server/runs/mappers';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type RunOptions = { batchId?: string };

@@ -14,7 +14,7 @@ import {
   notificationEventRecords as events,
 } from '@testdog/server/db/schema';
 import { WorkspaceError } from '@testdog/server/shared/errors';
-import { encryptSecret, decryptSecret } from '@testdog/server/shared/secrets';
+import { encryptSecret, decryptSecret } from '@testdog/server/infrastructure/secrets';
 import { platformSmtpConfig, requirePlatformSmtp } from '@testdog/server/integrations/smtp';
 import { emailInput, feishuInput } from '@testdog/contracts/integrations/schemas';
 import type {

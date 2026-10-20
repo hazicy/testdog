@@ -3,7 +3,7 @@ import { listRunPage } from '@testdog/server/workspace/queries';
 import { readPage } from '@testdog/server/shared/pagination';
 import { NextResponse } from 'next/server';
 import { submitRun } from '@testdog/server/runs/submission';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;

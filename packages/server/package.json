@@ -5,14 +5,15 @@
   "name": "@testdog/server",
   "exports": {
     "./*": "./src/*.ts",
-    "./db": "./src/db/index.ts"
+    "./db": "./src/db/index.ts",
+    "./execution/runtime": "./src/execution/runtime/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",
-    "@testdog/automation": "workspace:*",
+    "@testdog/engine": "workspace:*",
     "@testdog/contracts": "workspace:*",
     "agent-device": "catalog:",
     "dotenv": "catalog:",

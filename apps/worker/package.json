@@ -4,7 +4,7 @@
   "type": "module",
   "name": "@testdog/worker",
   "scripts": {
-    "dev": "tsx src/worker.ts",
+    "dev": "tsx src/processes/worker.ts",
     "build": "node build.mjs",
     "start": "node dist/worker.mjs",
     "maintenance": "node dist/maintenance.mjs",
@@ -14,7 +14,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",
     "@playwright/test": "catalog:",
-    "@testdog/automation": "workspace:*",
+    "@testdog/engine": "workspace:*",
     "@testdog/contracts": "workspace:*",
     "@testdog/server": "workspace:*",
     "acorn": "catalog:",

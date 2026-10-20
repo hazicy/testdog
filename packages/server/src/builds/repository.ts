@@ -1,4 +1,4 @@
-import { hashBuild } from '@testdog/automation/platform/native/builds';
+import { hashBuild } from '@testdog/engine/platform/native/builds';
 import { randomUUID } from 'node:crypto';
 import { cp, mkdir, readdir, realpath } from 'node:fs/promises';
 import { join, extname } from 'node:path';

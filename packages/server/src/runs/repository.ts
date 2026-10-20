@@ -1,4 +1,4 @@
-import { logger } from '@testdog/server/shared/logger';
+import { logger } from '@testdog/server/infrastructure/logger';
 import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import {
@@ -14,8 +14,8 @@ import { assertUserScope, ownedBy, type UserScope } from '@testdog/server/shared
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { runWrite } from '@testdog/server/scheduling/lease';
 import { storeArtifactFile } from '@testdog/server/runs/artifactStorage';
-import { matchesEtag } from '@testdog/server/shared/jsonResponse';
-import { runRecord, stepRecord, artifactRecord } from '@testdog/server/runs/records';
+import { matchesEtag } from '@testdog/server/http/jsonResponse';
+import { runRecord, stepRecord, artifactRecord } from '@testdog/server/runs/mappers';
 
 export async function getRun(id: string, options: { userId: UserScope }): Promise<TestRun> {
   assertUserScope(options?.userId);

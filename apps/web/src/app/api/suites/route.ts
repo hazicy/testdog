@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUserId } from '@/server/shared/auth';
 import { listSuites, saveSuite } from '@testdog/server/suites/repository';
 import { readPage } from '@testdog/server/shared/pagination';
-import { apiError } from '@testdog/server/shared/http';
+import { apiError } from '@testdog/server/http/api';
 
 export async function GET(request: Request) {
   try {

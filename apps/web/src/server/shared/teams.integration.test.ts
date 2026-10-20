@@ -39,7 +39,7 @@ import { createRun } from '@testdog/server/runs/submission';
 import { getRun } from '@testdog/server/runs/repository';
 import { getTest, saveTest } from '@testdog/server/test-cases/repository';
 import { ownershipValues, ownedBy, teamScope } from '@testdog/server/shared/ownership';
-import { encryptSecret, decryptSecret } from '@testdog/server/shared/secrets';
+import { encryptSecret, decryptSecret } from '@testdog/server/infrastructure/secrets';
 import { requireUserId } from '@/server/shared/auth';
 import { POST } from '@/app/api/teams/route';
 
