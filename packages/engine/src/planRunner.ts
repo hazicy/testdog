@@ -188,6 +188,9 @@ export class PlanRunner {
     const { session, planner, signal } = this.options;
     const completedSteps: PlatformAction[] = [];
     const completedObservations: Observation[] = [];
+    const completedRegionObservations: NonNullable<
+      Parameters<ActionPlanner['plan']>[0]['completedRegionObservations']
+    > = [];
     let remainingWaitMs = 15000;
     let count = 0;
     let replans = 0;
@@ -204,6 +207,13 @@ export class PlanRunner {
       signal.throwIfAborted();
       const observation = await this.observe(observationRequest);
 
+      if (observationRequest) {
+        completedRegionObservations.push({
+          ref: observationRequest.ref,
+          surface: observation.surface,
+          revision: observation.revision,
+        });
+      }
       observationRequest = undefined;
       const revision = session.revision;
       let decision: Awaited<ReturnType<ActionPlanner['plan']>>;
@@ -215,6 +225,7 @@ export class PlanRunner {
           capabilities: session.capabilities,
           completedSteps: [...completedSteps],
           completedObservations: [...completedObservations],
+          completedRegionObservations: [...completedRegionObservations],
           remainingWaitMs,
           ...(previousFailure ? { previousFailure } : {}),
         });

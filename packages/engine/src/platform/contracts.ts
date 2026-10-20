@@ -57,6 +57,12 @@ export interface ActionPlanner {
     completedSteps: PlatformAction[];
     /** Observation used to choose each dispatched step, in the same order. */
     completedObservations?: Observation[];
+    /** Completed explicit inspections, separate from action source snapshots. */
+    completedRegionObservations?: {
+      ref: string;
+      surface: Observation['surface'];
+      revision: number;
+    }[];
     remainingWaitMs: number;
     previousFailure?: { reason: string; action?: PlatformAction };
   }): Promise<{

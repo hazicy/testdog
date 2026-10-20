@@ -114,6 +114,46 @@ it('describes the clicked link on its source page even when its ref is reused by
   expect(payload).not.toHaveProperty('completedObservations');
 });
 
+it('sends completed region inspections to the model even before any business action', async () => {
+  generate.mockResolvedValue({
+    content: { text: '' },
+    toolCalls: [{ name: 'click', arguments: '{"ref":"e96"}' }],
+  });
+  const completedRegionObservations = ['', 'e81'].map((ref) => ({
+    ref,
+    surface: input.observation.surface,
+    revision: input.observation.revision,
+  }));
+
+  await new WebActionPlanner(model).plan({
+    ...input,
+    completedSteps: [],
+    completedObservations: [],
+    completedRegionObservations,
+    observation: {
+      ...input.observation,
+      requestedRegion: 'e81',
+      tree: [
+        {
+          role: 'generic',
+          ref: 'e81',
+          children: [
+            { role: 'link', ref: 'e82', name: 'Discover' },
+            { role: 'link', ref: 'e96', name: 'Profile' },
+          ],
+        },
+      ],
+    },
+  });
+  const payload = JSON.parse(generate.mock.calls[0][0].messages[0].content.text);
+
+  expect(payload.completedSteps).toEqual([]);
+  expect(payload.completedRegionObservations).toEqual(completedRegionObservations);
+  expect(payload.observation.requestedRegion).toBe('e81');
+  expect(payload.observation.tree[0].children[1]).toMatchObject({ ref: 'e96', name: 'Profile' });
+  expect(payload).not.toHaveProperty('completedObservations');
+});
+
 it('rejects a batched wait so subsequent actions require a fresh observation', async () => {
   generate.mockResolvedValue({
     content: { text: '' },
@@ -153,7 +193,7 @@ it('sends the selected detail and global overview without duplicating the raw tr
 
   expect(payload.observation.tree).toEqual([scoped.tree[1]]);
   expect(payload.observation.overview).toEqual(scoped.tree);
-  expect(payload.observation).not.toHaveProperty('requestedRegion');
+  expect(payload.observation.requestedRegion).toBe('e3');
   expect(scoped.tree).toHaveLength(2);
 });
 

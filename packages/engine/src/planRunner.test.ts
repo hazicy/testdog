@@ -47,6 +47,7 @@ it('forwards AI-selected region observations without recording or dispatching in
   const planner = {
     plan: vi
       .fn<ActionPlanner['plan']>()
+      .mockResolvedValueOnce({ done: false, steps: [], observe: { ref: '' } })
       .mockResolvedValueOnce({ done: false, steps: [], observe: { ref: 'e2' } })
       .mockResolvedValueOnce({ done: false, steps: [click] })
       .mockResolvedValue({ done: true, steps: [] }),
@@ -55,14 +56,27 @@ it('forwards AI-selected region observations without recording or dispatching in
   await new PlanRunner({ evaluator, session: web, planner, signal, plan }).record();
   expect(observed.mock.calls.map(([, request]) => request)).toEqual([
     undefined,
+    { ref: '' },
     { ref: 'e2' },
     undefined,
   ]);
   expect(driver.perform).toHaveBeenCalledExactlyOnceWith(click, signal);
-  expect(planner.plan.mock.calls[1][0]).toMatchObject({
+  expect(planner.plan.mock.calls[0][0].completedRegionObservations).toEqual([]);
+  expect(planner.plan.mock.calls[1][0].completedRegionObservations).toEqual([
+    { ref: '', surface: { platform: 'web', id: 'page' }, revision: 2 },
+  ]);
+  const inspected = planner.plan.mock.calls[2][0];
+
+  expect(inspected).toMatchObject({
     completedSteps: [],
+    completedObservations: [],
     observation: { requestedRegion: 'e2' },
+    completedRegionObservations: [
+      { ref: '', surface: { platform: 'web', id: 'page' }, revision: 2 },
+      { ref: 'e2', surface: { platform: 'web', id: 'page' }, revision: 3 },
+    ],
   });
+  expect(planner.plan.mock.calls[3][0].completedObservations).toEqual([inspected.observation]);
   expect(driver.emit.mock.calls.every(([event]) => event.action?.action.type === 'click')).toBe(
     true,
   );
