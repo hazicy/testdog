@@ -228,35 +228,36 @@ export function IssueDetail({ id }: { id: string }) {
         {t('backLink')}
       </Link>
       <PageHeader
-        title={issue.title}
+        title={
+          <span className={styles.titleRow}>
+            <span className={styles.issueTitle}>{issue.title}</span>
+            <span className={styles.titleStatus} data-status={issue.status}>
+              <span className={styles.statusDot} aria-hidden="true" />
+              {issueStatuses[issue.status]}
+            </span>
+          </span>
+        }
         description={
           <span className={styles.metadata}>
-            <StatusBadge>{issueCategories[issue.category]}</StatusBadge>
-            {latest && <StatusBadge>{environmentLabel(latest)}</StatusBadge>}
-            <span>{t('runsCount', { count: runCount })}</span>
-            <span>
-              {t('firstSeen', {
-                time: relativeTime(
-                  issue.firstSeen ?? occurrences.at(-1)?.createdAt ?? issue.createdAt,
-                ),
-              })}
+            <span className={styles.metadataGroup}>
+              <StatusBadge>{issueCategories[issue.category]}</StatusBadge>
+              {latest && <StatusBadge>{environmentLabel(latest)}</StatusBadge>}
             </span>
-            <span>
-              {t('lastSeen', {
-                time: relativeTime(issue.lastSeen ?? latest?.createdAt ?? issue.createdAt),
-              })}
+            <span className={styles.metadataGroup}>
+              <span>{t('runsCount', { count: runCount })}</span>
+              <span>
+                {t('firstSeen', {
+                  time: relativeTime(
+                    issue.firstSeen ?? occurrences.at(-1)?.createdAt ?? issue.createdAt,
+                  ),
+                })}
+              </span>
+              <span>
+                {t('lastSeen', {
+                  time: relativeTime(issue.lastSeen ?? latest?.createdAt ?? issue.createdAt),
+                })}
+              </span>
             </span>
-            <StatusBadge
-              tone={
-                issue.status === 'closed'
-                  ? 'success'
-                  : issue.status === 'open'
-                    ? 'neutral'
-                    : 'warning'
-              }
-            >
-              {issueStatuses[issue.status]}
-            </StatusBadge>
             {issue.closeReason && (
               <span>{t('closeReasonText', { reason: closeReasons[issue.closeReason] })}</span>
             )}

@@ -11,13 +11,60 @@
   font: var(--type-resource-item);
   color: var(--page-muted);
 }
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.issueTitle {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.titleStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  color: var(--page-muted);
+  font: var(--type-metadata);
+  letter-spacing: normal;
+}
+.statusDot {
+  width: var(--space-1-5);
+  height: var(--space-1-5);
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--page-muted);
+}
+.titleStatus[data-status='in_progress'] .statusDot,
+.titleStatus[data-status='pending_verification'] .statusDot {
+  background: var(--warning);
+}
+.titleStatus[data-status='closed'] .statusDot {
+  background: var(--success);
+}
 .metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding-top: var(--space-1);
+  color: var(--page-muted);
+  font: var(--type-metadata);
+}
+.metadataGroup {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-3);
-  color: var(--page-muted);
-  font: var(--type-metadata);
+}
+.metadataGroup > span {
+  white-space: nowrap;
+}
+.metadataGroup + .metadataGroup {
+  padding-inline-start: var(--space-4);
+  border-inline-start: var(--border-width) solid var(--page-line);
 }
 .toolbarButton {
   gap: var(--space-1);
@@ -236,6 +283,14 @@
   }
 }
 @media (width < 48rem) {
+  .metadata {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .metadataGroup + .metadataGroup {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
   .comparison {
     grid-template-columns: minmax(0, 1fr);
   }
