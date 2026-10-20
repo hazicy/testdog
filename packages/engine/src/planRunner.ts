@@ -59,11 +59,10 @@ export class PlanRunner {
     signal.throwIfAborted();
     await session.prepareReplayStep(step, signal);
     if (event.action) {
-      if (event.action.action.type !== 'plugin') await this.observe();
-      await this.action(
-        event.action,
-        event.action.action.type === 'plugin' ? { title: event.title } : {},
-      );
+      const isPlugin = event.action.action.type === 'plugin';
+
+      if (!isPlugin) await this.observe();
+      await this.action(event.action, isPlugin ? { title: event.title } : {});
 
       return;
     }
@@ -86,14 +85,15 @@ export class PlanRunner {
     }
 
     if (event.assertion || event.condition) {
-      await this.traced(event, async () => {
-        const result = await this.evaluate(
-          event.assertion ? { assertion: event.assertion } : { condition: event.condition },
-          event.assertion ? 'assertion_result' : 'branch_result',
-        );
+      const isAssertion = Boolean(event.assertion);
 
-        return this.verify(result, event.assertion ? true : event.decision);
-      });
+      await this.traced(event, () =>
+        this.evaluateAndVerify(
+          isAssertion ? { assertion: event.assertion } : { condition: event.condition },
+          isAssertion ? 'assertion_result' : 'branch_result',
+          isAssertion ? true : event.decision,
+        ),
+      );
 
       return;
     }
@@ -132,48 +132,54 @@ export class PlanRunner {
 
   private async executeTask(node: Extract<PlanNode, { kind: 'task' }>) {
     await this.options.report?.(`执行任务：${node.goal}`);
-    if (node.actionType === 'plugin') {
-      if (!node.plugin) throw new Error('请配置插件');
-      await this.action(
-        { platform: 'web', action: { type: 'plugin', plugin: node.plugin } },
-        { title: node.goal },
-      );
-    } else if (node.actionType === 'navigate') {
-      if (this.options.session.platform !== 'web') throw new Error('Navigate 步骤仅支持 Web 测试');
-      await this.action({
-        platform: 'web',
-        action: {
-          type: 'navigate',
-          target: { kind: 'css', value: '', name: '' },
-          value: node.goal.trim(),
-        },
-      });
-    } else if (node.actionType === 'screenshot') {
-      await this.observe();
-      const platform = this.options.session.platform;
+    switch (node.actionType) {
+      case 'plugin':
+        if (!node.plugin) throw new Error('请配置插件');
+        await this.action(
+          { platform: 'web', action: { type: 'plugin', plugin: node.plugin } },
+          { title: node.goal },
+        );
+        break;
+      case 'navigate':
+        if (this.options.session.platform !== 'web')
+          throw new Error('Navigate 步骤仅支持 Web 测试');
+        await this.action({
+          platform: 'web',
+          action: {
+            type: 'navigate',
+            target: { kind: 'css', value: '', name: '' },
+            value: node.goal.trim(),
+          },
+        });
+        break;
+      case 'screenshot': {
+        await this.observe();
+        const platform = this.options.session.platform;
 
-      await this.action(
-        platform === 'web'
-          ? {
-              platform,
-              action: {
-                type: 'screenshot',
-                target: { kind: 'css', value: '', name: '' },
-                value: '',
-              },
-            }
-          : { platform, action: { type: 'screenshot' } },
-      );
-    } else if (node.actionType !== 'assert') await this.task(node);
+        await this.action(
+          platform === 'web'
+            ? {
+                platform,
+                action: {
+                  type: 'screenshot',
+                  target: { kind: 'css', value: '', name: '' },
+                  value: '',
+                },
+              }
+            : { platform, action: { type: 'screenshot' } },
+        );
+        break;
+      }
+
+      case 'assert':
+        break;
+      default:
+        await this.task(node);
+    }
 
     for (const assertion of node.assertions) {
-      await this.traced(
-        { kind: 'assertion', title: assertion.description, assertion },
-        async () => {
-          const result = await this.evaluate({ assertion }, 'assertion_result');
-
-          return this.verify(result, true);
-        },
+      await this.traced({ kind: 'assertion', title: assertion.description, assertion }, () =>
+        this.evaluateAndVerify({ assertion }, 'assertion_result', true),
       );
     }
   }
@@ -273,15 +279,12 @@ export class PlanRunner {
     )
       throw new Error(`Unsupported ${action.platform} action: ${action.action.type}`);
 
+    const type = action.action.type;
+
     return this.traced(
       {
-        kind:
-          action.action.type === 'navigate'
-            ? 'navigate'
-            : action.action.type === 'wait'
-              ? 'wait'
-              : 'action',
-        title: `${action.action.type}`,
+        kind: type === 'navigate' || type === 'wait' ? type : 'action',
+        title: type,
         action,
         ...source,
       },
@@ -294,6 +297,14 @@ export class PlanRunner {
       throw Object.assign(new Error(result.evidence), { modelCallId: result.modelCallId });
 
     return result;
+  }
+
+  private async evaluateAndVerify(
+    subject: Record<string, unknown>,
+    name: string,
+    expected: boolean | undefined,
+  ) {
+    return this.verify(await this.evaluate(subject, name), expected);
   }
 
   private async evaluate(subject: Record<string, unknown>, name: string) {
