@@ -41,3 +41,7 @@ worker 的常驻进程入口放在 `src/processes`，一次性运维命令放在
 `contracts/execution` 只保存跨应用共享的数据和校验：`plan.ts` 定义计划、节点和动作步骤，`compilation.ts` 定义编译请求，`target.ts` 定义执行目标，`platform.ts` 定义动作、断言、观察、能力和重放事件。这些数据被 API、数据库、录制与前端消费，因此不依赖引擎。Browserless 连接配置归入 `contracts/integrations/browserless.ts`。
 
 模型调用接口 `ModelClient` 归入 `engine/llm/contracts.ts`；会话、规划器、评估器和运行器选项归入 `engine/platform/contracts.ts`，由引擎实现和服务端执行装配使用。Web 录制定位使用的 `RecordedAction` 就近定义在 `engine/platform/web/recordingLocator.ts`。contracts 不导入或重新导出这些内部接口。
+
+## 数据库表定义
+
+`packages/server/src/db/schema/` 按业务拆分表定义，包含认证、团队、用例、套件、执行记录、调度资源、构建、实时事件、问题、集成和插件。`db/schema.ts` 统一导出全部表，业务代码和 Drizzle 配置继续使用该入口。schema 文件之间直接导入所属业务文件，不从统一入口回引；执行记录、录制版本及模型调用等相互关联的表集中在 `schema/runs.ts`，避免循环依赖。数据库迁移仍在根目录 `drizzle/`。
