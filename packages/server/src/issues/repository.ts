@@ -247,6 +247,16 @@ export async function updateIssue(
   });
 }
 
+export async function deleteIssue(id: string, userId: UserScope) {
+  await db.transaction(async (tx) => {
+    await issueFor(tx, id, userId, true);
+    // Remove dependent links in order; their triggers notify related run views.
+    await tx.delete(issueVerifications).where(eq(issueVerifications.issueId, id));
+    await tx.delete(issueOccurrences).where(eq(issueOccurrences.issueId, id));
+    await tx.delete(issues).where(and(eq(issues.id, id), ownedBy(issues, userId)));
+  });
+}
+
 export async function linkOccurrence(
   id: string,
   input: z.infer<typeof occurrenceInput>,
@@ -405,6 +415,7 @@ export async function createIssuesForFailedRun(runId: string, tx: Tx) {
           )
           .orderBy(desc(issues.updatedAt))
           .limit(1)
+          .for('update', { of: issues })
       : [];
     const verificationMatches =
       verification &&

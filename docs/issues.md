@@ -25,6 +25,7 @@ PATCH 必须带当前 version。服务端在事务中校验版本并递增；冲
 | GET /api/issues                    | 接受 q、status、limit、cursor，返回 issues 和 nextCursor  |
 | POST /api/issues                   | title、category、severity，可选 source: {runId, stepId}   |
 | GET /api/issues/:id                | 返回 issue、occurrences、verifications                    |
+| DELETE /api/issues/:id             | 删除问题及发现、回归关联，保留原始执行和证据              |
 | PATCH /api/issues/:id              | version，加修改字段、status、closeReason                  |
 | POST /api/issues/:id/occurrences   | {runId, stepId?}，重复关联返回成功且不新增关联            |
 | POST /api/issues/:id/verifications | {occurrenceId, recordingVersionId?}，返回新 run，HTTP 202 |
@@ -56,3 +57,5 @@ PATCH 必须带当前 version。服务端在事务中校验版本并递增；冲
 历史失败不会通过 GET 接口写入。显式补录的命令、范围和归属规则统一见 [运维操作](deployment.md#显式运维操作)。
 
 Actual 优先展示发现快照中的具体观察证据；空证据或仅重复预期时回退到步骤错误、执行错误。Playwright 的实际值优先展示，调用日志和堆栈保留在折叠的错误详情中。详情页和执行问题面板共用该规则，不从目标或标题推断实际结果。
+
+详情页的更多操作提供删除入口，确认后返回问题列表。删除按工作区鉴权，在事务内先移除回归关联，再移除发现记录和问题；相关执行详情通过实时通知刷新。删除不会取消或删除原始测试执行。

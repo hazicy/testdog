@@ -13,7 +13,10 @@ import styles from './IssueDetail.module.css';
 
 import { useId, useState } from 'react';
 import Link from 'next/link';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
+import { useRouter } from 'next/navigation';
+import { WorkspaceRowMenu } from '@/features/workspace/components/WorkspaceRowMenu';
+import { DeleteIssueDialog } from './DeleteIssueDialog';
 import { useIssueRealtime } from '../useIssueRealtime';
 import { api, fetchJson } from '@/client/api';
 import { useRunSubmission } from '@/client/useRunSubmission';
@@ -38,6 +41,7 @@ import { Icon } from '@iconify/react/offline';
 import checkIcon from '@iconify-icons/lucide/circle-check';
 import copyIcon from '@iconify-icons/lucide/copy';
 import editIcon from '@iconify-icons/lucide/pencil';
+import deleteIcon from '@iconify-icons/lucide/trash-2';
 import replayIcon from '@iconify-icons/lucide/rotate-ccw';
 import closeIcon from '@iconify-icons/lucide/x';
 import externalIcon from '@iconify-icons/lucide/external-link';
@@ -173,6 +177,9 @@ export function IssueDetail({ id }: { id: string }) {
           : 30000,
   });
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { mutate: mutateCache } = useSWRConfig();
+  const router = useRouter();
   const [verificationOpen, setVerificationOpen] = useState(false);
   const verificationTitleId = useId();
   const [selectedOccurrenceId, setSelectedOccurrenceId] = useState('');
@@ -293,17 +300,27 @@ export function IssueDetail({ id }: { id: string }) {
               <Icon icon={checkIcon} className={styles.icon} aria-hidden="true" />
               {issue.status === 'closed' ? t('reopen') : t('resolve')}
             </Button>
-            <Tooltip content={t('editIssue')}>
-              <Button
-                size="icon"
-                variant="ghost"
-                disabled={busy}
-                aria-label={t('editIssue')}
-                onClick={() => setEditing(true)}
-              >
-                <Icon icon={editIcon} className={styles.icon} aria-hidden="true" />
-              </Button>
-            </Tooltip>
+            <WorkspaceRowMenu
+              label={t('issueActions')}
+              actions={[
+                {
+                  label: t('editIssue'),
+                  accessibleLabel: t('editIssue'),
+                  icon: editIcon,
+                  disabled: busy,
+                  onSelect: () => setEditing(true),
+                },
+                {
+                  label: t('deleteIssue'),
+                  accessibleLabel: t('deleteIssue'),
+                  icon: deleteIcon,
+                  disabled: busy,
+                  danger: true,
+                  separatorBefore: true,
+                  onSelect: () => setDeleting(true),
+                },
+              ]}
+            />
           </>
         }
       />
@@ -551,6 +568,20 @@ export function IssueDetail({ id }: { id: string }) {
             ))}
           </section>
         </Dialog>
+      )}
+      {deleting && (
+        <DeleteIssueDialog
+          issue={issue}
+          onDismiss={() => setDeleting(false)}
+          onDeleted={async () => {
+            router.replace('/issues');
+            await mutateCache(
+              (key) => typeof key === 'string' && key.startsWith('/api/issues'),
+              undefined,
+              { revalidate: false },
+            );
+          }}
+        />
       )}
       {editing && (
         <IssueEditor

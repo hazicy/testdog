@@ -353,6 +353,10 @@
   "issues": {
     "selectIssue": "Select an issue to link.",
     "saveFailed": "Save failed",
+    "deleteIssue": "Delete issue",
+    "deleteConfirmation": "Delete “{title}” and its links? Test runs and evidence will be kept.",
+    "deleteFailed": "Could not delete the issue. Please try again.",
+    "deleting": "Deleting…",
     "editIssue": "Edit issue",
     "createOrLink": "Create or link issue",
     "closeEditor": "Close issue editor",

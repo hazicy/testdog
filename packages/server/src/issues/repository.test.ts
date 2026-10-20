@@ -36,10 +36,12 @@ import {
   testRuns,
   runSteps,
   runArtifacts,
+  realtimeOutbox,
 } from '@testdog/server/db/schema';
 import { eq } from 'drizzle-orm';
 import {
   createIssue,
+  deleteIssue,
   getIssue,
   linkOccurrence,
   listIssues,
@@ -52,6 +54,7 @@ import { POST as verifyEndpoint } from '../../../../apps/web/src/app/api/issues/
 import {
   GET as detailEndpoint,
   PATCH as updateEndpoint,
+  DELETE as deleteEndpoint,
 } from '../../../../apps/web/src/app/api/issues/[id]/route';
 
 beforeEach(async () => {
@@ -483,4 +486,52 @@ it('ignores successful and cancelled runs, creates execution failures, and respe
 
   expect(infraIssue.category).toBe('execution');
   expect((await getIssue(infraIssue.id, 'alice')).occurrences[0].stepId).toBeNull();
+});
+
+it('deletes only the owned issue and its links while preserving runs, evidence and other issues', async () => {
+  const source = await fixture();
+  const issue = await fromFixture(source);
+  const other = await fromFixture(source);
+  const detail = await getIssue(issue.id, 'alice');
+  const verificationRun = await db.transaction((tx) =>
+    startVerification(issue.id, { occurrenceId: detail.occurrences[0].id }, 'alice', tx),
+  );
+  const evidence = await db.select().from(runArtifacts);
+  const steps = await db.select().from(runSteps);
+  const runs = await db.select().from(testRuns);
+  const context = { params: Promise.resolve({ id: issue.id }) };
+  const request = (user?: string) =>
+    new Request(`http://localhost/api/issues/${issue.id}`, {
+      method: 'DELETE',
+      headers: user ? { 'test-user': user } : {},
+    });
+
+  expect((await deleteEndpoint(request(), context)).status).toBe(401);
+  expect((await deleteEndpoint(request('bob'), context)).status).toBe(404);
+  expect(
+    (await deleteEndpoint(request('alice'), { params: Promise.resolve({ id: 'invalid' }) })).status,
+  ).toBe(404);
+  await expect(deleteIssue(issue.id, null)).rejects.toMatchObject({ status: 404 });
+  expect((await getIssue(issue.id, 'alice')).verifications).toHaveLength(1);
+  await db.delete(realtimeOutbox);
+  const response = await deleteEndpoint(request('alice'), context);
+
+  expect(response.status).toBe(200);
+  await expect(getIssue(issue.id, 'alice')).rejects.toMatchObject({ status: 404 });
+  expect((await getIssue(other.id, 'alice')).occurrences).toHaveLength(1);
+  expect(await db.select().from(issueOccurrences)).toHaveLength(1);
+  expect(await db.select().from(issueVerifications)).toHaveLength(0);
+  expect(await db.select().from(runArtifacts)).toEqual(evidence);
+  expect(await db.select().from(runSteps)).toEqual(steps);
+  expect(await db.select().from(testRuns)).toEqual(runs);
+  const notifications = await db
+    .select()
+    .from(realtimeOutbox)
+    .where(eq(realtimeOutbox.kind, 'issues'));
+
+  expect(new Set(notifications.map((item) => item.runId))).toEqual(
+    new Set([null, source.run.id, verificationRun.id]),
+  );
+  expect(notifications.every((item) => item.userId === 'alice')).toBe(true);
+  expect((await deleteEndpoint(request('alice'), context)).status).toBe(404);
 });

@@ -15,8 +15,9 @@ export class IssuesPage {
     return this.page.getByRole('button', { name: '保存问题', exact: true });
   }
 
-  get editButton() {
-    return this.page.getByRole('button', { name: '编辑问题' });
+  async openEditor() {
+    await this.page.getByRole('button', { name: '问题操作', exact: true }).click();
+    await this.page.getByRole('menuitem', { name: '编辑问题', exact: true }).click();
   }
 
   get statusSelect() {

@@ -130,12 +130,12 @@ test('creates, edits, closes and reopens an issue without activity or comments',
   await expect(page.getByText('动态', { exact: true })).toHaveCount(0);
   await expect(page.getByText('添加说明', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('补充处理说明')).toHaveCount(0);
-  await issuesPage.editButton.click();
+  await issuesPage.openEditor();
   await issuesPage.statusSelect.click();
   await page.getByRole('option', { name: '已关闭', exact: true }).click();
   await issuesPage.saveButton.click();
   await expect(page.getByText('关闭原因：已修复')).toBeVisible();
-  await issuesPage.editButton.click();
+  await issuesPage.openEditor();
   await issuesPage.statusSelect.click();
   await page.getByRole('option', { name: '待确认', exact: true }).click();
   await issuesPage.saveButton.click();
@@ -563,7 +563,8 @@ test('English issue list and detail translate labels while preserving issue cont
   await page.getByRole('button', { name: 'Verification', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Verification', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Close verification', exact: true }).click();
-  await page.getByRole('button', { name: 'Edit issue', exact: true }).click();
+  await page.getByRole('button', { name: 'Issue actions', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Edit issue', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Edit issue', exact: true });
 
   await expect(editor.getByLabel('Issue title', { exact: true })).toHaveValue(initial.title);
@@ -715,4 +716,51 @@ test('shows the observed value in Actual and keeps diagnostics collapsed', async
   await latest.getByText('错误详情', { exact: true }).click();
   await expect(latest.locator('pre')).toHaveText(error);
   await expect(page.getByText('问题描述', { exact: true })).toHaveCount(0);
+});
+
+test('confirms issue deletion, keeps failures recoverable and refreshes the issue list', async ({
+  page,
+}) => {
+  let deleted = false;
+  let attempts = 0;
+
+  await page.route('**/api/issues{,?*}', (route) =>
+    route.fulfill({ json: { issues: deleted ? [] : [initial], nextCursor: null } }),
+  );
+  await page.route(`**/api/issues/${issueId}`, (route) => {
+    if (route.request().method() === 'DELETE') {
+      attempts++;
+      if (attempts === 1)
+        return route.fulfill({ status: 500, json: { message: '删除失败，请重试。' } });
+      deleted = true;
+
+      return route.fulfill({ json: { success: true } });
+    }
+
+    return route.fulfill({
+      json: { issue: initial, occurrences: [occurrence], verifications: [] },
+    });
+  });
+  await page.goto('/issues');
+  await page.getByRole('link', { name: initial.title, exact: true }).click();
+  const actions = page.getByRole('button', { name: '问题操作', exact: true });
+
+  await actions.click();
+  await page.getByRole('menuitem', { name: '删除问题', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '删除问题', exact: true });
+
+  await expect(dialog).toContainText(initial.title);
+  await dialog.getByRole('button', { name: '取消', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(actions).toBeFocused();
+  expect(attempts).toBe(0);
+  await actions.click();
+  await page.getByRole('menuitem', { name: '删除问题', exact: true }).click();
+  await dialog.getByRole('button', { name: '删除问题', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toHaveText('删除失败，请重试。');
+  await dialog.getByRole('button', { name: '删除问题', exact: true }).click();
+  await expect(page).toHaveURL('/issues');
+  await expect(page.getByText('暂无问题', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: initial.title, exact: true })).toHaveCount(0);
+  expect(attempts).toBe(2);
 });

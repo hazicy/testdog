@@ -353,6 +353,10 @@
   "issues": {
     "selectIssue": "请选择要关联的问题。",
     "saveFailed": "保存失败",
+    "deleteIssue": "删除问题",
+    "deleteConfirmation": "删除“{title}”及其关联记录？测试执行和证据会保留。",
+    "deleteFailed": "删除失败，请重试。",
+    "deleting": "删除中…",
     "editIssue": "编辑问题",
     "createOrLink": "创建或关联问题",
     "closeEditor": "关闭问题编辑",

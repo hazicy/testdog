@@ -1,0 +1,26 @@
+.dialog {
+  max-width: 28rem;
+}
+.body {
+  padding: var(--space-6);
+}
+.title {
+  font: var(--type-panel-title);
+}
+.description {
+  margin-top: var(--space-3);
+  font: var(--type-resource-item);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.error {
+  margin-top: var(--space-3);
+  font: var(--type-resource-item);
+  color: var(--error-ink);
+  overflow-wrap: anywhere;
+}
+@media (width < 40rem) {
+  .body {
+    padding: var(--space-4);
+  }
+}
