@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { ExecutablePlanSchema } from '@testdog/contracts/automation/compiler/schema';
+import { ExecutablePlanSchema } from '@testdog/contracts/execution/plan';
 import { indexRun } from '@/features/runs/lib/runIndex';
 import { stepAtTime } from '@/features/runs/lib/boardResults';
 import en from '../../../../messages/en.json';

@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import { PluginActionSchema } from '@testdog/contracts/plugins/execution';
-import { StepSchema, TargetSchema } from '@testdog/contracts/automation/compiler/schema';
-import type { Assertion, Plan } from '@testdog/contracts/automation/compiler/schema';
-import type { TestTarget } from '@testdog/contracts/automation/platform/target';
+import { StepSchema, TargetSchema, type Assertion } from '@testdog/contracts/execution/plan';
+import type { TestTarget } from '@testdog/contracts/execution/target';
 
 export const NativeLocatorSchema = z.discriminatedUnion('kind', [
   z.strictObject({
@@ -17,6 +16,7 @@ export const NativeLocatorSchema = z.discriminatedUnion('kind', [
     role: z.string().optional(),
   }),
 ]);
+
 export const NativeActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('tap'), target: NativeLocatorSchema }),
   z.strictObject({ type: z.literal('fill'), target: NativeLocatorSchema, value: z.string() }),
@@ -29,8 +29,11 @@ export const NativeActionSchema = z.discriminatedUnion('type', [
     timeoutMs: z.number().int().min(1000).max(5000),
   }),
 ]);
+
 export const WebActionSchema = z.union([StepSchema, PluginActionSchema]);
+
 export type WebAction = z.infer<typeof WebActionSchema>;
+
 export const PlatformActionSchema = z.discriminatedUnion('platform', [
   z.strictObject({
     schemaVersion: z.literal(1).optional(),
@@ -48,16 +51,22 @@ export const PlatformActionSchema = z.discriminatedUnion('platform', [
     action: NativeActionSchema,
   }),
 ]);
+
 export type PlatformAction = z.infer<typeof PlatformActionSchema>;
+
 export type NativeAction = z.infer<typeof NativeActionSchema>;
+
 export type NativeLocator = z.infer<typeof NativeLocatorSchema>;
+
 export const CapabilitySetSchema = z.strictObject({
   actions: z.array(z.string().min(1)).max(100),
   artifacts: z.array(z.string().min(1)).max(100),
   assertions: z.array(z.string().min(1)).max(100),
   observations: z.array(z.string().min(1)).max(100).optional(),
 });
+
 export type CapabilitySet = z.infer<typeof CapabilitySetSchema>;
+
 export const ObservationSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -72,6 +81,7 @@ export const ObservationSchema = z
     }),
   })
   .passthrough();
+
 export type Observation = Record<string, unknown> & {
   schemaVersion: 1;
   sessionId: string;
@@ -79,6 +89,7 @@ export type Observation = Record<string, unknown> & {
   capturedAt: string;
   surface: { id: string; platform: TestTarget['platform']; url?: string; appId?: string };
 };
+
 export const PlatformAssertionSchema = z
   .discriminatedUnion('platform', [
     z.strictObject({
@@ -107,20 +118,8 @@ export const PlatformAssertionSchema = z
     if (assertion.platform === 'web' && assertion.type !== 'url' && !assertion.target)
       ctx.addIssue({ code: 'custom', message: 'This assertion requires a target' });
   });
+
 export type PlatformAssertion = z.infer<typeof PlatformAssertionSchema>;
-export type CheckResult = { passed: boolean; evidence: string; modelCallId?: string };
-export type ReplayBinding = { action: PlatformAction; replayable: boolean };
-export type CaptureRequest = {
-  kind: 'screenshot' | 'video';
-  path?: string;
-};
-export type ArtifactDescriptor = {
-  kind: 'screenshot' | 'video';
-  contentType: string;
-  bytes: Uint8Array;
-  producer: string;
-  format: string;
-};
 
 export type SessionEvent = {
   id: string;
@@ -143,61 +142,3 @@ export type ReplayStep = {
   surfaceId?: string;
   event: Omit<SessionEvent, 'id' | 'phase'>;
 };
-
-export type ObservationRequest = { ref: string };
-
-export interface AutomationSession {
-  readonly id: string;
-  readonly platform: TestTarget['platform'];
-  readonly capabilities: CapabilitySet;
-  readonly revision: number;
-  readonly latestObservation?: Observation;
-  readonly executionPolicy: { reobserveAfterAction: boolean };
-
-  selectSurface?(id: string, signal: AbortSignal): Promise<void>;
-  verifyPlugins?(signal: AbortSignal): Promise<void>;
-  prepareReplayStep(step: ReplayStep, signal: AbortSignal): Promise<void>;
-  observe(signal: AbortSignal, request?: ObservationRequest): Promise<Observation>;
-  perform(action: PlatformAction, signal: AbortSignal): Promise<void | { evidence: string }>;
-  wait(action: PlatformAction, signal: AbortSignal): Promise<Observation>;
-  check(assertion: PlatformAssertion, signal: AbortSignal): Promise<CheckResult>;
-  resolveForRecording(action: PlatformAction, observation: Observation): Promise<ReplayBinding>;
-  capture(request: CaptureRequest, signal: AbortSignal): Promise<ArtifactDescriptor[]>;
-  emit(event: SessionEvent): Promise<void>;
-  close(): Promise<void>;
-}
-export interface ActionPlanner {
-  plan(input: {
-    goal: string;
-    observation: Observation;
-    capabilities: CapabilitySet;
-    completedSteps: PlatformAction[];
-    /** Observation used to choose each dispatched step, in the same order. */
-    completedObservations?: Observation[];
-    remainingWaitMs: number;
-    previousFailure?: { reason: string; action?: PlatformAction };
-  }): Promise<{
-    done: boolean;
-    steps: PlatformAction[];
-    observe?: ObservationRequest;
-    modelCallId?: string;
-    toolCallIds?: string[];
-  }>;
-}
-export type RunnerOptions = {
-  plan: Plan;
-  session: AutomationSession;
-  planner: ActionPlanner;
-  evaluator: Evaluator;
-  signal: AbortSignal;
-  report?: (message: string) => Promise<void>;
-};
-
-export interface Evaluator {
-  evaluate(input: {
-    subject: Record<string, unknown>;
-    observation: Observation;
-    name: string;
-    signal: AbortSignal;
-  }): Promise<CheckResult>;
-}

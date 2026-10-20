@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
 import { TextCompiler } from '@testdog/engine/compiler/textCompiler';
 
 const generate = vi.fn<ModelClient['generate']>();

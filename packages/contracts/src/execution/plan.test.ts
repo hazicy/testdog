@@ -1,9 +1,5 @@
 import { expect, it } from 'vitest';
-import {
-  ExecutablePlanSchema,
-  PlanSchema,
-  type Plan,
-} from '@testdog/contracts/automation/compiler/schema';
+import { ExecutablePlanSchema, PlanSchema, type Plan } from '@testdog/contracts/execution/plan';
 
 const plan: Plan = {
   rootId: 'root',

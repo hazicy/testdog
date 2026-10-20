@@ -1,6 +1,6 @@
 import { useLocale, useMessages } from 'next-intl';
 import * as authoring from '@/features/test-cases/lib/authoring';
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan } from '@testdog/contracts/execution/plan';
 
 export function useAuthoring() {
   const locale = useLocale();

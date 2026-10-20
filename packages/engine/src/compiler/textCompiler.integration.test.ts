@@ -1,7 +1,7 @@
 import { deepseekClient } from '@testdog/engine/llm/deepseek';
 import { expect, test } from 'vitest';
 import { TextCompiler } from '@testdog/engine/compiler/textCompiler';
-import { PlanSchema } from '@testdog/contracts/automation/compiler/schema';
+import { PlanSchema } from '@testdog/contracts/execution/plan';
 
 test.skipIf(process.env.RUN_LIVE_TESTS !== 'true')(
   'compiles a bounded real-model case with a valid plan and explicit expectations',

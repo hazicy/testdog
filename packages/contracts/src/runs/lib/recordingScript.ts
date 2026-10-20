@@ -1,9 +1,6 @@
 import { parse, type Node } from 'acorn';
-import { type Target } from '@testdog/contracts/automation/compiler/schema';
-import {
-  WebActionSchema,
-  PlatformAssertionSchema,
-} from '@testdog/contracts/automation/platform/contracts';
+import { type Target } from '@testdog/contracts/execution/plan';
+import { WebActionSchema, PlatformAssertionSchema } from '@testdog/contracts/execution/platform';
 import type { RecordingOperation } from '@testdog/contracts/runs/types';
 
 // A validated Playwright call dialect. Parsed into operations, never evaluated as JavaScript.

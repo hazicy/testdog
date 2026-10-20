@@ -1,6 +1,6 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import { randomUUID } from 'node:crypto';
-import type { ModelClient, LLMGenerateResult } from '@testdog/contracts/automation/llm/contracts';
+import type { ModelClient, LLMGenerateResult } from '@testdog/engine/llm/contracts';
 import type { ModelCallTrace } from '@testdog/contracts/runs/modelCalls';
 import { modelTrace } from './modelTrace';
 

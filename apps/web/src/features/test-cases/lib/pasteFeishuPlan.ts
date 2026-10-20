@@ -1,5 +1,5 @@
 import { createId } from '@/client/id';
-import { PlanSchema, type Plan } from '@testdog/contracts/automation/compiler/schema';
+import { PlanSchema, type Plan } from '@testdog/contracts/execution/plan';
 import { parseFeishuClipboard } from '@/features/runs/lib/feishuClipboard';
 
 const stepPrefix = /^(?:步骤|操作步骤|step)\s*[:：]\s*/i;

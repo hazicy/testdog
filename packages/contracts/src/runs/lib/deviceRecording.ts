@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import {
-  NativeActionSchema,
-  PlatformAssertionSchema,
-} from '@testdog/contracts/automation/platform/contracts';
+import { NativeActionSchema, PlatformAssertionSchema } from '@testdog/contracts/execution/platform';
 import type { RecordingOperation } from '@testdog/contracts/runs/types';
 
 const entrySchema = z

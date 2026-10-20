@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest';
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
 import { SemanticEvaluator } from '@testdog/engine/evaluator';
-import type { Observation } from '@testdog/contracts/automation/platform/contracts';
+import type { Observation } from '@testdog/contracts/execution/platform';
 
 const observation: Observation = {
   schemaVersion: 1,

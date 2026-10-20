@@ -1,4 +1,4 @@
-import { defaultWebTarget, targetUrl } from '@testdog/contracts/automation/platform/target';
+import { defaultWebTarget, targetUrl } from '@testdog/contracts/execution/target';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeEach, expect, it, vi } from 'vitest';
 

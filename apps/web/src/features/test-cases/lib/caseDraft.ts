@@ -1,5 +1,5 @@
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
-import { PlanSchema } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan } from '@testdog/contracts/execution/plan';
+import { PlanSchema } from '@testdog/contracts/execution/plan';
 import type { CaseSettingsValue } from '@/features/test-cases/lib/caseSettings';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 

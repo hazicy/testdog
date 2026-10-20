@@ -1,5 +1,5 @@
 import { devices, chromium, webkit, type BrowserContextOptions } from 'playwright';
-import { WebTargetSchema, type WebTarget } from '@testdog/contracts/automation/platform/target';
+import { WebTargetSchema, type WebTarget } from '@testdog/contracts/execution/target';
 
 export function resolveWebProfile(input: WebTarget): BrowserContextOptions {
   const target = WebTargetSchema.parse(input);

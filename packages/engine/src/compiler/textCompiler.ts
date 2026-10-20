@@ -1,14 +1,10 @@
 import {
   CompileRequestSchema,
   type CompileRequest,
-} from '@testdog/contracts/automation/compiler/request';
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
+} from '@testdog/contracts/execution/compilation';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
 import { type JSONType, z } from 'zod';
-import {
-  NodeSchema,
-  ExecutablePlanSchema,
-  type Plan,
-} from '@testdog/contracts/automation/compiler/schema';
+import { NodeSchema, ExecutablePlanSchema, type Plan } from '@testdog/contracts/execution/plan';
 
 const id = z.string().trim().min(1);
 

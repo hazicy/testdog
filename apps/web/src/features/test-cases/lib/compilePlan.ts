@@ -2,8 +2,8 @@ import { api } from '@/client/api';
 import {
   CompileRequestSchema,
   type CompileRequest,
-} from '@testdog/contracts/automation/compiler/request';
-import { ExecutablePlanSchema, type Plan } from '@testdog/contracts/automation/compiler/schema';
+} from '@testdog/contracts/execution/compilation';
+import { ExecutablePlanSchema, type Plan } from '@testdog/contracts/execution/plan';
 
 export async function compilePlan(input: CompileRequest, signal?: AbortSignal): Promise<Plan> {
   const { plan } = await api

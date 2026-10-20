@@ -7,7 +7,7 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases } from '@testdog/server/db/schema';
-import { defaultWebTarget, targetUrl } from '@testdog/contracts/automation/platform/target';
+import { defaultWebTarget, targetUrl } from '@testdog/contracts/execution/target';
 import {
   testNameSchema,
   testSchema,

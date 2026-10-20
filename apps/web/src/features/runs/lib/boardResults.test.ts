@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
+import type { PlanNode } from '@testdog/contracts/execution/plan';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
 import { boardNodeSteps, boardResult, stepAtTime } from '@/features/runs/lib/boardResults';
 import { layoutPlan } from '@/features/runs/lib/planLayout';

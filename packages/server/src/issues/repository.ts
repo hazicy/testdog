@@ -34,7 +34,7 @@ import {
 } from '@testdog/contracts/issues/types';
 import { verificationResult } from '@testdog/contracts/issues/lib/verification';
 import { isActiveRun } from '@testdog/contracts/runs/types';
-import { targetUrl } from '@testdog/contracts/automation/platform/target';
+import { targetUrl } from '@testdog/contracts/execution/target';
 import type { z } from 'zod';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];

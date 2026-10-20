@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  PlanSchema,
-  type Plan,
-  type PlanNode,
-} from '@testdog/contracts/automation/compiler/schema';
+import { PlanSchema, type Plan, type PlanNode } from '@testdog/contracts/execution/plan';
 import { reviewPlan, resolveReview } from '@/features/test-cases/lib/planReview';
 
 const task = (

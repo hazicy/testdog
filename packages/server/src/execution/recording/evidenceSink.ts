@@ -1,10 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type {
-  AutomationSession,
-  CaptureRequest,
-} from '@testdog/contracts/automation/platform/contracts';
+import type { AutomationSession, CaptureRequest } from '@testdog/engine/platform/contracts';
 import { artifactRoot } from '@testdog/server/runs/artifactStorage';
 import { insertArtifact } from '@testdog/server/runs/repository';
 import type { RunArtifact, TestRun } from '@testdog/contracts/runs/types';

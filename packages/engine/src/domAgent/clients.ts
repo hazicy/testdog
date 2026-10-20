@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { planSchema, type Chooser, type Planner } from './types';
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
 
 type HTTPConfig = {
   apiKey: string;

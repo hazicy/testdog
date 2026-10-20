@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchWebBrowser, resolveWebProfile } from '@testdog/engine/platform/web/mobile';
-import { TestTargetSchema, type WebTarget } from '@testdog/contracts/automation/platform/target';
+import { TestTargetSchema, type WebTarget } from '@testdog/contracts/execution/target';
 
 afterEach(() => vi.unstubAllEnvs());
 describe('mobile browser environments', () => {

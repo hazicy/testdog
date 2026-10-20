@@ -1,15 +1,8 @@
 import { z } from 'zod';
-import type {
-  ActionPlanner,
-  PlatformAction,
-  Observation,
-} from '@testdog/contracts/automation/platform/contracts';
-import {
-  StepSchema,
-  WaitStepSchema,
-  type Step,
-} from '@testdog/contracts/automation/compiler/schema';
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
+import type { ActionPlanner } from '@testdog/engine/platform/contracts';
+import type { PlatformAction, Observation } from '@testdog/contracts/execution/platform';
+import { StepSchema, WaitStepSchema, type Step } from '@testdog/contracts/execution/plan';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
 import { ReplanRequiredError } from '@testdog/engine/replanning';
 import {
   findAriaNode,

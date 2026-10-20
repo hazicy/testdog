@@ -1,4 +1,4 @@
-import type { ReplayStep } from '@testdog/contracts/automation/platform/contracts';
+import type { ReplayStep } from '@testdog/contracts/execution/platform';
 import type { RecordingOperation } from '@testdog/contracts/runs/types';
 
 export function normalizeReplaySteps(steps: RecordingOperation[]): ReplayStep[] {

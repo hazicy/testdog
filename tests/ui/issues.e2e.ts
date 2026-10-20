@@ -1,4 +1,4 @@
-import { WebTargetSchema } from '@testdog/contracts/automation/platform/target';
+import { WebTargetSchema } from '@testdog/contracts/execution/target';
 import { test, expect } from './fixtures/test.fixture';
 import type { Issue, IssueDetail, IssueOccurrence } from '@testdog/contracts/issues/types';
 import type { TestRun } from '@testdog/contracts/runs/types';

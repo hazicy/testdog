@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { modelTrace } from './modelTrace';
-import type { LLMGenerateResult } from '@testdog/contracts/automation/llm/contracts';
+import type { LLMGenerateResult } from '@testdog/engine/llm/contracts';
 
 const result: LLMGenerateResult = {
   role: 'assistant',

@@ -1,8 +1,9 @@
 import type { Page } from 'playwright';
-import type { Target, Step } from '@testdog/contracts/automation/compiler/schema';
-import type { WebAction } from '@testdog/contracts/automation/platform/contracts';
-import type { RecordedAction } from '@testdog/contracts/automation/platform/web/types';
+import type { Target, Step } from '@testdog/contracts/execution/plan';
+import type { WebAction } from '@testdog/contracts/execution/platform';
 import { locateWebElement } from '@testdog/engine/platform/web/webLocator';
+
+export type RecordedAction = Step & { sensitive?: boolean };
 
 export function recordAction(
   page: Page,

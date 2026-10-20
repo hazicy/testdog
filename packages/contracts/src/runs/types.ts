@@ -3,9 +3,9 @@ import type {
   PlatformAssertion,
   Observation,
   CapabilitySet,
-} from '@testdog/contracts/automation/platform/contracts';
-import type { TestTarget } from '@testdog/contracts/automation/platform/target';
-import type { Assertion, Plan } from '@testdog/contracts/automation/compiler/schema';
+} from '@testdog/contracts/execution/platform';
+import type { TestTarget } from '@testdog/contracts/execution/target';
+import type { Assertion, Plan } from '@testdog/contracts/execution/plan';
 
 export type RunStatus =
   'queued' | 'preparing' | 'running' | 'finalizing' | 'passed' | 'failed' | 'cancelled';

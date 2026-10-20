@@ -1,5 +1,5 @@
 import { chromium, type Browser } from 'playwright';
-import type { BrowserlessConfig } from '@testdog/contracts/automation/platform/web/providers/browserlessConfig';
+import type { BrowserlessConfig } from '@testdog/contracts/integrations/browserless';
 
 export async function connectBrowserless(
   config: BrowserlessConfig,

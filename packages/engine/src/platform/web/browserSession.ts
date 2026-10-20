@@ -1,7 +1,7 @@
 import type { Frame, Page } from 'playwright';
-import type { WaitStep } from '@testdog/contracts/automation/compiler/schema';
+import type { WaitStep } from '@testdog/contracts/execution/plan';
 import type { Observer } from '@testdog/engine/platform/web/observer';
-import type { ObservationRequest } from '@testdog/contracts/automation/platform/contracts';
+import type { ObservationRequest } from '@testdog/engine/platform/contracts';
 
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const navigationRace = (error: unknown) =>

@@ -8,7 +8,7 @@ import { WorkspaceError } from '@testdog/server/shared/errors';
 import { validId } from '@testdog/server/http/api';
 import { pageCursor, searchPattern, type PageQuery } from '@testdog/server/shared/pagination';
 import { suiteInputSchema, suiteUpdateSchema } from '@testdog/contracts/suites/schemas';
-import { targetUrl } from '@testdog/contracts/automation/platform/target';
+import { targetUrl } from '@testdog/contracts/execution/target';
 import { lockTree, folderFor } from './folders';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];

@@ -1,7 +1,4 @@
-import type {
-  LLMGenerateParams,
-  LLMGenerateResult,
-} from '@testdog/contracts/automation/llm/contracts';
+import type { LLMGenerateParams, LLMGenerateResult } from '@testdog/engine/llm/contracts';
 import type { ModelCallTrace } from '@testdog/contracts/runs/modelCalls';
 
 // Bound persisted text and omit image payloads and structured credential fields.

@@ -1,6 +1,6 @@
 import { z, type JSONType } from 'zod';
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
-import type { Evaluator } from '@testdog/contracts/automation/platform/contracts';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
+import type { Evaluator } from '@testdog/engine/platform/contracts';
 
 const decisionSchema = z.strictObject({ passed: z.boolean(), evidence: z.string().trim().min(1) });
 

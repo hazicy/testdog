@@ -3,8 +3,8 @@ import type {
   PlatformAssertion,
   Observation,
   CapabilitySet,
-} from '@testdog/contracts/automation/platform/contracts';
-import type { TestTarget } from '@testdog/contracts/automation/platform/target';
+} from '@testdog/contracts/execution/platform';
+import type { TestTarget } from '@testdog/contracts/execution/target';
 import {
   integer,
   bigserial,
@@ -20,7 +20,7 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import type { Plan, Assertion } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan, Assertion } from '@testdog/contracts/execution/plan';
 import type { BrowserLog, RecordingOperation } from '@testdog/contracts/runs/types';
 import type { ModelCallTrace } from '@testdog/contracts/runs/modelCalls';
 

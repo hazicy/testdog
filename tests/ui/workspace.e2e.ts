@@ -1931,7 +1931,7 @@ test('creates typed steps through canvas insertion points in a dedicated canvas'
       stored!.plan!.nodes[id].kind === 'task'
         ? (
             stored!.plan!.nodes[id] as Extract<
-              import('@testdog/contracts/automation/compiler/schema').PlanNode,
+              import('@testdog/contracts/execution/plan').PlanNode,
               { kind: 'task' }
             >
           ).actionType

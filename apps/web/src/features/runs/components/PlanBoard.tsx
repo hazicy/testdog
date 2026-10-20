@@ -19,7 +19,7 @@ import closeIcon from '@iconify-icons/lucide/x';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan } from '@testdog/contracts/execution/plan';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
 import { InsertStepMenu } from '@/features/test-cases/components/InsertStepMenu';
 import { usePlanBoard, type BoardNode } from '@/features/runs/hooks/usePlanBoard';

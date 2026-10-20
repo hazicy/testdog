@@ -5,7 +5,7 @@ import {
   mapNodeReferences,
   type Plan,
   type PlanNode,
-} from '@testdog/contracts/automation/compiler/schema';
+} from '@testdog/contracts/execution/plan';
 
 type PlanChange = {
   id: string;

@@ -1,4 +1,4 @@
-import { WebTargetSchema } from '@testdog/contracts/automation/platform/target';
+import { WebTargetSchema } from '@testdog/contracts/execution/target';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
 import type {
   ExecutionStep,

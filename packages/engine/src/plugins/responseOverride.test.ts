@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { experimentOverride } from './responseOverride';
-import { ExecutablePlanSchema } from '@testdog/contracts/automation/compiler/schema';
+import { ExecutablePlanSchema } from '@testdog/contracts/execution/plan';
 import type { PluginInvocation } from '@testdog/contracts/plugins/execution';
 
 const invocation = (config: Record<string, unknown> = {}): PluginInvocation => ({

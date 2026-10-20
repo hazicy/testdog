@@ -1,4 +1,4 @@
-import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
+import { defaultWebTarget } from '@testdog/contracts/execution/target';
 import { chmod, copyFile, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

@@ -99,7 +99,7 @@ it.each([
 it('permits PlanRunner to depend on shared contracts and erased evaluator types', async () => {
   expect(
     await violations(
-      "import { ObservationSchema } from './platform/contracts'; import type { Evaluator } from './evaluator'; export type Check = Evaluator; export { ObservationSchema };",
+      "import { ObservationSchema } from '@testdog/contracts/execution/platform'; import type { Evaluator } from '@testdog/engine/platform/contracts'; export type Check = Evaluator; export { ObservationSchema };",
       'packages/engine/src/planRunner.ts',
     ),
   ).toEqual([]);
@@ -122,7 +122,7 @@ it.each([
       expect(await violations(`import '${path}';`, filePath)).toHaveLength(1);
     expect(
       await violations(
-        "import type { ModelClient } from '@testdog/contracts/automation/llm/contracts'; export type Client = ModelClient;",
+        "import type { ModelClient } from '@testdog/engine/llm/contracts'; export type Client = ModelClient;",
         filePath,
       ),
     ).toEqual([]);
@@ -149,6 +149,8 @@ it.each([
 
 it.each([
   ['packages/contracts/src/BoundaryProbe.ts', '@testdog/engine/planRunner'],
+  ['packages/contracts/src/BoundaryProbe.ts', '@testdog/engine/llm/contracts'],
+  ['packages/contracts/src/BoundaryProbe.ts', '@testdog/engine/platform/contracts'],
   ['packages/contracts/src/BoundaryProbe.ts', '@testdog/server/runs/repository'],
   ['packages/contracts/src/BoundaryProbe.ts', '@/client/api'],
   ['packages/engine/src/BoundaryProbe.ts', '@testdog/server/db'],
@@ -186,4 +188,13 @@ it.each([
   expect(
     await violations(`import '${dependency}';`, 'packages/server/src/runs/submission.ts'),
   ).toHaveLength(1);
+});
+
+it('permits run business modules to use shared execution data', async () => {
+  expect(
+    await violations(
+      "import { defaultWebTarget } from '@testdog/contracts/execution/target'; export { defaultWebTarget };",
+      'packages/server/src/runs/submission.ts',
+    ),
+  ).toEqual([]);
 });

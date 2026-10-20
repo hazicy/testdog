@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { PlanSchema } from '@testdog/contracts/automation/compiler/schema';
+import { PlanSchema } from '@testdog/contracts/execution/plan';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
 import { executionGroups } from './executionGroups';
 

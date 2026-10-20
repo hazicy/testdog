@@ -1,4 +1,4 @@
-import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
+import type { PlanNode } from '@testdog/contracts/execution/plan';
 import type { ExecutionStep, RunArtifact, TestRun } from '@testdog/contracts/runs/types';
 
 export function indexStepsByNode(steps: ExecutionStep[]) {

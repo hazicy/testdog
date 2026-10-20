@@ -35,3 +35,9 @@ docs/                  设计、操作指南与历史记录
 后端按业务组织：`runs` 管理提交、状态和执行记录；`execution` 装配引擎、平台运行时和录制采集；`scheduling` 管理资源与租约。`execution` 依赖业务模块，业务查询与提交不反向依赖执行器。外部连接和技术实现放入 `infrastructure`，HTTP 响应工具放入 `http`。
 
 worker 的常驻进程入口放在 `src/processes`，一次性运维命令放在 `src/commands`。构建产物继续平铺在 `dist`，现有部署启动命令保持有效。
+
+## 执行协议与引擎接口
+
+`contracts/execution` 只保存跨应用共享的数据和校验：`plan.ts` 定义计划、节点和动作步骤，`compilation.ts` 定义编译请求，`target.ts` 定义执行目标，`platform.ts` 定义动作、断言、观察、能力和重放事件。这些数据被 API、数据库、录制与前端消费，因此不依赖引擎。Browserless 连接配置归入 `contracts/integrations/browserless.ts`。
+
+模型调用接口 `ModelClient` 归入 `engine/llm/contracts.ts`；会话、规划器、评估器和运行器选项归入 `engine/platform/contracts.ts`，由引擎实现和服务端执行装配使用。Web 录制定位使用的 `RecordedAction` 就近定义在 `engine/platform/web/recordingLocator.ts`。contracts 不导入或重新导出这些内部接口。

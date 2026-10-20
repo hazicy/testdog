@@ -1,4 +1,4 @@
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan } from '@testdog/contracts/execution/plan';
 import type { ExecutionStep, RunArtifact, TestRun } from '@testdog/contracts/runs/types';
 import { previewFrameUrl } from './previewFrames';
 

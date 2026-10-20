@@ -2,16 +2,12 @@ import { NativeVideoRecorder } from '@testdog/engine/platform/native/nativeVideo
 import { readFile, rm, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type {
-  PlatformAssertion,
-  CaptureRequest,
-  ArtifactDescriptor,
-} from '@testdog/contracts/automation/platform/contracts';
+import type { PlatformAssertion } from '@testdog/contracts/execution/platform';
+import type { CaptureRequest, ArtifactDescriptor } from '@testdog/engine/platform/contracts';
 import { clearAndroidData, installedBuildHash } from '@testdog/engine/platform/native/builds';
 import { createAgentDeviceClient, type AgentDeviceClient, type SnapshotNode } from 'agent-device';
 import {
   NativeActionSchema,
-  type AutomationSession,
   type CapabilitySet,
   type NativeAction,
   type NativeLocator,
@@ -19,8 +15,9 @@ import {
   type PlatformAction,
   type SessionEvent,
   type ReplayStep,
-} from '@testdog/contracts/automation/platform/contracts';
-import type { NativeTarget } from '@testdog/contracts/automation/platform/target';
+} from '@testdog/contracts/execution/platform';
+import { type AutomationSession } from '@testdog/engine/platform/contracts';
+import type { NativeTarget } from '@testdog/contracts/execution/target';
 
 export class AgentDeviceSession implements AutomationSession {
   readonly executionPolicy = { reobserveAfterAction: true };

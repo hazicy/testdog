@@ -1,5 +1,5 @@
 import type { Browser } from 'playwright';
-import type { WebTarget } from '@testdog/contracts/automation/platform/target';
+import type { WebTarget } from '@testdog/contracts/execution/target';
 
 const webArtifacts = ['screenshot', 'video', 'trace', 'console', 'network'];
 

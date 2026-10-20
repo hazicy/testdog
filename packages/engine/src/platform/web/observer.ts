@@ -1,6 +1,6 @@
 import { Page } from 'playwright';
 import type { AriaNode } from '@testdog/engine/platform/web/observationView';
-import type { ObservationRequest } from '@testdog/contracts/automation/platform/contracts';
+import type { ObservationRequest } from '@testdog/engine/platform/contracts';
 
 type FocusedElement = {
   ariaRef: string | null;

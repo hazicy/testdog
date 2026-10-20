@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { beforeEach, expect, it, vi } from 'vitest';
-import type { AutomationSession } from '@testdog/contracts/automation/platform/contracts';
+import type { AutomationSession } from '@testdog/engine/platform/contracts';
 import type { TestRun } from '@testdog/contracts/runs/types';
 
 const persistence = vi.hoisted(() => ({ insert: vi.fn() }));

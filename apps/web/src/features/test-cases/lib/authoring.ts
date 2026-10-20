@@ -10,7 +10,7 @@ import {
   type Plan,
   type PlanNode,
   type StepType,
-} from '@testdog/contracts/automation/compiler/schema';
+} from '@testdog/contracts/execution/plan';
 
 export type Insertion = { groupId: string; index: number };
 

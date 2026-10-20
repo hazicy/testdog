@@ -1,7 +1,7 @@
 import { logger } from '@testdog/server/infrastructure/logger';
 import { budgetedModel, modelBudgetFromEnv } from '@testdog/engine/llm/budget';
 import { recordModelCall } from '@testdog/server/runs/modelUsage';
-import { targetUrl } from '@testdog/contracts/automation/platform/target';
+import { targetUrl } from '@testdog/contracts/execution/target';
 import { leaseScope, LostLeaseError, setRunPhase } from '@testdog/server/scheduling/lease';
 import { releaseLease, renewLease } from '@testdog/server/scheduling/scheduler';
 import { appendEvent, savePlan } from '@testdog/server/runs/repository';

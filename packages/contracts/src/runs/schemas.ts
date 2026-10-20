@@ -1,6 +1,6 @@
-import { HttpUrlSchema, TestTargetSchema } from '@testdog/contracts/automation/platform/target';
+import { HttpUrlSchema, TestTargetSchema } from '@testdog/contracts/execution/target';
 import { z } from 'zod';
-import { ExecutablePlanSchema } from '@testdog/contracts/automation/compiler/schema';
+import { ExecutablePlanSchema } from '@testdog/contracts/execution/plan';
 
 export const runRequestSchema = z.union([
   z.strictObject({

@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, expect, test, vi } from 'vitest';
-import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
+import { defaultWebTarget } from '@testdog/contracts/execution/target';
 
 const fixture = vi.hoisted(() => ({
   database: undefined as

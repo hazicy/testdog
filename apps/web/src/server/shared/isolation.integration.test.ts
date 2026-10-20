@@ -1,4 +1,4 @@
-import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
+import { defaultWebTarget } from '@testdog/contracts/execution/target';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { betterAuth } from 'better-auth/minimal';

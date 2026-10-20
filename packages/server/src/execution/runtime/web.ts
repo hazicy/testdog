@@ -9,7 +9,7 @@ import { PlaywrightSession } from '@testdog/engine/platform/web/playwrightSessio
 import { WebActionPlanner } from '@testdog/engine/platform/web/webPlanner';
 import { JevActionPlanner } from '@testdog/engine/platform/web/jevActionPlanner';
 import { resolveWebProfile } from '@testdog/engine/platform/web/mobile';
-import type { WebTarget } from '@testdog/contracts/automation/platform/target';
+import type { WebTarget } from '@testdog/contracts/execution/target';
 import { RunRecorder } from '@testdog/server/execution/recording/webRecorder';
 import { PersistenceQueue } from '@testdog/server/execution/recording/persistenceQueue';
 import { cleanupRuntime } from '@testdog/server/execution/finalizeRuntime';

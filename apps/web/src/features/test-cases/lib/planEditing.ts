@@ -7,7 +7,7 @@ import {
   mapNodeReferences,
   type Plan,
   type PlanNode,
-} from '@testdog/contracts/automation/compiler/schema';
+} from '@testdog/contracts/execution/plan';
 import { defaultAuthoringLabels, type Insertion } from '@/features/test-cases/lib/authoring';
 
 function subtreeIds(plan: Plan, id: string): Set<string> {

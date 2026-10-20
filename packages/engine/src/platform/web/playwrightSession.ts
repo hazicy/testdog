@@ -10,15 +10,17 @@ import { captureWebScreenshot } from '@testdog/engine/platform/web/screenshot';
 import type { ExecutionHooks } from '@testdog/contracts/runs/types';
 import type {
   AutomationSession,
+  CaptureRequest,
+  ArtifactDescriptor,
+  ObservationRequest,
+} from '@testdog/engine/platform/contracts';
+import type {
   Observation,
   PlatformAction,
   SessionEvent,
   PlatformAssertion,
-  CaptureRequest,
-  ArtifactDescriptor,
   ReplayStep,
-  ObservationRequest,
-} from '@testdog/contracts/automation/platform/contracts';
+} from '@testdog/contracts/execution/platform';
 
 export class PlaywrightSession implements AutomationSession {
   readonly platform = 'web' as const;

@@ -1,9 +1,5 @@
-import {
-  HttpUrlSchema,
-  TestTargetSchema,
-  targetUrl,
-} from '@testdog/contracts/automation/platform/target';
-import { ExecutablePlanSchema } from '@testdog/contracts/automation/compiler/schema';
+import { HttpUrlSchema, TestTargetSchema, targetUrl } from '@testdog/contracts/execution/target';
+import { ExecutablePlanSchema } from '@testdog/contracts/execution/plan';
 import { z } from 'zod';
 
 const testInputMessage = '请填写名称、有效的测试目标和测试步骤。';

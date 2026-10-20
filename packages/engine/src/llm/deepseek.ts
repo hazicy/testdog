@@ -7,7 +7,7 @@ import type {
   LLMGenerateParams,
   LLMGenerateResult,
   ModelClient,
-} from '@testdog/contracts/automation/llm/contracts';
+} from '@testdog/engine/llm/contracts';
 
 function isJSONObject(value: JSONType): value is Record<string, JSONType> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

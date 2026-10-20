@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { CompileRequest } from '@testdog/contracts/automation/compiler/request';
+import type { CompileRequest } from '@testdog/contracts/execution/compilation';
 import { compilePlan } from '@/features/test-cases/lib/compilePlan';
 
 export function usePlanCompilation() {

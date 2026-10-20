@@ -6,7 +6,7 @@ import { useTranslations, useMessages } from 'next-intl';
 
 import { useCallback, useMemo, useState } from 'react';
 import type { Edge, NodeChange } from '@xyflow/react';
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan } from '@testdog/contracts/execution/plan';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
 import { boardNodeSteps, boardResult, indexStepsByNode } from '@/features/runs/lib/boardResults';
 import { layoutPlan, PLAN_ROW_WIDTH } from '@/features/runs/lib/planLayout';

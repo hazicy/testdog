@@ -1,5 +1,5 @@
 import { graphlib, layout } from '@dagrejs/dagre';
-import type { Plan, PlanNode } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan, PlanNode } from '@testdog/contracts/execution/plan';
 import type { Insertion } from '@/features/test-cases/lib/authoring';
 
 type LayoutNode = {

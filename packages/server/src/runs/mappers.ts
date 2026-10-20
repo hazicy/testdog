@@ -6,7 +6,7 @@ import type {
   RunArtifact,
   RunSummary,
 } from '@testdog/contracts/runs/types';
-import { targetUrl } from '@testdog/contracts/automation/platform/target';
+import { targetUrl } from '@testdog/contracts/execution/target';
 
 const optional = <T>(value: T | null) => value ?? undefined;
 

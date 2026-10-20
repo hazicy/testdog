@@ -8,7 +8,7 @@ import { DeviceRecorder } from '@testdog/server/execution/recording/deviceRecord
 import { getBuild } from '@testdog/server/builds/repository';
 import { previewInterval } from '@testdog/server/realtime/preview';
 import { finalizeRuntime } from '@testdog/server/execution/finalizeRuntime';
-import type { NativeTarget } from '@testdog/contracts/automation/platform/target';
+import type { NativeTarget } from '@testdog/contracts/execution/target';
 
 export async function openNativeRuntime(
   input: RuntimeInput,

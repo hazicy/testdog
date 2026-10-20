@@ -1,5 +1,5 @@
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
-import type { TestTarget } from '@testdog/contracts/automation/platform/target';
+import type { Plan } from '@testdog/contracts/execution/plan';
+import type { TestTarget } from '@testdog/contracts/execution/target';
 
 export type TestCase = {
   id: string;

@@ -1,4 +1,4 @@
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
 import { deepseekClient } from '@testdog/engine/llm/deepseek';
 import { createJevModelClient } from '@testdog/engine/domAgent/clients';
 

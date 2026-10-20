@@ -14,7 +14,7 @@ import screenshot from '@iconify-icons/lucide/camera';
 import group from '@iconify-icons/lucide/list-tree';
 import plugin from '@iconify-icons/lucide/puzzle';
 import branch from '@iconify-icons/lucide/git-branch';
-import type { StepType } from '@testdog/contracts/automation/compiler/schema';
+import type { StepType } from '@testdog/contracts/execution/plan';
 
 const stepTypes = [
   { value: 'navigate', label: 'Navigate' },

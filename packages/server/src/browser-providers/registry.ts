@@ -1,5 +1,5 @@
 import { browserlessInput } from '@testdog/contracts/integrations/schemas';
-import { browserlessConfigSchema } from '@testdog/contracts/automation/platform/web/providers/browserlessConfig';
+import { browserlessConfigSchema } from '@testdog/contracts/integrations/browserless';
 import { WorkspaceError } from '@testdog/server/shared/errors';
 import { browserlessProvider } from '@testdog/engine/platform/web/providers/browserless';
 import type { BrowserProvider } from '@testdog/engine/platform/web/providers/contracts';

@@ -6,11 +6,11 @@ import {
   observationView,
   type AriaNode,
 } from '@testdog/engine/platform/web/observationView';
-import type { ObservationRequest } from '@testdog/contracts/automation/platform/contracts';
+import type { ObservationRequest } from '@testdog/engine/platform/contracts';
 import { PlaywrightSession } from '@testdog/engine/platform/web/playwrightSession';
 import { WebActionPlanner } from '@testdog/engine/platform/web/webPlanner';
 import { PlanRunner } from '@testdog/engine/planRunner';
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
 
 let browser: Browser;
 let page: Page;

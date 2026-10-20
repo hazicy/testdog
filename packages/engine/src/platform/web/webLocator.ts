@@ -1,5 +1,5 @@
 import type { Locator, Page } from 'playwright';
-import type { Target } from '@testdog/contracts/automation/compiler/schema';
+import type { Target } from '@testdog/contracts/execution/plan';
 
 export function locateWebElement(page: Page, target: Target): Locator {
   const root = target.scope ? locateWebElement(page, target.scope) : page.locator(':root');

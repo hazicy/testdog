@@ -7,7 +7,7 @@ import { ownedBy, type UserScope } from '@testdog/server/shared/ownership';
 import { and, desc, eq, inArray, sql, type SQLWrapper } from 'drizzle-orm';
 import { db } from '@testdog/server/db';
 import { testCases, testRuns } from '@testdog/server/db/schema';
-import { targetUrl } from '@testdog/contracts/automation/platform/target';
+import { targetUrl } from '@testdog/contracts/execution/target';
 import type { RunSummary } from '@testdog/contracts/runs/types';
 import { testFilter } from '@testdog/server/test-cases/filter';
 import { WorkspaceError } from '@testdog/server/shared/errors';

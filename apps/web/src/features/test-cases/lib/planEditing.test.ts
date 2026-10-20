@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PlanSchema, type Plan } from '@testdog/contracts/automation/compiler/schema';
+import { PlanSchema, type Plan } from '@testdog/contracts/execution/plan';
 import { emptyPlan, insertStep } from '@/features/test-cases/lib/authoring';
 import {
   duplicateNode,

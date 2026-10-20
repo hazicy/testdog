@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan } from '@testdog/contracts/execution/plan';
 
 // External replacements (generation/review) start a new editing history.
 export function usePlanHistory(plan: Plan, onChange?: (plan: Plan) => void) {

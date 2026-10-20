@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { ExecutablePlanSchema } from '@testdog/contracts/automation/compiler/schema';
+import { ExecutablePlanSchema } from '@testdog/contracts/execution/plan';
 import { emptyPlan, planText } from './authoring';
 import { pasteFeishuPlan } from './pasteFeishuPlan';
 

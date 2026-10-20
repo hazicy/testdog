@@ -1,11 +1,7 @@
 import { normalizeReplaySteps } from '@testdog/contracts/runs/lib/replay';
 import { beforeEach, expect, it, vi } from 'vitest';
-import type {
-  ActionPlanner,
-  AutomationSession,
-  Observation,
-  SessionEvent,
-} from '@testdog/contracts/automation/platform/contracts';
+import type { ActionPlanner, AutomationSession } from '@testdog/engine/platform/contracts';
+import type { Observation, SessionEvent } from '@testdog/contracts/execution/platform';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
 import { PlanRunner } from '@testdog/engine/planRunner';
 

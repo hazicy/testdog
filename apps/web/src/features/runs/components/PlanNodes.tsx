@@ -17,7 +17,7 @@ import { ExecutionPluginEditor } from '@/features/plugins/ExecutionPluginEditor'
 import type { PluginInvocation } from '@testdog/contracts/plugins/execution';
 import { memo, useEffect, useId, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
-import type { PlanNode } from '@testdog/contracts/automation/compiler/schema';
+import type { PlanNode } from '@testdog/contracts/execution/plan';
 import type { ExecutionStep, RunArtifact } from '@testdog/contracts/runs/types';
 import { ExecutionActions } from './ExecutionActions';
 import { PlanNodeResult } from './PlanNodeResult';

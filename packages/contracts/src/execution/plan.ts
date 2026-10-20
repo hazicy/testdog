@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { PluginInvocationSchema, validatePlugin } from '@testdog/contracts/plugins/execution';
-import { HttpUrlSchema } from '@testdog/contracts/automation/platform/target';
+import { HttpUrlSchema } from '@testdog/contracts/execution/target';
 
 const LocatorSchema = z.object({
   kind: z.enum(['role', 'label', 'placeholder', 'testId', 'css', 'text', 'ariaRef']),

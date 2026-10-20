@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { PlanSchema } from '@testdog/contracts/automation/compiler/schema';
-import { HttpUrlSchema } from '@testdog/contracts/automation/platform/target';
+import { PlanSchema } from '@testdog/contracts/execution/plan';
+import { HttpUrlSchema } from '@testdog/contracts/execution/target';
 
 // Authoring does not require a fully configured device or URL yet.
 const CompilationContextSchema = z.strictObject({

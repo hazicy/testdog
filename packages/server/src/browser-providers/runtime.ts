@@ -1,4 +1,4 @@
-import type { WebTarget } from '@testdog/contracts/automation/platform/target';
+import type { WebTarget } from '@testdog/contracts/execution/target';
 import { localBrowserProvider } from '@testdog/engine/platform/web/providers/local';
 import type { BrowserConnection } from '@testdog/engine/platform/web/providers/contracts';
 import { WorkspaceError } from '@testdog/server/shared/errors';

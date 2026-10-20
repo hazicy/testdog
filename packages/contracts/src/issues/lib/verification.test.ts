@@ -1,4 +1,4 @@
-import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
+import { defaultWebTarget } from '@testdog/contracts/execution/target';
 import { expect, it } from 'vitest';
 import { verificationResult } from '@testdog/contracts/issues/lib/verification';
 import type { OccurrenceSnapshot } from '@testdog/contracts/issues/types';

@@ -27,10 +27,7 @@ import { getBuild, registerBuild } from '@testdog/server/builds/repository';
 
 afterAll(() => isolated.client?.close());
 import { AgentDeviceSession } from '@testdog/engine/platform/native/agentDeviceSession';
-import type {
-  NativeAction,
-  PlatformAction,
-} from '@testdog/contracts/automation/platform/contracts';
+import type { NativeAction, PlatformAction } from '@testdog/contracts/execution/platform';
 
 const exec = promisify(execFile);
 const live = process.env.RUN_DEVICE_LIVE_TESTS === 'true';

@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
-import type { ActionPlanner } from '@testdog/contracts/automation/platform/contracts';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
+import type { ActionPlanner } from '@testdog/engine/platform/contracts';
 import { NativeActionPlanner } from '@testdog/engine/platform/native/nativePlanner';
 
 const input: Parameters<ActionPlanner['plan']>[0] = {

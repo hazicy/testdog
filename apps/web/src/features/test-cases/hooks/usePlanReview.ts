@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useReducer } from 'react';
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan } from '@testdog/contracts/execution/plan';
 
 import {
   reviewPlan,

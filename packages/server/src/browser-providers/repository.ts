@@ -6,7 +6,7 @@ import {
 } from '@testdog/server/shared/ownership';
 import { and, eq, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import type { WebTarget } from '@testdog/contracts/automation/platform/target';
+import type { WebTarget } from '@testdog/contracts/execution/target';
 import { db } from '@testdog/server/db';
 import { browserProviderIntegrations as integrations, testRuns } from '@testdog/server/db/schema';
 import { WorkspaceError } from '@testdog/server/shared/errors';

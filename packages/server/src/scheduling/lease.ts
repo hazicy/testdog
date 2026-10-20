@@ -48,7 +48,7 @@ export async function setRunPhase(
   runId: string,
   phase: 'running' | 'finalizing',
   environmentSnapshot?: Record<string, unknown>,
-  capabilities?: import('@testdog/contracts/automation/platform/contracts').CapabilitySet,
+  capabilities?: import('@testdog/contracts/execution/platform').CapabilitySet,
 ) {
   await runWrite(runId, async (tx) => {
     await tx

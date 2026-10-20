@@ -1,4 +1,4 @@
-import type { Plan, PlanNode } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan, PlanNode } from '@testdog/contracts/execution/plan';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
 import { boardNodeSteps, indexStepsByNode, planNodeTitle } from './boardResults';
 

@@ -1,4 +1,4 @@
-import { browserlessConfigSchema } from '@testdog/contracts/automation/platform/web/providers/browserlessConfig';
+import { browserlessConfigSchema } from '@testdog/contracts/integrations/browserless';
 import { connectBrowserless } from '@testdog/engine/platform/web/browserless';
 import {
   browserConnection,

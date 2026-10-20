@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
-import { CompileRequestSchema } from '@testdog/contracts/automation/compiler/request';
+import { CompileRequestSchema } from '@testdog/contracts/execution/compilation';
 import { TextCompiler } from '@testdog/engine/compiler/textCompiler';
 import { modelClient } from '@testdog/server/infrastructure/model';
 import { requireUserId } from '@/server/shared/auth';

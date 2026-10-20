@@ -1,12 +1,12 @@
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
+import type { Plan } from '@testdog/contracts/execution/plan';
 import type { TestRun } from '@testdog/contracts/runs/types';
 import type {
   Evaluator,
   AutomationSession,
   ActionPlanner,
-  PlatformAction,
-} from '@testdog/contracts/automation/platform/contracts';
+} from '@testdog/engine/platform/contracts';
+import type { PlatformAction } from '@testdog/contracts/execution/platform';
 
 export interface PlatformRuntime {
   session: AutomationSession;

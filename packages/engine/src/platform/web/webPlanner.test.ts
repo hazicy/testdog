@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import type { ActionPlanner } from '@testdog/contracts/automation/platform/contracts';
+import type { ActionPlanner } from '@testdog/engine/platform/contracts';
 import { WebActionPlanner } from '@testdog/engine/platform/web/webPlanner';
 import { ReplanRequiredError } from '@testdog/engine/replanning';
 

@@ -10,7 +10,7 @@ import {
   resolveExecutionPlugin,
   type PluginInvocation,
 } from '@testdog/contracts/plugins/execution';
-import type { Plan, PlanNode } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan, PlanNode } from '@testdog/contracts/execution/plan';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 const pluginId = 'volcengine-abtest';

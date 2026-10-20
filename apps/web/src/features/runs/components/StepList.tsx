@@ -7,7 +7,7 @@ import chevronIcon from '@iconify-icons/lucide/chevron-right';
 import folderIcon from '@iconify-icons/lucide/folder';
 import referenceIcon from '@iconify-icons/lucide/corner-up-left';
 import { memo, useEffect, useId, useMemo, useRef } from 'react';
-import type { Plan } from '@testdog/contracts/automation/compiler/schema';
+import type { Plan } from '@testdog/contracts/execution/plan';
 import { executionGroups, type ExecutionGroup } from '@/features/runs/lib/executionGroups';
 import { stepResult } from '@/features/runs/lib/boardResults';
 import { statusStyles } from '@/components/ui/statusStyles';

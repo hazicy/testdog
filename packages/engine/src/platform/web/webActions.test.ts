@@ -1,6 +1,6 @@
 import { chromium, type Browser, type Page } from 'playwright';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest';
-import { StepSchema, type Target } from '@testdog/contracts/automation/compiler/schema';
+import { StepSchema, type Target } from '@testdog/contracts/execution/plan';
 import { executeWebAction } from '@testdog/engine/platform/web/webActions';
 import { locateWebElement } from '@testdog/engine/platform/web/webLocator';
 import { PlaywrightSession } from '@testdog/engine/platform/web/playwrightSession';

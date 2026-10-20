@@ -1,4 +1,4 @@
-import { browserlessConfigSchema } from '@testdog/contracts/automation/platform/web/providers/browserlessConfig';
+import { browserlessConfigSchema } from '@testdog/contracts/integrations/browserless';
 import { z } from 'zod';
 
 export const channelSchema = z.enum(['feishu', 'email']);

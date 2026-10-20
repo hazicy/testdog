@@ -148,7 +148,7 @@ const eslintConfig = defineConfig([
               message: '共享后端不能依赖 Web 应用、Next.js 或用户会话实现。',
             },
             {
-              regex: '^@testdog/server/execution(?:/|$)|(?:^|/)execution(?:/|$)',
+              regex: '^@testdog/server/execution(?:/|$)|^(?:[.]{1,2}/)+execution(?:/|$)',
               message: '执行记录业务不能依赖执行器；取消请求通过数据库传递。',
             },
           ],
@@ -210,7 +210,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: `^@testdog/(?:server|contracts/(?!automation/)|engine/(?:llm|platform/(?:web|native)))|(?:^|/)(?:llm|features|db|platform/(?:web|native))(?:/.*)?$|${serverImportPattern}`,
+              regex: `^@testdog/(?:server|contracts/(?!execution/)|engine/(?:llm|platform/(?:web|native)))|(?:^|/)(?:llm|features|db|platform/(?:web|native))(?:/.*)?$|${serverImportPattern}`,
               allowTypeImports: true,
               message: 'PlanRunner 通过注入接口编排执行，不直接依赖平台驱动、模型或工作台存储。',
             },

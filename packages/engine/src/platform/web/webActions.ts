@@ -1,5 +1,5 @@
 import type { Page } from 'playwright';
-import type { Step } from '@testdog/contracts/automation/compiler/schema';
+import type { Step } from '@testdog/contracts/execution/plan';
 import { locateWebElement } from '@testdog/engine/platform/web/webLocator';
 import { captureWebScreenshot } from '@testdog/engine/platform/web/screenshot';
 import { ReplanRequiredError } from '@testdog/engine/replanning';

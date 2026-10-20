@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import { budgetedModel, type ModelBudget } from '@testdog/engine/llm/budget';
-import type { LLMGenerateResult } from '@testdog/contracts/automation/llm/contracts';
+import type { LLMGenerateResult } from '@testdog/engine/llm/contracts';
 
 const budget: ModelBudget = {
   timeoutMs: 1000,

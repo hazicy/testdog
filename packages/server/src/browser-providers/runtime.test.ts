@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { WebTarget } from '@testdog/contracts/automation/platform/target';
+import type { WebTarget } from '@testdog/contracts/execution/target';
 
 const mocks = vi.hoisted(() => ({ forRun: vi.fn(), saved: vi.fn(), local: vi.fn() }));
 

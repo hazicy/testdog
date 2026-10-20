@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import type { TestCase } from '@testdog/contracts/test-cases/types';
-import { TestTargetSchema } from '@testdog/contracts/automation/platform/target';
+import { TestTargetSchema } from '@testdog/contracts/execution/target';
 import { caseTarget, initialCaseSettings } from './caseSettings';
 
 it('round-trips a custom Web UA through saved case settings', () => {

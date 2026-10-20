@@ -1,4 +1,4 @@
-import type { TestTarget } from '@testdog/contracts/automation/platform/target';
+import type { TestTarget } from '@testdog/contracts/execution/target';
 import type { ExecutionStep, RunArtifact, RunStatus } from '@testdog/contracts/runs/types';
 
 export const issueStatuses = {

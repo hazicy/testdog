@@ -1,4 +1,4 @@
-import { defaultWebTarget } from '@testdog/contracts/automation/platform/target';
+import { defaultWebTarget } from '@testdog/contracts/execution/target';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isolated = vi.hoisted(() => ({

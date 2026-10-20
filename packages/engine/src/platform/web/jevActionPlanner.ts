@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import type { ModelClient } from '@testdog/contracts/automation/llm/contracts';
-import type {
-  ActionPlanner,
-  PlatformAction,
-} from '@testdog/contracts/automation/platform/contracts';
+import type { ModelClient } from '@testdog/engine/llm/contracts';
+import type { ActionPlanner } from '@testdog/engine/platform/contracts';
+import type { PlatformAction } from '@testdog/contracts/execution/platform';
 import { ariaCandidates } from './ariaCandidates';
 import { findAriaNode, type AriaNode } from './observationView';
 import { WebActionPlanner } from './webPlanner';

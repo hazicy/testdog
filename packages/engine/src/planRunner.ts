@@ -1,20 +1,22 @@
 import { randomUUID } from 'node:crypto';
 import { ReplanRequiredError } from '@testdog/engine/replanning';
-import { ExecutablePlanSchema, type PlanNode } from '@testdog/contracts/automation/compiler/schema';
+import { ExecutablePlanSchema, type PlanNode } from '@testdog/contracts/execution/plan';
 import {
   PlatformActionSchema,
   ObservationSchema,
   CapabilitySetSchema,
   PlatformAssertionSchema,
   type PlatformAction,
-  type CheckResult,
-  type RunnerOptions,
   type SessionEvent,
   type ReplayStep,
   type Observation,
+} from '@testdog/contracts/execution/platform';
+import {
+  type CheckResult,
+  type RunnerOptions,
   type ActionPlanner,
   type ObservationRequest,
-} from '@testdog/contracts/automation/platform/contracts';
+} from '@testdog/engine/platform/contracts';
 
 // Owns business sequencing only. Driver objects and evidence capture belong to sessions.
 export class PlanRunner {

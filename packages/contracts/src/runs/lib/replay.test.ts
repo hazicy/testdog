@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { normalizeReplaySteps } from '@testdog/contracts/runs/lib/replay';
 import type { ExecutionStep } from '@testdog/contracts/runs/types';
-import type { PlatformAssertion } from '@testdog/contracts/automation/platform/contracts';
+import type { PlatformAssertion } from '@testdog/contracts/execution/platform';
 
 function step(fields: Partial<ExecutionStep>): ExecutionStep {
   return {

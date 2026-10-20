@@ -1,9 +1,7 @@
 import { hasPreviewViewers, publishPreview } from '@testdog/server/realtime/preview';
 import { EvidenceSink } from '@testdog/server/execution/recording/evidenceSink';
-import type {
-  AutomationSession,
-  SessionEvent,
-} from '@testdog/contracts/automation/platform/contracts';
+import type { AutomationSession } from '@testdog/engine/platform/contracts';
+import type { SessionEvent } from '@testdog/contracts/execution/platform';
 import { insertStep, finishStep } from '@testdog/server/runs/repository';
 import type { TestRun } from '@testdog/contracts/runs/types';
 
