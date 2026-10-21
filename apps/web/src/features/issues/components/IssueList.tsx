@@ -290,9 +290,7 @@ export function IssueList() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className={workspaceStyles.workspaceIndexTag}>
-                      {environmentLabel(issue.latestOccurrence)}
-                    </span>
+                    <StatusBadge>{environmentLabel(issue.latestOccurrence)}</StatusBadge>
                   </TableCell>
                   <TableCell>{issue.runCount ?? 0}</TableCell>
                   <TableCell

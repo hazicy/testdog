@@ -487,10 +487,10 @@
       "closed": "Closed"
     },
     "issueSeverities": {
-      "critical": "Critical",
-      "high": "High",
-      "medium": "Medium",
-      "low": "Low"
+      "critical": "P0",
+      "high": "P1",
+      "medium": "P2",
+      "low": "P3"
     },
     "closeReasons": {
       "fixed": "Fixed",

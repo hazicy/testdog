@@ -487,10 +487,10 @@
       "closed": "已关闭"
     },
     "issueSeverities": {
-      "critical": "阻断",
-      "high": "严重",
-      "medium": "一般",
-      "low": "轻微"
+      "critical": "P0",
+      "high": "P1",
+      "medium": "P2",
+      "low": "P3"
     },
     "closeReasons": {
       "fixed": "已修复",

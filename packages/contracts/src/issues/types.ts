@@ -7,7 +7,7 @@ export const issueStatuses = {
   pending_verification: '待验证',
   closed: '已关闭',
 };
-export const issueSeverities = { critical: '阻断', high: '严重', medium: '一般', low: '轻微' };
+export const issueSeverities = { critical: 'P0', high: 'P1', medium: 'P2', low: 'P3' };
 export const closeReasons = {
   fixed: '已修复',
   dismissed: '不予处理',
