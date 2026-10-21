@@ -13,12 +13,6 @@ export function useIssueLabels() {
       pending_verification: t('issueStatuses.pending_verification'),
       closed: t('issueStatuses.closed'),
     },
-    issueCategories: {
-      product: t('issueCategories.product'),
-      test: t('issueCategories.test'),
-      environment: t('issueCategories.environment'),
-      execution: t('issueCategories.execution'),
-    },
     issueSeverities: {
       critical: t('issueSeverities.critical'),
       high: t('issueSeverities.high'),

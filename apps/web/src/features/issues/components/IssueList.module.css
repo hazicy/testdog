@@ -27,14 +27,15 @@
 .tableHeader {
   background-color: transparent;
 }
-.label {
-  margin-top: var(--space-1);
-  display: block;
-  font-size: var(--text-sm);
-  line-height: var(--line-metadata);
-  color: var(--page-muted);
+.issueSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
 }
 .issueLink {
+  flex: 1;
+  min-width: 0;
   font-weight: 400;
   @media (hover: hover) {
     &:hover {
@@ -42,6 +43,36 @@
     }
   }
 }
+.title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .tableCell {
   white-space: nowrap;
+}
+
+.positioner {
+  z-index: 50;
+}
+.popup {
+  width: 28rem;
+  max-width: calc(100vw - 1.5rem);
+  max-height: var(--available-height);
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--page-line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-popover);
+  font-size: var(--text-sm);
+}
+.popupTitle {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-md);
+  font-weight: 500;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

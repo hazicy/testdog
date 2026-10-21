@@ -4,7 +4,7 @@
 
 ## 数据与权限
 
-- `issues`：标题、状态、分类、严重程度、关闭原因、归属和编辑版本。
+- `issues`：标题、状态、严重程度、关闭原因、归属和编辑版本。
 - `issue_occurrences`：发现时的执行及步骤引用，用例、目标、环境和证据元数据快照。数据库唯一索引保证同一来源不会重复关联。
 - `issue_verifications`：验证来源、回归执行 ID。验证结论由已保存的执行结果计算，不调用模型，不自动关闭问题。
 
@@ -14,7 +14,7 @@
 
 待确认（open）、处理中（in_progress）、待验证（pending_verification）、已关闭（closed）。编辑支持调整状态和重新打开；关闭必须选择 fixed、dismissed、duplicate 或 unreproducible 原因，离开已关闭状态会清空关闭原因。
 
-分类：product、test、environment、execution。严重程度：critical、high、medium、low。
+严重程度：critical、high、medium、low。
 
 PATCH 必须带当前 version。服务端在事务中校验版本并递增；冲突返回 409。客户端表单固定打开时的版本，后台刷新不会放宽并发检查。
 
@@ -23,7 +23,7 @@ PATCH 必须带当前 version。服务端在事务中校验版本并递增；冲
 | 接口                               | 内容                                                      |
 | ---------------------------------- | --------------------------------------------------------- |
 | GET /api/issues                    | 接受 q、status、limit、cursor，返回 issues 和 nextCursor  |
-| POST /api/issues                   | title、category、severity，可选 source: {runId, stepId}   |
+| POST /api/issues                   | title、severity，可选 source: {runId, stepId}             |
 | GET /api/issues/:id                | 返回 issue、occurrences、verifications                    |
 | DELETE /api/issues/:id             | 删除问题及发现、回归关联，保留原始执行和证据              |
 | PATCH /api/issues/:id              | version，加修改字段、status、closeReason                  |
@@ -42,7 +42,7 @@ PATCH 必须带当前 version。服务端在事务中校验版本并递增；冲
 
 ## 界面
 
-运行画板节点和步骤详情均提供“创建或关联问题”。创建自动填写步骤标题、预期、证据摘要和错误；用户补充分类和严重程度。问题详情提供最近一次失败的预期与实际、复现步骤、发现记录表格、原始执行链接、状态编辑和回归入口。可加载来源执行中的保存版本。
+运行画板节点和步骤详情均提供“创建或关联问题”。创建自动填写步骤标题、预期、证据摘要和错误；用户补充严重程度。问题详情提供最近一次失败的预期与实际、复现步骤、发现记录表格、原始执行链接、状态编辑和回归入口。可加载来源执行中的保存版本。
 
 列表每 30 秒刷新；详情有活动回归时每 5 秒刷新，其他时间每 30 秒刷新。复用 SWR 和已有请求封装。当前版本按个人数据归属运行，团队指派与外部平台同步尚未加入。
 

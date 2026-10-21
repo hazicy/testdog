@@ -7,12 +7,6 @@ export const issueStatuses = {
   pending_verification: '待验证',
   closed: '已关闭',
 };
-export const issueCategories = {
-  product: '产品缺陷',
-  test: '用例问题',
-  environment: '环境问题',
-  execution: '执行系统问题',
-};
 export const issueSeverities = { critical: '阻断', high: '严重', medium: '一般', low: '轻微' };
 export const closeReasons = {
   fixed: '已修复',
@@ -25,7 +19,6 @@ export type Issue = {
   id: string;
   title: string;
   status: IssueStatus;
-  category: keyof typeof issueCategories;
   severity: keyof typeof issueSeverities;
   closeReason: keyof typeof closeReasons | null;
   version: number;

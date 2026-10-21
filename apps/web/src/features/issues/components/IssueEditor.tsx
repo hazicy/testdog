@@ -37,13 +37,12 @@ export function IssueEditor({
   onSaved: (issue: Issue) => void;
 }) {
   const t = useTranslations('issues');
-  const { issueStatuses, issueCategories, issueSeverities, closeReasons } = useIssueLabels();
+  const { issueStatuses, issueSeverities, closeReasons } = useIssueLabels();
   const titleId = useId();
   const [baseVersion] = useState(issue?.version);
   const submit = useRunSubmission();
   const [mode, setMode] = useState<'create' | 'link'>('create');
   const [title, setTitle] = useState(() => issue?.title ?? issueTitle(run, step));
-  const [category, setCategory] = useState(issue?.category ?? 'product');
   const [severity, setSeverity] = useState(issue?.severity ?? 'medium');
   const [status, setStatus] = useState(issue?.status ?? 'open');
   const [reason, setReason] = useState(issue?.closeReason ?? 'fixed');
@@ -75,7 +74,6 @@ export function IssueEditor({
             json: {
               version: baseVersion,
               title,
-              category,
               severity,
               status,
               ...(status === 'closed' ? { closeReason: reason } : {}),
@@ -87,7 +85,6 @@ export function IssueEditor({
       } else {
         const response = await submit<{ issue: Issue }>('/api/issues', {
           title,
-          category,
           severity,
           ...(run ? { source: { runId: run.id, stepId: step?.id } } : {}),
         });
@@ -178,20 +175,12 @@ export function IssueEditor({
                   onChange={(event) => setTitle(event.target.value)}
                 />
               </label>
-              <div className={styles.classification}>
-                <Select
-                  aria-label={t('category')}
-                  value={category}
-                  onValueChange={(value) => setCategory(value as typeof category)}
-                  items={options(issueCategories)}
-                />
-                <Select
-                  aria-label={t('severity')}
-                  value={severity}
-                  onValueChange={(value) => setSeverity(value as typeof severity)}
-                  items={options(issueSeverities)}
-                />
-              </div>
+              <Select
+                aria-label={t('severity')}
+                value={severity}
+                onValueChange={(value) => setSeverity(value as typeof severity)}
+                items={options(issueSeverities)}
+              />
               {issue && (
                 <Select
                   aria-label={t('issueStatus')}

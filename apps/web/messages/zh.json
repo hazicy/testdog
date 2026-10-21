@@ -351,6 +351,8 @@
     "browserlessDescription": "使用远程 Chromium 浏览器执行 Web 用例。"
   },
   "issues": {
+    "selectAllIssues": "全选问题",
+    "selectIssueRow": "选择问题：{title}",
     "selectIssue": "请选择要关联的问题。",
     "saveFailed": "保存失败",
     "deleteIssue": "删除问题",
@@ -367,7 +369,6 @@
     "chooseExisting": "选择已有问题",
     "chooseIssue": "请选择问题",
     "issueTitle": "问题标题",
-    "category": "问题分类",
     "severity": "严重程度",
     "issueStatus": "问题状态",
     "closeReason": "关闭原因",
@@ -395,6 +396,8 @@
     "noIssues": "暂无问题",
     "viewRuns": "查看执行记录",
     "scrollTable": "可横向滚动的问题表格",
+    "actions": "操作",
+    "details": "详情",
     "issue": "问题",
     "environment": "环境",
     "runCount": "执行次数",
@@ -482,12 +485,6 @@
       "in_progress": "处理中",
       "pending_verification": "待验证",
       "closed": "已关闭"
-    },
-    "issueCategories": {
-      "product": "产品缺陷",
-      "test": "用例问题",
-      "environment": "环境问题",
-      "execution": "执行系统问题"
     },
     "issueSeverities": {
       "critical": "阻断",

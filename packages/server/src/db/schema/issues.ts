@@ -24,9 +24,6 @@ export const issues = pgTable(
     status: text({ enum: ['open', 'in_progress', 'pending_verification', 'closed'] })
       .notNull()
       .default('open'),
-    category: text({ enum: ['product', 'test', 'environment', 'execution'] })
-      .notNull()
-      .default('product'),
     severity: text({ enum: ['critical', 'high', 'medium', 'low'] })
       .notNull()
       .default('medium'),
@@ -42,10 +39,6 @@ export const issues = pgTable(
     check(
       'issues_status_check',
       sql`${table.status} in ('open','in_progress','pending_verification','closed')`,
-    ),
-    check(
-      'issues_category_check',
-      sql`${table.category} in ('product','test','environment','execution')`,
     ),
     check('issues_severity_check', sql`${table.severity} in ('critical','high','medium','low')`),
     check(

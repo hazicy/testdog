@@ -593,7 +593,7 @@ it('commits an automatic issue when a failed run is finalized', async () => {
   expect(occurrence).toBeDefined();
   const [issue] = await db.select().from(issues).where(eq(issues.id, occurrence.issueId));
 
-  expect(issue).toMatchObject({ title: '金额为100', category: 'product', status: 'open' });
+  expect(issue).toMatchObject({ title: '金额为100', status: 'open' });
 });
 
 it('freezes per-platform target overrides without modifying the case', async () => {

@@ -394,7 +394,6 @@ export async function createIssuesForFailedRun(runId: string, tx: Tx) {
       );
 
     if (existingSource) continue;
-    const category = step?.kind === 'assertion' ? 'product' : 'execution';
     const snapshot = await sourceSnapshot(tx, source, rowScope(run));
     const [matching] = run.testId
       ? await tx
@@ -405,7 +404,7 @@ export async function createIssuesForFailedRun(runId: string, tx: Tx) {
             and(
               ownedBy(issues, rowScope(run)),
               inArray(issues.status, ['open', 'in_progress', 'pending_verification']),
-              eq(issues.category, category),
+              sql`coalesce(${issueOccurrences.snapshot}->'step'->>'kind', '') = ${step?.kind ?? ''}`,
               sql`${issueOccurrences.snapshot}->>'testId' = ${run.testId}`,
               sql`coalesce(${issueOccurrences.snapshot}->'step'->>'title', '') = ${step?.title ?? ''}`,
               sql`coalesce(${issueOccurrences.snapshot}->'step'->>'planNodeId', '') = ${step?.planNodeId ?? ''}`,
@@ -440,7 +439,6 @@ export async function createIssuesForFailedRun(runId: string, tx: Tx) {
       await createIssue(
         issueInput.parse({
           title: (step?.title || run.name || '测试执行失败').slice(0, 200),
-          category,
           severity: 'medium',
           source,
         }),

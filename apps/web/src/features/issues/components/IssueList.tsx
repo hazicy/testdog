@@ -27,6 +27,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useState } from 'react';
 import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 import Link from 'next/link';
+import { Popover } from '@base-ui/react/popover';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useIssueRealtime } from '../useIssueRealtime';
@@ -34,7 +35,9 @@ import { fetchJson } from '@/client/api';
 import { useDebouncedValue } from '@/client/useDebouncedValue';
 import { useCursorPagination } from '@/client/useCursorPagination';
 import { Button } from '@/components/ui/Button';
+import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Select } from '@/components/ui/Select';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { type IssuePage } from '@testdog/contracts/issues/types';
 import { IssueEditor, options } from '@/features/issues/components/IssueEditor';
 import { Icon } from '@iconify/react/offline';
@@ -74,6 +77,28 @@ export function IssueList() {
     refreshInterval: connected ? 0 : 30000,
   });
   const items = data?.issues ?? [];
+  const scope = JSON.stringify([q, status, platform, days, sort, cursors]);
+  const [selection, setSelection] = useState({ scope, ids: new Set<string>() });
+
+  if (selection.scope !== scope) setSelection({ scope, ids: new Set<string>() });
+
+  const selected = selection.scope === scope ? selection.ids : new Set<string>();
+  const allSelected = items.length > 0 && items.every((issue) => selected.has(issue.id));
+  const someSelected = items.some((issue) => selected.has(issue.id));
+
+  function toggleSelection(ids: string[], checked: boolean) {
+    setSelection((current) => {
+      const next = new Set(current.scope === scope ? current.ids : []);
+
+      for (const id of ids) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+
+      return { scope, ids: next };
+    });
+  }
+
   const filtered = !!search || status !== 'all' || platform !== 'all' || days !== 'all';
 
   return (
@@ -187,17 +212,37 @@ export function IssueList() {
           <Table className={clsx(workspaceStyles.workspaceIndexTable, workspaceStyles.isIssues)}>
             <TableHeader className={styles.tableHeader}>
               <TableRow>
+                <TableHead>
+                  <Checkbox
+                    aria-label={t('selectAllIssues')}
+                    checked={allSelected}
+                    indeterminate={someSelected && !allSelected}
+                    onCheckedChange={(checked) =>
+                      toggleSelection(
+                        items.map((issue) => issue.id),
+                        checked,
+                      )
+                    }
+                  />
+                </TableHead>
                 <TableHead>{t('severity')}</TableHead>
                 <TableHead>{t('issue')}</TableHead>
                 <TableHead>{t('environment')}</TableHead>
                 <TableHead>{t('runCount')}</TableHead>
                 <TableHead>{t('lastSeenSort')}</TableHead>
-                <TableHead>{t('status')}</TableHead>
+                <TableHead>{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((issue) => (
                 <TableRow key={issue.id}>
+                  <TableCell>
+                    <Checkbox
+                      aria-label={t('selectIssueRow', { title: issue.title })}
+                      checked={selected.has(issue.id)}
+                      onCheckedChange={(checked) => toggleSelection([issue.id], checked)}
+                    />
+                  </TableCell>
                   <TableCell>
                     <StatusBadge
                       tone={
@@ -209,23 +254,40 @@ export function IssueList() {
                       }
                       title={issueSeverities[issue.severity]}
                     >
-                      {issue.category === 'product' ? 'BUG' : issue.category.toUpperCase()}
+                      {issueSeverities[issue.severity]}
                     </StatusBadge>
-                    <span className={styles.label}>{issueSeverities[issue.severity]}</span>
                   </TableCell>
                   <TableCell>
-                    <Link
-                      className={clsx(workspaceStyles.workspaceIndexName, styles.issueLink)}
-                      href={`/issues/${issue.id}`}
-                    >
-                      <span className={workspaceStyles.workspaceIndexNameText} title={issue.title}>
-                        {issue.title}
-                      </span>
-                    </Link>
-                    <p className={workspaceStyles.workspaceIndexDescription}>
-                      {issue.latestOccurrence?.snapshot.name ?? t('manual')} ·{' '}
-                      {issue.latestOccurrence?.snapshot.target?.platform ?? 'Web'}
-                    </p>
+                    <div className={styles.issueSummary}>
+                      <Popover.Root>
+                        <Popover.Trigger
+                          openOnHover
+                          nativeButton={false}
+                          role="link"
+                          className={clsx(workspaceStyles.workspaceIndexName, styles.issueLink)}
+                          render={<Link href={`/issues/${issue.id}`} />}
+                        >
+                          <span className={styles.title}>{issue.title}</span>
+                        </Popover.Trigger>
+                        <Popover.Portal>
+                          <Popover.Positioner
+                            side="bottom"
+                            align="start"
+                            sideOffset={8}
+                            className={styles.positioner}
+                          >
+                            <Popover.Popup className={styles.popup}>
+                              <Popover.Title className={styles.popupTitle}>
+                                {issue.title}
+                              </Popover.Title>
+                              <Link href={`/issues/${issue.id}`} className={styles.link}>
+                                {t('viewDetails')}
+                              </Link>
+                            </Popover.Popup>
+                          </Popover.Positioner>
+                        </Popover.Portal>
+                      </Popover.Root>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span className={workspaceStyles.workspaceIndexTag}>
@@ -243,17 +305,12 @@ export function IssueList() {
                     {relativeTime(issue.lastSeen ?? issue.createdAt)}
                   </TableCell>
                   <TableCell>
-                    <StatusBadge
-                      tone={
-                        issue.status === 'closed'
-                          ? 'success'
-                          : issue.status === 'open'
-                            ? 'neutral'
-                            : 'warning'
-                      }
+                    <Link
+                      href={`/issues/${issue.id}`}
+                      className={buttonStyles({ size: 'xs', variant: 'ghost' })}
                     >
-                      {issueStatuses[issue.status]}
-                    </StatusBadge>
+                      {t('details')}
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))}

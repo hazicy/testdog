@@ -9,7 +9,6 @@ const issue: Issue = {
   id: saved.id,
   title: saved.name,
   status: 'open',
-  category: 'product',
   severity: 'high',
   closeReason: null,
   version: 1,

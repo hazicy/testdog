@@ -164,7 +164,7 @@ export function IssueDetail({ id }: { id: string }) {
   const connected = useIssueRealtime();
   const t = useTranslations('issues');
   const format = useFormatter();
-  const { issueStatuses, issueCategories, closeReasons, verificationLabels } = useIssueLabels();
+  const { issueStatuses, closeReasons, verificationLabels } = useIssueLabels();
   const { relativeTime, environmentLabel } = useIssuePresentation();
   const {
     data,
@@ -240,7 +240,6 @@ export function IssueDetail({ id }: { id: string }) {
         description={
           <span className={styles.metadata}>
             <span className={styles.metadataGroup}>
-              <StatusBadge>{issueCategories[issue.category]}</StatusBadge>
               {latest && <StatusBadge>{environmentLabel(latest)}</StatusBadge>}
             </span>
             <span className={styles.metadataGroup}>

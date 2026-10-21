@@ -12,7 +12,6 @@ const initial: Issue = {
   id: issueId,
   title: '订单金额错误',
   status: 'open',
-  category: 'product',
   severity: 'high',
   closeReason: null,
   version: 1,
@@ -126,7 +125,7 @@ test('creates, edits, closes and reopens an issue without activity or comments',
   await expect(page.getByLabel('问题描述', { exact: true })).toHaveCount(0);
   await issuesPage.saveButton.click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
-  await expect(page.getByRole('heading', { name: '订单金额错误', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /^订单金额错误/ })).toBeVisible();
   await expect(page.getByText('动态', { exact: true })).toHaveCount(0);
   await expect(page.getByText('添加说明', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('补充处理说明')).toHaveCount(0);
@@ -142,10 +141,7 @@ test('creates, edits, closes and reopens an issue without activity or comments',
   await expect(page.getByText('关闭原因：已修复')).toHaveCount(0);
 });
 
-test('issue editor fits a narrow phone and stacks classification fields', async ({
-  page,
-  issuesPage,
-}) => {
+test('issue editor fits a narrow phone with severity selection', async ({ page, issuesPage }) => {
   await page.setViewportSize({ width: 320, height: 600 });
   await page.route('**/api/issues*', (route) =>
     route.fulfill({ json: { issues: [], nextCursor: null } }),
@@ -156,11 +152,8 @@ test('issue editor fits a narrow phone and stacks classification fields', async 
 
   await expect(dialog).toBeVisible();
   expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-  const fields = dialog.getByRole('combobox');
-  const first = (await fields.nth(0).boundingBox())!;
-  const second = (await fields.nth(1).boundingBox())!;
-
-  expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+  await expect(dialog.getByRole('combobox')).toHaveCount(1);
+  await expect(dialog.getByRole('combobox', { name: '严重程度', exact: true })).toBeVisible();
   await dialog.getByLabel('问题标题', { exact: true }).fill('手机端问题');
   await dialog.getByRole('button', { name: '保存问题', exact: true }).scrollIntoViewIfNeeded();
   await expect(dialog.getByRole('button', { name: '保存问题', exact: true })).toBeInViewport();
@@ -207,7 +200,7 @@ test('creates an issue from a failed board node and starts a regression without 
     .locator('[data-plan-node="amount"]')
     .getByRole('button', { name: '创建或关联问题' })
     .click();
-  await expect(issuesPage.titleInput).toHaveValue('订单金额为100');
+  await expect(issuesPage.titleInput).toHaveValue('实际为120');
   await expect(page.getByLabel('问题描述', { exact: true })).toHaveCount(0);
   await issuesPage.saveButton.click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
@@ -261,7 +254,7 @@ test('links a failed step to an existing issue and filters the issue list', asyn
   await page.getByRole('button', { name: '关联问题', exact: true }).click();
   await expect(page).toHaveURL(`/issues/${issueId}`);
   expect(linked).toBe(true);
-  await page.getByRole('link', { name: '← 返回问题追踪' }).click();
+  await page.getByRole('link', { name: '返回问题追踪', exact: true }).click();
   await page.getByRole('combobox', { name: '筛选问题状态' }).click();
   await page.getByRole('option', { name: '处理中', exact: true }).click();
   await page.getByRole('textbox', { name: '搜索问题', exact: true }).fill('订单');
@@ -293,6 +286,14 @@ test('shows issue summaries and filters environment, date and ordering', async (
             lastSeen: new Date().toISOString(),
             latestOccurrence: occurrence,
           },
+          {
+            ...initial,
+            id: '62534c46-a8eb-4991-993e-af6df14bece7',
+            title: 'click · div >> internal:has-text=/^Explore$/ >> nth=0',
+            severity: 'medium',
+            runCount: 1,
+            latestOccurrence: occurrence,
+          },
         ],
         nextCursor: null,
       },
@@ -301,9 +302,37 @@ test('shows issue summaries and filters environment, date and ordering', async (
   await page.goto('/issues');
   await expect(page.getByRole('link', { name: '订单金额错误', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: '2', exact: true })).toBeVisible();
+  const severityWidth = (await page
+    .getByRole('columnheader', { name: '严重程度', exact: true })
+    .boundingBox())!.width;
+  const titleWidth = (await page
+    .getByRole('columnheader', { name: '问题', exact: true })
+    .boundingBox())!.width;
+  const rootFontSize = await page.evaluate(() =>
+    parseFloat(getComputedStyle(document.documentElement).fontSize),
+  );
+
+  expect(severityWidth).toBeLessThanOrEqual(6 * rootFontSize + 1);
+  expect(titleWidth).toBeGreaterThan(severityWidth * 2);
+  await page.getByRole('link', { name: '订单金额错误', exact: true }).hover();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('订单金额错误', { exact: true })).toBeVisible();
+  await page.getByRole('columnheader', { name: '严重程度' }).hover();
+  await expect(page.getByRole('dialog')).toBeHidden();
   await page.screenshot({ path: testInfo.outputPath('issue-list.png'), fullPage: true });
+  const selectAll = page.getByRole('checkbox', { name: '全选问题', exact: true });
+  const selectFirst = page.getByRole('checkbox', { name: '选择问题：订单金额错误', exact: true });
+
+  await selectFirst.check();
+  await expect(selectAll).toHaveAttribute('aria-checked', 'mixed');
+  await selectAll.check();
+  await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(3);
+  await selectAll.uncheck();
+  await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(0);
+  await selectFirst.check();
   await page.getByRole('combobox', { name: '筛选环境' }).click();
   await page.getByRole('option', { name: 'Android', exact: true }).click();
+  await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(0);
   await page.getByRole('combobox', { name: '筛选日期' }).click();
   await page.getByRole('option', { name: '最近 7 天', exact: true }).click();
   await page.getByRole('combobox', { name: '问题排序' }).click();

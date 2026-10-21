@@ -351,6 +351,8 @@
     "browserlessDescription": "Run web test cases using a remote Chromium browser."
   },
   "issues": {
+    "selectAllIssues": "Select all issues",
+    "selectIssueRow": "Select issue: {title}",
     "selectIssue": "Select an issue to link.",
     "saveFailed": "Save failed",
     "deleteIssue": "Delete issue",
@@ -367,7 +369,6 @@
     "chooseExisting": "Choose existing issue",
     "chooseIssue": "Select an issue",
     "issueTitle": "Issue title",
-    "category": "Category",
     "severity": "Severity",
     "issueStatus": "Issue status",
     "closeReason": "Close reason",
@@ -395,6 +396,8 @@
     "noIssues": "No issues yet",
     "viewRuns": "View runs",
     "scrollTable": "Horizontally scrollable issues table",
+    "actions": "Actions",
+    "details": "Details",
     "issue": "Issue",
     "environment": "Environment",
     "runCount": "Runs",
@@ -482,12 +485,6 @@
       "in_progress": "In progress",
       "pending_verification": "Pending verification",
       "closed": "Closed"
-    },
-    "issueCategories": {
-      "product": "Product defect",
-      "test": "Test issue",
-      "environment": "Environment issue",
-      "execution": "Execution system issue"
     },
     "issueSeverities": {
       "critical": "Critical",

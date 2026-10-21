@@ -23,7 +23,6 @@ const issue = {
   id: saved.id,
   title: '订单金额错误',
   status: 'open',
-  category: 'product',
   severity: 'high',
   closeReason: null,
   version: 1,

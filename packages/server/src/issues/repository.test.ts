@@ -318,6 +318,7 @@ it('enforces authentication, ownership, input validation and idempotency through
   const { issue } = await response.json();
 
   expect(response.status).toBe(201);
+  expect(issue).not.toHaveProperty('category');
   expect((await (await createEndpoint(request())).json()).issue.id).toBe(issue.id);
   expect((await createEndpoint(request('alice', { ...body, title: 'changed' }))).status).toBe(409);
   const context = { params: Promise.resolve({ id: issue.id }) };
@@ -375,7 +376,7 @@ it('automatically creates an issue with evidence, deduplicates repeated calls an
   await db.transaction((tx) => createIssuesForFailedRun(source.run.id, tx));
   const [created] = await db.select().from(issues);
 
-  expect(created).toMatchObject({ userId: 'alice', category: 'product', status: 'open' });
+  expect(created).toMatchObject({ userId: 'alice', status: 'open' });
   expect(await db.select().from(issues)).toHaveLength(1);
   const detail = await getIssue(created.id, 'alice');
 
@@ -425,6 +426,26 @@ it('automatically creates an issue with evidence, deduplicates repeated calls an
       })
     ).issues,
   ).toHaveLength(0);
+});
+
+it('keeps different failed step kinds separate when their titles and plan nodes match', async () => {
+  const { createIssuesForFailedRun } = await import('@testdog/server/issues/repository');
+  const source = await fixture();
+
+  await db.transaction((tx) => createIssuesForFailedRun(source.run.id, tx));
+  const [repeat] = await db
+    .insert(testRuns)
+    .values({ ...source.run, id: randomUUID() })
+    .returning();
+
+  await db.insert(runSteps).values({
+    ...source.step,
+    id: randomUUID(),
+    runId: repeat.id,
+    kind: 'action',
+  });
+  await db.transaction((tx) => createIssuesForFailedRun(repeat.id, tx));
+  expect(await db.select().from(issues)).toHaveLength(2);
 });
 
 it('ignores successful and cancelled runs, creates execution failures, and respects ownership and closed issues', async () => {
@@ -484,7 +505,7 @@ it('ignores successful and cancelled runs, creates execution failures, and respe
   await db.transaction((tx) => createIssuesForFailedRun(infra.id, tx));
   const [infraIssue] = (await db.select().from(issues)).filter((item) => item.title === '设备启动');
 
-  expect(infraIssue.category).toBe('execution');
+  expect(infraIssue).toMatchObject({ status: 'open', severity: 'medium' });
   expect((await getIssue(infraIssue.id, 'alice')).occurrences[0].stepId).toBeNull();
 });
 
