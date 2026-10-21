@@ -25,7 +25,7 @@
     max-height: min(20rem, var(--available-height));
     max-width: var(--available-width);
     overflow-y: auto;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-lg);
     border: var(--border-width) solid var(--control-line);
     background-color: var(--surface);
     padding: var(--space-1);

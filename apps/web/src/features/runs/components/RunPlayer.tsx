@@ -54,7 +54,6 @@ export function RunPlayer({
   playback,
 }: Props) {
   const t = useTranslations('runs');
-  const [dimensions, setDimensions] = useState({ width: 1280, height: 800 });
   const [videoDuration, setVideoDuration] = useState(0);
   const [failedVideo, setFailedVideo] = useState<string>();
   const { follow, playing, speed, videoElement, elapsedMs, setElapsedMs } = playback;
@@ -103,44 +102,9 @@ export function RunPlayer({
 
   return (
     <section aria-label={t('browserView')} className={studioStyles.studioPanel}>
-      <div className={studioStyles.studioPanelToolbar}>
-        <span className={styles.label}>
-          {dimensions.width} × {dimensions.height} ·{' '}
-          {active && follow
-            ? '● LIVE'
-            : run?.targetSnapshot?.platform === 'web' || !run?.targetSnapshot
-              ? 'BROWSER'
-              : run.targetSnapshot.platform.toUpperCase()}
-        </span>
-        {(video || trace) && (
-          <div className={styles.downloadActions}>
-            {video && (
-              <Tooltip content={t('downloadVideo')}>
-                <a
-                  href={`${asset(id, video)}?download`}
-                  className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
-                  aria-label={t('downloadVideo')}
-                >
-                  <Icon icon={videoIcon} width="16" aria-hidden="true" />
-                </a>
-              </Tooltip>
-            )}
-            {trace && (
-              <Tooltip content={t('downloadTrace')}>
-                <a
-                  href={`${asset(id, trace)}?download`}
-                  className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
-                  aria-label={t('downloadTrace')}
-                >
-                  <Icon icon={archiveIcon} width="16" aria-hidden="true" />
-                </a>
-              </Tooltip>
-            )}
-          </div>
-        )}
-      </div>
       <div className={studioStyles.runReplayPanel}>
         <div data-ui="run-replay-surface" className={studioStyles.runReplaySurface}>
+          {active && follow && <span className={styles.liveIndicator}>● LIVE</span>}
           {useVideo ? (
             <video
               ref={videoElement}
@@ -155,11 +119,6 @@ export function RunPlayer({
                 event.currentTarget.currentTime = elapsedMs / 1000;
                 event.currentTarget.playbackRate = speed;
                 const duration = event.currentTarget.duration;
-
-                setDimensions({
-                  width: event.currentTarget.videoWidth || 1280,
-                  height: event.currentTarget.videoHeight || 800,
-                });
 
                 if (Number.isFinite(duration)) setVideoDuration(duration * 1000);
               }}
@@ -185,12 +144,6 @@ export function RunPlayer({
               height={800}
               unoptimized
               onError={clearPreview}
-              onLoad={(event) =>
-                setDimensions({
-                  width: event.currentTarget.naturalWidth,
-                  height: event.currentTarget.naturalHeight,
-                })
-              }
               className={styles.video}
             />
           ) : currentFrame ? (
@@ -200,12 +153,6 @@ export function RunPlayer({
               width={1280}
               height={800}
               unoptimized
-              onLoad={(event) =>
-                setDimensions({
-                  width: event.currentTarget.naturalWidth,
-                  height: event.currentTarget.naturalHeight,
-                })
-              }
               className={styles.video}
             />
           ) : (
@@ -297,6 +244,32 @@ export function RunPlayer({
               className={styles.videoSelector}
               items={videos.map((item) => ({ value: item.id, label: item.pageId }))}
             />
+          )}
+          {(video || trace) && (
+            <div className={styles.downloadActions}>
+              {video && (
+                <Tooltip content={t('downloadVideo')}>
+                  <a
+                    href={`${asset(id, video)}?download`}
+                    className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
+                    aria-label={t('downloadVideo')}
+                  >
+                    <Icon icon={videoIcon} width="16" aria-hidden="true" />
+                  </a>
+                </Tooltip>
+              )}
+              {trace && (
+                <Tooltip content={t('downloadTrace')}>
+                  <a
+                    href={`${asset(id, trace)}?download`}
+                    className={buttonStyles({ variant: 'ghost', size: 'icon-sm' })}
+                    aria-label={t('downloadTrace')}
+                  >
+                    <Icon icon={archiveIcon} width="16" aria-hidden="true" />
+                  </a>
+                </Tooltip>
+              )}
+            </div>
           )}
         </div>
       </div>

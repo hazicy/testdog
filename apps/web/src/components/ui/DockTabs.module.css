@@ -15,18 +15,37 @@
   & :global(.dockview-theme-light) {
     --dv-background-color: var(--page-line);
     --dv-group-view-background-color: var(--surface);
-    --dv-tabs-and-actions-container-background-color: var(--surface-hover);
-    --dv-activegroup-visiblepanel-tab-background-color: var(--surface);
-    --dv-inactivegroup-visiblepanel-tab-background-color: var(--surface);
-    --dv-activegroup-hiddenpanel-tab-background-color: var(--surface-hover);
-    --dv-inactivegroup-hiddenpanel-tab-background-color: var(--surface-hover);
+    --dv-tabs-and-actions-container-background-color: var(--page);
+    --dv-activegroup-visiblepanel-tab-background-color: transparent;
+    --dv-inactivegroup-visiblepanel-tab-background-color: transparent;
+    --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+    --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
     --dv-activegroup-visiblepanel-tab-color: var(--ink);
     --dv-inactivegroup-visiblepanel-tab-color: var(--ink);
     --dv-activegroup-hiddenpanel-tab-color: var(--page-muted);
     --dv-inactivegroup-hiddenpanel-tab-color: var(--page-muted);
     --dv-separator-border: var(--page-line);
-    --dv-tabs-and-actions-container-height: 2.5rem;
-    --dv-tab-font-size: 0.8125rem;
+    --dv-tabs-and-actions-container-height: 2.75rem;
+    --dv-tab-font-size: var(--text-md);
+    --dv-tab-margin: 0;
+    --dv-tab-divider-color: transparent;
+  }
+
+  & :global(.dv-tabs-and-actions-container) {
+    padding-inline: var(--space-1);
+    box-shadow: inset 0 calc(-1 * var(--border-width)) var(--page-line);
+  }
+
+  & :global(.dv-tab) {
+    display: flex;
+    align-items: center;
+    padding: 0;
+  }
+
+  & :global(.dv-tab) > div {
+    display: flex;
+    align-items: center;
+    height: 100%;
   }
 
   & :global(.dv-groupview) {
@@ -43,24 +62,62 @@
   overflow: auto;
 }
 .dockTabButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 100%;
-  padding: 0 var(--space-5);
-  font-size: var(--text-md);
+  margin: 0;
+  padding-inline: var(--space-1);
+  color: var(--page-muted);
+  font: var(--type-navigation);
+  white-space: nowrap;
 
-  &[aria-pressed='true'] {
-    font-weight: 600;
-    box-shadow: inset 0 -0.125rem var(--brand);
+  &:hover .tabContent {
+    background: var(--surface-muted);
+    color: var(--ink);
+  }
+
+  &[aria-pressed='true'],
+  &[aria-selected='true'] {
+    & .tabContent {
+      background: var(--control-hover);
+      color: var(--ink);
+    }
+
+    & .tabIcon {
+      color: var(--ink);
+    }
   }
 
   &:focus-visible {
-    outline: var(--focus-width) solid var(--brand);
-    outline-offset: -0.125rem;
+    outline: none;
+
+    & .tabContent {
+      outline: var(--focus-width) solid var(--brand);
+      outline-offset: var(--space-0-5);
+    }
   }
 }
-@media (max-width: 40rem) {
-  .dockTabButton {
-    padding: 0 var(--space-3);
-  }
+
+.tabContent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--space-7);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-tab);
+  line-height: var(--line-ui);
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing),
+    color var(--motion-duration-fast) var(--motion-easing);
+}
+
+.tabIcon {
+  flex-shrink: 0;
+  width: var(--space-3-5);
+  height: var(--space-3-5);
+  color: var(--text-subtle);
 }
 
 .dockGroupActions {
@@ -88,8 +145,8 @@
   }
 
   & button:hover {
-    background: var(--page-line);
-    color: var(--page-ink);
+    background: var(--control-hover);
+    color: var(--ink);
   }
 
   & button:focus-visible {
@@ -125,13 +182,13 @@
 }
 
 .label {
-  margin-left: var(--space-2);
+  margin-left: var(--space-0-5);
   border-radius: var(--radius-sm);
-  background-color: var(--error-soft);
+  background-color: var(--danger-soft);
   padding: var(--space-0-5) var(--space-1-5);
   font-family: var(--font-geist-mono), monospace;
-  font-size: var(--text-sm);
-  line-height: 1rem;
+  font-size: var(--text-xs);
+  line-height: var(--line-metadata);
   color: var(--error-ink);
 }
 
@@ -143,18 +200,16 @@
 
 .mobileTabs {
   display: flex;
+  align-items: center;
   flex-shrink: 0;
   min-width: 0;
   overflow-x: auto;
   border-bottom: var(--border-width) solid var(--page-line);
-  background: var(--surface-hover);
+  padding-inline: var(--space-1);
+  background: var(--page);
   & > button {
     flex-shrink: 0;
     min-height: 2.75rem;
     white-space: nowrap;
-    &[aria-selected='true'] {
-      font-weight: 600;
-      box-shadow: inset 0 -0.125rem var(--brand);
-    }
   }
 }

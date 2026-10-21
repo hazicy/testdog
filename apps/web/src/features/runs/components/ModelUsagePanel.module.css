@@ -183,7 +183,7 @@
   height: 0.5625rem;
   padding: 0;
   border: 0;
-  border-radius: 0.0625rem;
+  border-radius: var(--radius-xs);
   background: #7899e8;
   cursor: pointer;
   &[data-status='failed'],
@@ -206,7 +206,7 @@
   align-items: center;
   flex-shrink: 0;
   padding: 0.1875rem 0.4375rem;
-  border-radius: 0.1875rem;
+  border-radius: var(--radius-xs);
   font-size: var(--text-xs);
   font-weight: 600;
   line-height: 1.4;

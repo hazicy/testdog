@@ -6,20 +6,16 @@
   max-width: calc(100vw - 1.5rem);
   max-height: var(--available-height);
   overflow-y: auto;
-  border-radius: var(--radius-3xl);
+  border-radius: var(--radius-lg);
   border: var(--border-width) solid var(--page-line);
   background-color: var(--surface);
-  padding: var(--space-5);
+  padding: var(--space-4);
   color: var(--ink);
-  box-shadow:
-    0 1.25rem 1.5625rem -0.3125rem rgb(0 0 0 / 0.1),
-    0 0.5rem 0.625rem -0.375rem rgb(0 0 0 / 0.1);
+  box-shadow: var(--shadow-popover);
   outline-style: none;
 }
 .title {
-  font-size: var(--text-xl);
-  line-height: 1.5rem;
-  font-weight: 600;
+  font: var(--type-panel-title);
 }
 .description {
   margin-top: var(--space-1);
@@ -38,15 +34,16 @@
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-2);
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-md);
   border-style: solid;
   border-width: var(--border-width);
   padding: var(--space-2-5);
   text-align: left;
 }
 .selectedPreset {
-  border-color: var(--ink);
-  background-color: var(--control-hover);
+  border-color: var(--brand-line);
+  background-color: var(--brand-soft);
+  color: var(--brand-hover);
 }
 .unselectedPreset {
   border-color: transparent;
@@ -76,7 +73,7 @@
 .focusToggle {
   width: 100%;
   gap: var(--space-2);
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-md);
 }
 .reset {
   margin-top: var(--space-2);

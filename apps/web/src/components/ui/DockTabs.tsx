@@ -37,6 +37,7 @@ const ContentContext = createContext<{
   render: (id: string) => ReactNode;
   visited: Set<string>;
   badges: Record<string, number>;
+  icons: Record<string, DockTab['icon']>;
   collapsedGroups: Set<string>;
   select: (id: string, wasActive?: boolean) => void;
   collapse: (api: DockviewGroupPanelApi, collapsed: boolean) => void;
@@ -44,6 +45,7 @@ const ContentContext = createContext<{
   render: () => null,
   visited: new Set(),
   badges: {},
+  icons: {},
   collapsedGroups: new Set(),
   select: () => {},
   collapse: () => {},
@@ -67,7 +69,7 @@ function Content({ api }: IDockviewPanelProps) {
 }
 
 function Header({ api }: IDockviewPanelHeaderProps) {
-  const { select, collapsedGroups, badges } = useContext(ContentContext);
+  const { select, collapsedGroups, badges, icons } = useContext(ContentContext);
   const [active, setActive] = useState(api.isVisible);
   const beforeActivation = useRef<boolean | undefined>(undefined);
 
@@ -95,12 +97,17 @@ function Header({ api }: IDockviewPanelHeaderProps) {
         beforeActivation.current = undefined;
       }}
     >
-      {api.title}
-      {!!badges[api.id] && (
-        <span aria-hidden="true" className={styles.label}>
-          {badges[api.id]}
-        </span>
-      )}
+      <span className={styles.tabContent}>
+        {icons[api.id] && (
+          <Icon icon={icons[api.id]!} className={styles.tabIcon} aria-hidden="true" />
+        )}
+        {api.title}
+        {!!badges[api.id] && (
+          <span aria-hidden="true" className={styles.label}>
+            {badges[api.id]}
+          </span>
+        )}
+      </span>
     </button>
   );
 }
@@ -298,6 +305,7 @@ export function DockTabs<T extends string>({
         render: (id) => children(id as T),
         visited,
         badges: Object.fromEntries(tabs.map((tab) => [tab.id, tab.badge ?? 0])),
+        icons: Object.fromEntries(tabs.map((tab) => [tab.id, tab.icon])),
         collapsedGroups,
         select,
         collapse,
@@ -347,8 +355,13 @@ export function DockTabs<T extends string>({
                     [nextIndex]?.focus();
                 }}
               >
-                {tab.label}
-                {!!tab.badge && <span className={styles.label}>{tab.badge}</span>}
+                <span className={styles.tabContent}>
+                  {tab.icon && (
+                    <Icon icon={tab.icon} className={styles.tabIcon} aria-hidden="true" />
+                  )}
+                  {tab.label}
+                  {!!tab.badge && <span className={styles.label}>{tab.badge}</span>}
+                </span>
               </button>
             ))}
           </div>

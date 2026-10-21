@@ -268,7 +268,7 @@
   min-width: 10.25rem;
   padding: 0.3125rem;
   border: var(--border-width) solid var(--page-line);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   background: var(--surface-raised);
   box-shadow:
     0 0.5rem 1.75rem var(--plan-shadow),

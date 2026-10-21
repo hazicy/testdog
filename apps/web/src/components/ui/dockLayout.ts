@@ -1,9 +1,12 @@
+import type { ComponentProps } from 'react';
+import type { Icon } from '@iconify/react/offline';
 import type { DockviewApi, DockviewGroupPanelApi } from 'dockview-react';
 import styles from './DockTabs.module.css';
 
 export type DockTab = {
   id: string;
   label: string;
+  icon?: ComponentProps<typeof Icon>['icon'];
   badge?: number;
   reference?: string;
   direction?: 'right' | 'below' | 'within';

@@ -5,11 +5,17 @@
   margin-left: auto;
   gap: var(--space-1);
 }
-.label {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: var(--text-sm);
-  line-height: 1rem;
-  color: var(--page-muted);
+.liveIndicator {
+  position: absolute;
+  z-index: 1;
+  top: var(--space-3);
+  left: var(--space-3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  color: var(--success);
+  font: var(--type-status);
+  pointer-events: none;
 }
 .video {
   height: 100%;
@@ -76,7 +82,7 @@
 .thumb {
   height: 0.75rem;
   width: 0.75rem;
-  border-radius: 624.9375rem;
+  border-radius: 50%;
   background-color: var(--brand);
   outline-offset: 0.25rem;
   &:focus-visible {

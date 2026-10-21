@@ -75,7 +75,7 @@
   flex-shrink: 0;
   align-self: flex-start;
   place-items: center;
-  border-radius: 0.3125rem;
+  border-radius: var(--radius-sm);
   background: var(--surface-muted);
   color: var(--page-muted);
   font-size: var(--text-xs);

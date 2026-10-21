@@ -1,3 +1,11 @@
+import stepsIcon from '@iconify-icons/lucide/list-checks';
+import executionIcon from '@iconify-icons/lucide/monitor-play';
+import logsIcon from '@iconify-icons/lucide/scroll-text';
+import consoleIcon from '@iconify-icons/lucide/terminal';
+import issuesIcon from '@iconify-icons/lucide/bug';
+import planIcon from '@iconify-icons/lucide/workflow';
+import recordingIcon from '@iconify-icons/lucide/file-code';
+import networkIcon from '@iconify-icons/lucide/network';
 import type { DockTab } from '@/components/ui/DockTabs';
 
 export type RunLayout = 'default' | 'review' | 'notes' | 'debug' | 'focus';
@@ -6,27 +14,35 @@ export type PanelId =
 type WorkspaceTab = DockTab & { id: PanelId };
 
 const workspaceTabs: readonly WorkspaceTab[] = [
-  { id: 'steps', label: 'steps', initiallyVisible: true, initialWidthRatio: 0.382 },
+  {
+    id: 'steps',
+    icon: stepsIcon,
+    label: 'steps',
+    initiallyVisible: true,
+    initialWidthRatio: 0.382,
+  },
   {
     id: 'execution',
+    icon: executionIcon,
     label: 'execution',
     reference: 'steps',
     direction: 'right',
     initiallyVisible: true,
   },
-  { id: 'logs', label: 'logs', reference: 'execution' },
+  { id: 'logs', icon: logsIcon, label: 'logs', reference: 'execution' },
   {
     id: 'console',
+    icon: consoleIcon,
     label: 'console',
     reference: 'execution',
     direction: 'below',
     initialHeight: 260,
     initiallyCollapsed: true,
   },
-  { id: 'issues', label: 'issues', reference: 'steps' },
-  { id: 'plan', label: 'plan', reference: 'steps' },
-  { id: 'recording', label: 'recording', reference: 'execution' },
-  { id: 'network', label: 'network', reference: 'console' },
+  { id: 'issues', icon: issuesIcon, label: 'issues', reference: 'steps' },
+  { id: 'plan', icon: planIcon, label: 'plan', reference: 'steps' },
+  { id: 'recording', icon: recordingIcon, label: 'recording', reference: 'execution' },
+  { id: 'network', icon: networkIcon, label: 'network', reference: 'console' },
 ];
 const sideIssues = {
   reference: 'console',
