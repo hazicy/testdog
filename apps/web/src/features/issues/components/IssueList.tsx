@@ -35,14 +35,21 @@ import { fetchJson } from '@/client/api';
 import { useDebouncedValue } from '@/client/useDebouncedValue';
 import { useCursorPagination } from '@/client/useCursorPagination';
 import { Button } from '@/components/ui/Button';
-import { buttonStyles } from '@/components/ui/buttonStyles';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
-import { type IssuePage } from '@testdog/contracts/issues/types';
+import { type Issue, type IssuePage } from '@testdog/contracts/issues/types';
 import { IssueEditor, options } from '@/features/issues/components/IssueEditor';
 import { Icon } from '@iconify/react/offline';
 import plusIcon from '@iconify-icons/lucide/plus';
 import filterIcon from '@iconify-icons/lucide/funnel';
+import checkIcon from '@iconify-icons/lucide/circle-check';
+import reopenIcon from '@iconify-icons/lucide/rotate-ccw';
+import editIcon from '@iconify-icons/lucide/pencil';
+import deleteIcon from '@iconify-icons/lucide/trash-2';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { WorkspaceRowMenu } from '@/features/workspace/components/WorkspaceRowMenu';
+import { DeleteIssueDialog } from './DeleteIssueDialog';
+import { api } from '@/client/api';
 
 export function IssueList() {
   const connected = useIssueRealtime();
@@ -66,6 +73,10 @@ export function IssueList() {
   });
   const search = useDebouncedValue(q.trim());
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Issue>();
+  const [deleting, setDeleting] = useState<Issue>();
+  const [pendingId, setPendingId] = useState<string>();
+  const [actionError, setActionError] = useState('');
   const { cursors, previousPage, nextPage } = useCursorPagination(
     JSON.stringify([search, status, platform, days, sort]),
   );
@@ -73,7 +84,7 @@ export function IssueList() {
 
   if (days !== 'all') params.set('days', days);
   if (cursors.length) params.set('cursor', cursors.at(-1)!);
-  const { data, error, isLoading } = useSWR<IssuePage>(`/api/issues?${params}`, fetchJson, {
+  const { data, error, isLoading, mutate } = useSWR<IssuePage>(`/api/issues?${params}`, fetchJson, {
     refreshInterval: connected ? 0 : 30000,
   });
   const items = data?.issues ?? [];
@@ -97,6 +108,25 @@ export function IssueList() {
 
       return { scope, ids: next };
     });
+  }
+
+  async function toggleStatus(issue: Issue) {
+    setPendingId(issue.id);
+    setActionError('');
+    try {
+      await api.patch(`/api/issues/${issue.id}`, {
+        json: {
+          version: issue.version,
+          status: issue.status === 'closed' ? 'open' : 'closed',
+          ...(issue.status === 'closed' ? {} : { closeReason: 'fixed' }),
+        },
+      });
+      await mutate();
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : t('updateFailed'));
+    } finally {
+      setPendingId(undefined);
+    }
   }
 
   const filtered = !!search || status !== 'all' || platform !== 'all' || days !== 'all';
@@ -191,6 +221,11 @@ export function IssueList() {
       {error && (
         <p role="alert" className={styles.error}>
           {error.message}
+        </p>
+      )}
+      {actionError && (
+        <p role="alert" className={styles.error}>
+          {actionError}
         </p>
       )}
       {isLoading ? (
@@ -304,12 +339,44 @@ export function IssueList() {
                     {relativeTime(issue.lastSeen ?? issue.createdAt)}
                   </TableCell>
                   <TableCell>
-                    <Link
-                      href={`/issues/${issue.id}`}
-                      className={buttonStyles({ size: 'xs', variant: 'ghost' })}
-                    >
-                      {t('details')}
-                    </Link>
+                    <div className={styles.rowActions}>
+                      <Tooltip content={issue.status === 'closed' ? t('reopen') : t('resolve')}>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label={issue.status === 'closed' ? t('reopen') : t('resolve')}
+                          disabled={!!pendingId}
+                          onClick={() => void toggleStatus(issue)}
+                        >
+                          <Icon
+                            icon={issue.status === 'closed' ? reopenIcon : checkIcon}
+                            className={styles.actionIcon}
+                            aria-hidden="true"
+                          />
+                        </Button>
+                      </Tooltip>
+                      <WorkspaceRowMenu
+                        label={t('issueActions')}
+                        actions={[
+                          {
+                            label: t('editIssue'),
+                            accessibleLabel: t('editIssue'),
+                            icon: editIcon,
+                            disabled: !!pendingId,
+                            onSelect: () => setEditing(issue),
+                          },
+                          {
+                            label: t('deleteIssue'),
+                            accessibleLabel: t('deleteIssue'),
+                            icon: deleteIcon,
+                            disabled: !!pendingId,
+                            danger: true,
+                            separatorBefore: true,
+                            onSelect: () => setDeleting(issue),
+                          },
+                        ]}
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -326,6 +393,27 @@ export function IssueList() {
         previousPage={previousPage}
         nextPage={() => nextPage(data?.nextCursor)}
       />
+      {editing && (
+        <IssueEditor
+          issue={editing}
+          onDismiss={() => setEditing(undefined)}
+          onSaved={() => {
+            setEditing(undefined);
+            void mutate();
+          }}
+        />
+      )}
+      {deleting && (
+        <DeleteIssueDialog
+          issue={deleting}
+          onDismiss={() => setDeleting(undefined)}
+          onDeleted={async () => {
+            await mutate();
+            toggleSelection([deleting.id], false);
+            setDeleting(undefined);
+          }}
+        />
+      )}
       {creating && (
         <IssueEditor
           onDismiss={() => setCreating(false)}

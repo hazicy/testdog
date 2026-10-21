@@ -358,6 +358,64 @@ test('shows issue summaries and filters environment, date and ordering', async (
     .toBe(true);
 });
 
+test('resolves, reopens, edits and deletes issues from compact row actions', async ({ page }) => {
+  let issue = { ...initial };
+  let deleted = false;
+  let failUpdate = true;
+
+  await page.route('**/api/issues?*', (route) =>
+    route.fulfill({ json: { issues: deleted ? [] : [issue], nextCursor: null } }),
+  );
+  await page.route(`**/api/issues/${issueId}`, (route) => {
+    if (route.request().method() === 'DELETE') {
+      deleted = true;
+
+      return route.fulfill({ json: { ok: true } });
+    }
+
+    if (failUpdate) {
+      failUpdate = false;
+
+      return route.fulfill({ status: 500, json: { message: '更新失败，请重试' } });
+    }
+
+    const patch = route.request().postDataJSON();
+
+    expect(patch.version).toBe(issue.version);
+    issue = {
+      ...issue,
+      ...patch,
+      version: issue.version + 1,
+      closeReason: patch.status === 'open' ? null : (patch.closeReason ?? issue.closeReason),
+    };
+
+    return route.fulfill({ json: { issue } });
+  });
+  await page.goto('/issues');
+  await page.getByRole('button', { name: '标记已解决', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: '更新失败，请重试' })).toBeVisible();
+  await page.getByRole('button', { name: '标记已解决', exact: true }).click();
+  await expect(page.getByRole('button', { name: '重新打开', exact: true })).toBeVisible();
+  expect(issue.closeReason).toBe('fixed');
+  await page.getByRole('button', { name: '重新打开', exact: true }).click();
+  await expect(page.getByRole('button', { name: '标记已解决', exact: true })).toBeVisible();
+  expect(issue.closeReason).toBeNull();
+  await page.getByRole('button', { name: '问题操作', exact: true }).click();
+  await page.getByRole('menuitem', { name: '编辑问题', exact: true }).click();
+  await page.getByLabel('问题标题', { exact: true }).fill('更新后的金额问题');
+  await page.getByRole('button', { name: '保存问题', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.getByRole('link', { name: '更新后的金额问题', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '问题操作', exact: true }).click();
+  await page.getByRole('menuitem', { name: '删除问题', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+
+  await expect(dialog).toContainText('更新后的金额问题');
+  expect(deleted).toBe(false);
+  await dialog.getByRole('button', { name: '删除问题', exact: true }).click();
+  await expect(page.getByText('暂无问题', { exact: true })).toBeVisible();
+});
+
 test('shows expected, actual and reproduction, copies the address and resolves the issue', async ({
   page,
   context,

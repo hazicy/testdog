@@ -79,3 +79,13 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.actionIcon {
+  width: 1rem;
+  height: 1rem;
+}
