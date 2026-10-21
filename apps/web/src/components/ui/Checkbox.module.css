@@ -3,6 +3,7 @@
 @layer controls {
   .root {
     display: inline-flex;
+    vertical-align: middle;
     width: 1rem;
     height: 1rem;
     flex-shrink: 0;

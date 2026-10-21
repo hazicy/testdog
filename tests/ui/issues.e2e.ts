@@ -323,11 +323,20 @@ test('shows issue summaries and filters environment, date and ordering', async (
   const selectAll = page.getByRole('checkbox', { name: '全选问题', exact: true });
   const selectFirst = page.getByRole('checkbox', { name: '选择问题：订单金额错误', exact: true });
 
+  const header = page.locator('thead');
+  const headerHeight = (await header.boundingBox())!.height;
+  const expectStableHeader = async () => {
+    expect((await header.boundingBox())!.height).toBeCloseTo(headerHeight, 1);
+  };
+
   await selectFirst.check();
   await expect(selectAll).toHaveAttribute('aria-checked', 'mixed');
+  await expectStableHeader();
   await selectAll.check();
+  await expectStableHeader();
   await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(3);
   await selectAll.uncheck();
+  await expectStableHeader();
   await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(0);
   await selectFirst.check();
   await page.getByRole('combobox', { name: '筛选环境' }).click();
