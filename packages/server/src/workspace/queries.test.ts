@@ -122,7 +122,7 @@ it('searches literal wildcard characters and rejects malformed page inputs', asy
   expect(() => page('limit=1000000')).toThrow('分页');
   await expect(listTestPage(page('status=wrong'), null)).rejects.toThrow('状态');
 });
-it('paginates logs with server filters and leaves normal details light', async () => {
+it('returns all logs with server filters and leaves normal details light', async () => {
   const run = await createRun({ case: 'Logs', url: input.url }, undefined, null);
   const base = {
     at: '2026-10-10T00:00:00Z',
@@ -145,19 +145,22 @@ it('paginates logs with server filters and leaves normal details light', async (
       data: { ...base, id: randomUUID(), kind: 'network', status: 200 },
     },
   ]);
+  const additional = Array.from({ length: 60 }, (_, index) => ({
+    ...base,
+    id: randomUUID(),
+    elapsedMs: 100 + index,
+    level: 'log',
+    message: `entry ${index}`,
+  }));
+
+  await db
+    .insert(runBrowserLogs)
+    .values(additional.map((data) => ({ id: data.id, runId: run.id, data })));
   const request = (query: string) =>
-    new Request(`http://localhost/api/runs/${run.id}/logs?kind=console&limit=1&${query}`);
+    new Request(`http://localhost/api/runs/${run.id}/logs?kind=console&${query}`);
   const first = await listBrowserLogs(run.id, request('errors=true'), null);
 
-  expect(first.logs).toEqual([firstLog]);
-  const second = await listBrowserLogs(
-    run.id,
-    request(`cursor=${first.nextCursor}&errors=true`),
-    null,
-  );
-
-  expect(second.logs).toEqual([durable]);
-  expect(second.nextCursor).toBeNull();
+  expect(first).toEqual({ logs: [firstLog, durable] });
   expect((await listBrowserLogs(run.id, request('untilMs=15'), null)).logs).toEqual([firstLog]);
   expect((await listBrowserLogs(run.id, request('q=absent'), null)).logs).toEqual([]);
   expect(await getRun(run.id, { userId: null })).not.toHaveProperty('browserLogs');
@@ -169,7 +172,7 @@ it('paginates logs with server filters and leaves normal details light', async (
         null,
       )
     ).logs.map((log) => log.kind),
-  ).toEqual(['console', 'console', 'network']);
+  ).toEqual(['console', 'console', 'network', ...additional.map(() => 'console')]);
 });
 it('list and detail reads never reclaim an expired execution', async () => {
   const run = await createRun({ case: 'Read only', url: input.url }, undefined, null);

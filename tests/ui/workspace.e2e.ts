@@ -452,13 +452,11 @@ test('exports complete reports from both history and detail, and allows retry af
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) => {
     const url = new URL(route.request().url());
 
-    if (url.searchParams.get('kind') !== 'all')
-      return route.fulfill({ json: { logs: [], nextCursor: null } });
+    if (url.searchParams.get('kind') !== 'all') return route.fulfill({ json: { logs: [] } });
     logRequests.push(url.search);
-    const second = url.searchParams.has('cursor');
 
     return route.fulfill({
-      json: { logs: [browserLogs[second ? 1 : 0]], nextCursor: second ? null : '100' },
+      json: { logs: browserLogs },
     });
   });
 
@@ -509,12 +507,7 @@ test('exports complete reports from both history and detail, and allows retry af
     ...run,
     browserLogs,
   });
-  expect(logRequests).toEqual([
-    '?kind=all&limit=100',
-    '?kind=all&limit=100&cursor=100',
-    '?kind=all&limit=100',
-    '?kind=all&limit=100&cursor=100',
-  ]);
+  expect(logRequests).toEqual(['?kind=all', '?kind=all']);
 });
 
 test('quick creation preserves failed prompts and opens generated nodes in the canvas', async ({
@@ -1448,7 +1441,7 @@ test('dockview manages tab ordering and browser log activation', async ({ page, 
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) => {
     logReads.push(new URL(route.request().url()).searchParams.get('kind')!);
 
-    return route.fulfill({ json: { logs: [], nextCursor: null } });
+    return route.fulfill({ json: { logs: [] } });
   });
   await runPage.goto(run.id);
   const dock = runPage.workbench;
@@ -1482,7 +1475,7 @@ test('layout popover switches presets and restores the default', async ({ page, 
   page.on('pageerror', (error) => errors.push(error.message));
   await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
-    route.fulfill({ json: { logs: [], nextCursor: null } }),
+    route.fulfill({ json: { logs: [] } }),
   );
   await runPage.goto(run.id);
   const studio = runPage.workbench;
@@ -1699,7 +1692,7 @@ test('bottom browser logs start collapsed and expand on tab selection', async ({
 }) => {
   await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
-    route.fulfill({ json: { logs: [], nextCursor: null } }),
+    route.fulfill({ json: { logs: [] } }),
   );
   await runPage.goto(run.id);
   const logs = runPage.consoleButton;
@@ -1736,7 +1729,7 @@ test('bottom browser logs start collapsed and expand on tab selection', async ({
 test('group header actions maximize restore and collapse each group', async ({ page }) => {
   await mockRun(page, run);
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
-    route.fulfill({ json: { logs: [], nextCursor: null } }),
+    route.fulfill({ json: { logs: [] } }),
   );
   await page.goto(`/runs/${run.id}`);
   // Dockview can round one pixel per separator inside the bordered workspace.

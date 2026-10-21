@@ -56,7 +56,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ json: { versions: [] } }),
   );
   await page.route(`**/api/runs/${run.id}/logs?*`, (route) =>
-    route.fulfill({ json: { logs: [], nextCursor: null } }),
+    route.fulfill({ json: { logs: [] } }),
   );
   await page.route('**/api/issues{,?*}', (route) =>
     route.fulfill({ json: { issues: [issue], nextCursor: null } }),

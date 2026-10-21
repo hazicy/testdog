@@ -11,14 +11,13 @@ import { useContext } from 'react';
 import { RunRealtimeContext } from '../hooks/RunRealtimeContext';
 import { fetchJson } from '@/client/api';
 import { useDebouncedValue } from '@/client/useDebouncedValue';
-import { useCursorPagination } from '@/client/useCursorPagination';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@iconify/react/offline';
 import searchIcon from '@iconify-icons/lucide/search';
 import chevronRightIcon from '@iconify-icons/lucide/chevron-right';
 import { useLogVirtualizer } from '../hooks/useLogVirtualizer';
 import { NetworkEntries } from './BrowserNetworkPanel';
-import type { BrowserLog, BrowserLogPage } from '@testdog/contracts/runs/types';
+import type { BrowserLog, BrowserLogList } from '@testdog/contracts/runs/types';
 
 const consoleFilters = [
   ['all', 'All'],
@@ -85,11 +84,8 @@ export function BrowserLogPanel({
 
   if (scope === 'step' && stepId) params.set('stepId', stepId);
   if (scope === 'time' && elapsedMs !== undefined) params.set('untilMs', String(elapsedMs));
-  const paginationKey = `${runId}?${params}`;
-  const { cursors, previousPage, nextPage } = useCursorPagination(paginationKey);
-
-  if (cursors.length) params.set('cursor', cursors.at(-1)!);
-  const data = useSWR<BrowserLogPage>(
+  const logKey = `${runId}?${params}`;
+  const data = useSWR<BrowserLogList>(
     enabled && runId ? `/api/runs/${runId}/logs?${params}` : null,
     fetchJson,
     { refreshInterval: active && !connected ? 5000 : 0 },
@@ -188,39 +184,11 @@ export function BrowserLogPanel({
             </strong>
           </div>
         ) : kind === 'network' ? (
-          <NetworkEntries logs={visible} />
+          <NetworkEntries key={`${logKey}:${filter}`} logs={visible} />
         ) : (
-          <ConsoleEntries
-            key={`${paginationKey}:${cursors.at(-1) ?? ''}:${filter}`}
-            logs={visible}
-          />
+          <ConsoleEntries key={`${logKey}:${filter}`} logs={visible} />
         )}
       </div>
-      {(cursors.length > 0 || data.data?.nextCursor) && (
-        <footer className={styles.footer}>
-          <div className={styles.pagination}>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label={t('previousPage')}
-              disabled={!cursors.length || data.isLoading}
-              onClick={previousPage}
-            >
-              ‹
-            </Button>
-            <span>{t('page', { page: cursors.length + 1 })}</span>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label={t('nextPage')}
-              disabled={!data.data?.nextCursor || data.isLoading}
-              onClick={() => nextPage(data.data?.nextCursor)}
-            >
-              ›
-            </Button>
-          </div>
-        </footer>
-      )}
     </section>
   );
 }

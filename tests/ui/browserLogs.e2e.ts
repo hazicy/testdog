@@ -66,9 +66,8 @@ test.beforeEach(async ({ page }) => {
       logs = logs.filter((log) =>
         `${log.message || ''} ${log.url || ''}`.includes(params.get('q')!),
       );
-    if (params.has('cursor')) logs = [];
 
-    return route.fulfill({ json: { logs, nextCursor: params.has('cursor') ? null : 'next' } });
+    return route.fulfill({ json: { logs } });
   });
 });
 
@@ -123,11 +122,8 @@ test('network supports sorting, resource filtering and structured request inspec
   await panel.getByRole('textbox', { name: '搜索浏览器记录' }).fill('orders');
   await expect(table.getByRole('row')).toHaveCount(2);
   await expect(table).toContainText('503');
-  await panel.getByRole('button', { name: '下一页' }).click();
-  await expect(panel.getByText('第 2 页')).toBeVisible();
-  await expect(panel.getByText('没有匹配的记录')).toBeVisible();
-  await panel.getByRole('button', { name: '上一页' }).click();
-  await expect(table.getByRole('row')).toHaveCount(2);
+  await expect(panel.getByRole('button', { name: '下一页', exact: true })).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: '上一页', exact: true })).toHaveCount(0);
 });
 
 test('console distinguishes levels, expands sources and searches across records', async ({
@@ -174,7 +170,7 @@ test('large log lists render a window and retain expanded details after scrollin
       durationMs: 300 - index,
     }));
 
-    return route.fulfill({ json: { logs, nextCursor: null } });
+    return route.fulfill({ json: { logs } });
   });
   await runPage.goto(run.id);
   await runPage.openConsole();

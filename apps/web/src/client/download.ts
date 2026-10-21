@@ -1,5 +1,5 @@
 import { api } from '@/client/api';
-import type { BrowserLog, BrowserLogPage, TestRun } from '@testdog/contracts/runs/types';
+import type { BrowserLogList, TestRun } from '@testdog/contracts/runs/types';
 
 export function downloadText(content: string, filename: string, type: string) {
   const href = URL.createObjectURL(new Blob([content], { type }));
@@ -17,18 +17,9 @@ export function downloadText(content: string, filename: string, type: string) {
 export async function downloadRunReport(id: string) {
   const { run } = await api.get(`/api/runs/${id}`).json<{ run: TestRun }>();
 
-  const browserLogs: BrowserLog[] = [];
-  let cursor: string | null = null;
-
-  do {
-    const params = new URLSearchParams({ kind: 'all', limit: '100' });
-
-    if (cursor) params.set('cursor', cursor);
-    const page = await api.get(`/api/runs/${id}/logs?${params}`).json<BrowserLogPage>();
-
-    browserLogs.push(...page.logs);
-    cursor = page.nextCursor;
-  } while (cursor);
+  const { logs: browserLogs } = await api
+    .get(`/api/runs/${id}/logs?kind=all`)
+    .json<BrowserLogList>();
 
   downloadText(
     JSON.stringify({ ...run, browserLogs }, null, 2),

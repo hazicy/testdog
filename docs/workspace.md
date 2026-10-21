@@ -232,9 +232,9 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 
 ### 日志按需读取
 
-`GET /api/runs/:id/logs?kind=console` 返回 `{ logs, nextCursor }`。支持 `kind=console|network|all`、`q`、`errors=true`、`stepId`、`untilMs`、`limit`（默认 50，上限 100）和 `cursor`。按独立日志表的持久化序号前进；页面打开对应面板才读取，筛选在服务端完成，展开单条记录后才生成 JSON。
+`GET /api/runs/:id/logs?kind=console` 返回 `{ logs }`。支持 `kind=console|network|all`、`q`、`errors=true`、`stepId`和 `untilMs`。按独立日志表的持久化序号返回全部匹配记录，控制台和网络面板使用虚拟列表连续滚动；页面打开对应面板才读取，筛选在服务端完成，展开单条记录后才生成 JSON。
 
-`GET /api/runs/:id` 只返回执行详情，不携带浏览器日志。导出先读取详情，再从日志专用接口以 `kind=all` 按游标收集全部日志，保留原报告中的日志内容。实时更新只发布日志版本号以刷新日志面板，详情缓存不保存日志副本。步骤和附件元数据仍用于时间线与播放器。
+`GET /api/runs/:id` 只返回执行详情，不携带浏览器日志。导出先读取详情，再从日志专用接口以 `kind=all` 读取全部日志，保留原报告中的日志内容。实时更新只发布日志版本号以刷新日志面板，详情缓存不保存日志副本。步骤和附件元数据仍用于时间线与播放器。
 
 Console 与 Network 日志在录制和重放中均会采集，失败或停止后保留已采集记录；每次执行最多 2000 条，单条文本最多 16000 字符。记录请求方法、URL、状态码、耗时、请求/响应头和失败原因，认证、Cookie 与 token 字段隐藏，不采集请求/响应正文。历史执行不会补录。
 

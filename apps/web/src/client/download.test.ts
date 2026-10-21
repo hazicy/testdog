@@ -42,19 +42,17 @@ afterEach(() => {
 });
 const response = (data: unknown) => ({ json: async () => data });
 
-it('exports all log pages in persistence order without requesting logs through details', async () => {
+it('exports all logs in persistence order without requesting logs through details', async () => {
   const network: BrowserLog = { ...log, id: 'network', kind: 'network', status: 200 };
 
   transport.get
     .mockReturnValueOnce(response({ run: { id: 'run', steps: [] } }))
-    .mockReturnValueOnce(response({ logs: [log], nextCursor: '100' }))
-    .mockReturnValueOnce(response({ logs: [network], nextCursor: null }));
+    .mockReturnValueOnce(response({ logs: [log, network] }));
   await downloadRunReport('run');
 
   expect(transport.get.mock.calls.map(([url]) => url)).toEqual([
     '/api/runs/run',
-    '/api/runs/run/logs?kind=all&limit=100',
-    '/api/runs/run/logs?kind=all&limit=100&cursor=100',
+    '/api/runs/run/logs?kind=all',
   ]);
   expect(JSON.parse(await blob!.text())).toEqual({
     id: 'run',
@@ -64,21 +62,18 @@ it('exports all log pages in persistence order without requesting logs through d
   expect(click).toHaveBeenCalledOnce();
 });
 
-it('fails without downloading a partial report when a later log page fails, and permits retry', async () => {
-  transport.get
-    .mockReturnValueOnce(response({ run: { id: 'run' } }))
-    .mockReturnValueOnce(response({ logs: [log], nextCursor: '100' }))
-    .mockReturnValueOnce({
-      json: async () => {
-        throw new Error('日志暂时不可用');
-      },
-    });
+it('fails without downloading a partial report when the log request fails, and permits retry', async () => {
+  transport.get.mockReturnValueOnce(response({ run: { id: 'run' } })).mockReturnValueOnce({
+    json: async () => {
+      throw new Error('日志暂时不可用');
+    },
+  });
   await expect(downloadRunReport('run')).rejects.toThrow('日志暂时不可用');
   expect(click).not.toHaveBeenCalled();
   expect(blob).toBeUndefined();
   transport.get
     .mockReturnValueOnce(response({ run: { id: 'run' } }))
-    .mockReturnValueOnce(response({ logs: [log], nextCursor: null }));
+    .mockReturnValueOnce(response({ logs: [log] }));
   await downloadRunReport('run');
   expect(JSON.parse(await blob!.text())).toEqual({ id: 'run', browserLogs: [log] });
 });

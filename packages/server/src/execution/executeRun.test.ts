@@ -43,11 +43,7 @@ let experimentRequests = 0;
 
 async function logs(id: string) {
   return (
-    await listBrowserLogs(
-      id,
-      new Request(`http://localhost/api/runs/${id}/logs?kind=all&limit=100`),
-      null,
-    )
+    await listBrowserLogs(id, new Request(`http://localhost/api/runs/${id}/logs?kind=all`), null)
   ).logs;
 }
 

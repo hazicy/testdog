@@ -76,7 +76,7 @@ export type BrowserLog = {
   responseHeaders?: Record<string, string>;
   failure?: string;
 };
-export type BrowserLogPage = { logs: BrowserLog[]; nextCursor: string | null };
+export type BrowserLogList = { logs: BrowserLog[] };
 export type TestRun = {
   realtimeRevision?: number;
   browserLogRevision?: number;
