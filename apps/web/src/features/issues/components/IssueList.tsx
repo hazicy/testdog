@@ -42,6 +42,8 @@ import { IssueEditor, options } from '@/features/issues/components/IssueEditor';
 import { Icon } from '@iconify/react/offline';
 import plusIcon from '@iconify-icons/lucide/plus';
 import filterIcon from '@iconify-icons/lucide/funnel';
+import environmentIcon from '@iconify-icons/lucide/box';
+import externalLinkIcon from '@iconify-icons/lucide/external-link';
 import checkIcon from '@iconify-icons/lucide/circle-check';
 import reopenIcon from '@iconify-icons/lucide/rotate-ccw';
 import editIcon from '@iconify-icons/lucide/pencil';
@@ -322,21 +324,35 @@ export function IssueList() {
                                 </Popover.Title>
                                 {issue.latestOccurrence && (
                                   <div className={styles.issueContext}>
+                                    <span className={styles.environment}>
+                                      <Icon
+                                        icon={environmentIcon}
+                                        className={styles.actionIcon}
+                                        aria-hidden="true"
+                                      />
+                                      <span className={styles.contextText}>
+                                        {environmentLabel(issue.latestOccurrence)}
+                                      </span>
+                                    </span>
                                     <Link
                                       href={`/runs/${issue.latestOccurrence.runId}`}
                                       className={styles.runLink}
                                       title={runName}
                                     >
-                                      {runName}
+                                      <span className={styles.contextText}>{runName}</span>
                                     </Link>
-                                    <span aria-hidden="true">·</span>
-                                    <span className={styles.environment}>
-                                      {environmentLabel(issue.latestOccurrence)}
-                                    </span>
                                   </div>
                                 )}
-                                <Link href={`/issues/${issue.id}`} className={styles.link}>
+                                <Link
+                                  href={`/issues/${issue.id}`}
+                                  className={clsx(styles.link, styles.detailsLink)}
+                                >
                                   {t('viewDetails')}
+                                  <Icon
+                                    icon={externalLinkIcon}
+                                    className={styles.actionIcon}
+                                    aria-hidden="true"
+                                  />
                                 </Link>
                               </Popover.Popup>
                             </Popover.Positioner>

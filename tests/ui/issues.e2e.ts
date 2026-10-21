@@ -580,7 +580,7 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await expect(panel.getByText('待确认', { exact: true })).toBeVisible();
   await expect(panel.getByText('P1', { exact: true })).toBeVisible();
   await expect(panel.getByRole('combobox')).toHaveCount(0);
-  await expect(panel.getByRole('link', { name: '查看问题详情 ↗', exact: true })).toHaveAttribute(
+  await expect(panel.getByRole('link', { name: '查看问题详情', exact: true })).toHaveAttribute(
     'href',
     `/issues/${issueId}`,
   );

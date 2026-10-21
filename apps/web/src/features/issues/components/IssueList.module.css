@@ -33,7 +33,7 @@
 .issueSummary {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-1);
   min-width: 0;
 }
 .issueLink {
@@ -86,6 +86,7 @@
   gap: var(--space-1);
 }
 .actionIcon {
+  flex-shrink: 0;
   width: 1rem;
   height: 1rem;
 }
@@ -93,29 +94,39 @@
 .issueContext {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: 0;
   margin-bottom: var(--space-3);
   color: var(--page-muted);
   font-size: var(--text-sm);
 }
-.runLink {
+.runLink,
+.environment,
+.detailsLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.contextText {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-
+}
+.environment {
+  flex-shrink: 0;
+  max-width: 40%;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--neutral-soft);
+  color: var(--page-muted);
+}
+.runLink {
   @media (hover: hover) {
     &:hover {
       color: var(--brand);
       text-decoration: underline;
     }
   }
-}
-.environment {
-  flex-shrink: 0;
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }

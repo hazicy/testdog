@@ -451,7 +451,7 @@
     "verificationHint": "从出现记录发起验证。通过后，请确认结果并标记已解决。",
     "viewVerificationRun": "查看回归执行",
     "noScreenshots": "未归档截图证据。",
-    "viewDetails": "查看问题详情 ↗",
+    "viewDetails": "查看问题详情",
     "linkedIssues": "关联问题",
     "chooseRunIssue": "选择执行问题",
     "loadMore": "加载更多问题",

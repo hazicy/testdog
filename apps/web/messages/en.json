@@ -451,7 +451,7 @@
     "verificationHint": "Start verification from an occurrence. Review passing results and mark the issue resolved.",
     "viewVerificationRun": "View verification run",
     "noScreenshots": "No archived screenshots.",
-    "viewDetails": "View issue details ↗",
+    "viewDetails": "View issue details",
     "linkedIssues": "Linked issues",
     "chooseRunIssue": "Choose run issue",
     "loadMore": "Load more issues",
