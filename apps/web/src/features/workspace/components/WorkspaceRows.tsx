@@ -263,13 +263,7 @@ export function WorkspaceRows({
                     {run.name}
                   </span>
                 </Link>
-                <p className={workspaceStyles.workspaceIndexDescription}>
-                  <span className={workspaceStyles.workspaceIndexId}>#{run.id.slice(0, 8)}</span>
-                  <span className={workspaceStyles.workspaceIndexMetaSeparator} aria-hidden="true">
-                    ·
-                  </span>
-                  {address(run.url)}
-                </p>
+                <p className={workspaceStyles.workspaceIndexDescription}>{address(run.url)}</p>
               </TableCell>
               <TableCell>
                 <Status status={run.status} />
