@@ -262,124 +262,141 @@ export function IssueList() {
                 </TableHead>
                 <TableHead>{t('severity')}</TableHead>
                 <TableHead>{t('issue')}</TableHead>
-                <TableHead>{t('environment')}</TableHead>
                 <TableHead>{t('runCount')}</TableHead>
                 <TableHead>{t('lastSeenSort')}</TableHead>
                 <TableHead>{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((issue) => (
-                <TableRow key={issue.id}>
-                  <TableCell>
-                    <Checkbox
-                      aria-label={t('selectIssueRow', { title: issue.title })}
-                      checked={selected.has(issue.id)}
-                      onCheckedChange={(checked) => toggleSelection([issue.id], checked)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      className={styles.severityBadge}
-                      tone={
-                        issue.severity === 'critical' || issue.severity === 'high'
-                          ? 'danger'
-                          : issue.severity === 'medium'
-                            ? 'warning'
-                            : 'neutral'
-                      }
-                      title={issueSeverities[issue.severity]}
-                    >
-                      {issueSeverities[issue.severity]}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <div className={styles.issueSummary}>
-                      <Popover.Root>
-                        <Popover.Trigger
-                          openOnHover
-                          nativeButton={false}
-                          role="link"
-                          className={clsx(workspaceStyles.workspaceIndexName, styles.issueLink)}
-                          render={<Link href={`/issues/${issue.id}`} />}
-                        >
-                          <span className={styles.title}>{issue.title}</span>
-                        </Popover.Trigger>
-                        <Popover.Portal>
-                          <Popover.Positioner
-                            side="bottom"
-                            align="start"
-                            sideOffset={8}
-                            className={styles.positioner}
-                          >
-                            <Popover.Popup className={styles.popup}>
-                              <Popover.Title className={styles.popupTitle}>
-                                {issue.title}
-                              </Popover.Title>
-                              <Link href={`/issues/${issue.id}`} className={styles.link}>
-                                {t('viewDetails')}
-                              </Link>
-                            </Popover.Popup>
-                          </Popover.Positioner>
-                        </Popover.Portal>
-                      </Popover.Root>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge>{environmentLabel(issue.latestOccurrence)}</StatusBadge>
-                  </TableCell>
-                  <TableCell>{issue.runCount ?? 0}</TableCell>
-                  <TableCell
-                    className={clsx(workspaceStyles.workspaceIndexTime, styles.tableCell)}
-                    title={format.dateTime(new Date(issue.lastSeen ?? issue.createdAt), {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })}
-                  >
-                    {relativeTime(issue.lastSeen ?? issue.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    <div className={styles.rowActions}>
-                      <Tooltip content={issue.status === 'closed' ? t('reopen') : t('resolve')}>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          aria-label={issue.status === 'closed' ? t('reopen') : t('resolve')}
-                          disabled={!!pendingId}
-                          onClick={() => void toggleStatus(issue)}
-                        >
-                          <Icon
-                            icon={issue.status === 'closed' ? reopenIcon : checkIcon}
-                            className={styles.actionIcon}
-                            aria-hidden="true"
-                          />
-                        </Button>
-                      </Tooltip>
-                      <WorkspaceRowMenu
-                        label={t('issueActions')}
-                        actions={[
-                          {
-                            label: t('editIssue'),
-                            accessibleLabel: t('editIssue'),
-                            icon: editIcon,
-                            disabled: !!pendingId,
-                            onSelect: () => setEditing(issue),
-                          },
-                          {
-                            label: t('deleteIssue'),
-                            accessibleLabel: t('deleteIssue'),
-                            icon: deleteIcon,
-                            disabled: !!pendingId,
-                            danger: true,
-                            separatorBefore: true,
-                            onSelect: () => setDeleting(issue),
-                          },
-                        ]}
+              {items.map((issue) => {
+                const runName =
+                  issue.latestOccurrence?.snapshot.name.replace(/\s*·\s*草稿试跑$/u, '').trim() ||
+                  t('run');
+
+                return (
+                  <TableRow key={issue.id}>
+                    <TableCell>
+                      <Checkbox
+                        aria-label={t('selectIssueRow', { title: issue.title })}
+                        checked={selected.has(issue.id)}
+                        onCheckedChange={(checked) => toggleSelection([issue.id], checked)}
                       />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        className={styles.severityBadge}
+                        tone={
+                          issue.severity === 'critical' || issue.severity === 'high'
+                            ? 'danger'
+                            : issue.severity === 'medium'
+                              ? 'warning'
+                              : 'neutral'
+                        }
+                        title={issueSeverities[issue.severity]}
+                      >
+                        {issueSeverities[issue.severity]}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell>
+                      <div className={styles.issueSummary}>
+                        <Popover.Root>
+                          <Popover.Trigger
+                            openOnHover
+                            nativeButton={false}
+                            role="link"
+                            className={clsx(workspaceStyles.workspaceIndexName, styles.issueLink)}
+                            render={<Link href={`/issues/${issue.id}`} />}
+                          >
+                            <span className={styles.title}>{issue.title}</span>
+                          </Popover.Trigger>
+                          <Popover.Portal>
+                            <Popover.Positioner
+                              side="bottom"
+                              align="start"
+                              sideOffset={8}
+                              className={styles.positioner}
+                            >
+                              <Popover.Popup className={styles.popup}>
+                                <Popover.Title className={styles.popupTitle}>
+                                  {issue.title}
+                                </Popover.Title>
+                                {issue.latestOccurrence && (
+                                  <div className={styles.issueContext}>
+                                    <Link
+                                      href={`/runs/${issue.latestOccurrence.runId}`}
+                                      className={styles.runLink}
+                                      title={runName}
+                                    >
+                                      {runName}
+                                    </Link>
+                                    <span aria-hidden="true">·</span>
+                                    <span className={styles.environment}>
+                                      {environmentLabel(issue.latestOccurrence)}
+                                    </span>
+                                  </div>
+                                )}
+                                <Link href={`/issues/${issue.id}`} className={styles.link}>
+                                  {t('viewDetails')}
+                                </Link>
+                              </Popover.Popup>
+                            </Popover.Positioner>
+                          </Popover.Portal>
+                        </Popover.Root>
+                      </div>
+                    </TableCell>
+                    <TableCell>{issue.runCount ?? 0}</TableCell>
+                    <TableCell
+                      className={clsx(workspaceStyles.workspaceIndexTime, styles.tableCell)}
+                      title={format.dateTime(new Date(issue.lastSeen ?? issue.createdAt), {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    >
+                      {relativeTime(issue.lastSeen ?? issue.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <div className={styles.rowActions}>
+                        <Tooltip content={issue.status === 'closed' ? t('reopen') : t('resolve')}>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label={issue.status === 'closed' ? t('reopen') : t('resolve')}
+                            disabled={!!pendingId}
+                            onClick={() => void toggleStatus(issue)}
+                          >
+                            <Icon
+                              icon={issue.status === 'closed' ? reopenIcon : checkIcon}
+                              className={styles.actionIcon}
+                              aria-hidden="true"
+                            />
+                          </Button>
+                        </Tooltip>
+                        <WorkspaceRowMenu
+                          label={t('issueActions')}
+                          actions={[
+                            {
+                              label: t('editIssue'),
+                              accessibleLabel: t('editIssue'),
+                              icon: editIcon,
+                              disabled: !!pendingId,
+                              onSelect: () => setEditing(issue),
+                            },
+                            {
+                              label: t('deleteIssue'),
+                              accessibleLabel: t('deleteIssue'),
+                              icon: deleteIcon,
+                              disabled: !!pendingId,
+                              danger: true,
+                              separatorBefore: true,
+                              onSelect: () => setDeleting(issue),
+                            },
+                          ]}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

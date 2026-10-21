@@ -284,7 +284,10 @@ test('shows issue summaries and filters environment, date and ordering', async (
             ...initial,
             runCount: 2,
             lastSeen: new Date().toISOString(),
-            latestOccurrence: occurrence,
+            latestOccurrence: {
+              ...occurrence,
+              snapshot: { ...occurrence.snapshot, name: '验证订单 · 草稿试跑' },
+            },
           },
           {
             ...initial,
@@ -302,6 +305,12 @@ test('shows issue summaries and filters environment, date and ordering', async (
   await page.goto('/issues');
   await expect(page.getByRole('link', { name: '订单金额错误', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: '2', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: '环境', exact: true })).toHaveCount(0);
+  const issueRow = page
+    .getByRole('row')
+    .filter({ has: page.getByRole('link', { name: '订单金额错误', exact: true }) });
+
+  await expect(issueRow.getByRole('link', { name: '验证订单', exact: true })).toHaveCount(0);
   const severityWidth = (await page
     .getByRole('columnheader', { name: '严重程度', exact: true })
     .boundingBox())!.width;
@@ -317,6 +326,10 @@ test('shows issue summaries and filters environment, date and ordering', async (
   await page.getByRole('link', { name: '订单金额错误', exact: true }).hover();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('dialog').getByText('订单金额错误', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('dialog').getByRole('link', { name: '验证订单', exact: true }),
+  ).toHaveAttribute('href', `/runs/${runId}`);
+  await expect(page.getByRole('dialog').getByText('web', { exact: true })).toBeVisible();
   await page.getByRole('columnheader', { name: '严重程度' }).hover();
   await expect(page.getByRole('dialog')).toBeHidden();
   await page.screenshot({ path: testInfo.outputPath('issue-list.png'), fullPage: true });

@@ -142,7 +142,7 @@
   }
 
   &.isIssues {
-    min-width: 56.25rem;
+    min-width: 48.25rem;
   }
 
   &.isIssues td:nth-child(3) {
@@ -556,7 +556,7 @@
   }
 
   & .workspaceIndexTable.isIssues {
-    min-width: 56.25rem;
+    min-width: 48.25rem;
     & th:first-child {
       width: 3rem;
     }
@@ -567,12 +567,9 @@
       width: auto;
     }
     & th:nth-child(4) {
-      width: 8rem;
-    }
-    & th:nth-child(5) {
       width: 7rem;
     }
-    & th:nth-child(6) {
+    & th:nth-child(5) {
       width: 8rem;
     }
     & th:last-child {
