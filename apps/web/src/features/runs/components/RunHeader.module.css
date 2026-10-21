@@ -80,18 +80,28 @@
     justify-self: center;
   }
   & > button {
+    height: var(--space-7);
+    min-height: var(--space-7);
+    padding-block: 0;
     border-radius: var(--radius-sm);
+    @media (pointer: coarse) {
+      height: var(--control-height-touch);
+      min-height: var(--control-height-touch);
+    }
   }
   & > button:focus-visible {
     outline-offset: -0.125rem;
   }
 }
 .executionButton {
-  gap: var(--space-0-5);
+  gap: var(--space-1-5);
   padding-inline: var(--space-2);
 }
 .recordButton {
-  height: 2rem;
+  width: var(--space-7);
+  @media (pointer: coarse) {
+    width: var(--control-height-touch);
+  }
 }
 .layoutActions {
   display: flex;
