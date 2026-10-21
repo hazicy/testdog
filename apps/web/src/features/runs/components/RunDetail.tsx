@@ -161,7 +161,7 @@ export function RunDetail({
   const durationMs = Math.max(run?.durationMs || 0, frames.at(-1)?.elapsedMs || 0);
 
   const selectStep = useCallback(
-    (step: ExecutionStep, source: EvidenceSource = 'steps') => {
+    (step: ExecutionStep, source: EvidenceSource = 'steps', issueId?: string) => {
       const positions = stepFrames.get(step.id);
       const index = positions ? (positions.after ?? positions.first) : undefined;
 
@@ -169,7 +169,8 @@ export function RunDetail({
         type: 'inspect',
         source,
         stepId: step.id,
-        issueId: runIssues.find((entry) => entry.occurrence.stepId === step.id)?.occurrence.id,
+        issueId:
+          issueId ?? runIssues.find((entry) => entry.occurrence.stepId === step.id)?.occurrence.id,
         cursor: { kind: 'evidence', stepId: step.id, index },
         elapsedMs:
           index === undefined
@@ -311,9 +312,13 @@ export function RunDetail({
               selectedIssueId ??
               runIssues.find((entry) => entry.occurrence.stepId === selectedStep?.id)?.occurrence.id
             }
-            onSelect={selectRunIssue}
-            onFrame={(frame) => showFrame(frame, 'issues')}
-            onUpdated={refreshIssues}
+            onLocate={(entry) => {
+              const step = steps.get(entry.occurrence.stepId ?? '');
+
+              if (step) selectStep(step, 'steps', entry.occurrence.id);
+              else selectRunIssue(entry);
+            }}
+            onRetry={refreshIssues}
             error={issuesError?.message}
             loading={issuesLoading}
             hasMore={!!issuePages?.at(-1)?.nextCursor}

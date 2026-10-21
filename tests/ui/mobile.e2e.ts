@@ -116,7 +116,7 @@ for (const viewport of [
       ['回放', page.getByRole('region', { name: '浏览器画面', exact: true })],
       ['录制脚本', page.locator('.cm-editor')],
       ['AI 调用', page.getByRole('region', { name: 'AI 调用记录', exact: true })],
-      ['问题', page.getByText('本次执行暂无关联问题', { exact: true })],
+      ['关联问题', page.getByText('本次执行暂无关联问题', { exact: true })],
       ['控制台', runPage.consoleLogs],
       ['网络', runPage.networkLogs],
       ['计划', runPage.planViewport],

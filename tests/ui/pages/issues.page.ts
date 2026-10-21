@@ -25,11 +25,11 @@ export class IssuesPage {
   }
 
   get linkedIssues() {
-    return this.page.getByRole('region', { name: '执行关联问题', exact: true });
+    return this.page.getByRole('region', { name: '关联问题', exact: true });
   }
 
   get issuesButton() {
-    return this.page.getByRole('button', { name: '问题', exact: true });
+    return this.page.getByRole('button', { name: '关联问题', exact: true });
   }
 
   async goto() {

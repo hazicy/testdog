@@ -466,6 +466,7 @@
     "occurrenceCount": "Occurrences · {count}",
     "environmentCount": "{count, plural, one {# environment} other {# environments}}",
     "issueEvidence": "Issue evidence: {stage}",
+    "locateStep": "Locate step",
     "replayIssue": "▶ Replay issue {time}",
     "severityText": "Severity: {value}",
     "reproductionCount": "Steps to reproduce · {count}",
@@ -768,7 +769,7 @@
       "execution": "Playback",
       "logs": "AI calls",
       "console": "Console",
-      "issues": "Issues",
+      "issues": "Linked issues",
       "plan": "Plan",
       "recording": "Recording script",
       "network": "Network"

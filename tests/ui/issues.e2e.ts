@@ -433,7 +433,7 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
       artifacts: [frame],
     },
   };
-  let issue = {
+  const issue = {
     ...initial,
     latestOccurrence: {
       ...occurrence,
@@ -449,14 +449,6 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await page.route('**/api/issues?*', (route) =>
     route.fulfill({ json: { issues: [issue], nextCursor: null } }),
   );
-  await page.route(`**/api/issues/${issueId}`, (route) => {
-    const patch = route.request().postDataJSON();
-
-    expect(patch.version).toBe(issue.version);
-    issue = { ...issue, ...patch, version: patch.version + 1 };
-
-    return route.fulfill({ json: { issue } });
-  });
   await page.route(`**/api/runs/${runId}/artifacts/${frame.id}`, (route) =>
     route.fulfill({
       contentType: 'image/png',
@@ -475,35 +467,23 @@ test('opens an issue tab from the transcript and synchronizes it with replay', a
   await transcript.getByRole('button', { name: '查看问题：订单金额错误' }).click();
   await expect(issuesPage.issuesButton).toHaveAttribute('aria-pressed', 'true');
   await expect(transcript).toBeHidden();
-  await expect(panel.getByText('预期 EXPECTED')).toBeVisible();
-  await expect(panel.getByText('实际为120', { exact: true })).toBeVisible();
-  await expect(page.getByText('其他执行实际为999')).toHaveCount(0);
-  await expect(page.locator('[data-ui~="run-studio"] > [aria-label="执行关联问题"]')).toHaveCount(
-    0,
+  await expect(panel.getByRole('link', { name: '订单金额错误', exact: true })).toBeVisible();
+  await expect(panel.getByText('待确认', { exact: true })).toBeVisible();
+  await expect(panel.getByText('严重', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('combobox')).toHaveCount(0);
+  await expect(panel.getByRole('link', { name: '查看问题详情 ↗', exact: true })).toHaveAttribute(
+    'href',
+    `/issues/${issueId}`,
   );
   await expect(runPage.playbackTime).toHaveText('00:26 / 00:32');
-  await page.screenshot({ path: testInfo.outputPath('run-issues-default.png'), fullPage: true });
-  await expect(panel.getByText('查看订单', { exact: true })).toBeVisible();
-  await panel.getByText('截图证据 · 1', { exact: true }).click();
-  await panel.getByRole('button', { name: '回放证据 00:26' }).click();
-  await expect(runPage.playbackTime).toHaveText('00:26 / 00:32');
-  await expect(panel.getByRole('button', { name: '复制修复提示词', exact: true })).toHaveCount(0);
-  await panel.getByRole('combobox', { name: '问题状态：订单金额错误' }).click();
-  await page.getByRole('option', { name: '已关闭', exact: true }).click();
-  await expect(panel.getByRole('combobox', { name: '问题状态：订单金额错误' })).toContainText(
-    '已关闭',
-  );
-  await panel.locator('[data-ui~="run-issue-body"]').evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-  });
-  await expect(panel.getByRole('link', { name: '查看问题详情 ↗', exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('run-issues.png'), fullPage: true });
-  await runPage.stepsButton.click();
+  await panel.getByRole('button', { name: '定位步骤', exact: true }).click();
   await expect(transcript).toBeVisible();
+  await expect(transcript.getByText('实际为120', { exact: true })).toBeVisible();
   await expect(runPage.playbackTime).toHaveText('00:26 / 00:32');
 });
 
-test('selects among issues in the issue tab and shows a clear empty state', async ({
+test('lists linked issues together and shows a clear empty state', async ({
   page,
   issuesPage,
   runPage,
@@ -527,17 +507,14 @@ test('selects among issues in the issue tab and shows a clear empty state', asyn
   await issuesPage.issuesButton.click();
   const panel = issuesPage.linkedIssues;
 
-  await expect(panel.getByText('本次执行 · 2 个问题')).toBeVisible();
-  await panel.getByRole('combobox', { name: '选择执行问题' }).click();
-  await page.getByRole('option', { name: '02 · 优惠金额错误', exact: true }).click();
-  await expect(panel.getByRole('heading', { name: '优惠金额错误', exact: true })).toBeVisible();
-  await expect(panel.getByText('优惠金额为10', { exact: true })).toBeVisible();
-  await expect(panel.getByText('实际为120', { exact: true })).toHaveCount(0);
-  await expect(runPage.playbackButton).toHaveAttribute('aria-pressed', 'true');
+  await expect(panel.getByRole('listitem')).toHaveCount(2);
+  await expect(panel.getByRole('link', { name: '订单金额错误', exact: true })).toBeVisible();
+  await expect(panel.getByRole('link', { name: '优惠金额错误', exact: true })).toBeVisible();
+  await expect(panel.getByRole('combobox')).toHaveCount(0);
   entries = [];
   await page.reload();
   await issuesPage.issuesButton.click();
-  await expect(panel.getByRole('heading', { name: '本次执行暂无关联问题' })).toBeVisible();
+  await expect(panel.getByText('本次执行暂无关联问题', { exact: true })).toBeVisible();
 });
 
 test('English issue list and detail translate labels while preserving issue content', async ({

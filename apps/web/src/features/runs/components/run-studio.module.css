@@ -64,35 +64,6 @@
   }
 }
 
-.runIssuesView,
-.runIssueCard {
-  display: flex;
-  height: 100%;
-  min-height: 0;
-  flex-direction: column;
-}
-.runIssueCard {
-  flex: 1;
-}
-.runIssueBody {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: var(--space-5);
-}
-.runIssueHeader,
-.runIssueActions {
-  flex-shrink: 0;
-  padding: var(--space-4) var(--space-5);
-  background: var(--surface-raised);
-}
-.runIssueHeader {
-  border-bottom: var(--border-width) solid var(--page-line);
-}
-.runIssueActions {
-  border-top: var(--border-width) solid var(--page-line);
-}
-
 .recordingEditor {
   overflow: hidden;
 }
