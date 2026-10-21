@@ -27,6 +27,9 @@
 .tableHeader {
   background-color: transparent;
 }
+.region .severityBadge[data-slot='status'] {
+  font-size: var(--text-xs);
+}
 .issueSummary {
   display: flex;
   align-items: center;

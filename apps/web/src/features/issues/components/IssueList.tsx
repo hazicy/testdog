@@ -245,6 +245,7 @@ export function IssueList() {
                   </TableCell>
                   <TableCell>
                     <StatusBadge
+                      className={styles.severityBadge}
                       tone={
                         issue.severity === 'critical' || issue.severity === 'high'
                           ? 'danger'
