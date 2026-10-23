@@ -199,7 +199,7 @@ getByPlaceholder、getByTestId、getByText、locator 和 nth。动作支持 goto
 
 ## 多平台扩展（实施中）
 
-用例支持 versioned `target`，Web 的 `url` 与原生的 `appId/deviceProfileId` 分别校验。新 Web 用例默认为 Pixel 7 / Chromium；迁移只为历史记录回填 legacy-desktop，不改变原录制。
+用例支持 versioned `target`，Web 的 `url` 与原生的 `appId/deviceProfileId` 分别校验。新 Web 用例在编辑器中默认为 legacy-desktop / Chromium，可在设置中选择 Pixel 7 / Chromium 或 iPhone 13 / WebKit；迁移只为历史记录回填 legacy-desktop，不改变原录制。
 
 ```json
 {
