@@ -11,7 +11,7 @@ export function Brand({
   return (
     <span className={styles.brand}>
       {monochrome ? (
-        <span className={styles.monochrome· Mark} aria-hidden="true" />
+        <span className={styles.monochromeMark} aria-hidden="true" />
       ) : (
         <Image src="/brand/testdog-mark.svg" alt="" width={32} height={32} unoptimized />
       )}
