@@ -6,7 +6,7 @@ import styles from './Settings.module.css';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { authClient } from '@/client/auth';
@@ -31,7 +31,7 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
   const [error, setError] = useState('');
   const toastManager = useToastManager();
 
-  async function save(event: FormEvent<HTMLFormElement>) {
+  async function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
     setError('');
@@ -105,7 +105,7 @@ function PasswordForm() {
   const [error, setError] = useState('');
   const toastManager = useToastManager();
 
-  async function save(event: FormEvent<HTMLFormElement>) {
+  async function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
     const form = event.currentTarget;

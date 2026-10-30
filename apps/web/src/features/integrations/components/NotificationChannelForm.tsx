@@ -48,7 +48,7 @@ export function NotificationChannelForm({
   const [dirty, setDirty] = useState(false);
   const channel = integration.channel;
 
-  async function save(event: React.FormEvent) {
+  async function save(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError('');

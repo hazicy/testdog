@@ -55,7 +55,7 @@ export function IssueEditor({
     fetchJson,
   );
 
-  async function save(event: React.FormEvent) {
+  async function save(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError('');

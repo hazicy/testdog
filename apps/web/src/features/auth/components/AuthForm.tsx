@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 
 import styles from './AuthForm.module.css';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/client/auth';
@@ -39,7 +39,7 @@ export function AuthForm({
       : '',
   );
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
     const data = new FormData(event.currentTarget);

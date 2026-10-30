@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import useSWR from 'swr';
 import { authClient } from '@/client/auth';
@@ -58,7 +58,7 @@ export function TeamSettings({ invitation }: { invitation?: string }) {
     }
   }
 
-  function submit(event: FormEvent<HTMLFormElement>, action: 'create' | 'rename' | 'invite') {
+  function submit(event: SubmitEvent<HTMLFormElement>, action: 'create' | 'rename' | 'invite') {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
 

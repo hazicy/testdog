@@ -34,7 +34,7 @@ export function BrowserlessForm({
   const [error, setError] = useState('');
   const toastManager = useToastManager();
 
-  async function save(event: React.FormEvent) {
+  async function save(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError('');
